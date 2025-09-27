@@ -1,0 +1,20 @@
+plugins {
+    id "com.github.node-gradle.node" version "7.0.2"
+}
+
+node {
+    version = "16.13.1"   // Node.js 版本
+    download = false       // 自动下载 Node 而不是依赖本地
+    yarnVersion = "1.22.22" // 固定 Yarn 版本
+}
+
+tasks.register("yarnInstall", YarnTask) {
+    args = ["install"]
+}
+
+tasks.register("buildFrontend", YarnTask) {
+    dependsOn("yarnInstall")
+    args = ["build"]
+    inputs.dir("src")
+    outputs.dir("build")
+}

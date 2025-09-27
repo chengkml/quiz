@@ -1,0 +1,12 @@
+/backend/logs/
+/backend/gradle/
+/frontend/node_modules/
+/.idea/
+/.gradle/
+/backend/build/
+/backend/.gradle/
+/gradle/
+/backend/gradlew
+/backend/gradlew.bat
+/gradlew
+/gradlew.bat
