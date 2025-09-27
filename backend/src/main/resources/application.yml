@@ -1,0 +1,50 @@
+server:
+  port: 8089
+  servlet:
+    context-path: /quiz
+    session:
+      timeout: 60m
+
+spring:
+  application:
+    name: quiz
+  profiles:
+    active: prod
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  
+  # 数据库配置 - 可以在这里覆盖核心模块的配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/quiz
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:1qaz!QAZ}
+    
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: false
+  ai:
+    openai:
+      base-url: https://api.siliconflow.cn
+      api-key: sk-wiljwnkqhwubaiajzfsfjdlcaqewstqaifvpgccbquemimpe
+      chat:
+        options:
+          model: Qwen/Qwen3-Next-80B-A3B-Instruct
+
+# 日志配置
+logging:
+  level:
+    com.ck: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/quiz.log
