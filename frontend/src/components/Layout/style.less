@@ -1,0 +1,217 @@
+.app-layout {
+  height: 100vh;
+  
+  .app-sider {
+    background: #fff;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    
+    .side-menu {
+      border-right: none;
+      padding-top: 16px;
+      
+      .arco-menu-item {
+        margin: 4px 8px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        position: relative;
+        
+        &.arco-menu-selected {
+          color: #165dff;
+          background-color: #e8f4ff;
+          font-weight: 500;
+          box-shadow: 0 2px 4px rgba(22, 93, 255, 0.1);
+          
+          &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 20px;
+            background-color: #165dff;
+            border-radius: 0 2px 2px 0;
+          }
+          
+          &::after {
+            display: none;
+          }
+          
+          .arco-icon {
+            color: #165dff;
+          }
+        }
+        
+        &:hover:not(.arco-menu-selected) {
+          background-color: #f2f3f5;
+          transform: translateX(2px);
+        }
+      }
+      
+      .arco-menu-item-group {
+        .arco-menu-item-group-title {
+          padding: 8px 16px;
+          font-size: 12px;
+          color: #86909c;
+          font-weight: 500;
+        }
+      }
+      
+      .arco-menu-submenu {
+        .arco-menu-submenu-title {
+          margin: 4px 8px;
+          border-radius: 6px;
+          
+          &:hover {
+            background-color: #f2f3f5;
+          }
+        }
+        
+        .arco-menu-submenu-content {
+          .arco-menu-item {
+            padding-left: 48px;
+          }
+        }
+      }
+    }
+  }
+  
+  .app-header {
+    background: #fff;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: 44px;
+    z-index: 101;
+    
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      height: 100%;
+      
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        flex: 1;
+        min-width: 0;
+        
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          
+          img {
+            height: 32px;
+            width: auto;
+          }
+          
+          .logo-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d2129;
+          }
+        }
+        
+        .top-menu {
+          border-bottom: none;
+          background: transparent;
+          flex: 1;
+          
+          .arco-menu-selected-label {
+            display:none;
+          }
+          .arco-menu-inner {
+            padding: 0;
+          }
+          
+          .arco-menu-item {
+            padding: 0 16px;
+            height: 40px;
+            line-height: 40px;
+            border-radius: 6px;
+            margin: 0 4px;
+            
+            &.arco-menu-selected {
+              color: #165dff;
+              
+              &::after {
+                display: none;
+              }
+            }
+            
+            &:hover {
+              background-color: #f2f3f5;
+            }
+          }
+        }
+      }
+      
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        
+        .user-dropdown-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #4e5969;
+          font-size: 14px;
+          padding: 8px 12px;
+          border-radius: 6px;
+          
+          .user-name {
+            margin: 0 4px;
+          }
+          
+          &:hover {
+            color: #165dff;
+            background-color: #f2f3f5;
+          }
+        }
+      }
+    }
+  }
+  
+  .app-content {
+    margin: 0;
+    background: #f2f3f5;
+    overflow-y: auto;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .app-footer {
+    background: #fff;
+    padding: 0;
+    border-top: 1px solid #f0f0f0;
+    
+    .footer-content {
+      text-align: center;
+      padding: 16px;
+      color: #86909c;
+      font-size: 14px;
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .app-layout {
+    .app-sider {
+      width: 200px !important;
+    }
+    
+    .header-content {
+      padding: 0 16px !important;
+      
+      .header-left h1 {
+        font-size: 16px;
+      }
+    }
+    
+  }
+}

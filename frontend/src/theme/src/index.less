@@ -1,0 +1,145 @@
+@import './custom.less';
+@import './modo-color.less';
+@import './prd-color.less';
+
+html, body {
+    overflow: hidden;
+}
+body {
+    font-size: 12px !important;
+}
+span {
+	font-size: 12px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.arco-table-cell-expand-icon button {
+	vertical-align: middle;
+}
+.arco-skeleton {
+    display: inline-block;
+    vertical-align: middle;
+}
+.arco-table {
+    .arco-empty {
+        height: 120px;
+    }
+}
+.arco-skeleton .arco-skeleton-text-row {
+    margin-left: 0px;
+}
+.arco-empty {
+    width: 100%;
+    height: 100%;
+    .arco-empty-wrapper {
+        position: relative;
+        top: 50%;
+        transform: translateY(-40px);
+    }
+}
+.arco-radio-size-large .arco-radio-button-inner {
+    padding: 0px 9px;
+}
+.arco-radio-size-default .arco-radio-button-inner {
+    padding: 0px 5px;
+}
+.arco-radio-size-small .arco-radio-button-inner {
+    padding: 0px 5px;
+}
+.arco-radio-size-mini .arco-radio-button-inner {
+    padding: 0px 3px;
+}
+div.arco-typography,
+p.arco-typography {
+    margin-bottom: 0px !important;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: inherit;
+}
+.arco-typography-simple-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+.moda-tag-text {
+    background-color: transparent !important;
+}
+.arco-rate-inner {
+    font-size: 12px;
+    min-height: 22px;
+}
+.arco-rate-character-full .arco-rate-character-right {
+    color: var(--color-orange-6);
+}
+
+.arco-tree.narrow {
+    .arco-tree-node-indent-block {
+        width: 6px;
+    }
+    .arco-tree-node-title {
+        padding: 3px 0px;
+    }
+    .arco-tree-node-switcher {
+        height: 24px;
+        margin-right: 6px;
+    }
+    &.arco-tree-show-line .arco-tree-node-indent-block::before {
+        left: auto;
+        right: -2px;
+    }
+}
+.arco-select-popup-inner .arco-empty {
+    height: 100px;
+}
+td.arco-table-td.arco-table-operation.arco-table-checkbox {
+    padding: 0px 12px;
+}
+.arco-drawer-content {
+    padding: 12px 12px;
+}
+.arco-drawer-footer {
+    padding: 6px 12px;
+}
+
+.arco-table-pagination .arco-pagination {
+    margin-top: 10px;
+    white-space: pre;
+}
+.quick-menu-wrap {
+    max-height: calc(100vh - 50px);
+    overflow: auto;
+}
+.arco-table-header {
+    scrollbar-color: inherit;
+}
+.arco-notification-http .arco-notification-content {
+    word-break: break-all;
+}
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgba(50,50,50,.25);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    background-clip: padding-box
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(50,50,50,.5)
+}
+
+::-webkit-scrollbar-track {
+    background-color: rgba(50,50,50,.05)
+}
+
+body[theme='datago'] {
+    // --color-menu-light-bg: var(--color-gray-2);
+}

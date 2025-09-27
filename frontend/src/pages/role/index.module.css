@@ -1,0 +1,216 @@
+/* 角色管理页面样式 */
+.roleManagement {
+  padding: 8px;
+  background-color: #f7f8fa;
+  min-height: calc(100vh - 60px);
+}
+
+/* 查询表单样式 */
+.queryForm {
+  background: #fff;
+  padding: 16px 20px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.queryForm .formRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 4px;
+}
+
+.queryForm .formItem {
+  flex: 1;
+  min-width: 180px;
+}
+
+.queryForm .buttonGroup {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.queryForm .arcoFormItem {
+  margin-bottom: 0px;
+}
+
+/* 角色表格样式 */
+.roleTable {
+  background: #fff;
+  padding: 16px 20px 20px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f2f3f5;
+}
+
+.tableTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d2129;
+}
+
+.tableActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 状态标签样式 */
+.statusTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.statusTag.enabled {
+  background-color: #e8f5e8;
+  color: #00b42a;
+}
+
+.statusTag.disabled {
+  background-color: #ffece8;
+  color: #f53f3f;
+}
+
+/* 分页样式 */
+.paginationWrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f2f3f5;
+}
+
+/* 操作按钮样式 */
+.actionButton {
+  padding: 0;
+  margin: 0 4px;
+  font-size: 12px;
+}
+
+.actionButton:first-child {
+  margin-left: 0;
+}
+
+.actionButton:last-child {
+  margin-right: 0;
+}
+
+/* 角色类型标签样式 */
+.roleTypeTag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: #f2f3f5;
+  color: #4e5969;
+}
+
+.roleTypeTag.system {
+  background-color: #e8f3ff;
+  color: #165dff;
+}
+
+.roleTypeTag.business {
+  background-color: #fff7e8;
+  color: #ff7d00;
+}
+
+.roleTypeTag.custom {
+  background-color: #f5e8ff;
+  color: #722ed1;
+}
+
+/* 描述文本样式 */
+.description {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 统计卡片样式 */
+.statsCards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.statsCard {
+  flex: 1;
+  background: #fff;
+  padding: 20px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  text-align: center;
+}
+
+.statsCard .number {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1d2129;
+  margin-bottom: 4px;
+}
+
+.statsCard .label {
+  font-size: 14px;
+  color: #86909c;
+}
+
+.statsCard.total .number {
+  color: #165dff;
+}
+
+.statsCard.enabled .number {
+  color: #00b42a;
+}
+
+.statsCard.disabled .number {
+  color: #f53f3f;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .queryForm .formRow {
+    flex-direction: column;
+  }
+  
+  .queryForm .formItem {
+    min-width: 100%;
+  }
+  
+  .queryForm .buttonGroup {
+    margin-left: 0;
+    margin-top: 8px;
+  }
+  
+  .tableHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .tableActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .statsCards {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,305 @@
+/* 申请流程管理页面样式 */
+.flowManagement {
+  padding: 20px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* 查询表单样式 */
+.queryForm {
+  margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.formRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.formRow:last-child {
+  margin-bottom: 0;
+}
+
+.formItem {
+  flex: 1;
+  min-width: 200px;
+}
+
+.arcoFormItem {
+  margin-bottom: 0;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  margin-top: 24px; /* 添加上边距来对齐表单项的标签高度 */
+}
+
+/* 申请列表表格样式 */
+.applyTable {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e6eb;
+}
+
+.tableTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d2129;
+}
+
+.tableActions {
+  display: flex;
+  gap: 10px;
+}
+
+/* 状态标签样式 */
+.stateTag {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.stateTag.pending {
+  background-color: #fff7e6;
+  color: #ff7d00;
+  border: 1px solid #ffb366;
+}
+
+.stateTag.approved {
+  background-color: #e8ffea;
+  color: #00b42a;
+  border: 1px solid #7bc67e;
+}
+
+.stateTag.rejected {
+  background-color: #ffece8;
+  color: #f53f3f;
+  border: 1px solid #ffb1a7;
+}
+
+.stateTag.cancelled {
+  background-color: #f4f5f5;
+  color: #86909c;
+  border: 1px solid #c9cdd4;
+}
+
+/* 申请ID样式 */
+.applyId {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #4e5969;
+  background-color: #f7f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e5e6eb;
+}
+
+/* 文本省略样式 */
+.ellipsis {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+/* 分页样式 */
+.paginationWrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e6eb;
+}
+
+/* 操作按钮样式 */
+.actionButton {
+  margin-right: 8px;
+}
+
+.actionButton:last-child {
+  margin-right: 0;
+}
+
+/* 表格行悬停效果 */
+.applyTable :global(.arco-table-tbody .arco-table-tr:hover) {
+  background-color: #f7f8fa;
+}
+
+/* 表格头部样式 */
+.applyTable :global(.arco-table-thead .arco-table-th) {
+  background-color: #fafbfc;
+  font-weight: 600;
+  color: #1d2129;
+}
+
+/* 表格边框样式 */
+.applyTable :global(.arco-table) {
+  border: 1px solid #e5e6eb;
+  border-radius: 6px;
+}
+
+/* 表格单元格样式 */
+.applyTable :global(.arco-table-td) {
+  border-bottom: 1px solid #f2f3f5;
+}
+
+/* 空数据样式 */
+.applyTable :global(.arco-table-empty) {
+  padding: 40px 0;
+}
+
+.applyTable :global(.arco-table-empty .arco-empty-description) {
+  color: #86909c;
+  font-size: 14px;
+}
+
+/* 加载状态样式 */
+.applyTable :global(.arco-table-loading) {
+  position: relative;
+}
+
+.applyTable :global(.arco-table-loading .arco-spin) {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .formRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .formItem {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .buttonGroup {
+    margin-top: 16px;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .flowManagement {
+    padding: 10px;
+  }
+  
+  .tableHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .tableActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .paginationWrapper {
+    justify-content: center;
+  }
+}
+
+/* 工具提示样式 */
+.tooltip {
+  max-width: 300px;
+  word-wrap: break-word;
+}
+
+/* 状态描述样式 */
+.stateDesc {
+  font-size: 12px;
+  color: #86909c;
+  margin-top: 2px;
+}
+
+/* 参数配置样式 */
+.paramsConf {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #4e5969;
+  background-color: #f7f8fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #e5e6eb;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 目标数据源样式 */
+.targetDataSource {
+  font-size: 12px;
+  color: #165dff;
+  background-color: #e8f4ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #b7d4ff;
+}
+
+/* 模型信息样式 */
+.modelInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modelName {
+  font-weight: 500;
+  color: #1d2129;
+}
+
+.modelDesc {
+  font-size: 12px;
+  color: #86909c;
+}
+
+/* 时间显示样式 */
+.timeDisplay {
+  font-size: 12px;
+  color: #4e5969;
+}
+
+/* 用户信息样式 */
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.userAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #165dff;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.userName {
+  font-size: 14px;
+  color: #1d2129;
+}

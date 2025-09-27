@@ -1,0 +1,407 @@
+/* 合成目录管理页面样式 */
+.catalogManagement {
+  padding: 20px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* 查询表单样式 */
+.queryForm {
+  margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.formRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.formItem {
+  flex: 1;
+  min-width: 200px;
+}
+
+.arcoFormItem {
+  margin-bottom: 0;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  margin-top: 24px; /* 添加上边距来对齐表单项的标签高度 */
+}
+
+
+
+/* 合成目录表格样式 */
+.catalogTable {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e6eb;
+}
+
+.tableTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d2129;
+}
+
+.tableActions {
+  display: flex;
+  gap: 10px;
+}
+
+/* 状态标签样式 */
+.stateTag {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.stateTag.training {
+  background-color: #e8f4ff;
+  color: #165dff;
+  border: 1px solid #b7d4ff;
+}
+
+.stateTag.completed {
+  background-color: #e8ffea;
+  color: #00b42a;
+  border: 1px solid #7bc67e;
+}
+
+.stateTag.failed {
+  background-color: #ffece8;
+  color: #f53f3f;
+  border: 1px solid #ffb1a7;
+}
+
+/* 模型ID样式 */
+.modelId {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #4e5969;
+  background-color: #f7f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e5e6eb;
+}
+
+/* 文本省略样式 */
+.ellipsis {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* 分页样式 */
+.paginationWrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e6eb;
+}
+
+/* 操作按钮样式 */
+.actionButton {
+  margin-right: 8px;
+}
+
+.actionButton:last-child {
+  margin-right: 0;
+}
+
+/* 进度条样式 */
+.progressWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progressText {
+  font-size: 12px;
+  color: #4e5969;
+  min-width: 40px;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .formRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .formItem {
+    min-width: auto;
+  }
+  
+  .buttonGroup {
+    justify-content: flex-start;
+    margin-top: 10px;
+  }
+  
+  .tableHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .tableActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .catalogManagement {
+    padding: 10px;
+  }
+  
+  .buttonGroup {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .buttonGroup button {
+    width: 100%;
+  }
+  
+  .tableActions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .tableActions button {
+    width: 100%;
+  }
+  
+  .paginationWrapper {
+    justify-content: center;
+  }
+}
+
+/* 表格行悬停效果 */
+.catalogTable :global(.arco-table-tbody .arco-table-tr:hover) {
+  background-color: #f7f8fa;
+}
+
+/* 表格头部样式 */
+.catalogTable :global(.arco-table-thead .arco-table-th) {
+  background-color: #f7f8fa;
+  font-weight: 600;
+  color: #1d2129;
+  border-bottom: 2px solid #e5e6eb;
+}
+
+/* 表格单元格样式 */
+.catalogTable :global(.arco-table-tbody .arco-table-td) {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 16px;
+}
+
+/* 空数据样式 */
+.catalogTable :global(.arco-table-empty) {
+  padding: 40px 0;
+}
+
+/* 加载状态样式 */
+.catalogTable :global(.arco-table-loading) {
+  min-height: 200px;
+}
+
+/* 模态框样式调整 */
+:global(.catalog-modal .arco-modal-header) {
+  border-bottom: 1px solid #e5e6eb;
+  padding: 16px 24px;
+}
+
+:global(.catalog-modal .arco-modal-body) {
+  padding: 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+:global(.catalog-modal .arco-modal-footer) {
+  border-top: 1px solid #e5e6eb;
+  padding: 16px 24px;
+}
+
+/* 表单项间距调整 */
+:global(.catalog-modal .arco-form-item) {
+  margin-bottom: 20px;
+}
+
+:global(.catalog-modal .arco-form-item:last-child) {
+  margin-bottom: 0;
+}
+
+/* 标签组样式 */
+.tagGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 字段信息样式 */
+.fieldInfo {
+  background-color: #f7f8fa;
+  border: 1px solid #e5e6eb;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.fieldInfo:last-child {
+  margin-bottom: 0;
+}
+
+.fieldName {
+  font-weight: 600;
+  color: #1d2129;
+  margin-bottom: 4px;
+}
+
+.fieldDetails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  color: #4e5969;
+}
+
+.fieldDetail {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 配置信息样式 */
+.configSection {
+  margin-bottom: 24px;
+}
+
+.configTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d2129;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e6eb;
+}
+
+.configContent {
+  background-color: #f7f8fa;
+  border: 1px solid #e5e6eb;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.configItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.configItem:last-child {
+  border-bottom: none;
+}
+
+.configLabel {
+  font-weight: 500;
+  color: #4e5969;
+}
+
+.configValue {
+  color: #1d2129;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+
+/* 数据预览样式 */
+.previewTable {
+  margin-top: 16px;
+}
+
+.previewTable :global(.arco-table) {
+  font-size: 12px;
+}
+
+.previewTable :global(.arco-table-thead .arco-table-th) {
+  background-color: #f2f3f5;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+.previewTable :global(.arco-table-tbody .arco-table-td) {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* 统计信息样式 */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  background-color: #fff;
+  border: 1px solid #e5e6eb;
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1d2129;
+  margin-bottom: 4px;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: #4e5969;
+}
+
+/* 错误状态样式 */
+.errorMessage {
+  color: #f53f3f;
+  background-color: #ffece8;
+  border: 1px solid #ffb1a7;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+/* 成功状态样式 */
+.successMessage {
+  color: #00b42a;
+  background-color: #e8ffea;
+  border: 1px solid #7bc67e;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+}

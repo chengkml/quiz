@@ -1,0 +1,335 @@
+/* 团队管理页面样式 */
+.teamManagement {
+  padding: 8px;
+  background-color: #f7f8fa;
+  height: 100vh;
+}
+
+/* 主布局 */
+.mainLayout {
+  height: calc(100vh - 16px);
+}
+
+/* 左侧面板 */
+.leftPanel {
+  height: 100%;
+}
+
+/* 右侧面板 */
+.rightPanel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 树形卡片 */
+.treeCard {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+/* 树形头部 */
+.treeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f2f3f5;
+}
+
+.treeTitle {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1d2129;
+}
+
+/* 树形搜索 */
+.treeSearch {
+  margin-bottom: 12px;
+}
+
+/* 树形容器 */
+.treeContainer {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #f2f3f5;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+/* 团队树 */
+.teamTree {
+  height: 100%;
+}
+
+/* 树节点标题 */
+.treeNodeTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.treeNodeText {
+  font-size: 14px;
+}
+
+/* 过滤卡片 */
+.filterCard {
+  margin-bottom: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+/* 过滤表单 */
+.filterForm {
+  margin: 0;
+}
+
+.filterForm .formRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 4px;
+}
+
+.filterForm .formItem {
+  flex: 1;
+  min-width: 180px;
+}
+
+.filterForm .buttonGroup {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.filterForm .arcoFormItem {
+  margin-bottom: 0px;
+}
+
+/* 表格卡片 */
+.tableCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+}
+
+/* 表格头部 */
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tableTitle {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1d2129;
+}
+
+.tableActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 图标预览 */
+.iconPreview {
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 分页容器 */
+.paginationWrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f2f3f5;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .mainLayout {
+    flex-direction: column;
+  }
+  
+  .leftPanel {
+    height: 300px;
+    margin-bottom: 12px;
+  }
+  
+  .rightPanel {
+    height: auto;
+  }
+  
+  .filterForm .formRow {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .filterForm .formItem {
+    min-width: auto;
+  }
+  
+  .filterForm .buttonGroup {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .teamManagement {
+    padding: 4px;
+  }
+  
+  .treeCard,
+  .filterCard,
+  .tableCard {
+    padding: 12px 16px;
+  }
+  
+  .filterForm .formRow {
+    gap: 4px;
+  }
+  
+  .tableHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .tableActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .teamManagement {
+    padding: 2px;
+  }
+  
+  .treeCard,
+  .filterCard,
+  .tableCard {
+    padding: 8px 12px;
+  }
+  
+  .filterForm .formItem {
+    min-width: 100%;
+  }
+  
+  .filterForm .buttonGroup {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* 团队树特定样式 */
+.teamTreeNode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.teamTreeNode .teamIcon {
+  color: #f7ba2a;
+}
+
+.teamTreeNode .teamName {
+  font-weight: 500;
+}
+
+.teamTreeNode .memberCount {
+  color: #86909c;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+/* 成员状态样式 */
+.memberStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.memberStatus.active {
+  color: #00b42a;
+}
+
+.memberStatus.inactive {
+  color: #f53f3f;
+}
+
+/* 角色标签样式 */
+.roleTag {
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.roleTag.admin {
+  background-color: #fff2e8;
+  color: #ff7d00;
+  border: 1px solid #ffb366;
+}
+
+.roleTag.member {
+  background-color: #e8f7ff;
+  color: #0080ff;
+  border: 1px solid #66ccff;
+}
+
+.roleTag.viewer {
+  background-color: #f2f3f5;
+  color: #4e5969;
+  border: 1px solid #c9cdd4;
+}
+
+/* 操作按钮组样式 */
+.actionButtons {
+  display: flex;
+  gap: 4px;
+}
+
+.actionButtons .actionButton {
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.actionButtons .actionButton:hover {
+  background-color: #f2f3f5;
+}
+
+.actionButtons .actionButton.edit:hover {
+  background-color: #e8f7ff;
+  color: #165dff;
+}
+
+.actionButtons .actionButton.delete:hover {
+  background-color: #ffece8;
+  color: #f53f3f;
+}
+
+.actionButtons .actionButton.enable:hover {
+  background-color: #e8ffea;
+  color: #00b42a;
+}
+
+.actionButtons .actionButton.disable:hover {
+  background-color: #fff7e8;
+  color: #ff7d00;
+}

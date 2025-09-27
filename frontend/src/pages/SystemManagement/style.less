@@ -1,0 +1,119 @@
+.system-management {
+  .page-header {
+    margin-bottom: 24px;
+    
+    h2 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: #1d2129;
+    }
+    
+    p {
+      margin: 0;
+      color: #86909c;
+      font-size: 14px;
+    }
+  }
+  
+  .table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 16px 0;
+    
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 16px;
+      align-items: stretch;
+      
+      .arco-space {
+        justify-content: center;
+      }
+    }
+  }
+  
+  // 表格样式优化
+  .arco-table {
+    .arco-table-th {
+      background-color: #f7f8fa;
+      font-weight: 600;
+    }
+    
+    .arco-table-td {
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .arco-table-row:hover {
+      .arco-table-td {
+        background-color: #f7f8fa;
+      }
+    }
+  }
+  
+  // 标签样式
+  .arco-tag {
+    border-radius: 4px;
+    font-size: 12px;
+    padding: 2px 8px;
+  }
+  
+  // 操作按钮样式
+  .arco-btn-text {
+    padding: 4px 8px;
+    
+    &.arco-btn-status-danger {
+      color: #f53f3f;
+      
+      &:hover {
+        background-color: #ffece8;
+      }
+    }
+  }
+}
+
+// 模态框样式优化
+.arco-modal {
+  .arco-form-item {
+    margin-bottom: 20px;
+    
+    .arco-form-item-label {
+      font-weight: 500;
+      color: #1d2129;
+    }
+  }
+}
+
+// 响应式表格
+@media (max-width: 1200px) {
+  .system-management {
+    .arco-table {
+      font-size: 13px;
+      
+      .arco-table-th,
+      .arco-table-td {
+        padding: 8px 12px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .system-management {
+    .arco-table {
+      font-size: 12px;
+      
+      .arco-table-th,
+      .arco-table-td {
+        padding: 6px 8px;
+      }
+      
+      // 在小屏幕上隐藏一些不重要的列
+      .arco-table-th:first-child,
+      .arco-table-td:first-child {
+        display: none;
+      }
+    }
+  }
+}
