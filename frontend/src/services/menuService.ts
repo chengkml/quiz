@@ -14,7 +14,7 @@ import {
 
 // 菜单服务类
 class MenuService {
-  private baseURL = '/data_synth/api/menu';
+  private baseURL = '/quiz/api/menu';
 
   // ==================== 基础CRUD操作 ====================
 

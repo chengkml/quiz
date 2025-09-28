@@ -117,14 +117,14 @@ const AppLayout: React.FC = () => {
                         ? JSON.parse(firstChild.menuExtConf)
                         : firstChild.menuExtConf;
                     if (extConf.path) {
-                        navigate('/data_synth/frame/'+extConf.path);
+                        navigate('/quiz/frame/'+extConf.path);
                         return;
                     }
                 } catch (error) {
                     console.error('解析菜单扩展配置失败:', error);
                 }
             }else{
-                navigate('/data_synth/frame/notfound');
+                navigate('/quiz/frame/notfound');
             }
         } else {
             // 如果没有子菜单，导航到顶级菜单路径
@@ -134,9 +134,9 @@ const AppLayout: React.FC = () => {
                 ? JSON.parse(menuItem.menuExtConf)
                 : menuItem.menuExtConf;
             if (menuItem && extConf.path) {
-                navigate('/data_synth/frame/'+extConf.path);
+                navigate('/quiz/frame/'+extConf.path);
             } else {
-                navigate('/data_synth/frame/'+`${key}`);
+                navigate('/quiz/frame/'+`${key}`);
             }
         }
     };
@@ -164,7 +164,7 @@ const AppLayout: React.FC = () => {
                     ? JSON.parse(menuItem.menuExtConf)
                     : menuItem.menuExtConf;
                 if (extConf.path) {
-                    navigate('/data_synth/frame/'+extConf.path);
+                    navigate('/quiz/frame/'+extConf.path);
                     return;
                 }
             } catch (error) {
@@ -172,7 +172,7 @@ const AppLayout: React.FC = () => {
             }
         }
         // 如果没有找到对应的菜单项或路径，使用默认路径
-        navigate(`/data_synth/frame/${activeTopMenu}/${key}`);
+        navigate(`/quiz/frame/${activeTopMenu}/${key}`);
     };
 
     // 获取左侧菜单选中项

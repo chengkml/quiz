@@ -10,7 +10,7 @@ import {
 } from '../types/dataset';
 
 export class DatasetService {
-  private static baseURL = '/data_synth/api/datasets';
+  private static baseURL = '/quiz/api/datasets';
 
   // 查询数据集列表
   static async getDatasets(params: DatasetQueryParams): Promise<PageResponse<DatasetDto>> {

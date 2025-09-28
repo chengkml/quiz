@@ -74,18 +74,18 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       if (response.success && response.data) {
         if (response.data.length === 0) {
           console.warn('菜单数据为空，跳转到NotFound页面');
-          navigate('/data_synth/frame/notfound');
+          navigate('/quiz/frame/notfound');
           return;
         }
         setMenuTree(response.data);
 
-        if(location.pathname === '/data_synth/frame') {
+        if(location.pathname === '/quiz/frame') {
 
           // 获取菜单数据成功且不为空时，跳转到第一个菜单
           const firstMenuPath = findFirstAccessibleMenu(response.data);
           if (firstMenuPath) {
             console.log('跳转到第一个菜单:', firstMenuPath);
-            navigate('/data_synth/frame/'+firstMenuPath);
+            navigate('/quiz/frame/'+firstMenuPath);
           } else {
             console.warn('未找到可访问的菜单项');
           }
@@ -95,13 +95,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         console.error('Failed to load menu from server:', response.message);
         Message.error('加载菜单失败');
         setMenuTree([]);
-        navigate('/data_synth/frame/notfound');
+        navigate('/quiz/frame/notfound');
       }
     } catch (error) {
       console.error('Error loading menu from server:', error);
       Message.error('加载菜单失败');
       setMenuTree([]);
-      navigate('/data_synth/frame/notfound');
+      navigate('/quiz/frame/notfound');
     }
   }, [user?.userId, navigate]);
 
@@ -140,7 +140,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     localStorage.removeItem('menuInfo');
     localStorage.removeItem('token');
     localStorage.removeItem('username');
-    window.location.href = '/data_synth/login';
+    window.location.href = '/quiz/login';
   };
 
   const value = {

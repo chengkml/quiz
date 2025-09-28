@@ -79,7 +79,7 @@ export interface ApiResponse<T> {
 // ==================== 数据合成器服务类 ====================
 
 class SynthesizerService {
-  private baseURL = '/data_synth/api/synthesizers';
+  private baseURL = '/quiz/api/synthesizers';
 
   /**
    * 查询数据合成器列表

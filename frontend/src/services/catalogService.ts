@@ -14,7 +14,7 @@ import {
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: '/data_synth/api',
+  baseURL: '/quiz/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ api.interceptors.response.use(
     // 处理401未授权错误
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/data_synth/login';
+      window.location.href = '/quiz/login';
     }
     return Promise.reject(error);
   }

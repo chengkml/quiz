@@ -11,7 +11,7 @@ import {
  * 申请服务类
  */
 export class ApplyService {
-  private static readonly BASE_URL = '/data_synth/api/apply';
+  private static readonly BASE_URL = '/quiz/api/apply';
 
   /**
    * 获取申请列表

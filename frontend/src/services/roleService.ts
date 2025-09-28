@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: '/data_synth/api',
+  baseURL: '/quiz/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -33,7 +33,7 @@ api.interceptors.response.use(
     // 处理401错误，跳转到登录页面
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/data_synth/login';
+      window.location.href = '/quiz/login';
     }
     return Promise.reject(error);
   }

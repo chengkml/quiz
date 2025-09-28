@@ -251,7 +251,7 @@ class appLogin extends React.Component<LoginProps> {
       // 跳转到默认页面 - 现在由LoginWrapper处理菜单加载后的跳转
       // 暂时跳转到主页面，具体路由将由菜单数据决定
       setTimeout(() => {
-        window.location.href = '/data_synth/frame';
+        window.location.href = '/quiz/frame';
       }, 100);
     } else {
       this.setState({ isUserPassword: false });

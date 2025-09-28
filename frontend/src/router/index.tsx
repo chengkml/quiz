@@ -3,10 +3,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Login from '../pages/login/LoginWrapper';
 import Layout from '../components/Layout';
 import Dashboard from '../pages/Dashboard';
-import Datasets from '../pages/datasets';
 import CatalogManagement from '../pages/catalog';
 import DataSource from '../pages/datasource';
-import SynthesizerManagement from '../pages/synthesizers';
 import SystemManagement from '../pages/SystemManagement';
 import UserManagement from '../pages/user';
 import RoleManagement from '../pages/role';
@@ -23,7 +21,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const token = localStorage.getItem('token');
 
   if (!token) {
-    return <Navigate to="/data_synth/login" replace />;
+    return <Navigate to="/quiz/login" replace />;
   }
 
   return (
@@ -36,7 +34,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 // 创建路由配置
 export const router = createBrowserRouter([
   {
-    path: '/data_synth/login',
+    path: '/quiz/login',
     element: (
       <UserProvider>
         <Login />
@@ -45,7 +43,7 @@ export const router = createBrowserRouter([
   },
   // 带菜单的frame路由
   {
-    path: '/data_synth/frame',
+    path: '/quiz/frame',
     element: (
       <ProtectedRoute>
         <Layout />
@@ -57,20 +55,12 @@ export const router = createBrowserRouter([
         element: <Dashboard />,
       },
       {
-        path: 'dataset',
-        element: <Datasets />,
-      },
-      {
         path: 'catalog',
         element: <CatalogManagement />,
       },
       {
         path: 'datasource',
         element: <DataSource />,
-      },
-      {
-        path: 'synthesizers',
-        element: <SynthesizerManagement />,
       },
       {
         path: 'system',
@@ -131,14 +121,6 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <DataSource />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: '/synthesizers',
-    element: (
-      <ProtectedRoute>
-        <SynthesizerManagement />
       </ProtectedRoute>
     ),
   },

@@ -12,7 +12,7 @@ module.exports = merge(common, {
     },
   },
   output: {
-    publicPath: '/data_synth/'
+    publicPath: '/quiz/'
   },
   plugins: [
     new CopyPlugin({

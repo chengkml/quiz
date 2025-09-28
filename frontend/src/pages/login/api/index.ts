@@ -1,9 +1,9 @@
 import axios from '@/core/src/http';
 import http from '@/core/src/http';
-const base = 'data_synth';
+const base = 'quiz';
 
 //登录
-const LoginSubmitPost = Params => axios.post(`/data_synth/api/user/login`, Params);
+const LoginSubmitPost = Params => axios.post(`/${base}/api/user/login`, Params);
 
 //判断用户名是否存在
 const getUserExist = params => axios.get(`${base}/_api/_/modoUser/exist`, {params});
