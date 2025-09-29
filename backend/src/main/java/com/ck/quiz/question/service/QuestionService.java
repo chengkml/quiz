@@ -58,51 +58,19 @@ public interface QuestionService {
     Page<QuestionDto> searchQuestions(QuestionQueryDto queryDto);
 
     /**
-     * 根据题目类型获取题目列表
-     *
-     * @param type 题目类型
-     * @return 题目列表
-     */
-    List<QuestionDto> getQuestionsByType(Question.QuestionType type);
-
-    /**
-     * 根据难度等级获取题目列表
-     *
-     * @param difficultyLevel 难度等级
-     * @return 题目列表
-     */
-    List<QuestionDto> getQuestionsByDifficulty(Integer difficultyLevel);
-
-    /**
-     * 根据题目类型和难度等级获取题目列表
-     *
-     * @param type            题目类型
-     * @param difficultyLevel 难度等级
-     * @return 题目列表
-     */
-    List<QuestionDto> getQuestionsByTypeAndDifficulty(Question.QuestionType type, Integer difficultyLevel);
-
-    /**
-     * 统计指定类型的题目数量
-     *
-     * @param type 题目类型
-     * @return 题目数量
-     */
-    long countQuestionsByType(Question.QuestionType type);
-
-    /**
-     * 统计指定难度等级的题目数量
-     *
-     * @param difficultyLevel 难度等级
-     * @return 题目数量
-     */
-    long countQuestionsByDifficulty(Integer difficultyLevel);
-
-    /**
      * 将实体类对象转换为传输对象
      *
      * @param question 题目实体对象
      * @return 题目DTO
      */
     QuestionDto convertToDto(Question question);
+
+    /**
+     * 根据知识点描述生成题目
+     *
+     * @param knowledgeDescr
+     * @param num
+     * @return
+     */
+    List<QuestionCreateDto> generateQuestions(String knowledgeDescr, int num);
 }

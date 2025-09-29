@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "题目管理", description = "题目相关的API接口")
 @RestController
 @RequestMapping("/api/question")
@@ -72,39 +74,11 @@ public class QuestionController {
         return ResponseEntity.ok(questionService.searchQuestions(queryDto));
     }
 
-    @Operation(summary = "根据类型获取题目", description = "获取指定类型的所有题目")
-    @GetMapping("/type/{type}")
-    public ResponseEntity getQuestionsByType(
-            @Parameter(description = "题目类型", required = true) @PathVariable Question.QuestionType type) {
-        return ResponseEntity.ok(questionService.getQuestionsByType(type));
-    }
-
-    @Operation(summary = "根据难度获取题目", description = "获取指定难度等级的所有题目")
-    @GetMapping("/difficulty/{level}")
-    public ResponseEntity getQuestionsByDifficulty(
-            @Parameter(description = "难度等级", required = true) @PathVariable Integer level) {
-        return ResponseEntity.ok(questionService.getQuestionsByDifficulty(level));
-    }
-
-    @Operation(summary = "根据类型和难度获取题目", description = "获取指定类型和难度等级的所有题目")
-    @GetMapping("/type/{type}/difficulty/{level}")
-    public ResponseEntity getQuestionsByTypeAndDifficulty(
-            @Parameter(description = "题目类型", required = true) @PathVariable Question.QuestionType type,
-            @Parameter(description = "难度等级", required = true) @PathVariable Integer level) {
-        return ResponseEntity.ok(questionService.getQuestionsByTypeAndDifficulty(type, level));
-    }
-
-    @Operation(summary = "统计题目数量", description = "根据类型统计题目数量")
-    @GetMapping("/count/type/{type}")
-    public ResponseEntity countQuestionsByType(
-            @Parameter(description = "题目类型", required = true) @PathVariable Question.QuestionType type) {
-        return ResponseEntity.ok(questionService.countQuestionsByType(type));
-    }
-
-    @Operation(summary = "统计题目数量", description = "根据难度等级统计题目数量")
-    @GetMapping("/count/difficulty/{level}")
-    public ResponseEntity countQuestionsByDifficulty(
-            @Parameter(description = "难度等级", required = true) @PathVariable Integer level) {
-        return ResponseEntity.ok(questionService.countQuestionsByDifficulty(level));
+    @Operation(summary = "根据知识点生成题目", description = "根据知识点描述调用大模型生成题目")
+    @PostMapping("/generate")
+    public ResponseEntity<List<QuestionCreateDto>> generateQuestions(
+            @Parameter(description = "知识点描述", required = true) @RequestParam String knowledgeDescr,
+            @Parameter(description = "生成题目数量", required = true) @RequestParam(defaultValue = "3") int num) {
+        return ResponseEntity.ok(questionService.generateQuestions(knowledgeDescr, num));
     }
 }
