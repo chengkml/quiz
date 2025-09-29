@@ -60,7 +60,7 @@ public class QuestionController {
             @Parameter(description = "创建人") @RequestParam(required = false) String createUser,
             @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") int pageSize,
-            @Parameter(description = "排序字段") @RequestParam(defaultValue = "createDate") String sortColumn,
+            @Parameter(description = "排序字段") @RequestParam(defaultValue = "create_date") String sortColumn,
             @Parameter(description = "排序方向") @RequestParam(defaultValue = "desc") String sortType) {
         QuestionQueryDto queryDto = new QuestionQueryDto();
         queryDto.setType(type);

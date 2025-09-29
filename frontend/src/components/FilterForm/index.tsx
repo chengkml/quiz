@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Grid, Typography, Tag } from '@arco-design/web-react';
+import {Button, Grid, Typography, Tag, Form} from '@arco-design/web-react';
 import { findDOMNode } from 'react-dom';
 import { contains, off, on } from '@arco-design/web-react/es/_util/dom';
 import { GlobalContext } from '@/utils/context';
@@ -81,7 +81,7 @@ class FilterForm extends React.Component {
 
     // 查询按钮
     onSearch = () => {
-        typeof this.props.search === 'function' && this.props.search(this.getReportFiltersValue());
+        typeof this.props.onSearch === 'function' && this.props.onSearch(this.getReportFiltersValue());
     };
 
     componentDidMount() {
@@ -120,7 +120,9 @@ class FilterForm extends React.Component {
                         {/* 自定义表单区域 */}
                         <Col flex="auto" style={{ width: '100%' }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                                {!more ? childrenArray.slice(0, min) : childrenArray}
+                                <Form onValuesChange={(value, values)=>{this.handleValuesChange(value, values)}}>
+                                    {!more ? childrenArray.slice(0, min) : childrenArray}
+                                </Form>
                             </div>
                         </Col>
 

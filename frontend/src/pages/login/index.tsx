@@ -677,7 +677,6 @@ class appLogin extends React.Component<LoginProps> {
                     ref={(ref) => (this.drawerForm = ref)}
                   onValuesChange={this.onFormValuesChange}
                     className="drawer-form">
-                >
                   {formItemContent}
                 </Form>
               </Drawer>

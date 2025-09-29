@@ -3,7 +3,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 // 创建axios实例
 const http: AxiosInstance = axios.create({
   baseURL: process.env.NODE_ENV === 'development' ? '' : '',
-  timeout: 10000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
