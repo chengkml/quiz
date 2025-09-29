@@ -1,0 +1,110 @@
+package com.ck.quiz.question.controller;
+
+import com.ck.quiz.question.dto.QuestionCreateDto;
+import com.ck.quiz.question.dto.QuestionQueryDto;
+import com.ck.quiz.question.dto.QuestionUpdateDto;
+import com.ck.quiz.question.entity.Question;
+import com.ck.quiz.question.service.QuestionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@Tag(name = "题目管理", description = "题目相关的API接口")
+@RestController
+@RequestMapping("/api/question")
+public class QuestionController {
+
+    @Autowired
+    private QuestionService questionService;
+
+    @Operation(summary = "创建题目", description = "创建新的题目")
+    @PostMapping("/create")
+    public ResponseEntity createQuestion(
+            @Parameter(description = "题目创建信息", required = true) @Valid @RequestBody QuestionCreateDto questionCreateDto) {
+        return ResponseEntity.ok(questionService.createQuestion(questionCreateDto));
+    }
+
+    @Operation(summary = "更新题目", description = "更新指定题目的信息")
+    @PutMapping("/update")
+    public ResponseEntity updateQuestion(
+            @Parameter(description = "题目更新信息", required = true) @Valid @RequestBody QuestionUpdateDto questionUpdateDto) {
+        return ResponseEntity.ok(questionService.updateQuestion(questionUpdateDto));
+    }
+
+    @Operation(summary = "删除题目", description = "根据ID删除指定题目")
+    @DeleteMapping("/{id}")
+    public ResponseEntity deleteQuestion(
+            @Parameter(description = "题目ID", required = true) @PathVariable String id) {
+        return ResponseEntity.ok(questionService.deleteQuestion(id));
+    }
+
+    @Operation(summary = "获取题目详情", description = "根据ID获取题目详细信息")
+    @GetMapping("/{id}")
+    public ResponseEntity getQuestionById(
+            @Parameter(description = "题目ID", required = true) @PathVariable String id) {
+        return ResponseEntity.ok(questionService.getQuestionById(id));
+    }
+
+    @Operation(summary = "分页查询题目", description = "根据条件分页查询题目列表")
+    @GetMapping
+    public ResponseEntity searchQuestions(
+            @Parameter(description = "题目类型") @RequestParam(required = false) Question.QuestionType type,
+            @Parameter(description = "题干内容") @RequestParam(required = false) String content,
+            @Parameter(description = "难度等级") @RequestParam(required = false) Integer difficultyLevel,
+            @Parameter(description = "创建人") @RequestParam(required = false) String createUser,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
+            @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") int pageSize,
+            @Parameter(description = "排序字段") @RequestParam(defaultValue = "createDate") String sortColumn,
+            @Parameter(description = "排序方向") @RequestParam(defaultValue = "desc") String sortType) {
+        QuestionQueryDto queryDto = new QuestionQueryDto();
+        queryDto.setType(type);
+        queryDto.setContent(content);
+        queryDto.setDifficultyLevel(difficultyLevel);
+        queryDto.setCreateUser(createUser);
+        queryDto.setPageNum(pageNum);
+        queryDto.setPageSize(pageSize);
+        queryDto.setSortColumn(sortColumn);
+        queryDto.setSortType(sortType);
+        return ResponseEntity.ok(questionService.searchQuestions(queryDto));
+    }
+
+    @Operation(summary = "根据类型获取题目", description = "获取指定类型的所有题目")
+    @GetMapping("/type/{type}")
+    public ResponseEntity getQuestionsByType(
+            @Parameter(description = "题目类型", required = true) @PathVariable Question.QuestionType type) {
+        return ResponseEntity.ok(questionService.getQuestionsByType(type));
+    }
+
+    @Operation(summary = "根据难度获取题目", description = "获取指定难度等级的所有题目")
+    @GetMapping("/difficulty/{level}")
+    public ResponseEntity getQuestionsByDifficulty(
+            @Parameter(description = "难度等级", required = true) @PathVariable Integer level) {
+        return ResponseEntity.ok(questionService.getQuestionsByDifficulty(level));
+    }
+
+    @Operation(summary = "根据类型和难度获取题目", description = "获取指定类型和难度等级的所有题目")
+    @GetMapping("/type/{type}/difficulty/{level}")
+    public ResponseEntity getQuestionsByTypeAndDifficulty(
+            @Parameter(description = "题目类型", required = true) @PathVariable Question.QuestionType type,
+            @Parameter(description = "难度等级", required = true) @PathVariable Integer level) {
+        return ResponseEntity.ok(questionService.getQuestionsByTypeAndDifficulty(type, level));
+    }
+
+    @Operation(summary = "统计题目数量", description = "根据类型统计题目数量")
+    @GetMapping("/count/type/{type}")
+    public ResponseEntity countQuestionsByType(
+            @Parameter(description = "题目类型", required = true) @PathVariable Question.QuestionType type) {
+        return ResponseEntity.ok(questionService.countQuestionsByType(type));
+    }
+
+    @Operation(summary = "统计题目数量", description = "根据难度等级统计题目数量")
+    @GetMapping("/count/difficulty/{level}")
+    public ResponseEntity countQuestionsByDifficulty(
+            @Parameter(description = "难度等级", required = true) @PathVariable Integer level) {
+        return ResponseEntity.ok(questionService.countQuestionsByDifficulty(level));
+    }
+}
