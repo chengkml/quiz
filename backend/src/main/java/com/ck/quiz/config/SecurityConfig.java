@@ -31,11 +31,12 @@ public class SecurityConfig {
                     return config;
                 }))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/api/user/login", "/open/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/static/**", "/**/*.html", "/**/*.css", "/**/*.js",
-                                "/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.gif", "/**/*.ico").permitAll()
-                        .anyRequest().authenticated()
+                                .requestMatchers("/login", "/api/user/login", "/open/**").permitAll()
+                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                                .requestMatchers("/static/**", "/**/*.html", "/**/*.css", "/**/*.js",
+                                        "/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.gif", "/**/*.ico").permitAll()
+//                        .anyRequest().authenticated()
+                                .anyRequest().permitAll() // 所有请求都允许
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)

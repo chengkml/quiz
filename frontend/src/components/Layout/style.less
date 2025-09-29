@@ -5,6 +5,7 @@
     background: #fff;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
     z-index: 100;
+    width: 240px !important;
     
     .side-menu {
       border-right: none;
@@ -112,39 +113,6 @@
             font-size: 18px;
             font-weight: 600;
             color: #1d2129;
-          }
-        }
-        
-        .top-menu {
-          border-bottom: none;
-          background: transparent;
-          flex: 1;
-          
-          .arco-menu-selected-label {
-            display:none;
-          }
-          .arco-menu-inner {
-            padding: 0;
-          }
-          
-          .arco-menu-item {
-            padding: 0 16px;
-            height: 40px;
-            line-height: 40px;
-            border-radius: 6px;
-            margin: 0 4px;
-            
-            &.arco-menu-selected {
-              color: #165dff;
-              
-              &::after {
-                display: none;
-              }
-            }
-            
-            &:hover {
-              background-color: #f2f3f5;
-            }
           }
         }
       }

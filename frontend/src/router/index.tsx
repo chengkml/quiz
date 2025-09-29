@@ -5,12 +5,12 @@ import Layout from '../components/Layout';
 import Dashboard from '../pages/Dashboard';
 import CatalogManagement from '../pages/catalog';
 import DataSource from '../pages/datasource';
-import SystemManagement from '../pages/SystemManagement';
 import UserManagement from '../pages/user';
 import RoleManagement from '../pages/role';
 import MenuManagement from '../pages/menu';
-import TeamManagement from '../pages/team';
 import MyApply from '../pages/myApply';
+import QuestionManagement from '../pages/Question';
+import Dim from '../pages/DimMgr';
 
 import About from '../pages/About';
 import NotFound from '../pages/NotFound';
@@ -20,9 +20,9 @@ import { UserProvider } from '../contexts/UserContext';
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = localStorage.getItem('token');
 
-  if (!token) {
-    return <Navigate to="/quiz/login" replace />;
-  }
+  // if (!token) {
+  //   return <Navigate to="/quiz/login" replace />;
+  // }
 
   return (
     <UserProvider>
@@ -41,65 +41,15 @@ export const router = createBrowserRouter([
       </UserProvider>
     ),
   },
-  // 带菜单的frame路由
   {
-    path: '/quiz/frame',
+    path: '/quiz/dim',
     element: (
-      <ProtectedRoute>
-        <Layout />
-      </ProtectedRoute>
+        <UserProvider>
+          <Dim />
+        </UserProvider>
     ),
-    children: [
-      {
-        path: 'dashboard',
-        element: <Dashboard />,
-      },
-      {
-        path: 'catalog',
-        element: <CatalogManagement />,
-      },
-      {
-        path: 'datasource',
-        element: <DataSource />,
-      },
-      {
-        path: 'system',
-        element: <SystemManagement />,
-      },
-      {
-        path: 'user',
-        element: <UserManagement />,
-      },
-      {
-        path: 'role',
-        element: <RoleManagement />,
-      },
-      {
-        path: 'menu',
-        element: <MenuManagement />,
-      },
-      {
-        path: 'team',
-        element: <TeamManagement />,
-      },
-      {
-        path: 'myApply',
-        element: <MyApply />,
-      },
-
-      {
-        path: 'about',
-        element: <About />,
-      },
-      {
-        path: 'notfound',
-        element: (
-            <NotFound />
-        ),
-      }
-    ],
   },
-  // 不带菜单的直接页面路由
+  // 直接访问页面路由（不带Layout包装）
   {
     path: '/dashboard',
     element: (
@@ -108,27 +58,19 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-   {
+  {
     path: '/catalog',
     element: (
       <ProtectedRoute>
         <CatalogManagement />
       </ProtectedRoute>  
-      ),  
+    ),  
   },
   {
     path: '/datasource',
     element: (
       <ProtectedRoute>
         <DataSource />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: '/system',
-    element: (
-      <ProtectedRoute>
-        <SystemManagement />
       </ProtectedRoute>
     ),
   },
@@ -157,14 +99,6 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/team',
-    element: (
-      <ProtectedRoute>
-        <TeamManagement />
-      </ProtectedRoute>
-    ),
-  },
-  {
     path: '/myApply',
     element: (
       <ProtectedRoute>
@@ -172,7 +106,14 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-
+  {
+    path: '/question',
+    element: (
+      <ProtectedRoute>
+        <QuestionManagement />
+      </ProtectedRoute>
+    ),
+  },
   {
     path: '/about',
     element: (
@@ -181,23 +122,72 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+  // 带菜单的frame路由（保留用于需要Layout的页面）
+  {
+    path: '/quiz/frame',
+    element: (
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        path: 'dashboard',
+        element: <Dashboard />,
+      },
+      {
+        path: 'catalog',
+        element: <CatalogManagement />,
+      },
+      {
+        path: 'datasource',
+        element: <DataSource />,
+      },
+      {
+        path: 'user',
+        element: <UserManagement />,
+      },
+      {
+        path: 'role',
+        element: <RoleManagement />,
+      },
+      {
+        path: 'menu',
+        element: <MenuManagement />,
+      },
+      {
+        path: 'myApply',
+        element: <MyApply />,
+      },
+      {
+        path: 'question',
+        element: <QuestionManagement />,
+      },
+      {
+        path: 'about',
+        element: <About />,
+      },
+      {
+        path: 'notfound',
+        element: (
+            <NotFound />
+        ),
+      }
+    ],
+  },
+  // 默认重定向
+  {
+    path: '/',
+    element: <Navigate to="/dashboard" replace />,
+  },
+  // 404页面
   {
     path: '*',
     element: (
-        <ProtectedRoute>
-          <Layout />
-        </ProtectedRoute>
+      <ProtectedRoute>
+        <NotFound />
+      </ProtectedRoute>
     ),
-    children: [
-        {
-            path: '*',
-            element: (
-                <UserProvider>
-                    <NotFound />
-                </UserProvider>
-            ),
-        }
-    ]
   },
 ]);
 
