@@ -94,45 +94,54 @@ public class SubjectServiceImpl implements SubjectService {
     @Override
     @Transactional(readOnly = true)
     public Page<SubjectDto> searchSubjects(SubjectQueryDto queryDto) {
-        StringBuilder sql = new StringBuilder("SELECT * FROM subject WHERE 1=1");
+        StringBuilder sql = new StringBuilder("select * from subject where 1=1 ");
+        StringBuilder countSql = new StringBuilder("select count(1) from subject where 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
-        if (StringUtils.hasText(queryDto.getName())) {
-            sql.append(" AND name LIKE :name");
-            params.put("name", "%" + queryDto.getName() + "%");
-        }
+        // 按名称模糊查询
+        JdbcQueryHelper.lowerLike("name", queryDto.getName(),
+                " and lower(name) like :name ", params, jdbcTemplate, sql, countSql);
 
         // 排序
-        String sortColumn = queryDto.getSortColumn();
-        String sortType = queryDto.getSortType();
-        
-        // 映射排序字段
-        switch (sortColumn) {
-            case "createDate":
-                sortColumn = "create_date";
-                break;
-            case "updateDate":
-                sortColumn = "update_date";
-                break;
-            case "name":
-                sortColumn = "name";
-                break;
-            default:
-                sortColumn = "create_date";
-        }
-        
-        sql.append(" ORDER BY ").append(sortColumn).append(" ").append(sortType);
+        JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
 
-        Page<Subject> subjectPage = JdbcQueryHelper.queryForPage(
+        // 分页SQL
+        String limitSql = JdbcQueryHelper.getLimitSql(
                 jdbcTemplate,
                 sql.toString(),
-                params,
                 queryDto.getPageNum(),
-                queryDto.getPageSize(),
-                Subject.class
+                queryDto.getPageSize()
         );
 
-        return subjectPage.map(this::convertToDto);
+        // 查询数据
+        List<Subject> subjects = jdbcTemplate.query(
+                limitSql,
+                params,
+                (rs, rowNum) -> {
+                    Subject s = new Subject();
+                    s.setId(rs.getString("id"));
+                    s.setName(rs.getString("name"));
+                    s.setDescription(rs.getString("description"));
+                    s.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
+                    s.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
+                    return s;
+                }
+        );
+
+        // 转换成DTO
+        List<SubjectDto> dtos = subjects.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+
+        // 组装分页对象
+        return JdbcQueryHelper.toPage(
+                jdbcTemplate,
+                countSql.toString(),
+                params,
+                dtos,
+                queryDto.getPageNum(),
+                queryDto.getPageSize()
+        );
     }
 
     @Override

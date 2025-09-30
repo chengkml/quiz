@@ -8,22 +8,20 @@ import com.ck.quiz.category.entity.Category;
 import com.ck.quiz.category.exception.CategoryException;
 import com.ck.quiz.category.repository.CategoryRepository;
 import com.ck.quiz.category.service.CategoryService;
-import com.ck.quiz.common.util.IdHelper;
-import com.ck.quiz.common.util.JdbcQueryHelper;
-import lombok.RequiredArgsConstructor;
+import com.ck.quiz.utils.IdHelper;
+import com.ck.quiz.utils.JdbcQueryHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -31,14 +29,14 @@ import java.util.Optional;
  * 实现分类管理的具体业务逻辑
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class CategoryServiceImpl implements CategoryService {
 
-    private final CategoryRepository categoryRepository;
-    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-    private final IdHelper idHelper;
-    private final JdbcQueryHelper jdbcQueryHelper;
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Override
     @Transactional
@@ -52,7 +50,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         // 创建分类实体
         Category category = new Category();
-        category.setId(idHelper.generateId());
+        category.setId(IdHelper.genUuid());
         BeanUtils.copyProperties(createDto, category);
 
         // 保存分类
@@ -128,48 +126,79 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<CategoryDto> searchCategories(CategoryQueryDto queryDto) {
-        log.debug("分页查询分类: {}", queryDto);
+        StringBuilder sql = new StringBuilder("select * from category where 1=1 ");
+        StringBuilder countSql = new StringBuilder("select count(1) from category where 1=1 ");
+        Map<String, Object> params = new HashMap<>();
 
-        // 构建查询SQL
-        StringBuilder sql = new StringBuilder("SELECT * FROM category WHERE 1=1");
-        MapSqlParameterSource params = new MapSqlParameterSource();
+        // 分类名称模糊查询
+        JdbcQueryHelper.lowerLike("name", queryDto.getName(),
+                " and lower(name) like :name ", params, namedParameterJdbcTemplate, sql, countSql);
 
-        // 添加查询条件
-        if (StringUtils.hasText(queryDto.getName())) {
-            sql.append(" AND name LIKE :name");
-            params.addValue("name", "%" + queryDto.getName() + "%");
-        }
+        // 父分类 ID
+        JdbcQueryHelper.equals("parentId", queryDto.getParentId(),
+                " and parent_id = :parentId ", params, sql, countSql);
 
-        if (StringUtils.hasText(queryDto.getParentId())) {
-            sql.append(" AND parent_id = :parentId");
-            params.addValue("parentId", queryDto.getParentId());
-        }
+        // 学科 ID
+        JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(),
+                " and subject_id = :subjectId ", params, sql, countSql);
 
-        if (StringUtils.hasText(queryDto.getSubjectId())) {
-            sql.append(" AND subject_id = :subjectId");
-            params.addValue("subjectId", queryDto.getSubjectId());
-        }
-
+        // 分类层级
         if (queryDto.getLevel() != null) {
-            sql.append(" AND level = :level");
-            params.addValue("level", queryDto.getLevel());
+            sql.append(" and level = :level ");
+            countSql.append(" and level = :level ");
+            params.put("level", queryDto.getLevel());
         }
 
-        // 添加排序
-        sql.append(" ORDER BY ").append(queryDto.getSortColumn()).append(" ").append(queryDto.getSortType());
+        // 排序
+        JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
 
-        // 执行分页查询
-        Pageable pageable = PageRequest.of(queryDto.getPageNum() - 1, queryDto.getPageSize());
-        Page<Category> categoryPage = jdbcQueryHelper.queryForPage(sql.toString(), params, Category.class, pageable);
+        // 分页（注意 pageNum 从 1 开始，JdbcQueryHelper 偏移量是 pageNum * pageSize）
+        int pageNum = Math.max(0, queryDto.getPageNum() - 1);
+        String limitSql = JdbcQueryHelper.getLimitSql(
+                namedParameterJdbcTemplate,
+                sql.toString(),
+                pageNum,
+                queryDto.getPageSize()
+        );
 
-        // 转换为DTO
-        List<CategoryDto> categoryDtos = categoryPage.getContent().stream()
+        // 查询数据
+        List<Category> categories = namedParameterJdbcTemplate.query(
+                limitSql,
+                params,
+                (rs, rowNum) -> {
+                    Category c = new Category();
+                    c.setId(rs.getString("id"));
+                    c.setName(rs.getString("name"));
+                    c.setParentId(rs.getString("parent_id"));
+                    c.setSubjectId(rs.getString("subject_id"));
+                    c.setLevel(rs.getInt("level"));
+                    c.setDescription(rs.getString("description"));
+                    c.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
+                    c.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
+                    c.setCreateUser(rs.getString("create_user"));
+                    c.setUpdateUser(rs.getString("update_user"));
+                    return c;
+                }
+        );
+
+        // 转 DTO
+        List<CategoryDto> dtos = categories.stream()
                 .map(this::convertToDto)
                 .toList();
 
-        return new PageImpl<>(categoryDtos, pageable, categoryPage.getTotalElements());
+        // 封装分页结果
+        return JdbcQueryHelper.toPage(
+                namedParameterJdbcTemplate,
+                countSql.toString(),
+                params,
+                dtos,
+                pageNum,
+                queryDto.getPageSize()
+        );
     }
+
 
     @Override
     public List<CategoryDto> getAllCategories() {
