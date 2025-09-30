@@ -63,37 +63,6 @@ public interface KnowledgeService {
     Page<KnowledgeDto> searchKnowledge(KnowledgeQueryDto queryDto);
 
     /**
-     * 获取所有知识点
-     *
-     * @return 所有知识点列表
-     */
-    List<KnowledgeDto> getAllKnowledge();
-
-    /**
-     * 根据学科ID获取知识点列表
-     *
-     * @param subjectId 学科ID
-     * @return 知识点列表
-     */
-    List<KnowledgeDto> getKnowledgeBySubjectId(String subjectId);
-
-    /**
-     * 根据分类ID获取知识点列表
-     *
-     * @param categoryId 分类ID
-     * @return 知识点列表
-     */
-    List<KnowledgeDto> getKnowledgeByCategoryId(String categoryId);
-
-    /**
-     * 根据难度等级获取知识点列表
-     *
-     * @param difficultyLevel 难度等级
-     * @return 知识点列表
-     */
-    List<KnowledgeDto> getKnowledgeByDifficultyLevel(Integer difficultyLevel);
-
-    /**
      * 检查知识点名称是否存在
      *
      * @param name 知识点名称

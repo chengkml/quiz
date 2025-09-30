@@ -14,8 +14,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 /**
  * 知识点管理控制器
  * 提供知识点相关的REST API接口
@@ -113,63 +111,9 @@ public class KnowledgeController {
     }
 
     /**
-     * 获取所有知识点
-     *
-     * @return 所有知识点列表
-     */
-    @GetMapping("/all")
-    @Operation(summary = "获取所有知识点", description = "获取系统中所有知识点的列表")
-    public ResponseEntity<List<KnowledgeDto>> getAllKnowledge() {
-        List<KnowledgeDto> knowledge = knowledgeService.getAllKnowledge();
-        return ResponseEntity.ok(knowledge);
-    }
-
-    /**
-     * 根据学科ID获取知识点列表
-     *
-     * @param subjectId 学科ID
-     * @return 知识点列表
-     */
-    @GetMapping("/subject/{subjectId}")
-    @Operation(summary = "根据学科获取知识点", description = "根据学科ID获取该学科下的所有知识点")
-    public ResponseEntity<List<KnowledgeDto>> getKnowledgeBySubjectId(
-            @Parameter(description = "学科ID") @PathVariable String subjectId) {
-        List<KnowledgeDto> knowledge = knowledgeService.getKnowledgeBySubjectId(subjectId);
-        return ResponseEntity.ok(knowledge);
-    }
-
-    /**
-     * 根据分类ID获取知识点列表
-     *
-     * @param categoryId 分类ID
-     * @return 知识点列表
-     */
-    @GetMapping("/category/{categoryId}")
-    @Operation(summary = "根据分类获取知识点", description = "根据分类ID获取该分类下的所有知识点")
-    public ResponseEntity<List<KnowledgeDto>> getKnowledgeByCategoryId(
-            @Parameter(description = "分类ID") @PathVariable String categoryId) {
-        List<KnowledgeDto> knowledge = knowledgeService.getKnowledgeByCategoryId(categoryId);
-        return ResponseEntity.ok(knowledge);
-    }
-
-    /**
-     * 根据难度等级获取知识点列表
-     *
-     * @param difficultyLevel 难度等级
-     * @return 知识点列表
-     */
-    @GetMapping("/difficulty/{difficultyLevel}")
-    @Operation(summary = "根据难度获取知识点", description = "根据难度等级获取知识点列表")
-    public ResponseEntity<List<KnowledgeDto>> getKnowledgeByDifficultyLevel(
-            @Parameter(description = "难度等级") @PathVariable Integer difficultyLevel) {
-        List<KnowledgeDto> knowledge = knowledgeService.getKnowledgeByDifficultyLevel(difficultyLevel);
-        return ResponseEntity.ok(knowledge);
-    }
-
-    /**
      * 检查知识点名称是否存在
      *
-     * @param name 知识点名称
+     * @param name      知识点名称
      * @param excludeId 排除的知识点ID（用于更新时检查）
      * @return 是否存在
      */

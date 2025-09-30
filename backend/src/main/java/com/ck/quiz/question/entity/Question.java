@@ -1,5 +1,6 @@
 package com.ck.quiz.question.entity;
 
+import com.ck.quiz.knowledge.entity.Knowledge;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,6 +9,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 题目信息实体类
@@ -46,29 +49,29 @@ public class Question {
 
     /**
      * 选项（JSON 格式存储）
-     *
+     * <p>
      * 示例：
      * 单选题(SINGLE)：
      * {
-     *   "A": "物理层",
-     *   "B": "数据链路层",
-     *   "C": "网络层",
-     *   "D": "传输层"
+     * "A": "物理层",
+     * "B": "数据链路层",
+     * "C": "网络层",
+     * "D": "传输层"
      * }
-     *
+     * <p>
      * 多选题(MULTIPLE)：
      * {
-     *   "A": "交换机",
-     *   "B": "路由器",
-     *   "C": "集线器",
-     *   "D": "网桥"
+     * "A": "交换机",
+     * "B": "路由器",
+     * "C": "集线器",
+     * "D": "网桥"
      * }
-     *
+     * <p>
      * 填空题(BLANK)：
      * {
-     *   "blanks": 2
+     * "blanks": 2
      * }
-     *
+     * <p>
      * 简答题(SHORT_ANSWER)：
      * {}
      */
@@ -78,17 +81,17 @@ public class Question {
 
     /**
      * 标准答案（JSON 格式存储）
-     *
+     * <p>
      * 示例：
      * 单选题(SINGLE)：
      * ["A"]
-     *
+     * <p>
      * 多选题(MULTIPLE)：
      * ["A", "C", "D"]
-     *
+     * <p>
      * 填空题(BLANK)：
      * ["OSI七层模型", "物理层"]
-     *
+     * <p>
      * 简答题(SHORT_ANSWER)：
      * ["物理层负责比特流的传输，常见设备有中继器、集线器、网桥等。"]
      */
@@ -132,6 +135,14 @@ public class Question {
      */
     @Column(name = "update_user", length = 64)
     private String updateUser;
+
+    @ManyToMany
+    @JoinTable(
+            name = "question_knowledge_rela",
+            joinColumns = @JoinColumn(name = "question_id"),
+            inverseJoinColumns = @JoinColumn(name = "kp_id")
+    )
+    private List<Knowledge> knowledgePoints = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {

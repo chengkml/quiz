@@ -34,7 +34,7 @@ public interface CategoryRepository extends JpaRepository<Category, String> {
      * 检查分类名称是否存在（排除指定ID）
      *
      * @param name 分类名称
-     * @param id 排除的分类ID
+     * @param id   排除的分类ID
      * @return 是否存在
      */
     boolean existsByNameAndIdNot(String name, String id);
@@ -63,31 +63,5 @@ public interface CategoryRepository extends JpaRepository<Category, String> {
      */
     List<Category> findByLevel(Integer level);
 
-    /**
-     * 根据学科ID和层级查找分类列表
-     *
-     * @param subjectId 学科ID
-     * @param level 分类层级
-     * @return 分类列表
-     */
-    List<Category> findBySubjectIdAndLevel(String subjectId, Integer level);
-
-    /**
-     * 根据父分类ID和层级查找分类列表
-     *
-     * @param parentId 父分类ID
-     * @param level 分类层级
-     * @return 分类列表
-     */
-    List<Category> findByParentIdAndLevel(String parentId, Integer level);
-
-    /**
-     * 根据学科ID和父分类ID查找分类列表
-     *
-     * @param subjectId 学科ID
-     * @param parentId 父分类ID
-     * @return 分类列表
-     */
-    List<Category> findBySubjectIdAndParentId(String subjectId, String parentId);
 
 }

@@ -13,7 +13,6 @@ import com.ck.quiz.utils.JdbcQueryHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -198,51 +197,6 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 pageNum,
                 queryDto.getPageSize()
         );
-    }
-
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<KnowledgeDto> getAllKnowledge() {
-        log.debug("获取所有知识点");
-
-        List<Knowledge> knowledgeList = knowledgeRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
-        return knowledgeList.stream()
-                .map(this::convertToDto)
-                .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<KnowledgeDto> getKnowledgeBySubjectId(String subjectId) {
-        log.debug("根据学科ID获取知识点: {}", subjectId);
-
-        List<Knowledge> knowledgeList = knowledgeRepository.findBySubjectId(subjectId);
-        return knowledgeList.stream()
-                .map(this::convertToDto)
-                .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<KnowledgeDto> getKnowledgeByCategoryId(String categoryId) {
-        log.debug("根据分类ID获取知识点: {}", categoryId);
-
-        List<Knowledge> knowledgeList = knowledgeRepository.findByCategoryId(categoryId);
-        return knowledgeList.stream()
-                .map(this::convertToDto)
-                .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<KnowledgeDto> getKnowledgeByDifficultyLevel(Integer difficultyLevel) {
-        log.debug("根据难度等级获取知识点: {}", difficultyLevel);
-
-        List<Knowledge> knowledgeList = knowledgeRepository.findByDifficultyLevel(difficultyLevel);
-        return knowledgeList.stream()
-                .map(this::convertToDto)
-                .toList();
     }
 
     @Override
