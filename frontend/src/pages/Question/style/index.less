@@ -1,0 +1,248 @@
+.question-manager {
+    box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+    overflow: hidden;
+    background: var(--background-color-base);
+    height: 100%;
+
+    .title {
+        display: inline-block;
+        height: 24px;
+        line-height: 24px;
+        background: var(--color-white);
+        border-radius: 8px;
+        padding: 0 10px;
+        font-size: 12px;
+        box-shadow: var(--modo-card-box-shadow);
+
+        .moda-icon {
+            height: unset;
+            vertical-align: middle;
+        }
+
+        span {
+            font-weight: 700;
+            color: var(--gray-10);
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+    }
+
+    // 操作按钮样式
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--color-border-2);
+        margin-bottom: 16px;
+    }
+
+    // 分页组件固定在底部的样式
+    .pagination-wrapper {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 12px 16px;
+        background: var(--color-white);
+        border-top: 1px solid var(--color-border-2);
+        display: flex;
+        justify-content: flex-end;
+        z-index: 10;
+    }
+
+    // 表格样式
+    .table-container {
+        .arco-table-th {
+            background-color: var(--color-fill-1);
+            font-weight: 600;
+        }
+
+        .arco-table-td {
+            border-bottom: 1px solid var(--color-border-2);
+        }
+
+        .arco-tag {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        // 题目类型标签样式
+        .arco-tag-blue {
+            background-color: var(--color-primary-light-1);
+            color: var(--color-primary-6);
+            border-color: var(--color-primary-light-4);
+        }
+
+        // 难度等级标签样式
+        .arco-tag-green {
+            background-color: var(--color-success-light-1);
+            color: var(--color-success-6);
+            border-color: var(--color-success-light-4);
+        }
+
+        .arco-tag-orange {
+            background-color: var(--color-warning-light-1);
+            color: var(--color-warning-6);
+            border-color: var(--color-warning-light-4);
+        }
+
+        .arco-tag-red {
+            background-color: var(--color-danger-light-1);
+            color: var(--color-danger-6);
+            border-color: var(--color-danger-light-4);
+        }
+    }
+
+    // 搜索表单样式
+    .search-form {
+        .arco-form-item {
+            margin-bottom: 16px;
+        }
+
+        .arco-form-item-label {
+            font-weight: 500;
+            color: var(--color-text-1);
+        }
+    }
+
+    // 对话框样式
+    .modal-form {
+        .arco-form-item {
+            margin-bottom: 20px;
+        }
+
+        .arco-form-item-label {
+            font-weight: 500;
+            color: var(--color-text-1);
+        }
+
+        .required-label::before {
+            content: '*';
+            color: var(--color-danger-6);
+            margin-right: 4px;
+        }
+
+        .arco-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .arco-input-number {
+            width: 100%;
+        }
+    }
+
+    // 删除确认对话框样式
+    .delete-modal {
+        .warning-icon {
+            color: var(--color-warning-6);
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .delete-content {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 16px;
+
+            .delete-text {
+                flex: 1;
+                line-height: 1.5;
+                color: var(--color-text-2);
+            }
+        }
+    }
+
+    // 操作按钮组样式
+    .table-btn-group {
+        .more-btn {
+            color: var(--color-text-3);
+            
+            &:hover {
+                color: var(--color-primary-6);
+                background-color: var(--color-primary-light-1);
+            }
+        }
+    }
+
+    // 下拉菜单样式
+    .handle-dropdown-menu {
+        .arco-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            
+            &:hover {
+                background-color: var(--color-fill-2);
+            }
+        }
+    }
+
+    // 响应式设计
+    @media (max-width: 768px) {
+        .action-buttons {
+            flex-direction: column;
+            align-items: stretch;
+            
+            .arco-btn {
+                margin-bottom: 8px;
+                
+                &:last-child {
+                    margin-bottom: 0;
+                }
+            }
+        }
+
+        .table-container {
+            .arco-table {
+                font-size: 12px;
+            }
+        }
+
+        .modal-form {
+            .arco-form-item-label {
+                font-size: 14px;
+            }
+        }
+    }
+
+    // 加载状态样式
+    .arco-spin {
+        .arco-spin-dot {
+            color: var(--color-primary-6);
+        }
+    }
+
+    // 空状态样式
+    .arco-empty {
+        padding: 40px 20px;
+        
+        .arco-empty-description {
+            color: var(--color-text-3);
+            font-size: 14px;
+        }
+    }
+
+    // 分页样式优化
+    .arco-pagination {
+        .arco-pagination-item {
+            &.arco-pagination-item-active {
+                background-color: var(--color-primary-6);
+                border-color: var(--color-primary-6);
+            }
+        }
+
+        .arco-pagination-jumper {
+            .arco-input {
+                border-color: var(--color-border-2);
+                
+                &:focus {
+                    border-color: var(--color-primary-6);
+                    box-shadow: 0 0 0 2px var(--color-primary-light-2);
+                }
+            }
+        }
+    }
+}
