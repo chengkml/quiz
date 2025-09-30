@@ -20,7 +20,10 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
+        http.anonymous(anonymous -> anonymous
+                        .principal("admin")  // 👈 修改默认用户名
+                        .authorities("sys_mgr") // 👈 修改默认权限
+                )
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
