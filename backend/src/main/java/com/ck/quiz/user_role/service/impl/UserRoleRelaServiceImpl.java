@@ -53,7 +53,7 @@ public class UserRoleRelaServiceImpl implements UserRoleRelaService {
 
         // 3. 构建新的关联关系
         List<UserRoleRela> relas = roleIds.stream().map(roleId -> {
-            var role = userRoleRepository.findByRoleId(roleId)
+            var role = userRoleRepository.findById(roleId)
                     .orElseThrow(() -> new RuntimeException("角色不存在: " + roleId));
             UserRoleRela rela = new UserRoleRela();
             rela.setRelaId(IdHelper.genUuid());

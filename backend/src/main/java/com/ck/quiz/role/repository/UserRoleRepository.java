@@ -38,5 +38,4 @@ public interface UserRoleRepository extends JpaRepository<UserRole, String> {
      */
     boolean existsByNameAndIdNot(String roleName, String roleId);
 
-    Optional<UserRole> findByRoleId(String roleId);
 }
