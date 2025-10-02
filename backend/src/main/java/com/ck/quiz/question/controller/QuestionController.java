@@ -30,6 +30,13 @@ public class QuestionController {
         return ResponseEntity.ok(questionService.createQuestion(questionCreateDto));
     }
 
+    @Operation(summary = "创建题目", description = "创建新的题目")
+    @PostMapping("/batch/create")
+    public ResponseEntity batchCreateQuestion(
+            @Parameter(description = "题目创建信息", required = true) @Valid @RequestBody List<QuestionCreateDto> questionCreateDtos) {
+        return ResponseEntity.ok(questionService.createQuestions(questionCreateDtos));
+    }
+
     @Operation(summary = "更新题目", description = "更新指定题目的信息")
     @PutMapping("/update")
     public ResponseEntity updateQuestion(

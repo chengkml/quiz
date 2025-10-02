@@ -9,7 +9,6 @@ import com.ck.quiz.question.repository.QuestionRepository;
 import com.ck.quiz.question.service.QuestionService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
@@ -22,10 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * 题目管理服务实现类
@@ -197,7 +193,8 @@ public class QuestionServiceImpl implements QuestionService {
             try {
                 attempt++;
                 String content = chat.prompt(buildPrompt(knowledgeDescr, num)).call().content();
-                return objectMapper.readValue(content, new TypeReference<>() {});
+                return objectMapper.readValue(content, new TypeReference<>() {
+                });
             } catch (Exception e) {
                 if (attempt >= maxRetries) {
                     throw new RuntimeException("生成题目失败，重试次数已达上限", e);
@@ -210,6 +207,15 @@ public class QuestionServiceImpl implements QuestionService {
                 }
             }
         }
+    }
+
+    @Override
+    public List<QuestionDto> createQuestions(List<QuestionCreateDto> questionCreateDtos) {
+        List<QuestionDto> result = new ArrayList<>();
+        questionCreateDtos.forEach(questionCreateDto -> {
+            result.add(createQuestion(questionCreateDto));
+        });
+        return result;
     }
 
     private String buildPrompt(String knowledgePointDescription, int num) {

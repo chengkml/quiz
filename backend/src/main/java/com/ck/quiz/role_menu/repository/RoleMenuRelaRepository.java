@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * 角色菜单关联数据访问接口
@@ -34,4 +35,6 @@ public interface RoleMenuRelaRepository extends JpaRepository<RoleMenuRela, Stri
      * 统计某角色绑定的菜单数量
      */
     long countByRoleId(String roleId);
+
+    List<RoleMenuRela> findByRoleIdIn(List<String> roleIds);
 }

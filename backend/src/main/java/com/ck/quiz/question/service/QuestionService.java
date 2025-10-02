@@ -73,4 +73,6 @@ public interface QuestionService {
      * @return
      */
     List<QuestionCreateDto> generateQuestions(String knowledgeDescr, int num);
+
+    List<QuestionDto> createQuestions(List<QuestionCreateDto> questionCreateDtos);
 }

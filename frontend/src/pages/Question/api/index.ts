@@ -11,6 +11,9 @@ const getQuestionById = id => axios.get(`${base}/api/question/${id}`);
 // 创建题目
 const createQuestion = params => axios.post(`${base}/api/question/create`, params);
 
+// 批量创建题目
+const batchCreateQuestion = params => axios.post(`${base}/api/question/batch/create`, params);
+
 // 更新题目
 const updateQuestion = params => axios.put(`${base}/api/question/update`, params);
 
@@ -24,6 +27,7 @@ export {
   getQuestionList,
   getQuestionById,
   createQuestion,
+  batchCreateQuestion,
   updateQuestion,
   deleteQuestion,
   generateQuestions

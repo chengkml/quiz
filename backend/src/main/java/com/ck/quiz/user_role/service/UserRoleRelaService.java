@@ -14,22 +14,5 @@ public interface UserRoleRelaService {
      */
     List<RoleDto> getUserRoles(String id);
 
-    /**
-     * 为用户分配角色
-     *
-     * @param id      用户ID
-     * @param roleIds 角色ID列表
-     * @return 是否成功
-     */
-    int assignRoles(String id, List<String> roleIds);
-
-    /**
-     * 移除用户角色
-     *
-     * @param id      用户ID
-     * @param roleIds 角色ID列表
-     * @return 是否成功
-     */
-    int revokeRole(String id, List<String> roleIds);
-
+    Object replaceUserRoles(String id, List<String> roleIds);
 }

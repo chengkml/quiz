@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -39,43 +38,12 @@ public class UserRoleController {
         return ResponseEntity.ok(userRoleRelaService.getUserRoles(id));
     }
 
-    /**
-     * 为用户分配角色
-     */
-    @Operation(
-            summary = "分配用户角色",
-            description = "为指定用户分配一个或多个角色ID"
-    )
-    @PostMapping("/{id}/assign/roles")
-    public ResponseEntity<?> assignRoles(
-            @Parameter(description = "用户ID", required = true, example = "admin")
-            @PathVariable String id,
-            @RequestBody(
-                    description = "角色ID列表",
-                    required = true,
-                    content = @Content(schema = @Schema(implementation = List.class, example = "[\"roleId1\", \"roleId2\"]"))
-            )
-            @org.springframework.web.bind.annotation.RequestBody List<String> roleIds) {
-        return ResponseEntity.ok(userRoleRelaService.assignRoles(id, roleIds));
+    @Operation(summary = "替换用户角色", description = "替换指定用户的所有角色")
+    @PostMapping("/{id}/replace")
+    public ResponseEntity replaceUserRoles(
+            @Parameter(description = "用户ID", required = true) @PathVariable String id,
+            @Parameter(description = "角色ID列表", required = true) @RequestBody List<String> roleIds) {
+        return ResponseEntity.ok(userRoleRelaService.replaceUserRoles(id, roleIds));
     }
 
-    /**
-     * 撤销用户角色
-     */
-    @Operation(
-            summary = "撤销用户角色",
-            description = "撤销指定用户的一个或多个角色"
-    )
-    @DeleteMapping("/{id}/revoke/roles")
-    public ResponseEntity<?> revokeRole(
-            @Parameter(description = "用户ID", required = true, example = "admin")
-            @PathVariable String id,
-            @RequestBody(
-                    description = "待撤销的角色ID列表",
-                    required = true,
-                    content = @Content(schema = @Schema(implementation = List.class, example = "[\"roleId1\"]"))
-            )
-            @org.springframework.web.bind.annotation.RequestBody List<String> roleIds) {
-        return ResponseEntity.ok(userRoleRelaService.revokeRole(id, roleIds));
-    }
 }

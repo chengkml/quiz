@@ -26,13 +26,6 @@ public class RoleMenuController {
         return ResponseEntity.ok(roleMenuService.replaceRoleMenus(roleId, menuIds));
     }
 
-    @Operation(summary = "获取角色菜单权限", description = "获取指定角色的菜单权限列表")
-    @GetMapping("/role/{roleId}")
-    public ResponseEntity getMenusByRoleId(
-            @Parameter(description = "角色ID", required = true) @PathVariable String roleId) {
-        return ResponseEntity.ok(roleMenuService.getMenusByRoleId(roleId));
-    }
-
     @Operation(summary = "获取角色菜单权限树", description = "获取指定角色的菜单权限树形结构")
     @GetMapping("/role/{roleId}/tree")
     public ResponseEntity getMenuTreeByRoleId(

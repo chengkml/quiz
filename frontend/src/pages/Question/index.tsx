@@ -1,6 +1,8 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
     Button,
+    Checkbox,
+    Collapse,
     Dropdown,
     Form,
     Input,
@@ -16,8 +18,8 @@ import {
     Tag,
 } from '@arco-design/web-react';
 import './style/index.less';
-import {createQuestion, deleteQuestion, generateQuestions, getQuestionList, updateQuestion,} from './api';
-import {IconDelete, IconEdit, IconList, IconPlus, IconRobot,} from '@arco-design/web-react/icon';
+import {createQuestion, batchCreateQuestion, deleteQuestion, generateQuestions, getQuestionList, updateQuestion,} from './api';
+import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot,} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import DynamicQuestionForm from '@/components/DynamicQuestionForm';
 
@@ -36,6 +38,16 @@ function QuestionManager() {
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [generateModalVisible, setGenerateModalVisible] = useState(false);
     const [currentRecord, setCurrentRecord] = useState(null);
+
+    // AI生成题目相关状态
+    const [generatedQuestions, setGeneratedQuestions] = useState([]);
+    const [selectedQuestions, setSelectedQuestions] = useState([]);
+    const [showGeneratedQuestions, setShowGeneratedQuestions] = useState(false);
+    const [generateLoading, setGenerateLoading] = useState(false);
+
+    // 查看详情相关状态
+    const [detailModalVisible, setDetailModalVisible] = useState(false);
+    const [detailRecord, setDetailRecord] = useState(null);
 
     // 表单引用
     const filterFormRef = useRef();
@@ -178,6 +190,10 @@ function QuestionManager() {
                                 }}
                                 className="handle-dropdown-menu"
                             >
+                                <Menu.Item key="detail">
+                                    <IconEye/>
+                                    查看详情
+                                </Menu.Item>
                                 <Menu.Item key="edit">
                                     <IconEdit/>
                                     编辑
@@ -258,6 +274,12 @@ function QuestionManager() {
         setGenerateModalVisible(true);
     };
 
+    // 处理查看详情
+    const handleDetail = (record) => {
+        setDetailRecord(record);
+        setDetailModalVisible(true);
+    };
+
     // 处理菜单点击
     const handleMenuClick = (key, event, record) => {
         event.stopPropagation();
@@ -265,6 +287,8 @@ function QuestionManager() {
             handleEdit(record);
         } else if (key === 'delete') {
             handleDelete(record);
+        } else if (key === 'detail') {
+            handleDetail(record);
         }
     };
 
@@ -340,18 +364,23 @@ function QuestionManager() {
 
     // 提交AI生成表单
     const handleGenerateSubmit = async (values) => {
+        setGenerateLoading(true);
         try {
             const response = await generateQuestions(values);
             if (response.data && response.data.length > 0) {
-                Message.success(`成功生成${response.data.length}道题目`);
+                setGeneratedQuestions(response.data);
+                setSelectedQuestions([]);
+                setShowGeneratedQuestions(true);
                 setGenerateModalVisible(false);
                 generateFormRef.current?.resetFields();
-                fetchTableData();
+                Message.success(`成功生成${response.data.length}道题目，请选择要保存的题目`);
             } else {
                 Message.warning('未生成任何题目');
             }
         } catch (error) {
             Message.error('生成题目失败');
+        } finally {
+            setGenerateLoading(false);
         }
     };
 
@@ -417,6 +446,137 @@ function QuestionManager() {
         setEditDynamicFormData({options: {}, answer: {}});
     };
 
+    // 处理生成题目的选择
+    const handleQuestionSelect = (questionId, checked) => {
+        if (checked) {
+            setSelectedQuestions([...selectedQuestions, questionId]);
+        } else {
+            setSelectedQuestions(selectedQuestions.filter(id => id !== questionId));
+        }
+    };
+
+    // 全选/取消全选生成的题目
+    const handleSelectAll = (checked) => {
+        if (checked) {
+            setSelectedQuestions(generatedQuestions.map((_, index) => index));
+        } else {
+            setSelectedQuestions([]);
+        }
+    };
+
+    // 批量保存选中的题目
+    const handleSaveSelectedQuestions = async () => {
+        if (selectedQuestions.length === 0) {
+            Message.warning('请至少选择一道题目');
+            return;
+        }
+
+        try {
+            const questionsToSave = selectedQuestions.map(index => {
+                const question = generatedQuestions[index];
+                return {
+                    ...question,
+                    // 对于AI生成的题目，options和answer已经是正确格式，不需要再次JSON.stringify
+                    options: question.options || null,
+                    answer: question.answer || null
+                };
+            });
+            
+            // 使用批量创建接口
+            await batchCreateQuestion(questionsToSave);
+            Message.success(`成功保存${selectedQuestions.length}道题目`);
+            
+            // 重置状态
+            setGeneratedQuestions([]);
+            setSelectedQuestions([]);
+            setShowGeneratedQuestions(false);
+            
+            // 刷新表格数据
+            fetchTableData();
+        } catch (error) {
+            Message.error('保存题目失败');
+        }
+    };
+
+    // 取消保存生成的题目
+    const handleCancelSave = () => {
+        setGeneratedQuestions([]);
+        setSelectedQuestions([]);
+        setShowGeneratedQuestions(false);
+    };
+
+    // 渲染题目选项
+    const renderQuestionOptions = (options, questionType) => {
+        if (!options || options === '') return null;
+        
+        // 如果是字符串格式的选项（如 "A. 选项1;B. 选项2"）
+        if (typeof options === 'string' && options.includes(';')) {
+            const optionsList = options.split(';').map(opt => opt.trim());
+            return (
+                <div style={{ marginTop: 8 }}>
+                    <strong>选项:</strong>
+                    <div style={{ marginTop: 4, paddingLeft: 16 }}>
+                        {optionsList.map((option, index) => (
+                            <div key={index} style={{ marginBottom: 4 }}>
+                                {option}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+        
+        // 如果是对象格式的选项（兼容原有格式）
+        try {
+            const optionsObj = typeof options === 'string' ? JSON.parse(options) : options;
+            if (typeof optionsObj === 'object' && optionsObj !== null) {
+                return (
+                    <div style={{ marginTop: 8 }}>
+                        <strong>选项:</strong>
+                        <div style={{ marginTop: 4, paddingLeft: 16 }}>
+                            {Object.entries(optionsObj).map(([key, value]) => (
+                                <div key={key} style={{ marginBottom: 4 }}>
+                                    <strong>{key}:</strong> {value}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+        } catch (e) {
+            // 如果解析失败，直接显示原始字符串
+            return (
+                <div style={{ marginTop: 8 }}>
+                    <strong>选项:</strong>
+                    <div style={{ marginTop: 4, paddingLeft: 16 }}>
+                        {options}
+                    </div>
+                </div>
+            );
+        }
+        
+        return null;
+    };
+
+    // 渲染题目答案
+    const renderQuestionAnswer = (answer) => {
+        if (!answer) return null;
+        
+        // 直接显示答案，不需要解析
+        let displayAnswer = answer;
+        
+        // 如果是字符串格式的多选答案（如 "A,C"），格式化显示
+        if (typeof answer === 'string' && answer.includes(',')) {
+            displayAnswer = answer.split(',').map(a => a.trim()).join(', ');
+        }
+        
+        return (
+            <div style={{ marginTop: 8, color: '#165DFF' }}>
+                <strong>答案:</strong> {displayAnswer}
+            </div>
+        );
+    };
+
     return (
         <div className="question-manager">
             <Content style={{padding: '16px'}}>
@@ -450,7 +610,7 @@ function QuestionManager() {
                     <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
                         新增题目
                     </Button>
-                    <Button type="outline" icon={<IconRobot/>} onClick={handleGenerate}>
+                    <Button type="outline" icon={<IconRobot/>} onClick={handleGenerate} loading={generateLoading}>
                         AI生成题目
                     </Button>
                 </div>
@@ -631,7 +791,7 @@ function QuestionManager() {
                 visible={generateModalVisible}
                 onCancel={() => setGenerateModalVisible(false)}
                 onOk={() => generateFormRef.current?.submit()}
-                width={600}
+                width={800}
             >
                 <Form
                     ref={generateFormRef}
@@ -664,6 +824,164 @@ function QuestionManager() {
                     </Form.Item>
                 </Form>
             </Modal>
+
+            {/* AI生成题目展示 */}
+            {showGeneratedQuestions && generatedQuestions.length > 0 && (
+                <Modal
+                    title={
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span>AI生成的题目 ({generatedQuestions.length}道)</span>
+                            <Checkbox
+                                checked={selectedQuestions.length === generatedQuestions.length}
+                                indeterminate={selectedQuestions.length > 0 && selectedQuestions.length < generatedQuestions.length}
+                                onChange={handleSelectAll}
+                            >
+                                全选
+                            </Checkbox>
+                        </div>
+                    }
+                    visible={showGeneratedQuestions}
+                    onCancel={handleCancelSave}
+                    footer={
+                        <div style={{ textAlign: 'right' }}>
+                            <Button onClick={handleCancelSave} style={{ marginRight: 8 }}>
+                                取消
+                            </Button>
+                            <Button 
+                                type="primary" 
+                                onClick={handleSaveSelectedQuestions}
+                                disabled={selectedQuestions.length === 0}
+                            >
+                                保存选中题目 ({selectedQuestions.length})
+                            </Button>
+                        </div>
+                    }
+                    width={900}
+                    style={{ maxHeight: '80vh' }}
+                >
+                    <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                        <Collapse
+                            defaultActiveKey={generatedQuestions.map((_, index) => index.toString())}
+                        >
+                            {generatedQuestions.map((question, index) => {
+                                const typeMap = {
+                                    'SINGLE': '单选题',
+                                    'MULTIPLE': '多选题',
+                                    'BLANK': '填空题',
+                                    'SHORT_ANSWER': '简答题'
+                                };
+
+                                return (
+                                    <Collapse.Item
+                                        key={index}
+                                        name={index.toString()}
+                                        header={
+                                            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                                <Checkbox
+                                                    checked={selectedQuestions.includes(index)}
+                                                    onChange={(checked) => handleQuestionSelect(index, checked)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    style={{ marginRight: 12 }}
+                                                />
+                                                <Tag color="blue" style={{ marginRight: 8 }}>
+                                                    {typeMap[question.type] || question.type}
+                                                </Tag>
+                                                <Tag 
+                                                    color={question.difficultyLevel <= 2 ? 'green' : question.difficultyLevel <= 4 ? 'orange' : 'red'}
+                                                    style={{ marginRight: 8 }}
+                                                >
+                                                    {question.difficultyLevel}级
+                                                </Tag>
+                                                <span style={{ 
+                                                    flex: 1, 
+                                                    overflow: 'hidden', 
+                                                    textOverflow: 'ellipsis',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    {question.content}
+                                                </span>
+                                            </div>
+                                        }
+                                    >
+                                        <div style={{ padding: '0 16px' }}>
+                                            <div style={{ marginBottom: 12 }}>
+                                                <strong>题干:</strong>
+                                                <div style={{ marginTop: 4, padding: '8px 12px', backgroundColor: '#f7f8fa', borderRadius: 4 }}>
+                                                    {question.content}
+                                                </div>
+                                            </div>
+                                            
+                                            {question.options && renderQuestionOptions(question.options, question.type)}
+                                            {question.answer && renderQuestionAnswer(question.answer)}
+                                            
+                                            {question.explanation && (
+                                                <div style={{ marginTop: 8 }}>
+                                                    <strong>解析:</strong>
+                                                    <div style={{ marginTop: 4, color: '#666' }}>
+                                                        {question.explanation}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </Collapse.Item>
+                                );
+                            })}
+                        </Collapse>
+                    </div>
+                </Modal>
+            )}
+
+            {/* 查看详情对话框 */}
+            {detailModalVisible && detailRecord && (
+                <Modal
+                    title="题目详情"
+                    visible={detailModalVisible}
+                    onCancel={() => setDetailModalVisible(false)}
+                    footer={null}
+                    width={800}
+                >
+                    <div style={{ padding: '16px 0' }}>
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                                <Tag color="blue">
+                                    {detailRecord.type === 'SINGLE' ? '单选题' : 
+                                     detailRecord.type === 'MULTIPLE' ? '多选题' : 
+                                     detailRecord.type === 'BLANK' ? '填空题' : '简答题'}
+                                </Tag>
+                                <Tag color={detailRecord.difficultyLevel <= 2 ? 'green' : detailRecord.difficultyLevel <= 4 ? 'orange' : 'red'}>
+                                    难度: {detailRecord.difficultyLevel}级
+                                </Tag>
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: 16 }}>
+                            <strong style={{ fontSize: 16 }}>题干:</strong>
+                            <div style={{ marginTop: 8, padding: '12px 16px', backgroundColor: '#f7f8fa', borderRadius: 6, lineHeight: 1.6 }}>
+                                {detailRecord.content}
+                            </div>
+                        </div>
+
+                        {detailRecord.options && renderQuestionOptions(detailRecord.options, detailRecord.type)}
+                        {detailRecord.answer && renderQuestionAnswer(detailRecord.answer)}
+
+                        {detailRecord.explanation && (
+                            <div style={{ marginTop: 16 }}>
+                                <strong style={{ fontSize: 16 }}>解析:</strong>
+                                <div style={{ marginTop: 8, padding: '12px 16px', backgroundColor: '#f0f9ff', borderRadius: 6, color: '#666', lineHeight: 1.6 }}>
+                                    {detailRecord.explanation}
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ marginTop: 16, padding: '12px 0', borderTop: '1px solid #e5e6eb' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#86909c', fontSize: 14 }}>
+                                <span>创建人: {detailRecord.createUser || '--'}</span>
+                                <span>创建时间: {detailRecord.createDate || '--'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 }

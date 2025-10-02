@@ -6,6 +6,10 @@ import com.ck.quiz.menu.service.MenuService;
 import com.ck.quiz.role_menu.entity.RoleMenuRela;
 import com.ck.quiz.role_menu.repository.RoleMenuRelaRepository;
 import com.ck.quiz.role_menu.service.RoleMenuService;
+import com.ck.quiz.user.entity.User;
+import com.ck.quiz.user.repository.UserRepository;
+import com.ck.quiz.user_role.entity.UserRoleRela;
+import com.ck.quiz.user_role.repository.UserRoleRelaRepository;
 import com.ck.quiz.utils.IdHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -26,6 +31,12 @@ import java.util.stream.Collectors;
  */
 @Service
 public class RoleMenuServiceImpl implements RoleMenuService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserRoleRelaRepository userRoleRelaRepository;
 
     @Autowired
     private RoleMenuRelaRepository roleMenuRelaRepository;
@@ -67,21 +78,6 @@ public class RoleMenuServiceImpl implements RoleMenuService {
     }
 
     /**
-     * 根据角色ID获取菜单列表（平铺结构）
-     *
-     * @param roleId 角色ID
-     * @return 菜单DTO列表
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public List<MenuDto> getMenusByRoleId(String roleId) {
-        return roleMenuRelaRepository.findByRoleId(roleId).stream()
-                .map(RoleMenuRela::getMenu)                  // 获取菜单实体
-                .map(menuService::convertToMenuDto)          // 转换为 DTO
-                .collect(Collectors.toList());
-    }
-
-    /**
      * 根据角色ID获取菜单树（树形结构）
      *
      * @param roleId 角色ID
@@ -101,7 +97,34 @@ public class RoleMenuServiceImpl implements RoleMenuService {
     @Override
     @Transactional(readOnly = true)
     public List<MenuDto> getMenuTreeByUserId(String userId) {
-        // TODO
-        return null;
+        Optional<User> userOpt = userRepository.findByUserId(userId);
+        if (!userOpt.isPresent()) {
+            throw new RuntimeException("用户不存在: " + userId);
+        }
+
+        // 1. 找出用户所有角色
+        List<UserRoleRela> userRoleRelas = userRoleRelaRepository.findByUser(userOpt.get());
+        if (userRoleRelas.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<String> roleIds = userRoleRelas.stream()
+                .map(ur -> ur.getRole().getId())
+                .collect(Collectors.toList());
+
+        // 2. 找出这些角色绑定的所有菜单关系
+        List<RoleMenuRela> roleMenuRelas = roleMenuRelaRepository.findByRoleIdIn(roleIds);
+        if (roleMenuRelas.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 3. 收集菜单实体（去重）
+        List<Menu> menus = roleMenuRelas.stream()
+                .map(RoleMenuRela::getMenu)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 4. 构建菜单树
+        return menuService.buildMenuTree(menus);
     }
+
 }

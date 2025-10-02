@@ -28,16 +28,6 @@ public interface RoleMenuService {
     int replaceRoleMenus(String roleId, List<String> menuIds);
 
     /**
-     * 获取角色的菜单权限列表（平铺结构）
-     * <p>
-     * 用于直接展示该角色绑定的所有菜单信息。
-     *
-     * @param roleId 角色ID
-     * @return 菜单DTO列表
-     */
-    List<MenuDto> getMenusByRoleId(String roleId);
-
-    /**
      * 获取角色的菜单权限树（树形结构）
      * <p>
      * 常用于前端菜单渲染（目录 → 菜单 → 按钮）。

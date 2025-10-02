@@ -37,4 +37,6 @@ public interface UserRoleRepository extends JpaRepository<UserRole, String> {
      * @return 是否存在
      */
     boolean existsByNameAndIdNot(String roleName, String roleId);
+
+    Optional<UserRole> findByRoleId(String roleId);
 }

@@ -44,6 +44,7 @@ public class Question {
      * 题干
      */
     @Lob
+    @org.hibernate.annotations.Type(type = "org.hibernate.type.TextType")
     @Column(name = "content", nullable = false)
     private String content;
 
@@ -76,6 +77,7 @@ public class Question {
      * {}
      */
     @Lob
+    @org.hibernate.annotations.Type(type = "org.hibernate.type.TextType")
     @Column(name = "options")
     private String options;
 
@@ -96,6 +98,7 @@ public class Question {
      * ["物理层负责比特流的传输，常见设备有中继器、集线器、网桥等。"]
      */
     @Lob
+    @org.hibernate.annotations.Type(type = "org.hibernate.type.TextType")
     @Column(name = "answer")
     private String answer;
 
@@ -103,6 +106,7 @@ public class Question {
      * 解析
      */
     @Lob
+    @org.hibernate.annotations.Type(type = "org.hibernate.type.TextType")
     @Column(name = "explanation")
     private String explanation;
 
