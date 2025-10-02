@@ -53,6 +53,7 @@ function QuestionManager() {
     const [selectedQuestions, setSelectedQuestions] = useState([]);
     const [showGeneratedQuestions, setShowGeneratedQuestions] = useState(false);
     const [generateLoading, setGenerateLoading] = useState(false);
+    const [saveLoading, setSaveLoading] = useState(false);
 
     // 查看详情相关状态
     const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -337,6 +338,7 @@ function QuestionManager() {
     // 提交新增表单
     const handleAddSubmit = async (values) => {
         try {
+            setSaveLoading(true);
             // 将动态表单数据转换为JSON格式
             const submitData = {
                 ...values,
@@ -357,6 +359,8 @@ function QuestionManager() {
             fetchTableData();
         } catch (error) {
             Message.error('新增失败');
+        }finally {
+            setSaveLoading(false);
         }
     };
 
@@ -508,6 +512,7 @@ function QuestionManager() {
             return;
         }
 
+        setSaveLoading(true);
         try {
             const questionsToSave = selectedQuestions.map(index => {
                 const question = generatedQuestions[index];
@@ -532,6 +537,8 @@ function QuestionManager() {
             fetchTableData();
         } catch (error) {
             Message.error('保存题目失败');
+        } finally {
+            setSaveLoading(false);
         }
     };
 
@@ -677,13 +684,24 @@ function QuestionManager() {
             <Modal
                 title="新增题目"
                 visible={addModalVisible}
-                onCancel={() => {
-                    setAddModalVisible(false);
-                    setAddDynamicFormData({options: {}, answer: {}});
-                    setAddQuestionType('');
-                }}
-                onOk={() => addFormRef.current?.submit()}
-                width={800}
+                footer={
+                    <div style={{textAlign: 'right'}}>
+                        <Button onClick={() => {
+                            setAddModalVisible(false);
+                            setAddDynamicFormData({options: {}, answer: {}});
+                            setAddQuestionType('');
+                        }} style={{marginRight: 8}}>
+                            取消
+                        </Button>
+                        <Button
+                            type="primary"
+                            loading={saveLoading}
+                            onClick={() => addFormRef.current?.submit()}
+                        >
+                            确定
+                        </Button>
+                    </div>
+                }
             >
                 <Form
                     ref={addFormRef}
@@ -824,9 +842,20 @@ function QuestionManager() {
             <Modal
                 title="AI生成题目"
                 visible={generateModalVisible}
-                onCancel={() => setGenerateModalVisible(false)}
-                onOk={() => generateFormRef.current?.submit()}
-                width={800}
+                footer={
+                    <div style={{textAlign: 'right'}}>
+                        <Button onClick={() => setGenerateModalVisible(false)} style={{marginRight: 8}}>
+                            取消
+                        </Button>
+                        <Button
+                            type="primary"
+                            onClick={() => generateFormRef.current?.submit()}
+                            loading={generateLoading}
+                        >
+                            确定
+                        </Button>
+                    </div>
+                }
             >
                 <Spin loading={generateLoading} style={{width: '100%'}}>
                     <Form
@@ -865,18 +894,7 @@ function QuestionManager() {
             {/* AI生成题目展示 */}
             {showGeneratedQuestions && generatedQuestions.length > 0 && (
                 <Modal
-                    title={
-                        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                            <span>AI生成的题目 ({generatedQuestions.length}道)</span>
-                            <Checkbox
-                                checked={selectedQuestions.length === generatedQuestions.length}
-                                indeterminate={selectedQuestions.length > 0 && selectedQuestions.length < generatedQuestions.length}
-                                onChange={handleSelectAll}
-                            >
-                                全选
-                            </Checkbox>
-                        </div>
-                    }
+                    title={`AI生成的题目 (${generatedQuestions.length}道)`}
                     visible={showGeneratedQuestions}
                     onCancel={handleCancelSave}
                     footer={
@@ -888,13 +906,22 @@ function QuestionManager() {
                                 type="primary"
                                 onClick={handleSaveSelectedQuestions}
                                 disabled={selectedQuestions.length === 0}
+                                loading={saveLoading}
                             >
                                 保存选中题目 ({selectedQuestions.length})
                             </Button>
                         </div>
                     }
-                    width={1000}
                 >
+                    <div style={{marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #f0f0f0'}}>
+                        <Checkbox
+                            checked={selectedQuestions.length === generatedQuestions.length}
+                            indeterminate={selectedQuestions.length > 0 && selectedQuestions.length < generatedQuestions.length}
+                            onChange={handleSelectAll}
+                        >
+                            全选
+                        </Checkbox>
+                    </div>
                     <div style={{maxHeight: '60vh', overflowY: 'auto'}}>
                         <Collapse
                             defaultActiveKey={generatedQuestions.map((_, index) => index.toString())}
