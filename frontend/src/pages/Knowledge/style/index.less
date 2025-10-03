@@ -1,0 +1,116 @@
+.knowledge-manager {
+  padding: 20px;
+  background: #f5f5f5;
+  min-height: calc(100vh - 60px);
+
+  .filter-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .table-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .table-header {
+      padding: 20px 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .table-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1d2129;
+      }
+
+      .table-actions {
+        display: flex;
+        gap: 12px;
+      }
+    }
+
+    .table-content {
+      padding: 20px;
+    }
+  }
+
+  .table-btn-group {
+    .more-btn {
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+
+      &:hover {
+        background-color: #f2f3f5;
+      }
+    }
+  }
+
+  .handle-dropdown-menu {
+    .arco-menu-item {
+      padding: 8px 12px;
+      
+      &:hover {
+        background-color: #f2f3f5;
+      }
+    }
+  }
+
+  .modal-form {
+    .arco-form-item {
+      margin-bottom: 20px;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e6eb;
+    }
+  }
+
+  .detail-modal {
+    .detail-item {
+      display: flex;
+      margin-bottom: 16px;
+      
+      .detail-label {
+        width: 120px;
+        color: #86909c;
+        font-weight: 500;
+      }
+      
+      .detail-value {
+        flex: 1;
+        color: #1d2129;
+      }
+    }
+  }
+
+  .difficulty-tag {
+    &.level-1, &.level-2 {
+      background-color: #e8f5e8;
+      color: #00b42a;
+      border-color: #00b42a;
+    }
+    
+    &.level-3 {
+      background-color: #fff7e6;
+      color: #ff7d00;
+      border-color: #ff7d00;
+    }
+    
+    &.level-4, &.level-5 {
+      background-color: #ffece8;
+      color: #f53f3f;
+      border-color: #f53f3f;
+    }
+  }
+}

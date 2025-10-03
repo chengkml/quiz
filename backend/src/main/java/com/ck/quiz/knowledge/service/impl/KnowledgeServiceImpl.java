@@ -170,7 +170,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 params,
                 (rs, rowNum) -> {
                     Knowledge k = new Knowledge();
-                    k.setId(rs.getString("id"));
+                    k.setId(rs.getString("knowledge_id"));
                     k.setName(rs.getString("name"));
                     k.setDescription(rs.getString("description"));
                     k.setCategoryId(rs.getString("category_id"));

@@ -12,6 +12,7 @@ import MyApply from '../pages/myApply';
 import QuestionManagement from '../pages/Question';
 import SubjectManagement from '../pages/Subject';
 import CategoryManagement from '../pages/Category';
+import KnowledgeManagement from '../pages/Knowledge';
 import Dim from '../pages/DimMgr';
 
 import About from '../pages/About';
@@ -133,6 +134,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: '/knowledge',
+    element: (
+        <ProtectedRoute>
+          <KnowledgeManagement />
+        </ProtectedRoute>
+    ),
+  },
+  {
     path: '/about',
     element: (
       <ProtectedRoute>
@@ -188,6 +197,10 @@ export const router = createBrowserRouter([
       {
         path: 'category',
         element: <CategoryManagement />,
+      },
+      {
+        path: 'knowledge',
+        element: <KnowledgeManagement />,
       },
       {
         path: 'about',
