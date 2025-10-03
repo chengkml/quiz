@@ -22,6 +22,7 @@ import {
     checkKnowledgeNameExists,
     getAllCategories,
     getAllSubjects,
+    getCategoriesBySubjectId,
 } from './api';
 import { IconDelete, IconEdit, IconEye, IconList, IconPlus } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
@@ -371,6 +372,30 @@ function KnowledgeManager() {
         }
     };
 
+    // 根据学科ID获取分类列表
+    const fetchCategoriesBySubject = async (subjectId) => {
+        if (!subjectId) {
+            setCategories([]);
+            return;
+        }
+        try {
+            setCategoriesLoading(true);
+            const response = await getCategoriesBySubjectId(subjectId);
+            if (response.data) {
+                setCategories(response.data.map(item => ({
+                    label: item.name,
+                    value: item.id
+                })));
+            }
+        } catch (error) {
+            console.error('获取分类列表失败:', error);
+            Message.error('获取分类列表失败');
+            setCategories([]);
+        } finally {
+            setCategoriesLoading(false);
+        }
+    };
+
     // 获取学科列表
     const fetchSubjects = async () => {
         try {
@@ -393,8 +418,8 @@ function KnowledgeManager() {
     // 初始化数据
     useEffect(() => {
         fetchTableData();
-        fetchCategories();
         fetchSubjects();
+        // 初始时不加载分类，等用户选择学科后再加载
     }, []);
 
     // 筛选表单配置
@@ -489,18 +514,6 @@ function KnowledgeManager() {
                             />
                         </Form.Item>
                         <Form.Item
-                            label="所属分类"
-                            field="categoryId"
-                            rules={[{ required: true, message: '请选择所属分类' }]}
-                        >
-                            <Select 
-                                placeholder="请选择所属分类" 
-                                options={categories}
-                                loading={categoriesLoading}
-                                allowClear
-                            />
-                        </Form.Item>
-                        <Form.Item
                             label="所属学科"
                             field="subjectId"
                             rules={[{ required: true, message: '请选择所属学科' }]}
@@ -510,6 +523,24 @@ function KnowledgeManager() {
                                 options={subjects}
                                 loading={subjectsLoading}
                                 allowClear
+                                onChange={(value) => {
+                                    // 当学科改变时，清空分类选择并重新加载分类列表
+                                    addFormRef.current?.setFieldValue('categoryId', undefined);
+                                    fetchCategoriesBySubject(value);
+                                }}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="所属分类"
+                            field="categoryId"
+                            rules={[{ required: true, message: '请选择所属分类' }]}
+                        >
+                            <Select 
+                                placeholder="请选择所属分类" 
+                                options={categories}
+                                loading={categoriesLoading}
+                                allowClear
+                                disabled={!addFormRef.current?.getFieldValue('subjectId')}
                             />
                         </Form.Item>
                         <Form.Item
@@ -554,6 +585,10 @@ function KnowledgeManager() {
                                 subjectId: currentRecord.subjectId,
                                 difficultyLevel: currentRecord.difficultyLevel,
                             });
+                            // 编辑时根据当前记录的学科ID加载对应的分类列表
+                            if (currentRecord.subjectId) {
+                                fetchCategoriesBySubject(currentRecord.subjectId);
+                            }
                         }
                     }}
                 >
@@ -583,18 +618,6 @@ function KnowledgeManager() {
                             />
                         </Form.Item>
                         <Form.Item
-                            label="所属分类"
-                            field="categoryId"
-                            rules={[{ required: true, message: '请选择所属分类' }]}
-                        >
-                            <Select 
-                                placeholder="请选择所属分类" 
-                                options={categories}
-                                loading={categoriesLoading}
-                                allowClear
-                            />
-                        </Form.Item>
-                        <Form.Item
                             label="所属学科"
                             field="subjectId"
                             rules={[{ required: true, message: '请选择所属学科' }]}
@@ -604,6 +627,24 @@ function KnowledgeManager() {
                                 options={subjects}
                                 loading={subjectsLoading}
                                 allowClear
+                                onChange={(value) => {
+                                    // 当学科改变时，清空分类选择并重新加载分类列表
+                                    editFormRef.current?.setFieldValue('categoryId', undefined);
+                                    fetchCategoriesBySubject(value);
+                                }}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="所属分类"
+                            field="categoryId"
+                            rules={[{ required: true, message: '请选择所属分类' }]}
+                        >
+                            <Select 
+                                placeholder="请选择所属分类" 
+                                options={categories}
+                                loading={categoriesLoading}
+                                allowClear
+                                disabled={!editFormRef.current?.getFieldValue('subjectId')}
                             />
                         </Form.Item>
                         <Form.Item
