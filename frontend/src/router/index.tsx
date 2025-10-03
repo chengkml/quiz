@@ -10,6 +10,7 @@ import RoleManagement from '../pages/role';
 import MenuManagement from '../pages/menu';
 import MyApply from '../pages/myApply';
 import QuestionManagement from '../pages/Question';
+import SubjectManagement from '../pages/Subject';
 import Dim from '../pages/DimMgr';
 
 import About from '../pages/About';
@@ -115,6 +116,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: '/subject',
+    element: (
+        <ProtectedRoute>
+          <SubjectManagement />
+        </ProtectedRoute>
+    ),
+  },
+  {
     path: '/about',
     element: (
       <ProtectedRoute>
@@ -162,6 +171,10 @@ export const router = createBrowserRouter([
       {
         path: 'question',
         element: <QuestionManagement />,
+      },
+      {
+        path: 'subject',
+        element: <SubjectManagement />,
       },
       {
         path: 'about',

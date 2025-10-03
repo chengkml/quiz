@@ -119,8 +119,9 @@ public class SubjectServiceImpl implements SubjectService {
                 params,
                 (rs, rowNum) -> {
                     Subject s = new Subject();
-                    s.setId(rs.getString("id"));
+                    s.setId(rs.getString("subject_id"));
                     s.setName(rs.getString("name"));
+                    s.setCreateUser(rs.getString("create_user"));
                     s.setDescription(rs.getString("description"));
                     s.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
                     s.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
