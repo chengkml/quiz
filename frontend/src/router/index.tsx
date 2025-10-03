@@ -11,6 +11,7 @@ import MenuManagement from '../pages/menu';
 import MyApply from '../pages/myApply';
 import QuestionManagement from '../pages/Question';
 import SubjectManagement from '../pages/Subject';
+import CategoryManagement from '../pages/Category';
 import Dim from '../pages/DimMgr';
 
 import About from '../pages/About';
@@ -124,6 +125,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: '/category',
+    element: (
+        <ProtectedRoute>
+          <CategoryManagement />
+        </ProtectedRoute>
+    ),
+  },
+  {
     path: '/about',
     element: (
       <ProtectedRoute>
@@ -175,6 +184,10 @@ export const router = createBrowserRouter([
       {
         path: 'subject',
         element: <SubjectManagement />,
+      },
+      {
+        path: 'category',
+        element: <CategoryManagement />,
       },
       {
         path: 'about',

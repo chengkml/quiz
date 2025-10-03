@@ -169,7 +169,7 @@ public class CategoryServiceImpl implements CategoryService {
                 params,
                 (rs, rowNum) -> {
                     Category c = new Category();
-                    c.setId(rs.getString("id"));
+                    c.setId(rs.getString("category_id"));
                     c.setName(rs.getString("name"));
                     c.setParentId(rs.getString("parent_id"));
                     c.setSubjectId(rs.getString("subject_id"));
