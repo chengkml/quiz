@@ -75,4 +75,28 @@ public interface QuestionService {
     List<QuestionCreateDto> generateQuestions(String knowledgeDescr, int num);
 
     List<QuestionDto> createQuestions(List<QuestionCreateDto> questionCreateDtos);
+
+    /**
+     * 关联问题和知识点
+     *
+     * @param questionId 问题ID
+     * @param knowledgeIds 知识点ID列表
+     */
+    void associateKnowledge(String questionId, List<String> knowledgeIds);
+
+    /**
+     * 取消问题和知识点的关联
+     *
+     * @param questionId 问题ID
+     * @param knowledgeIds 知识点ID列表
+     */
+    void disassociateKnowledge(String questionId, List<String> knowledgeIds);
+
+    /**
+     * 获取问题关联的知识点
+     *
+     * @param questionId 问题ID
+     * @return 知识点列表
+     */
+    List<com.ck.quiz.knowledge.dto.KnowledgeDto> getQuestionKnowledge(String questionId);
 }

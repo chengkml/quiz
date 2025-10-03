@@ -79,4 +79,12 @@ public interface KnowledgeService {
      */
     KnowledgeDto convertToDto(Knowledge knowledge);
 
+    /**
+     * 获取知识点关联的问题
+     *
+     * @param knowledgeId 知识点ID
+     * @return 问题列表
+     */
+    List<com.ck.quiz.question.dto.QuestionDto> getKnowledgeQuestions(String knowledgeId);
+
 }

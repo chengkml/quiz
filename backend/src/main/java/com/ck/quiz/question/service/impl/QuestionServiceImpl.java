@@ -6,7 +6,11 @@ import com.ck.quiz.question.dto.QuestionQueryDto;
 import com.ck.quiz.question.dto.QuestionUpdateDto;
 import com.ck.quiz.question.entity.Question;
 import com.ck.quiz.question.repository.QuestionRepository;
+import com.ck.quiz.question.repository.QuestionKnowledgeRepository;
 import com.ck.quiz.question.service.QuestionService;
+import com.ck.quiz.knowledge.entity.Knowledge;
+import com.ck.quiz.knowledge.repository.KnowledgeRepository;
+import com.ck.quiz.knowledge.service.KnowledgeService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -31,6 +35,15 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Autowired
     private QuestionRepository questionRepository;
+
+    @Autowired
+    private QuestionKnowledgeRepository questionKnowledgeRepository;
+
+    @Autowired
+    private KnowledgeRepository knowledgeRepository;
+
+    @Autowired
+    private KnowledgeService knowledgeService;
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
@@ -248,6 +261,52 @@ public class QuestionServiceImpl implements QuestionService {
                 "\n" +
                 "知识点描述如下：\n" +
                 "\"" + knowledgePointDescription + "\"\n";
+    }
+
+    @Override
+    @Transactional
+    public void associateKnowledge(String questionId, List<String> knowledgeIds) {
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new RuntimeException("问题不存在: " + questionId));
+
+        List<Knowledge> knowledgeList = knowledgeRepository.findAllById(knowledgeIds);
+        if (knowledgeList.size() != knowledgeIds.size()) {
+            throw new RuntimeException("部分知识点不存在");
+        }
+
+        // 添加新的关联关系
+        for (Knowledge knowledge : knowledgeList) {
+            if (!question.getKnowledgePoints().contains(knowledge)) {
+                question.getKnowledgePoints().add(knowledge);
+            }
+        }
+
+        questionRepository.save(question);
+    }
+
+    @Override
+    @Transactional
+    public void disassociateKnowledge(String questionId, List<String> knowledgeIds) {
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new RuntimeException("问题不存在: " + questionId));
+
+        List<Knowledge> knowledgeList = knowledgeRepository.findAllById(knowledgeIds);
+
+        // 移除关联关系
+        for (Knowledge knowledge : knowledgeList) {
+            question.getKnowledgePoints().remove(knowledge);
+        }
+
+        questionRepository.save(question);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.ck.quiz.knowledge.dto.KnowledgeDto> getQuestionKnowledge(String questionId) {
+        List<Knowledge> knowledgeList = questionKnowledgeRepository.findKnowledgeByQuestionId(questionId);
+        return knowledgeList.stream()
+                .map(knowledgeService::convertToDto)
+                .toList();
     }
 
 }

@@ -126,4 +126,17 @@ public class KnowledgeController {
         return ResponseEntity.ok(exists);
     }
 
+    /**
+     * 获取知识点关联的问题
+     *
+     * @param id 知识点ID
+     * @return 关联的问题列表
+     */
+    @GetMapping("/{id}/questions")
+    @Operation(summary = "获取知识点关联的问题", description = "获取指定知识点关联的所有问题")
+    public ResponseEntity getKnowledgeQuestions(
+            @Parameter(description = "知识点ID") @PathVariable String id) {
+        return ResponseEntity.ok(knowledgeService.getKnowledgeQuestions(id));
+    }
+
 }

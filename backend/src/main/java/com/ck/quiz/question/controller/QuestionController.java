@@ -88,4 +88,29 @@ public class QuestionController {
             @Parameter(description = "生成题目数量", required = true) @RequestParam(defaultValue = "3") int num) {
         return ResponseEntity.ok(questionService.generateQuestions(knowledgeDescr, num));
     }
+
+    @Operation(summary = "关联知识点", description = "为题目关联知识点")
+    @PostMapping("/{id}/associate-knowledge")
+    public ResponseEntity associateKnowledge(
+            @Parameter(description = "题目ID", required = true) @PathVariable String id,
+            @Parameter(description = "知识点ID列表", required = true) @RequestBody List<String> knowledgeIds) {
+        questionService.associateKnowledge(id, knowledgeIds);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "取消关联知识点", description = "取消题目与知识点的关联")
+    @DeleteMapping("/{id}/disassociate-knowledge")
+    public ResponseEntity disassociateKnowledge(
+            @Parameter(description = "题目ID", required = true) @PathVariable String id,
+            @Parameter(description = "知识点ID列表", required = true) @RequestBody List<String> knowledgeIds) {
+        questionService.disassociateKnowledge(id, knowledgeIds);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "获取题目关联的知识点", description = "获取指定题目关联的所有知识点")
+    @GetMapping("/{id}/knowledge")
+    public ResponseEntity getQuestionKnowledge(
+            @Parameter(description = "题目ID", required = true) @PathVariable String id) {
+        return ResponseEntity.ok(questionService.getQuestionKnowledge(id));
+    }
 }

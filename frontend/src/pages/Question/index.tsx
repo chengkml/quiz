@@ -26,7 +26,11 @@ import {
     generateQuestions,
     getQuestionList,
     updateQuestion,
+    associateKnowledge,
+    disassociateKnowledge,
+    getQuestionKnowledge,
 } from './api';
+import {getKnowledgeList} from '../Knowledge/api';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot,} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import DynamicQuestionForm from '@/components/DynamicQuestionForm';
@@ -58,6 +62,13 @@ function QuestionManager() {
     // 查看详情相关状态
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [detailRecord, setDetailRecord] = useState(null);
+
+    // 知识点关联相关状态
+    const [knowledgeModalVisible, setKnowledgeModalVisible] = useState(false);
+    const [knowledgeList, setKnowledgeList] = useState([]);
+    const [selectedKnowledge, setSelectedKnowledge] = useState([]);
+    const [currentQuestionKnowledge, setCurrentQuestionKnowledge] = useState([]);
+    const [knowledgeLoading, setKnowledgeLoading] = useState(false);
 
     // 表单引用
     const filterFormRef = useRef();
@@ -112,6 +123,29 @@ function QuestionManager() {
                     'SHORT_ANSWER': '简答题'
                 };
                 return <Tag color="blue">{typeMap[value] || value}</Tag>;
+            },
+        },
+        {
+            title: '关联知识点',
+            dataIndex: 'knowledgePoints',
+            width: 200,
+            ellipsis: true,
+            render: (value, record) => {
+                if (!value || value.length === 0) {
+                    return <span style={{color: '#999'}}>未关联</span>;
+                }
+                return (
+                    <div>
+                        {value.slice(0, 2).map((knowledge, index) => (
+                            <Tag key={index} color="cyan" style={{marginBottom: 2}}>
+                                {knowledge.name}
+                            </Tag>
+                        ))}
+                        {value.length > 2 && (
+                            <Tag color="gray">+{value.length - 2}</Tag>
+                        )}
+                    </div>
+                );
             },
         },
         {
@@ -209,6 +243,10 @@ function QuestionManager() {
                                     <IconEdit style={{marginRight: '5px'}}/>
                                     编辑
                                 </Menu.Item>
+                                <Menu.Item key="knowledge">
+                                    <IconList style={{marginRight: '5px'}}/>
+                                    关联知识点
+                                </Menu.Item>
                                 <Menu.Item key="delete">
                                     <IconDelete style={{marginRight: '5px'}}/>
                                     删除
@@ -291,6 +329,35 @@ function QuestionManager() {
         setDetailModalVisible(true);
     };
 
+    // 处理知识点关联
+    const handleKnowledgeAssociation = async (record) => {
+        setCurrentRecord(record);
+        setKnowledgeLoading(true);
+        try {
+            // 获取所有知识点列表
+            const knowledgeResponse = await getKnowledgeList({
+                pageNum: 0,
+                pageSize: 1000
+            });
+            if (knowledgeResponse.data) {
+                setKnowledgeList(knowledgeResponse.data.content || []);
+            }
+
+            // 获取当前问题已关联的知识点
+            const currentKnowledgeResponse = await getQuestionKnowledge(record.id);
+            if (currentKnowledgeResponse.data) {
+                const currentKnowledgeIds = currentKnowledgeResponse.data.map(k => k.id);
+                setCurrentQuestionKnowledge(currentKnowledgeResponse.data);
+                setSelectedKnowledge(currentKnowledgeIds);
+            }
+        } catch (error) {
+            Message.error('获取知识点数据失败');
+        } finally {
+            setKnowledgeLoading(false);
+            setKnowledgeModalVisible(true);
+        }
+    };
+
     // 处理菜单点击
     const handleMenuClick = (key, event, record) => {
         event.stopPropagation();
@@ -300,6 +367,8 @@ function QuestionManager() {
             handleDelete(record);
         } else if (key === 'detail') {
             handleDetail(record);
+        } else if (key === 'knowledge') {
+            handleKnowledgeAssociation(record);
         }
     };
 
@@ -1071,6 +1140,76 @@ function QuestionManager() {
                     </div>
                 </Modal>
             )}
+
+            {/* 知识点关联模态框 */}
+            <Modal
+                title={`关联知识点 - ${currentRecord?.content?.substring(0, 30)}...`}
+                visible={knowledgeModalVisible}
+                onCancel={() => {
+                    setKnowledgeModalVisible(false);
+                    setSelectedKnowledge([]);
+                    setCurrentQuestionKnowledge([]);
+                }}
+                onOk={async () => {
+                    try {
+                        setKnowledgeLoading(true);
+                        await associateKnowledge({
+                            questionId: currentRecord.id,
+                            knowledgeIds: selectedKnowledge
+                        });
+                        Message.success('知识点关联成功');
+                        setKnowledgeModalVisible(false);
+                        fetchTableData(); // 刷新表格数据
+                    } catch (error) {
+                        Message.error('知识点关联失败');
+                    } finally {
+                        setKnowledgeLoading(false);
+                    }
+                }}
+                confirmLoading={knowledgeLoading}
+                width={600}
+            >
+                <div style={{maxHeight: 400, overflowY: 'auto'}}>
+                    <div style={{marginBottom: 16}}>
+                        <strong>当前已关联的知识点:</strong>
+                        <div style={{marginTop: 8}}>
+                            {currentQuestionKnowledge.length > 0 ? (
+                                currentQuestionKnowledge.map(knowledge => (
+                                    <Tag key={knowledge.id} color="cyan" style={{margin: '2px 4px 2px 0'}}>
+                                        {knowledge.name}
+                                    </Tag>
+                                ))
+                            ) : (
+                                <span style={{color: '#999'}}>暂无关联知识点</span>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <strong>选择要关联的知识点:</strong>
+                        <Checkbox.Group
+                            value={selectedKnowledge}
+                            onChange={setSelectedKnowledge}
+                            style={{marginTop: 8, width: '100%'}}
+                        >
+                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px'}}>
+                                {knowledgeList.map(knowledge => (
+                                    <Checkbox key={knowledge.id} value={knowledge.id}>
+                                        <div style={{display: 'flex', flexDirection: 'column'}}>
+                                            <span style={{fontWeight: 500}}>{knowledge.name}</span>
+                                            {knowledge.description && (
+                                                <span style={{fontSize: 12, color: '#999', marginTop: 2}}>
+                                                    {knowledge.description.substring(0, 50)}...
+                                                </span>
+                                            )}
+                                        </div>
+                                    </Checkbox>
+                                ))}
+                            </div>
+                        </Checkbox.Group>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

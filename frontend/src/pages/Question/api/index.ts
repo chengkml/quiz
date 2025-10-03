@@ -23,6 +23,15 @@ const deleteQuestion = id => axios.delete(`${base}/api/question/${id}`);
 // 根据知识点生成题目
 const generateQuestions = params => axios.post(`${base}/api/question/generate`, null, {params});
 
+// 为问题关联知识点
+const associateKnowledge = params => axios.post(`${base}/api/question/${params.questionId}/associate-knowledge`, params.knowledgeIds);
+
+// 取消问题与知识点的关联
+const disassociateKnowledge = params => axios.post(`${base}/api/question/disassociate-knowledge`, params);
+
+// 获取问题关联的知识点列表
+const getQuestionKnowledge = questionId => axios.get(`${base}/api/question/${questionId}/knowledge`);
+
 export {
   getQuestionList,
   getQuestionById,
@@ -30,5 +39,8 @@ export {
   batchCreateQuestion,
   updateQuestion,
   deleteQuestion,
-  generateQuestions
+  generateQuestions,
+  associateKnowledge,
+  disassociateKnowledge,
+  getQuestionKnowledge
 };

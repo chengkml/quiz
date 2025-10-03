@@ -32,6 +32,9 @@ const getAllSubjects = () => axios.get(`${base}/api/subject/list/all`);
 // 根据学科ID获取分类列表
 const getCategoriesBySubjectId = (subjectId) => axios.get(`${base}/api/categories/subject/${subjectId}`);
 
+// 获取知识点关联的问题列表
+const getKnowledgeQuestions = knowledgeId => axios.get(`${base}/api/knowledge/${knowledgeId}/questions`);
+
 export {
   getKnowledgeList,
   getKnowledgeById,
@@ -42,5 +45,6 @@ export {
   checkKnowledgeNameExists,
   getAllCategories,
   getAllSubjects,
-  getCategoriesBySubjectId
+  getCategoriesBySubjectId,
+  getKnowledgeQuestions
 };

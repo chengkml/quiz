@@ -23,6 +23,7 @@ import {
     getAllCategories,
     getAllSubjects,
     getCategoriesBySubjectId,
+    getKnowledgeQuestions,
 } from './api';
 import { IconDelete, IconEdit, IconEye, IconList, IconPlus } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
@@ -49,6 +50,11 @@ function KnowledgeManager() {
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [currentRecord, setCurrentRecord] = useState(null);
     const [detailRecord, setDetailRecord] = useState(null);
+
+    // 关联问题相关状态
+    const [questionsModalVisible, setQuestionsModalVisible] = useState(false);
+    const [relatedQuestions, setRelatedQuestions] = useState([]);
+    const [questionsLoading, setQuestionsLoading] = useState(false);
 
     // 表单引用
     const filterFormRef = useRef();
@@ -201,6 +207,10 @@ function KnowledgeManager() {
                                     <IconEdit style={{ marginRight: '5px' }} />
                                     编辑
                                 </Menu.Item>
+                                <Menu.Item key="questions">
+                                    <IconList style={{ marginRight: '5px' }} />
+                                    查看关联问题
+                                </Menu.Item>
                                 <Menu.Item key="delete">
                                     <IconDelete style={{ marginRight: '5px' }} />
                                     删除
@@ -278,6 +288,23 @@ function KnowledgeManager() {
         setDetailModalVisible(true);
     };
 
+    // 处理查看关联问题
+    const handleViewQuestions = async (record) => {
+        setCurrentRecord(record);
+        setQuestionsLoading(true);
+        try {
+            const response = await getKnowledgeQuestions(record.id);
+            if (response.data) {
+                setRelatedQuestions(response.data);
+            }
+        } catch (error) {
+            Message.error('获取关联问题失败');
+        } finally {
+            setQuestionsLoading(false);
+            setQuestionsModalVisible(true);
+        }
+    };
+
     // 处理菜单点击
     const handleMenuClick = (key, event, record) => {
         event.stopPropagation();
@@ -287,6 +314,8 @@ function KnowledgeManager() {
             handleDelete(record);
         } else if (key === 'detail') {
             handleDetail(record);
+        } else if (key === 'questions') {
+            handleViewQuestions(record);
         }
     };
 
@@ -736,6 +765,78 @@ function KnowledgeManager() {
                                 {detailRecord?.updateDate ? new Date(detailRecord.updateDate).toLocaleString() : '--'}
                             </div>
                         </div>
+                    </div>
+                </Modal>
+
+                {/* 关联问题模态框 */}
+                <Modal
+                    title={`关联问题 - ${currentRecord?.name}`}
+                    visible={questionsModalVisible}
+                    onCancel={() => {
+                        setQuestionsModalVisible(false);
+                        setRelatedQuestions([]);
+                    }}
+                    footer={null}
+                    width={800}
+                >
+                    <div style={{maxHeight: 500, overflowY: 'auto'}}>
+                        {questionsLoading ? (
+                            <div style={{textAlign: 'center', padding: '20px'}}>
+                                加载中...
+                            </div>
+                        ) : relatedQuestions.length > 0 ? (
+                            <div>
+                                <div style={{marginBottom: 16, color: '#666'}}>
+                                    共找到 {relatedQuestions.length} 道关联问题
+                                </div>
+                                {relatedQuestions.map((question, index) => (
+                                    <div key={question.id} style={{
+                                        marginBottom: 16,
+                                        padding: 16,
+                                        border: '1px solid #e5e6eb',
+                                        borderRadius: 6,
+                                        backgroundColor: '#fafbfc'
+                                    }}>
+                                        <div style={{display: 'flex', alignItems: 'center', marginBottom: 8}}>
+                                            <Tag color="blue" style={{marginRight: 8}}>
+                                                {question.type === 'SINGLE' ? '单选题' :
+                                                 question.type === 'MULTIPLE' ? '多选题' :
+                                                 question.type === 'BLANK' ? '填空题' : '简答题'}
+                                            </Tag>
+                                            <Tag color={question.difficultyLevel <= 2 ? 'green' : 
+                                                      question.difficultyLevel <= 4 ? 'orange' : 'red'}>
+                                                难度: {question.difficultyLevel}级
+                                            </Tag>
+                                        </div>
+                                        <div style={{
+                                            fontSize: 14,
+                                            lineHeight: 1.6,
+                                            color: '#333',
+                                            marginBottom: 8
+                                        }}>
+                                            <strong>题目 {index + 1}:</strong> {question.content}
+                                        </div>
+                                        <div style={{
+                                            fontSize: 12,
+                                            color: '#999',
+                                            display: 'flex',
+                                            justifyContent: 'space-between'
+                                        }}>
+                                            <span>创建人: {question.createUser || '--'}</span>
+                                            <span>创建时间: {question.createDate || '--'}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '40px 20px',
+                                color: '#999'
+                            }}>
+                                该知识点暂无关联问题
+                            </div>
+                        )}
                     </div>
                 </Modal>
             </Content>

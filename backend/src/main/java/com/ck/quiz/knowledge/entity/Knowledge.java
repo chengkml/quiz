@@ -8,6 +8,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 知识点信息实体类
@@ -74,6 +76,12 @@ public class Knowledge {
 
     @Column(name = "update_user", length = 64)
     private String updateUser;
+
+    /**
+     * 关联的问题列表
+     */
+    @ManyToMany(mappedBy = "knowledgePoints", fetch = FetchType.LAZY)
+    private List<com.ck.quiz.question.entity.Question> questions = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {

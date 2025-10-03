@@ -8,10 +8,13 @@ import com.ck.quiz.knowledge.entity.Knowledge;
 import com.ck.quiz.knowledge.exception.KnowledgeException;
 import com.ck.quiz.knowledge.repository.KnowledgeRepository;
 import com.ck.quiz.knowledge.service.KnowledgeService;
+import com.ck.quiz.question.repository.QuestionKnowledgeRepository;
+import com.ck.quiz.question.service.QuestionService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -35,6 +38,11 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     private KnowledgeRepository knowledgeRepository;
     @Autowired
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    @Autowired
+    private QuestionKnowledgeRepository questionKnowledgeRepository;
+    @Lazy
+    @Autowired
+    private QuestionService questionService;
 
     @Override
     public KnowledgeDto createKnowledge(KnowledgeCreateDto createDto) {
@@ -234,6 +242,15 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         // dto.setSubjectName(subjectService.getSubjectById(knowledge.getSubjectId()).getName());
 
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.ck.quiz.question.dto.QuestionDto> getKnowledgeQuestions(String knowledgeId) {
+        List<com.ck.quiz.question.entity.Question> questions = questionKnowledgeRepository.findQuestionsByKnowledgeId(knowledgeId);
+        return questions.stream()
+                .map(questionService::convertToDto)
+                .toList();
     }
 
 }
