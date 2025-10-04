@@ -99,8 +99,8 @@ public class SubjectServiceImpl implements SubjectService {
         Map<String, Object> params = new HashMap<>();
 
         // 按名称模糊查询
-        JdbcQueryHelper.lowerLike("name", queryDto.getName(),
-                " and lower(name) like :name ", params, jdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("subjectName", queryDto.getName(),
+                " and lower(name) like :subjectName ", params, jdbcTemplate, sql, countSql);
 
         // 排序
         JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);

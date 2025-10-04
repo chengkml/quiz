@@ -88,7 +88,7 @@ public class JdbcQueryHelper {
     public static void lowerLike(String name, String param, String sqlSegment,
                                  Map<String, Object> params, NamedParameterJdbcTemplate jt, StringBuilder... sbs) {
         String dbType = getDatabaseType(jt.getJdbcTemplate().getDataSource());
-        if (StringUtils.isNotBlank(param)) {
+            if (StringUtils.isNotBlank(param)) {
             if ("mysql".equalsIgnoreCase(dbType)) {
                 param = param.replaceAll("\\/", "//").replaceAll("\\%", "/%").replaceAll("_", "/_").replaceAll("\\\\", "/\\\\");
                 sqlSegment = sqlSegment.replaceAll(name, name + " escape '\\/'");

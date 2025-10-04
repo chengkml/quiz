@@ -145,7 +145,7 @@ public class QuestionServiceImpl implements QuestionService {
         }
 
         if (StringUtils.hasText(queryDto.getContent())) {
-            JdbcQueryHelper.lowerLike("content", queryDto.getContent(), " AND LOWER(q.content) LIKE :content ", params, jdbcTemplate, sql, countSql);
+            JdbcQueryHelper.lowerLike("keyWord", queryDto.getContent(), " AND LOWER(q.content) LIKE :keyWord ", params, jdbcTemplate, sql, countSql);
         }
 
         if (queryDto.getDifficultyLevel() != null) {

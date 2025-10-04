@@ -13,22 +13,22 @@ import {
     Modal,
     Pagination,
     Select,
-    Space, Spin,
+    Space,
+    Spin,
     Table,
     Tag,
     Tooltip,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
+    associateKnowledge,
     batchCreateQuestion,
     createQuestion,
     deleteQuestion,
     generateQuestions,
+    getQuestionKnowledge,
     getQuestionList,
     updateQuestion,
-    associateKnowledge,
-    disassociateKnowledge,
-    getQuestionKnowledge,
 } from './api';
 import {getKnowledgeList} from '../Knowledge/api';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot,} from '@arco-design/web-react/icon';
@@ -41,7 +41,6 @@ const {Content} = Layout;
 function QuestionManager() {
     // 状态管理
     const [tableData, setTableData] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [tableLoading, setTableLoading] = useState(false);
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
 
@@ -428,7 +427,7 @@ function QuestionManager() {
             fetchTableData();
         } catch (error) {
             Message.error('新增失败');
-        }finally {
+        } finally {
             setSaveLoading(false);
         }
     };
@@ -1184,7 +1183,7 @@ function QuestionManager() {
                             )}
                         </div>
                     </div>
-                    
+
                     <div>
                         <strong>选择要关联的知识点:</strong>
                         <Checkbox.Group

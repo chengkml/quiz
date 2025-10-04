@@ -14,13 +14,7 @@ import {
     Tag,
 } from '@arco-design/web-react';
 import './style/index.less';
-import {
-    createSubject,
-    deleteSubject,
-    getSubjectList,
-    updateSubject,
-    checkSubjectName,
-} from './api';
+import {checkSubjectName, createSubject, deleteSubject, getSubjectList, updateSubject,} from './api';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 
@@ -250,7 +244,7 @@ function SubjectManager() {
         try {
             const values = await addFormRef.current.validate();
             setLoading(true);
-            
+
             // 检查学科名称是否已存在
             const checkResponse = await checkSubjectName({subjectName: values.name});
             if (checkResponse.data === true) {
@@ -279,7 +273,7 @@ function SubjectManager() {
         try {
             const values = await editFormRef.current.validate();
             setLoading(true);
-            
+
             // 检查学科名称是否已存在（排除当前记录）
             if (values.name !== currentRecord.name) {
                 const checkResponse = await checkSubjectName({
@@ -323,11 +317,32 @@ function SubjectManager() {
         }
     };
 
-    // 分页变化处理
-    const handlePageChange = (current, pageSize) => {
-        const filterParams = filterFormRef.current?.getFieldsValue() || {};
-        fetchTableData(filterParams, pageSize, current);
-    };
+    // 监听窗口大小变化，动态调整表格高度
+    useEffect(() => {
+        const calculateTableHeight = () => {
+            const windowHeight = window.innerHeight;
+            // 减去页面其他元素的高度，如头部、筛选区域、分页等
+            // 这里可以根据实际页面布局调整计算逻辑
+            const otherElementsHeight = 230; // 预估其他元素占用的高度
+            const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+            setTableScrollHeight(newHeight);
+        };
+
+        // 初始计算
+        calculateTableHeight();
+
+        // 监听窗口大小变化
+        const handleResize = () => {
+            calculateTableHeight();
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        // 清理事件监听器
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
 
     // 初始化数据
     useEffect(() => {
@@ -354,7 +369,13 @@ function SubjectManager() {
                     config={filterFormConfig}
                     onSearch={searchTableData}
                     onReset={() => fetchTableData()}
-                />
+                >
+                    <Form.Item field='subjectName' label='关键字'>
+                        <Input
+                            placeholder='请输入关键字'
+                        />
+                    </Form.Item>
+                </FilterForm>
 
                 {/* 操作按钮 */}
                 <div className="action-buttons">
@@ -379,8 +400,9 @@ function SubjectManager() {
                 <div className="pagination-wrapper">
                     <Pagination
                         {...pagination}
-                        onChange={handlePageChange}
-                        onPageSizeChange={(size) => handlePageChange(1, size)}
+                        onChange={(current, pageSize) => {
+                            fetchTableData({}, pageSize, current);
+                        }}
                     />
                 </div>
 
