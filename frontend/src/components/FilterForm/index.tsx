@@ -25,6 +25,7 @@ class FilterForm extends React.Component {
         this.values = props.initialValues || {};
         this.valueList = [];
         this.triggerRef = React.createRef();
+        this.formRef = React.createRef();
     }
 
     // 表单值变化回调
@@ -58,6 +59,7 @@ class FilterForm extends React.Component {
 
     // 重置表单
     handleResetForm = () => {
+        this.formRef.current.resetFields();
         const initialValues = this.props.initialValues || {};
         this.values = { ...initialValues };
         this.setState({ values: { ...initialValues } });
@@ -120,7 +122,7 @@ class FilterForm extends React.Component {
                         {/* 自定义表单区域 */}
                         <Col flex="auto" style={{ width: '100%' }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                                <Form onValuesChange={(value, values)=>{this.handleValuesChange(value, values)}}>
+                                <Form ref={this.    formRef} onValuesChange={(value, values)=>{this.handleValuesChange(value, values)}}>
                                     {!more ? childrenArray.slice(0, min) : childrenArray}
                                 </Form>
                             </div>

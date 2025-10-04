@@ -6,6 +6,7 @@ import UserManagement from '../pages/User';
 import RoleManagement from '../pages/Role';
 import MenuManagement from '../pages/Menu';
 import QuestionManagement from '../pages/Question';
+import ExamManagement from '../pages/Exam';
 import SubjectManagement from '../pages/Subject';
 import CategoryManagement from '../pages/Category';
 import KnowledgeManagement from '../pages/Knowledge';

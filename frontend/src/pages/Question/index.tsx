@@ -382,7 +382,7 @@ function QuestionManager() {
             const windowHeight = window.innerHeight;
             // 减去页面其他元素的高度，如头部、筛选区域、分页等
             // 这里可以根据实际页面布局调整计算逻辑
-            const otherElementsHeight = 230; // 预估其他元素占用的高度
+            const otherElementsHeight = 245; // 预估其他元素占用的高度
             const newHeight = Math.max(200, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
@@ -716,17 +716,16 @@ function QuestionManager() {
                     </Form.Item>
                 </FilterForm>
 
-                <div className="action-buttons">
-                    <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
-                        新增题目
-                    </Button>
-                    <Button type="outline" icon={<IconRobot/>} onClick={handleGenerate}>
-                        AI生成题目
-                    </Button>
-                </div>
-
                 {/* 表格 */}
                 <div className="table-container">
+                    <div className="action-buttons">
+                        <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
+                            新增题目
+                        </Button>
+                        <Button type="outline" icon={<IconRobot/>} onClick={handleGenerate}>
+                            AI生成题目
+                        </Button>
+                    </div>
                     <Table
                         columns={columns}
                         data={tableData}
