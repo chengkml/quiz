@@ -1,0 +1,230 @@
+.exam-manager {
+    box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+    overflow: hidden;
+    background: var(--background-color-base);
+    height: 100%;
+
+    .arco-layout-content {
+        padding: 10px;
+    }
+
+    .title {
+        display: inline-block;
+        height: 24px;
+        line-height: 24px;
+        background: var(--color-white);
+        border-radius: 8px;
+        padding: 0 10px;
+        font-size: 12px;
+        box-shadow: var(--modo-card-box-shadow);
+
+        .moda-icon {
+            height: unset;
+            vertical-align: middle;
+        }
+
+        span {
+            font-weight: 700;
+            color: var(--gray-10);
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+    }
+
+    // 操作按钮样式
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        background: var(--color-white);
+        padding: 14px 0 10px 14px;
+        border-bottom: 1px solid var(--color-border-2);
+        margin-bottom: 16px;
+    }
+
+    // 分页组件固定在底部的样式
+    .pagination-wrapper {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 12px 16px;
+        background: var(--color-white);
+        border-top: 1px solid var(--color-border-2);
+        display: flex;
+        justify-content: flex-end;
+        z-index: 10;
+    }
+
+    // 表格样式
+    .table-container {
+        .arco-table-th {
+            background-color: var(--color-fill-1);
+            font-weight: 600;
+        }
+
+        .arco-table-td {
+            border-bottom: 1px solid var(--color-border-2);
+        }
+
+        .arco-tag {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        // 试卷状态标签样式
+        .arco-tag-blue {
+            background-color: var(--color-primary-light-1);
+            color: var(--color-primary-6);
+        }
+
+        .arco-tag-green {
+            background-color: var(--color-success-light-1);
+            color: var(--color-success-6);
+        }
+
+        .arco-tag-orange {
+            background-color: var(--color-warning-light-1);
+            color: var(--color-warning-6);
+        }
+
+        .arco-tag-red {
+            background-color: var(--color-danger-light-1);
+            color: var(--color-danger-6);
+        }
+    }
+
+    // 模态框样式
+    .arco-modal {
+        .arco-modal-header {
+            border-bottom: 1px solid var(--color-border-2);
+            padding: 16px 24px;
+        }
+
+        .arco-modal-body {
+            padding: 24px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .arco-modal-footer {
+            border-top: 1px solid var(--color-border-2);
+            padding: 12px 24px;
+        }
+    }
+
+    // 表单样式
+    .arco-form {
+        .arco-form-item-label {
+            font-weight: 600;
+        }
+
+        .arco-form-item-content {
+            .arco-input,
+            .arco-select,
+            .arco-textarea {
+                border-radius: 6px;
+            }
+        }
+    }
+
+    // 操作按钮组样式
+    .table-btn-group {
+        .more-btn {
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+
+            &:hover {
+                background-color: var(--color-fill-2);
+            }
+        }
+    }
+
+    // 下拉菜单样式
+    .handle-dropdown-menu {
+        .arco-menu-item {
+            padding: 8px 12px;
+            font-size: 14px;
+
+            &:hover {
+                background-color: var(--color-fill-1);
+            }
+        }
+    }
+
+    // 试卷详情样式
+    .exam-detail {
+        .detail-section {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: var(--color-white);
+            border-radius: 8px;
+            border: 1px solid var(--color-border-2);
+
+            .section-title {
+                font-size: 16px;
+                font-weight: 600;
+                margin-bottom: 12px;
+                color: var(--color-text-1);
+            }
+
+            .detail-item {
+                display: flex;
+                margin-bottom: 8px;
+
+                .label {
+                    width: 120px;
+                    color: var(--color-text-2);
+                    font-weight: 500;
+                }
+
+                .value {
+                    flex: 1;
+                    color: var(--color-text-1);
+                }
+            }
+        }
+    }
+
+    // 题目列表样式
+    .question-list {
+        .question-item {
+            padding: 16px;
+            margin-bottom: 12px;
+            background: var(--color-white);
+            border-radius: 8px;
+            border: 1px solid var(--color-border-2);
+            transition: all 0.2s;
+
+            &:hover {
+                border-color: var(--color-primary-3);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            .question-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+
+                .question-info {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .question-actions {
+                    display: flex;
+                    gap: 8px;
+                }
+            }
+
+            .question-content {
+                color: var(--color-text-1);
+                line-height: 1.6;
+            }
+        }
+    }
+}

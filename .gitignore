@@ -3,6 +3,7 @@
 /frontend/node_modules/
 /.idea/
 /.gradle/
+/backend/bin/
 /backend/build/
 /backend/.gradle/
 /gradle/

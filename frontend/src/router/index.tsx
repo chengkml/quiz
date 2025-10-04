@@ -71,6 +71,14 @@ export const router = createBrowserRouter([
         ),
     },
     {
+        path: '/exam',
+        element: (
+            <ProtectedRoute>
+                <ExamManagement/>
+            </ProtectedRoute>
+        ),
+    },
+    {
         path: '/subject',
         element: (
             <ProtectedRoute>
@@ -118,6 +126,10 @@ export const router = createBrowserRouter([
             {
                 path: 'question',
                 element: <QuestionManagement/>,
+            },
+            {
+                path: 'exam',
+                element: <ExamManagement/>,
             },
             {
                 path: 'subject',
