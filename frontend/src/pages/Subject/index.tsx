@@ -323,7 +323,7 @@ function SubjectManager() {
             const windowHeight = window.innerHeight;
             // 减去页面其他元素的高度，如头部、筛选区域、分页等
             // 这里可以根据实际页面布局调整计算逻辑
-            const otherElementsHeight = 230; // 预估其他元素占用的高度
+            const otherElementsHeight = 245; // 预估其他元素占用的高度
             const newHeight = Math.max(200, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
@@ -377,24 +377,25 @@ function SubjectManager() {
                     </Form.Item>
                 </FilterForm>
 
-                {/* 操作按钮 */}
-                <div className="action-buttons">
-                    <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
-                        新增学科
-                    </Button>
-                </div>
-
                 {/* 表格 */}
-                <Table
-                    columns={columns}
-                    data={tableData}
-                    loading={tableLoading}
-                    pagination={false}
-                    scroll={{
-                        y: tableScrollHeight,
-                    }}
-                    rowKey="id"
-                />
+                <div className="table-container">
+                    {/* 操作按钮 */}
+                    <div className="action-buttons">
+                        <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
+                            新增学科
+                        </Button>
+                    </div>
+                    <Table
+                        columns={columns}
+                        data={tableData}
+                        loading={tableLoading}
+                        pagination={false}
+                        scroll={{
+                            y: tableScrollHeight,
+                        }}
+                        rowKey="id"
+                    />
+                </div>
 
                 {/* 分页 */}
                 <div className="pagination-wrapper">

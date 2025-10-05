@@ -129,8 +129,8 @@ public class QuestionServiceImpl implements QuestionService {
     public Page<QuestionDto> searchQuestions(QuestionQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
                 "SELECT q.question_id AS id, q.type, q.content, q.options, q.answer, q.explanation, " +
-                        "q.difficulty_level, q.create_date, q.create_user, q.update_date, q.update_user " +
-                        "FROM question q WHERE 1=1 "
+                        "q.difficulty_level, q.create_date, q.create_user, q.update_date, q.update_user, u.user_name create_user_name " +
+                        "FROM question q left join user u on u.user_id = q.create_user WHERE 1=1 "
         );
 
         StringBuilder countSql = new StringBuilder(
@@ -173,6 +173,7 @@ public class QuestionServiceImpl implements QuestionService {
             dto.setDifficultyLevel(rs.getInt("difficulty_level"));
             dto.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             dto.setCreateUser(rs.getString("create_user"));
+            dto.setCreateUserName(rs.getString("create_user_name"));
             dto.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;

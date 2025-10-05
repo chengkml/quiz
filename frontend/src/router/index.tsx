@@ -2,7 +2,6 @@ import React from 'react';
 import {createBrowserRouter, Navigate} from 'react-router-dom';
 import Login from '@/pages/Login/LoginWrapper';
 import Layout from '../components/Layout';
-import UserManagement from '../pages/User';
 import RoleManagement from '../pages/Role';
 import MenuManagement from '../pages/Menu';
 import QuestionManagement from '../pages/Question';
@@ -10,6 +9,7 @@ import ExamManagement from '../pages/Exam';
 import SubjectManagement from '../pages/Subject';
 import CategoryManagement from '../pages/Category';
 import KnowledgeManagement from '../pages/Knowledge';
+import UserManagement from '../pages/User';
 import NotFound from '../pages/NotFound';
 import {UserProvider} from '../contexts/UserContext';
 
@@ -36,14 +36,6 @@ export const router = createBrowserRouter([
             <UserProvider>
                 <Login/>
             </UserProvider>
-        ),
-    },
-    {
-        path: '/user',
-        element: (
-            <ProtectedRoute>
-                <UserManagement/>
-            </ProtectedRoute>
         ),
     },
     {
@@ -102,6 +94,14 @@ export const router = createBrowserRouter([
             </ProtectedRoute>
         ),
     },
+    {
+        path: '/user',
+        element: (
+            <ProtectedRoute>
+                <UserManagement/>
+            </ProtectedRoute>
+        ),
+    },
     // 带菜单的frame路由（保留用于需要Layout的页面）
     {
         path: '/quiz/frame',
@@ -111,10 +111,6 @@ export const router = createBrowserRouter([
             </ProtectedRoute>
         ),
         children: [
-            {
-                path: 'user',
-                element: <UserManagement/>,
-            },
             {
                 path: 'role',
                 element: <RoleManagement/>,
@@ -142,6 +138,10 @@ export const router = createBrowserRouter([
             {
                 path: 'knowledge',
                 element: <KnowledgeManagement/>,
+            },
+            {
+                path: 'user',
+                element: <UserManagement/>,
             },
             {
                 path: 'notfound',

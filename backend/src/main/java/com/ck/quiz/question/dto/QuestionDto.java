@@ -62,6 +62,11 @@ public class QuestionDto {
     private String createUser;
 
     /**
+     * 创建人中文名
+     */
+    private String createUserName;
+
+    /**
      * 更新时间
      */
     private LocalDateTime updateDate;

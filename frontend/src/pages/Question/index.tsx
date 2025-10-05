@@ -171,7 +171,7 @@ function QuestionManager() {
         },
         {
             title: '创建人',
-            dataIndex: 'createUser',
+            dataIndex: 'createUserName',
             width: 120,
             ellipsis: true,
         },
@@ -1131,7 +1131,7 @@ function QuestionManager() {
                                 color: '#86909c',
                                 fontSize: 14
                             }}>
-                                <span>创建人: {detailRecord.createUser || '--'}</span>
+                                <span>创建人: {detailRecord.createUserName || '--'}</span>
                                 <span>创建时间: {detailRecord.createDate || '--'}</span>
                             </div>
                         </div>

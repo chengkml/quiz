@@ -1,476 +1,628 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  Card,
-  Table,
-  Button,
-  Form,
-  Input,
-  Select,
-  Space,
-  Message,
-  Popconfirm,
-  Tag,
-  Grid,
-  Pagination,
-  Tooltip,
+    Button,
+    Form,
+    Input,
+    Layout,
+    Message,
+    Modal,
+    Pagination,
+    Select,
+    Space,
+    Spin,
+    Table,
+    Tag,
+    Tooltip,
 } from '@arco-design/web-react';
+import './style/index.less';
 import {
-  IconPlus,
-  IconRefresh,
-  IconEdit,
-  IconDelete,
-  IconLock,
-  IconUnlock,
-  IconUser,
-  IconSettings,
+    searchUsers,
+    registerUser,
+    updateUser,
+    deleteUser,
+    enableUser,
+    disableUser,
+    resetPassword,
+    checkUserId,
+} from './api';
+import {
+    IconDelete,
+    IconEdit,
+    IconEye,
+    IconPlus,
+    IconRefresh,
+    IconSearch,
+    IconUser,
 } from '@arco-design/web-react/icon';
-import { UserDto, UserQueryParams } from '../../types/user';
-import { UserService } from '../../services/userService';
-import CreateUserModal from './components/CreateUserModal';
-import EditUserModal from './components/EditUserModal';
-import ResetPasswordModal from './components/ResetPasswordModal';
-import AssignRolesModal from './components/AssignRolesModal';
-import styles from './index.module.css';
+import FilterForm from '@/components/FilterForm';
 
-const Row = Grid.Row;
-const Col = Grid.Col;
-const FormItem = Form.Item;
-const Option = Select.Option;
+const { Content } = Layout;
+const { Option } = Select;
 
-const UserManagement: React.FC = () => {
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [users, setUsers] = useState<UserDto[]>([]);
-  const [total, setTotal] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-  
-  // 模态框状态
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [resetPasswordModalVisible, setResetPasswordModalVisible] = useState(false);
-  const [assignRolesModalVisible, setAssignRolesModalVisible] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserDto | null>(null);
+function UserManager() {
+    // 状态管理
+    const [tableData, setTableData] = useState([]);
+    const [tableLoading, setTableLoading] = useState(false);
+    const [tableScrollHeight, setTableScrollHeight] = useState(200);
 
+    // 对话框状态
+    const [addModalVisible, setAddModalVisible] = useState(false);
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [resetPasswordModalVisible, setResetPasswordModalVisible] = useState(false);
 
+    // 分页状态
+    const [pagination, setPagination] = useState({
+        current: 1,
+        pageSize: 10,
+        total: 0,
+    });
 
-  // 状态选项
-  const stateOptions = [
-    { label: '全部', value: '' },
-    { label: '生效', value: '1' },
-    { label: '失效', value: '0' },
-  ];
+    // 搜索条件
+    const [searchParams, setSearchParams] = useState({
+        userId: '',
+        name: '',
+        state: '',
+    });
 
-  // 获取用户列表
-  const fetchUsers = useCallback(async (params?: Partial<UserQueryParams>) => {
-    setLoading(true);
-    try {
-      const queryParams: UserQueryParams = {
-        page: currentPage - 1, // 后端从0开始
-        size: pageSize,
-        ...params,
-      };
-      
-      const response = await UserService.getUsers(queryParams);
-      if (response.success) {
-        setUsers(response.data);
-        setTotal(response.totalElements);
-      } else {
-        Message.error('获取用户列表失败');
-      }
-    } catch (error) {
-      console.error('获取用户列表失败:', error);
-      Message.error('获取用户列表失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, pageSize]);
+    // 当前操作的用户
+    const [currentUser, setCurrentUser] = useState(null);
 
-  // 初始化加载
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    // 表单引用
+    const [addForm] = Form.useForm();
+    const [editForm] = Form.useForm();
+    const [resetPasswordForm] = Form.useForm();
 
-  // 查询
-  const handleSearch = () => {
-    const values = form.getFieldsValue();
-    setCurrentPage(1);
-    fetchUsers(values);
-  };
+    // 容器引用
+    const containerRef = useRef(null);
 
-  // 重置
-  const handleReset = () => {
-    form.resetFields();
-    setCurrentPage(1);
-    fetchUsers();
-  };
+    // 用户状态选项
+    const userStateOptions = [
+        { label: '启用', value: 'ENABLED' },
+        { label: '禁用', value: 'DISABLED' },
+    ];
 
-  // 刷新
-  const handleRefresh = () => {
-    const values = form.getFieldsValue();
-    fetchUsers(values);
-  };
+    // 表格列定义
+    const columns = [
+        {
+            title: '用户ID',
+            dataIndex: 'userId',
+            key: 'userId',
+            width: 120,
+            fixed: 'left',
+        },
+        {
+            title: '用户姓名',
+            dataIndex: 'userName',
+            key: 'userName',
+            width: 120,
+        },
+        {
+            title: '邮箱',
+            dataIndex: 'email',
+            key: 'email',
+            width: 180,
+        },
+        {
+            title: '手机号',
+            dataIndex: 'phone',
+            key: 'phone',
+            width: 120,
+        },
+        {
+            title: '状态',
+            dataIndex: 'state',
+            key: 'state',
+            width: 80,
+            render: (state) => (
+                <Tag color={state === 'ENABLED' ? 'green' : 'red'}>
+                    {state === 'ENABLED' ? '启用' : '禁用'}
+                </Tag>
+            ),
+        },
+        {
+            title: '创建时间',
+            dataIndex: 'createDate',
+            key: 'createDate',
+            width: 160,
+            render: (date) => date ? new Date(date).toLocaleString() : '-',
+        },
+        {
+            title: '创建人',
+            dataIndex: 'createUserName',
+            key: 'createUserName',
+            width: 100,
+        },
+        {
+            title: '操作',
+            key: 'action',
+            width: 200,
+            fixed: 'right',
+            render: (_, record) => (
+                <Space size="small">
+                    <Tooltip content="编辑">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconEdit />}
+                            onClick={() => handleEdit(record)}
+                        />
+                    </Tooltip>
+                    <Tooltip content="重置密码">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconRefresh />}
+                            onClick={() => handleResetPassword(record)}
+                        />
+                    </Tooltip>
+                    <Tooltip content={record.state === 'ENABLED' ? '禁用' : '启用'}>
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconUser />}
+                            onClick={() => handleToggleState(record)}
+                        />
+                    </Tooltip>
+                    <Tooltip content="删除">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconDelete />}
+                            onClick={() => handleDelete(record)}
+                            status="danger"
+                        />
+                    </Tooltip>
+                </Space>
+            ),
+        },
+    ];
 
-  // 启用用户
-  const handleEnableUser = async (user: UserDto) => {
-    try {
-      const response = await UserService.enableUser(user.userId);
-      if (response.success) {
-        Message.success('启用用户成功');
-        handleRefresh();
-      } else {
-        Message.error(response.message || '启用用户失败');
-      }
-    } catch (error) {
-      console.error('启用用户失败:', error);
-      Message.error('启用用户失败');
-    }
-  };
+    // 搜索表单配置
+    const searchFormItems = [
+        {
+            label: '用户ID',
+            field: 'userId',
+            component: <Input placeholder="请输入用户ID" />,
+        },
+        {
+            label: '用户姓名',
+            field: 'name',
+            component: <Input placeholder="请输入用户姓名" />,
+        },
+        {
+            label: '状态',
+            field: 'state',
+            component: (
+                <Select placeholder="请选择状态" allowClear>
+                    {userStateOptions.map(option => (
+                        <Option key={option.value} value={option.value}>
+                            {option.label}
+                        </Option>
+                    ))}
+                </Select>
+            ),
+        },
+    ];
 
-  // 禁用用户
-  const handleDisableUser = async (user: UserDto) => {
-    try {
-      const response = await UserService.disableUser(user.userId);
-      if (response.success) {
-        Message.success('禁用用户成功');
-        handleRefresh();
-      } else {
-        Message.error(response.message || '禁用用户失败');
-      }
-    } catch (error) {
-      console.error('禁用用户失败:', error);
-      Message.error('禁用用户失败');
-    }
-  };
+    // 获取用户列表
+    const fetchUsers = async (params = {}) => {
+        setTableLoading(true);
+        try {
+            const queryParams = {
+                ...searchParams,
+                ...params,
+                page: pagination.current - 1,
+                size: pagination.pageSize,
+                sortBy: 'createDate',
+                sortDir: 'desc',
+            };
 
-  // 编辑用户
-  const handleEditUser = (user: UserDto) => {
-    setSelectedUser(user);
-    setEditModalVisible(true);
-  };
+            const response = await searchUsers(queryParams);
+            const { content, totalElements } = response.data;
 
-  // 重置密码
-  const handleResetPassword = (user: UserDto) => {
-    setSelectedUser(user);
-    setResetPasswordModalVisible(true);
-  };
+            setTableData(content || []);
+            setPagination(prev => ({
+                ...prev,
+                total: totalElements || 0,
+            }));
+        } catch (error) {
+            Message.error('获取用户列表失败');
+            console.error('获取用户列表失败:', error);
+        } finally {
+            setTableLoading(false);
+        }
+    };
 
-  // 删除用户
-  const handleDeleteUser = async (user: UserDto) => {
-    try {
-      const response = await UserService.deleteUser(user.id);
-      if (response.success) {
-        Message.success('删除用户成功');
-        handleRefresh();
-      } else {
-        Message.error(response.message || '删除用户失败');
-      }
-    } catch (error) {
-      console.error('删除用户失败:', error);
-      Message.error('删除用户失败');
-    }
-  };
+    // 搜索处理
+    const handleSearch = (values) => {
+        setSearchParams(values);
+        setPagination(prev => ({ ...prev, current: 1 }));
+        fetchUsers(values);
+    };
 
-  // 角色配置
-  const handleAssignRoles = (user: UserDto) => {
-    setSelectedUser(user);
-    setAssignRolesModalVisible(true);
-  };
+    // 重置搜索
+    const handleReset = () => {
+        const resetParams = { userId: '', name: '', state: '' };
+        setSearchParams(resetParams);
+        setPagination(prev => ({ ...prev, current: 1 }));
+        fetchUsers(resetParams);
+    };
 
-  // 分页变化
-  const handlePageChange = (page: number, size: number) => {
-    setCurrentPage(page);
-    setPageSize(size);
-  };
+    // 添加用户
+    const handleAdd = () => {
+        setAddModalVisible(true);
+        addForm.resetFields();
+    };
 
-  // 表格列定义
-  const columns = [
-    {
-      title: '用户账号',
-      dataIndex: 'userId',
-      width: 120,
-    },
-    {
-      title: '用户姓名',
-      dataIndex: 'userName',
-      width: 100,
-    },
-    {
-      title: '邮箱',
-      dataIndex: 'email',
-      width: 200,
-      render: (email: string) => email || '-',
-    },
-    {
-      title: '手机号',
-      dataIndex: 'phone',
-      width: 120,
-      render: (phone: string) => phone || '-',
-    },
+    // 编辑用户
+    const handleEdit = (record) => {
+        setCurrentUser(record);
+        setEditModalVisible(true);
+        editForm.setFieldsValue({
+            userId: record.userId,
+            userName: record.userName,
+            email: record.email,
+            phone: record.phone,
+            logo: record.logo,
+        });
+    };
 
-    {
-      title: '角色',
-      dataIndex: 'roles',
-      render: (roles: any[]) => {
-        if (!roles || roles.length === 0) return '-';
-        return (
-          <Space wrap>
-            {roles.map((role, index) => (
-              <Tag key={index} color="blue" size="small">
-                {role.roleName}
-              </Tag>
-            ))}
-          </Space>
-        );
-      },
-    },
-    {
-      title: '状态',
-      dataIndex: 'state',
-      align: 'center',
-      width: 80,
-      render: (state: string) => {
-        const stateText = state === '1' ? '生效' : '失效';
-        const color = state === '1' ? 'green' : 'red';
-        return (
-          <Tag color={color} size="small">
-            {stateText}
-          </Tag>
-        );
-      },
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createDt',
-      width: 170,
-      render: (createDt: string) => {
-        if (!createDt) return '-';
-        const date = new Date(createDt);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-      },
-    },
-    {
-      title: '操作',
-      dataIndex: 'action',
-      width: 260,
-      fixed: 'right' as const,
-      render: (_: any, record: UserDto) => (
-        <Space>
-          <Tooltip content="编辑">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconEdit />}
-              onClick={() => handleEditUser(record)}
-            />
-          </Tooltip>
-          {record.state === '1' ? (
-            <Popconfirm
-              title="确定要禁用该用户吗？"
-              onOk={() => handleDisableUser(record)}
+    // 删除用户
+    const handleDelete = (record) => {
+        setCurrentUser(record);
+        setDeleteModalVisible(true);
+    };
+
+    // 重置密码
+    const handleResetPassword = (record) => {
+        setCurrentUser(record);
+        setResetPasswordModalVisible(true);
+        resetPasswordForm.resetFields();
+    };
+
+    // 切换用户状态
+    const handleToggleState = async (record) => {
+        try {
+            if (record.state === 'ENABLED') {
+                await disableUser(record.userId);
+                Message.success('用户已禁用');
+            } else {
+                await enableUser(record.userId);
+                Message.success('用户已启用');
+            }
+            fetchUsers();
+        } catch (error) {
+            Message.error('操作失败');
+            console.error('切换用户状态失败:', error);
+        }
+    };
+
+    // 确认添加用户
+    const handleAddConfirm = async () => {
+        try {
+            const values = await addForm.validate();
+            await registerUser(values);
+            Message.success('用户创建成功');
+            setAddModalVisible(false);
+            fetchUsers();
+        } catch (error) {
+            if (error.response?.data?.message) {
+                Message.error(error.response.data.message);
+            } else {
+                Message.error('创建用户失败');
+            }
+            console.error('创建用户失败:', error);
+        }
+    };
+
+    // 确认编辑用户
+    const handleEditConfirm = async () => {
+        try {
+            const values = await editForm.validate();
+            await updateUser(values);
+            Message.success('用户信息更新成功');
+            setEditModalVisible(false);
+            fetchUsers();
+        } catch (error) {
+            Message.error('更新用户信息失败');
+            console.error('更新用户信息失败:', error);
+        }
+    };
+
+    // 确认删除用户
+    const handleDeleteConfirm = async () => {
+        try {
+            await deleteUser(currentUser.userId);
+            Message.success('用户删除成功');
+            setDeleteModalVisible(false);
+            fetchUsers();
+        } catch (error) {
+            Message.error('删除用户失败');
+            console.error('删除用户失败:', error);
+        }
+    };
+
+    // 确认重置密码
+    const handleResetPasswordConfirm = async () => {
+        try {
+            const values = await resetPasswordForm.validate();
+            await resetPassword(currentUser.userId, values.newPassword);
+            Message.success('密码重置成功');
+            setResetPasswordModalVisible(false);
+        } catch (error) {
+            Message.error('重置密码失败');
+            console.error('重置密码失败:', error);
+        }
+    };
+
+    // 分页处理
+    const handlePageChange = (current, pageSize) => {
+        setPagination(prev => ({
+            ...prev,
+            current,
+            pageSize,
+        }));
+    };
+
+    // 计算表格高度
+    const calculateTableHeight = () => {
+        if (containerRef.current) {
+            const containerHeight = containerRef.current.clientHeight;
+            const headerHeight = 120; // 搜索表单和按钮区域高度
+            const paginationHeight = 60; // 分页区域高度
+            const padding = 40; // 内边距
+            const calculatedHeight = containerHeight - headerHeight - paginationHeight - padding;
+            setTableScrollHeight(Math.max(calculatedHeight, 200));
+        }
+    };
+
+    // 初始化和窗口大小变化处理
+    useEffect(() => {
+        fetchUsers();
+        calculateTableHeight();
+
+        const handleResize = () => {
+            calculateTableHeight();
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // 分页变化时重新获取数据
+    useEffect(() => {
+        fetchUsers();
+    }, [pagination.current, pagination.pageSize]);
+
+    return (
+        <div className="user-manager" ref={containerRef}>
+            <Layout>
+                <Content>
+                    {/* 搜索表单 */}
+                    <FilterForm
+                        items={searchFormItems}
+                        onSearch={handleSearch}
+                        onReset={handleReset}
+                        initialValues={searchParams}
+                    />
+
+                    {/* 操作按钮 */}
+                    <div className="action-buttons">
+                        <Button
+                            type="primary"
+                            icon={<IconPlus />}
+                            onClick={handleAdd}
+                        >
+                            新增用户
+                        </Button>
+                        <Button
+                            icon={<IconRefresh />}
+                            onClick={() => fetchUsers()}
+                        >
+                            刷新
+                        </Button>
+                    </div>
+
+                    {/* 用户表格 */}
+                    <Table
+                        columns={columns}
+                        data={tableData}
+                        loading={tableLoading}
+                        pagination={false}
+                        scroll={{
+                            x: 1200,
+                            y: tableScrollHeight,
+                        }}
+                        rowKey="userId"
+                        size="small"
+                    />
+
+                    {/* 分页 */}
+                    <div className="pagination-wrapper">
+                        <Pagination
+                            current={pagination.current}
+                            pageSize={pagination.pageSize}
+                            total={pagination.total}
+                            onChange={handlePageChange}
+                            showTotal={(total, range) =>
+                                `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
+                            }
+                            showSizeChanger
+                            pageSizeOptions={['10', '20', '50', '100']}
+                        />
+                    </div>
+                </Content>
+            </Layout>
+
+            {/* 新增用户对话框 */}
+            <Modal
+                title="新增用户"
+                visible={addModalVisible}
+                onOk={handleAddConfirm}
+                onCancel={() => setAddModalVisible(false)}
+                okText="确定"
+                cancelText="取消"
             >
-              <Tooltip content="禁用">
-                <Button
-                  type="text"
-                  size="small"
-                  status="warning"
-                  icon={<IconLock />}
-                />
-              </Tooltip>
-            </Popconfirm>
-          ) : (
-            <Popconfirm
-              title="确定要启用该用户吗？"
-              onOk={() => handleEnableUser(record)}
-            >
-              <Tooltip content="启用">
-                <Button
-                  type="text"
-                  size="small"
-                  status="success"
-                  icon={<IconUnlock />}
-                />
-              </Tooltip>
-            </Popconfirm>
-          )}
-          <Tooltip content="重置密码">
-            <Button
-              type="text"
-              size="small"
-              status="danger"
-              icon={<IconUser />}
-              onClick={() => handleResetPassword(record)}
-            />
-          </Tooltip>
-          <Tooltip content="角色配置">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconSettings />}
-              onClick={() => handleAssignRoles(record)}
-            />
-          </Tooltip>
-          <Popconfirm
-            title="确定要删除该用户吗？"
-            content="删除后将无法恢复，请谨慎操作！"
-            onOk={() => handleDeleteUser(record)}
-          >
-            <Tooltip content="删除">
-              <Button
-                type="text"
-                size="small"
-                status="danger"
-                icon={<IconDelete />}
-              />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+                <Form form={addForm} layout="vertical">
+                    <Form.Item
+                        label="用户ID"
+                        field="userId"
+                        rules={[
+                            { required: true, message: '请输入用户ID' },
+                            { max: 32, message: '用户ID长度不能超过32个字符' },
+                        ]}
+                    >
+                        <Input placeholder="请输入用户ID" />
+                    </Form.Item>
+                    <Form.Item
+                        label="用户姓名"
+                        field="userName"
+                        rules={[
+                            { required: true, message: '请输入用户姓名' },
+                            { max: 128, message: '用户姓名长度不能超过128个字符' },
+                        ]}
+                    >
+                        <Input placeholder="请输入用户姓名" />
+                    </Form.Item>
+                    <Form.Item
+                        label="密码"
+                        field="password"
+                        rules={[
+                            { required: true, message: '请输入密码' },
+                            { minLength: 6, message: '密码长度至少6个字符' },
+                            { maxLength: 20, message: '密码长度不能超过20个字符' },
+                        ]}
+                    >
+                        <Input.Password placeholder="请输入密码" />
+                    </Form.Item>
+                    <Form.Item
+                        label="邮箱"
+                        field="email"
+                        rules={[
+                            { type: 'email', message: '请输入正确的邮箱格式' },
+                            { max: 64, message: '邮箱长度不能超过64个字符' },
+                        ]}
+                    >
+                        <Input placeholder="请输入邮箱" />
+                    </Form.Item>
+                    <Form.Item
+                        label="手机号"
+                        field="phone"
+                        rules={[
+                            { max: 16, message: '手机号长度不能超过16个字符' },
+                        ]}
+                    >
+                        <Input placeholder="请输入手机号" />
+                    </Form.Item>
+                    <Form.Item
+                        label="头像URL"
+                        field="logo"
+                        rules={[
+                            { max: 256, message: '头像URL长度不能超过256个字符' },
+                        ]}
+                    >
+                        <Input placeholder="请输入头像URL" />
+                    </Form.Item>
+                </Form>
+            </Modal>
 
-  return (
-    <div className={styles.userManagement}>
-      {/* 查询表单 */}
-      <Card className={styles.queryForm}>
-        <Form form={form}>
-          <div className={styles.formRow}>
-          <div className={styles.formItem}>
-            <FormItem field="userId" label="用户账号" className={styles.arcoFormItem}>
-              <Input placeholder="请输入用户账号" allowClear />
-            </FormItem>
-          </div>
-          <div className={styles.formItem}>
-            <FormItem field="name" label="用户姓名" className={styles.arcoFormItem}>
-              <Input placeholder="请输入用户姓名" allowClear />
-            </FormItem>
-          </div>
-          <div className={styles.formItem}>
-            <FormItem field="state" label="状态" className={styles.arcoFormItem}>
-              <Select placeholder="请选择状态" allowClear>
-                {stateOptions.map(option => (
-                  <Option key={option.value} value={option.value}>
-                    {option.label}
-                  </Option>
-                ))}
-              </Select>
-            </FormItem>
-          </div>
-          <div className={styles.buttonGroup}>
-            <Button type="primary" onClick={handleSearch}>
-              查询
-            </Button>
-            <Button onClick={handleReset}>
-              重置
-            </Button>
-          </div>
-          </div>
-        </Form>
-      </Card>
-
-      {/* 用户表格 */}
-      <Card className={styles.userTable}>
-        <div className={styles.tableHeader}>
-          <div className={styles.tableTitle}>用户列表</div>
-          <div className={styles.tableActions}>
-            <Button
-              type="primary"
-              icon={<IconPlus />}
-              onClick={() => setCreateModalVisible(true)}
+            {/* 编辑用户对话框 */}
+            <Modal
+                title="编辑用户"
+                visible={editModalVisible}
+                onOk={handleEditConfirm}
+                onCancel={() => setEditModalVisible(false)}
+                okText="确定"
+                cancelText="取消"
             >
-              新增用户
-            </Button>
-            <Button icon={<IconRefresh />} onClick={handleRefresh}>
-              刷新
-            </Button>
-          </div>
+                <Form form={editForm} layout="vertical">
+                    <Form.Item
+                        label="用户ID"
+                        field="userId"
+                    >
+                        <Input disabled />
+                    </Form.Item>
+                    <Form.Item
+                        label="用户姓名"
+                        field="userName"
+                        rules={[
+                            { max: 128, message: '用户姓名长度不能超过128个字符' },
+                        ]}
+                    >
+                        <Input placeholder="请输入用户姓名" />
+                    </Form.Item>
+                    <Form.Item
+                        label="邮箱"
+                        field="email"
+                        rules={[
+                            { type: 'email', message: '请输入正确的邮箱格式' },
+                            { max: 64, message: '邮箱长度不能超过64个字符' },
+                        ]}
+                    >
+                        <Input placeholder="请输入邮箱" />
+                    </Form.Item>
+                    <Form.Item
+                        label="手机号"
+                        field="phone"
+                        rules={[
+                            { max: 16, message: '手机号长度不能超过16个字符' },
+                        ]}
+                    >
+                        <Input placeholder="请输入手机号" />
+                    </Form.Item>
+                    <Form.Item
+                        label="头像URL"
+                        field="logo"
+                        rules={[
+                            { max: 256, message: '头像URL长度不能超过256个字符' },
+                        ]}
+                    >
+                        <Input placeholder="请输入头像URL" />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* 删除确认对话框 */}
+            <Modal
+                title="删除用户"
+                visible={deleteModalVisible}
+                onOk={handleDeleteConfirm}
+                onCancel={() => setDeleteModalVisible(false)}
+                okText="确定"
+                cancelText="取消"
+            >
+                <p>确定要删除用户 "{currentUser?.userName}" 吗？此操作不可恢复。</p>
+            </Modal>
+
+            {/* 重置密码对话框 */}
+            <Modal
+                title="重置密码"
+                visible={resetPasswordModalVisible}
+                onOk={handleResetPasswordConfirm}
+                onCancel={() => setResetPasswordModalVisible(false)}
+                okText="确定"
+                cancelText="取消"
+            >
+                <Form form={resetPasswordForm} layout="vertical">
+                    <Form.Item
+                        label="新密码"
+                        field="newPassword"
+                        rules={[
+                            { required: true, message: '请输入新密码' },
+                            { minLength: 6, message: '密码长度至少6个字符' },
+                            { maxLength: 20, message: '密码长度不能超过20个字符' },
+                        ]}
+                    >
+                        <Input.Password placeholder="请输入新密码" />
+                    </Form.Item>
+                </Form>
+                <p style={{ color: '#666', fontSize: '12px' }}>
+                    为用户 "{currentUser?.userName}" 重置密码
+                </p>
+            </Modal>
         </div>
-        <Table
-          columns={columns}
-          data={users}
-          loading={loading}
-          pagination={false}
-          scroll={{ x: 1200 }}
-          rowKey="id"
-        />
-        
-        {/* 分页 */}
-        <div className={styles.paginationWrapper}>
-          <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={total}
-            showTotal={(total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`}
-            showQuickJumper
-            sizeOptions={[10, 20, 50, 100]}
-            onChange={handlePageChange}
-          />
-        </div>
-      </Card>
+    );
+}
 
-      {/* 新增用户模态框 */}
-      <CreateUserModal
-        visible={createModalVisible}
-        onCancel={() => setCreateModalVisible(false)}
-        onSuccess={() => {
-          setCreateModalVisible(false);
-          handleRefresh();
-        }}
-
-      />
-
-      {/* 编辑用户模态框 */}
-      <EditUserModal
-        visible={editModalVisible}
-        user={selectedUser}
-        onCancel={() => {
-          setEditModalVisible(false);
-          setSelectedUser(null);
-        }}
-        onSuccess={() => {
-          setEditModalVisible(false);
-          setSelectedUser(null);
-          handleRefresh();
-        }}
-
-      />
-
-      {/* 重置密码模态框 */}
-      <ResetPasswordModal
-        visible={resetPasswordModalVisible}
-        user={selectedUser}
-        onCancel={() => {
-          setResetPasswordModalVisible(false);
-          setSelectedUser(null);
-        }}
-        onSuccess={() => {
-          setResetPasswordModalVisible(false);
-          setSelectedUser(null);
-        }}
-      />
-
-      {/* 角色配置模态框 */}
-      <AssignRolesModal
-        visible={assignRolesModalVisible}
-        user={selectedUser}
-        onCancel={() => {
-          setAssignRolesModalVisible(false);
-          setSelectedUser(null);
-        }}
-        onSuccess={() => {
-          setAssignRolesModalVisible(false);
-          setSelectedUser(null);
-          handleRefresh();
-        }}
-      />
-    </div>
-  );
-};
-
-export default UserManagement;
+export default UserManager;

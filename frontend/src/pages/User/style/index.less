@@ -1,0 +1,231 @@
+.user-manager {
+    box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+    overflow: hidden;
+    background: var(--background-color-base);
+    height: 100%;
+
+    .arco-layout-content {
+        padding: 10px;
+    }
+
+    .title {
+        display: inline-block;
+        height: 24px;
+        line-height: 24px;
+        background: var(--color-white);
+        border-radius: 8px;
+        padding: 0 10px;
+        font-size: 12px;
+        box-shadow: var(--modo-card-box-shadow);
+
+        .moda-icon {
+            height: unset;
+            vertical-align: middle;
+        }
+
+        span {
+            font-weight: 700;
+            color: var(--gray-10);
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+    }
+
+    // 操作按钮样式
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        background: var(--color-white);
+        margin-bottom: 16px;
+        padding: 16px;
+        border-radius: 8px;
+        box-shadow: var(--modo-card-box-shadow);
+    }
+
+    // 分页组件固定在底部的样式
+    .pagination-wrapper {
+        padding: 16px;
+        background: var(--color-white);
+        display: flex;
+        justify-content: flex-end;
+        border-radius: 0 0 8px 8px;
+        box-shadow: var(--modo-card-box-shadow);
+        margin-top: 16px;
+    }
+
+    // 表格容器样式
+    .arco-table-container {
+        background: var(--color-white);
+        border-radius: 8px;
+        box-shadow: var(--modo-card-box-shadow);
+    }
+
+    // 表格头部样式
+    .arco-table-thead {
+        background: var(--color-fill-1);
+        
+        .arco-table-th {
+            background: var(--color-fill-1);
+            border-bottom: 1px solid var(--color-border-2);
+            font-weight: 600;
+            color: var(--color-text-1);
+        }
+    }
+
+    // 表格行样式
+    .arco-table-tbody {
+        .arco-table-tr {
+            &:hover {
+                background: var(--color-fill-1);
+            }
+        }
+
+        .arco-table-td {
+            border-bottom: 1px solid var(--color-border-3);
+            color: var(--color-text-2);
+        }
+    }
+
+    // 操作按钮样式
+    .arco-btn-text {
+        &:hover {
+            background: var(--color-fill-2);
+        }
+
+        &.arco-btn-status-danger {
+            &:hover {
+                background: var(--color-danger-light-1);
+                color: var(--color-danger-6);
+            }
+        }
+    }
+
+    // 状态标签样式
+    .arco-tag {
+        border-radius: 4px;
+        font-size: 12px;
+        padding: 2px 8px;
+    }
+
+    // 模态框样式
+    .arco-modal {
+        .arco-modal-header {
+            border-bottom: 1px solid var(--color-border-2);
+            padding: 16px 24px;
+        }
+
+        .arco-modal-body {
+            padding: 24px;
+        }
+
+        .arco-modal-footer {
+            border-top: 1px solid var(--color-border-2);
+            padding: 16px 24px;
+        }
+    }
+
+    // 表单样式
+    .arco-form {
+        .arco-form-item {
+            margin-bottom: 16px;
+
+            .arco-form-item-label {
+                font-weight: 500;
+                color: var(--color-text-1);
+            }
+        }
+    }
+
+    // 搜索表单样式
+    .filter-form {
+        background: var(--color-white);
+        padding: 16px;
+        border-radius: 8px;
+        box-shadow: var(--modo-card-box-shadow);
+        margin-bottom: 16px;
+
+        .arco-form-item {
+            margin-bottom: 0;
+        }
+
+        .arco-btn {
+            margin-left: 8px;
+        }
+    }
+
+    // 加载状态样式
+    .arco-spin {
+        .arco-spin-dot {
+            color: var(--color-primary-6);
+        }
+    }
+
+    // 空状态样式
+    .arco-empty {
+        padding: 40px 0;
+        color: var(--color-text-3);
+    }
+
+    // 响应式样式
+    @media (max-width: 768px) {
+        .action-buttons {
+            flex-direction: column;
+            align-items: stretch;
+
+            .arco-btn {
+                margin-bottom: 8px;
+            }
+        }
+
+        .pagination-wrapper {
+            justify-content: center;
+        }
+
+        .arco-table {
+            font-size: 12px;
+        }
+    }
+
+    // 工具提示样式
+    .arco-tooltip {
+        .arco-tooltip-content {
+            background: var(--color-bg-popup);
+            color: var(--color-text-1);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    }
+
+    // 消息提示样式
+    .arco-message {
+        .arco-message-content {
+            border-radius: 4px;
+            box-shadow: var(--modo-card-box-shadow);
+        }
+    }
+
+    // 选择器样式
+    .arco-select {
+        .arco-select-view {
+            border-radius: 4px;
+        }
+    }
+
+    // 输入框样式
+    .arco-input {
+        border-radius: 4px;
+        
+        &:focus {
+            border-color: var(--color-primary-6);
+            box-shadow: 0 0 0 2px var(--color-primary-light-3);
+        }
+    }
+
+    // 密码输入框样式
+    .arco-input-password {
+        .arco-input {
+            border-radius: 4px;
+        }
+    }
+}
