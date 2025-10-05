@@ -1,501 +1,534 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  Card,
-  Form,
-  Input,
-  Select,
-  Button,
-  Table,
-  Pagination,
-  Message,
-  Popconfirm,
-  Tag,
-  Space,
-  Grid,
-  Tooltip
+    Button,
+    Form,
+    Input,
+    Layout,
+    Message,
+    Modal,
+    Pagination,
+    Select,
+    Space,
+    Spin,
+    Table,
+    Tag,
+    Tooltip,
 } from '@arco-design/web-react';
+import './style/index.less';
 import {
-  IconPlus,
-  IconRefresh,
-  IconEdit,
-  IconDelete,
-  IconEye,
-  IconSearch,
-  IconLock,
-  IconUnlock,
-  IconUser,
-  IconSettings,
+    createRole,
+    updateRole,
+    deleteRole,
+    getRoles,
+    enableRole,
+    disableRole,
+    checkRoleName,
+} from './api';
+import {
+    IconDelete,
+    IconEdit,
+    IconEye,
+    IconPlus,
+    IconRefresh,
+    IconSearch,
+    IconUser,
 } from '@arco-design/web-react/icon';
-import { RoleService } from '../../services/roleService';
-import {
-  RoleDto,
-  RoleQueryParams,
-  RoleStatsDto
-} from '../../types/role';
-import CreateRoleModal from './components/CreateRoleModal';
-import EditRoleModal from './components/EditRoleModal';
-import RoleDetailModal from './components/RoleDetailModal';
-import RoleMenuConfigModal from './components/RoleMenuConfigModal';
-import styles from './index.module.css';
+import FilterForm from '@/components/FilterForm';
 
-const Row = Grid.Row;
-const Col = Grid.Col;
+const { Content } = Layout;
 const { Option } = Select;
+const { TextArea } = Input;
 
-const RoleManagement: React.FC = () => {
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [roles, setRoles] = useState<RoleDto[]>([]);
-  const [total, setTotal] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [stats, setStats] = useState<RoleStatsDto | null>(null);
-  
-  // 模态框状态
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [menuConfigModalVisible, setMenuConfigModalVisible] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<RoleDto | null>(null);
+function RoleManager() {
+    // 状态管理
+    const [tableData, setTableData] = useState([]);
+    const [tableLoading, setTableLoading] = useState(false);
+    const [tableScrollHeight, setTableScrollHeight] = useState(200);
 
-  // 状态选项
-  const stateOptions = [
-    { label: '全部', value: '' },
-    { label: '启用', value: '1' },
-    { label: '禁用', value: '0' },
-  ];
+    // 对话框状态
+    const [addModalVisible, setAddModalVisible] = useState(false);
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
-  // 角色类型选项
-  const roleTypeOptions = [
-    { label: '全部', value: '' },
-    { label: '平台角色', value: 'plat-mgr' },
-    { label: '团队角色', value: 'team-role' },
-  ];
+    // 分页状态
+    const [pagination, setPagination] = useState({
+        current: 1,
+        pageSize: 10,
+        total: 0,
+    });
 
-  // 获取角色列表
-  const fetchRoles = useCallback(async (params?: Partial<RoleQueryParams>) => {
-    setLoading(true);
-    try {
-      const queryParams: RoleQueryParams = {
-        page: currentPage - 1, // 后端从0开始
-        size: pageSize,
-        sortBy: 'createDate',
-        sortDir: 'desc',
-        ...params,
-      };
-      
-      const response = await RoleService.getRoles(queryParams);
-      if (response.success) {
-        setRoles(response.data);
-        setTotal(response.totalElements);
-      } else {
-        Message.error('获取角色列表失败');
-      }
-    } catch (error) {
-      console.error('获取角色列表失败:', error);
-      Message.error('获取角色列表失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, pageSize]);
+    // 搜索条件
+    const [searchParams, setSearchParams] = useState({
+        roleName: '',
+        state: '',
+    });
 
+    // 当前操作的角色
+    const [currentRole, setCurrentRole] = useState(null);
 
-  // 初始化数据
-  useEffect(() => {
-    fetchRoles();
-  }, [fetchRoles]);
+    // 表单引用
+    const [addForm] = Form.useForm();
+    const [editForm] = Form.useForm();
 
-  // 查询
-  const handleSearch = () => {
-    const values = form.getFieldsValue();
-    setCurrentPage(1);
-    fetchRoles(values);
-  };
+    // 容器引用
+    const containerRef = useRef(null);
 
-  // 重置
-  const handleReset = () => {
-    form.resetFields();
-    setCurrentPage(1);
-    fetchRoles();
-  };
+    // 角色状态选项
+    const roleStateOptions = [
+        { label: '启用', value: 'ENABLED' },
+        { label: '禁用', value: 'DISABLED' },
+    ];
 
-  // 刷新
-  const handleRefresh = () => {
-    const values = form.getFieldsValue();
-    fetchRoles(values);
-  };
+    // 表格列定义
+    const columns = [
+        {
+            title: '角色ID',
+            dataIndex: 'id',
+            key: 'id',
+            width: 120,
+            fixed: 'left',
+        },
+        {
+            title: '角色名称',
+            dataIndex: 'name',
+            key: 'name',
+            width: 150,
+        },
+        {
+            title: '角色描述',
+            dataIndex: 'descr',
+            key: 'descr',
+            width: 200,
+            render: (descr) => descr || '-',
+        },
+        {
+            title: '状态',
+            dataIndex: 'state',
+            key: 'state',
+            width: 80,
+            render: (state) => (
+                <Tag color={state === 'ENABLED' ? 'green' : 'red'}>
+                    {state === 'ENABLED' ? '启用' : '禁用'}
+                </Tag>
+            ),
+        },
+        {
+            title: '创建时间',
+            dataIndex: 'createDate',
+            key: 'createDate',
+            width: 160,
+            render: (date) => date ? new Date(date).toLocaleString() : '-',
+        },
+        {
+            title: '创建人',
+            dataIndex: 'createUserName',
+            key: 'createUserName',
+            width: 100,
+            render: (name) => name || '-',
+        },
+        {
+            title: '更新时间',
+            dataIndex: 'updateDate',
+            key: 'updateDate',
+            width: 160,
+            render: (date) => date ? new Date(date).toLocaleString() : '-',
+        },
+        {
+            title: '操作',
+            key: 'action',
+            width: 180,
+            fixed: 'right',
+            render: (_, record) => (
+                <Space size="small">
+                    <Tooltip content="编辑">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconEdit />}
+                            onClick={() => handleEdit(record)}
+                        />
+                    </Tooltip>
+                    <Tooltip content={record.state === 'ENABLED' ? '禁用' : '启用'}>
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconUser />}
+                            onClick={() => handleToggleState(record)}
+                        />
+                    </Tooltip>
+                    <Tooltip content="删除">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconDelete />}
+                            onClick={() => handleDelete(record)}
+                            status="danger"
+                        />
+                    </Tooltip>
+                </Space>
+            ),
+        },
+    ];
 
-  // 启用角色
-  const handleEnableRole = async (role: RoleDto) => {
-    try {
-      const response = await RoleService.enableRole(role.roleId);
-      if (response.success) {
-        Message.success('启用角色成功');
-        handleRefresh();
-      } else {
-        Message.error(response.message || '启用角色失败');
-      }
-    } catch (error) {
-      console.error('启用角色失败:', error);
-      Message.error('启用角色失败');
-    }
-  };
+    // FilterForm引用
+    const filterFormRef = useRef(null);
 
-  // 禁用角色
-  const handleDisableRole = async (role: RoleDto) => {
-    try {
-      const response = await RoleService.disableRole(role.roleId);
-      if (response.success) {
-        Message.success('禁用角色成功');
-        handleRefresh();
-      } else {
-        Message.error(response.message || '禁用角色失败');
-      }
-    } catch (error) {
-      console.error('禁用角色失败:', error);
-      Message.error('禁用角色失败');
-    }
-  };
+    // 获取角色列表
+    const fetchRoles = async (params = {}) => {
+        setTableLoading(true);
+        try {
+            const queryParams = {
+                roleName: searchParams.roleName || params.roleName,
+                state: searchParams.state || params.state,
+                page: pagination.current - 1,
+                size: pagination.pageSize,
+                sortBy: 'create_date',
+                sortDir: 'desc',
+            };
 
-  // 删除角色
-  const handleDeleteRole = async (role: RoleDto) => {
-    try {
-      const response = await RoleService.deleteRole(role.roleId);
-      if (response.success) {
-        Message.success('删除角色成功');
-        handleRefresh();
-      } else {
-        Message.error(response.message || '删除角色失败');
-      }
-    } catch (error) {
-      console.error('删除角色失败:', error);
-      Message.error('删除角色失败');
-    }
-  };
+            const response = await getRoles(queryParams);
+            const { content, totalElements } = response.data;
 
-  // 查看详情
-  const handleViewDetail = (role: RoleDto) => {
-    setSelectedRole(role);
-    setDetailModalVisible(true);
-  };
-
-  // 编辑角色
-  const handleEditRole = (role: RoleDto) => {
-    setSelectedRole(role);
-    setEditModalVisible(true);
-  };
-
-  // 配置菜单
-  const handleConfigMenu = (role: RoleDto) => {
-    setSelectedRole(role);
-    setMenuConfigModalVisible(true);
-  };
-
-  // 分页变化
-  const handlePageChange = (page: number, size: number) => {
-    setCurrentPage(page);
-    setPageSize(size);
-  };
-
-  // 渲染状态标签
-  const renderStatus = (state: string) => {
-    if (state === '1') {
-      return <Tag color="green">启用</Tag>;
-    } else {
-      return <Tag color="red">禁用</Tag>;
-    }
-  };
-
-  // 渲染角色类型
-  const renderRoleType = (roleType: string) => {
-    const typeMap: { [key: string]: { text: string; color: string } } = {
-      'SYSTEM': { text: '系统角色', color: 'blue' },
-      'BUSINESS': { text: '业务角色', color: 'orange' },
+            setTableData(content || []);
+            setPagination(prev => ({
+                ...prev,
+                total: totalElements || 0,
+            }));
+        } catch (error) {
+            Message.error('获取角色列表失败');
+            console.error('获取角色列表失败:', error);
+        } finally {
+            setTableLoading(false);
+        }
     };
-    
-    const type = typeMap[roleType] || { text: roleType, color: 'gray' };
-    return <Tag color={type.color}>{type.text}</Tag>;
-  };
 
-  // 表格列定义
-  const columns = [
-    {
-      title: '角色名称',
-      dataIndex: 'roleName',
-      width: 150,
-    },
-    {
-      title: '角色类型',
-      dataIndex: 'roleType',
-      align: 'center',
-      width: 120,
-      render: (roleType: string) => renderRoleType(roleType),
-    },
-    {
-      title: '状态',
-      dataIndex: 'state',
-      align: 'center',
-      width: 80,
-      render: (state: string) => renderStatus(state),
-    },
-    {
-      title: '描述',
-      dataIndex: 'roleDescr',
-      render: (text: string) => (
-        <div className={styles.description} title={text}>
-          {text || '-'}
-        </div>
-      ),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createDate',
-      width: 170,
-      render: (createDt: string) => {
-        if (!createDt) return '-';
-        const date = new Date(createDt);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-      },
-    },
-    {
-      title: '创建人',
-      dataIndex: 'createUser',
-      width: 100,
-    },
-    {
-      title: '操作',
-      dataIndex: 'action',
-      width: 220,
-      fixed: 'right' as const,
-      render: (_: any, record: RoleDto) => (
-        <Space size="small">
-          <Tooltip content="编辑">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconEdit />}
-              onClick={() => handleEditRole(record)}
-            />
-          </Tooltip>
-          <Tooltip content="配置菜单">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconSettings />}
-              onClick={() => handleConfigMenu(record)}
-            />
-          </Tooltip>
-          {record.state === '1' ? (
-            <Popconfirm
-              title="确定要禁用该用户吗？"
-              onOk={() => handleDisableRole(record)}
-            >
-              <Tooltip content="禁用">
-                <Button
-                  type="text"
-                  size="small"
-                  status="warning"
-                  icon={<IconLock />}
-                />
-              </Tooltip>
-            </Popconfirm>
-          ) : (
-            <Popconfirm
-              title="确定要启用该用户吗？"
-              onOk={() => handleEnableRole(record)}
-            >
-              <Tooltip content="启用">
-                <Button
-                  type="text"
-                  size="small"
-                  status="success"
-                  icon={<IconUnlock />}
-                />
-              </Tooltip>
-            </Popconfirm>
-          )}
-          <Tooltip content="删除">
-            <Popconfirm
-              title="确定要删除这个角色吗？"
-              onOk={() => handleDeleteRole(record)}
-              okText="确定"
-              cancelText="取消"
-            >
-              <Button
-                type="text"
-                size="small"
-                status="danger"
-                icon={<IconDelete />}
-              />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
+    // 搜索处理
+    const handleSearch = (values) => {
+        setSearchParams(values);
+        setPagination(prev => ({ ...prev, current: 1 }));
+        fetchRoles(values);
+    };
 
-  return (
-    <div className={styles.roleManagement}>
-      {/* 统计卡片 */}
-      {stats && (
-        <div className={styles.statsCards}>
-          <Card className={`${styles.statsCard} ${styles.total}`}>
-            <div className={styles.number}>{stats.totalCount}</div>
-            <div className={styles.label}>总角色数</div>
-          </Card>
-          <Card className={`${styles.statsCard} ${styles.enabled}`}>
-            <div className={styles.number}>{stats.enabledCount}</div>
-            <div className={styles.label}>启用角色</div>
-          </Card>
-          <Card className={`${styles.statsCard} ${styles.disabled}`}>
-            <div className={styles.number}>{stats.disabledCount}</div>
-            <div className={styles.label}>禁用角色</div>
-          </Card>
-        </div>
-      )}
+    // 重置搜索
+    const handleReset = () => {
+        const resetParams = { roleName: '', state: '' };
+        setSearchParams(resetParams);
+        setPagination(prev => ({ ...prev, current: 1 }));
+        fetchRoles(resetParams);
+    };
 
-      {/* 查询表单 */}
-      <Card className={styles.queryForm}>
-        <Form form={form} layout="horizontal">
-          <Row gutter={16}>
-            <Col span={6}>
-              <Form.Item field="roleName" label="角色名称">
-                <Input placeholder="请输入角色名称" allowClear />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item field="roleType" label="角色类型">
-                <Select placeholder="请选择角色类型" allowClear>
-                  {roleTypeOptions.map(option => (
-                    <Option key={option.value} value={option.value}>
-                      {option.label}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item field="state" label="状态">
-                <Select placeholder="请选择状态" allowClear>
-                  {stateOptions.map(option => (
-                    <Option key={option.value} value={option.value}>
-                      {option.label}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <div className={styles.buttonGroup}>
-                <Button type="primary" icon={<IconSearch />} onClick={handleSearch}>
-                  查询
-                </Button>
-                <Button onClick={handleReset}>
-                  重置
-                </Button>
-              </div>
-            </Col>
-          </Row>
-        </Form>
-      </Card>
+    // 添加角色
+    const handleAdd = () => {
+        setAddModalVisible(true);
+        addForm.resetFields();
+    };
 
-      {/* 角色表格 */}
-      <Card className={styles.roleTable}>
-        <div className={styles.tableHeader}>
-          <div className={styles.tableTitle}>角色列表</div>
-          <div className={styles.tableActions}>
-            <Button
-              type="primary"
-              icon={<IconPlus />}
-              onClick={() => setCreateModalVisible(true)}
-            >
-              新建角色
-            </Button>
-            <Button icon={<IconRefresh />} onClick={handleRefresh}>
-              刷新
-            </Button>
-          </div>
-        </div>
-        <Table
-          columns={columns}
-          data={roles}
-          loading={loading}
-          pagination={false}
-          scroll={{ x: 1200 }}
-          rowKey="roleId"
-        />
+    // 编辑角色
+    const handleEdit = (record) => {
+        setCurrentRole(record);
+        setEditModalVisible(true);
+        editForm.setFieldsValue({
+            id: record.id,
+            name: record.name,
+            descr: record.descr,
+        });
+    };
+
+    // 删除角色
+    const handleDelete = (record) => {
+        setCurrentRole(record);
+        setDeleteModalVisible(true);
+    };
+
+    // 切换角色状态
+    const handleToggleState = async (record) => {
+        try {
+            if (record.state === 'ENABLED') {
+                await disableRole(record.id);
+                Message.success('角色已禁用');
+            } else {
+                await enableRole(record.id);
+                Message.success('角色已启用');
+            }
+            fetchRoles();
+        } catch (error) {
+            Message.error('操作失败');
+            console.error('切换角色状态失败:', error);
+        }
+    };
+
+    // 验证角色名称唯一性
+    const validateRoleName = async (value, callback) => {
+        if (!value) {
+            return callback();
+        }
         
-        {/* 分页 */}
-        <div className={styles.paginationWrapper}>
-          <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={total}
-            showTotal={(total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`}
-            showQuickJumper
-            sizeOptions={[10, 20, 50, 100]}
-            onChange={handlePageChange}
-          />
+        try {
+            const excludeRoleId = currentRole?.id || null;
+            const response = await checkRoleName(value, excludeRoleId);
+            if (response.data) {
+                callback('角色名称已存在');
+            } else {
+                callback();
+            }
+        } catch (error) {
+            console.error('验证角色名称失败:', error);
+            callback();
+        }
+    };
+
+    // 确认添加角色
+    const handleAddConfirm = async () => {
+        try {
+            const values = await addForm.validate();
+            await createRole(values);
+            Message.success('角色创建成功');
+            setAddModalVisible(false);
+            fetchRoles();
+        } catch (error) {
+            if (error.response?.data?.message) {
+                Message.error(error.response.data.message);
+            } else {
+                Message.error('创建角色失败');
+            }
+            console.error('创建角色失败:', error);
+        }
+    };
+
+    // 确认编辑角色
+    const handleEditConfirm = async () => {
+        try {
+            const values = await editForm.validate();
+            await updateRole(values);
+            Message.success('角色信息更新成功');
+            setEditModalVisible(false);
+            fetchRoles();
+        } catch (error) {
+            Message.error('更新角色信息失败');
+            console.error('更新角色信息失败:', error);
+        }
+    };
+
+    // 确认删除角色
+    const handleDeleteConfirm = async () => {
+        try {
+            await deleteRole(currentRole.id);
+            Message.success('角色删除成功');
+            setDeleteModalVisible(false);
+            fetchRoles();
+        } catch (error) {
+            Message.error('删除角色失败');
+            console.error('删除角色失败:', error);
+        }
+    };
+
+    // 分页处理
+    const handlePageChange = (current, pageSize) => {
+        setPagination(prev => ({
+            ...prev,
+            current,
+            pageSize,
+        }));
+    };
+
+    // 计算表格高度
+    const calculateTableHeight = () => {
+        if (containerRef.current) {
+            const containerHeight = containerRef.current.clientHeight;
+            const headerHeight = 120; // 搜索表单和按钮区域高度
+            const paginationHeight = 60; // 分页区域高度
+            const padding = 40; // 内边距
+            const calculatedHeight = containerHeight - headerHeight - paginationHeight - padding;
+            setTableScrollHeight(Math.max(calculatedHeight, 200));
+        }
+    };
+
+    // 初始化和窗口大小变化处理
+    useEffect(() => {
+        fetchRoles();
+        calculateTableHeight();
+
+        const handleResize = () => {
+            calculateTableHeight();
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // 分页变化时重新获取数据
+    useEffect(() => {
+        fetchRoles();
+    }, [pagination.current, pagination.pageSize]);
+
+    return (
+        <div className="role-manager" ref={containerRef}>
+            <Layout>
+                <Content>
+                    {/* 搜索表单 */}
+                    <FilterForm
+                        ref={filterFormRef}
+                        onSearch={handleSearch}
+                        onReset={handleReset}
+                        initialValues={searchParams}
+                    >
+                        <Form.Item field="roleName" label="角色名称">
+                            <Input placeholder="请输入角色名称" />
+                        </Form.Item>
+                        <Form.Item field="state" label="状态">
+                            <Select placeholder="请选择状态" allowClear>
+                                {roleStateOptions.map(option => (
+                                    <Option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                    </FilterForm>
+
+                    {/* 操作按钮 */}
+                    <div className="action-buttons">
+                        <Button
+                            type="primary"
+                            icon={<IconPlus />}
+                            onClick={handleAdd}
+                        >
+                            新增角色
+                        </Button>
+                        <Button
+                            icon={<IconRefresh />}
+                            onClick={() => fetchRoles()}
+                        >
+                            刷新
+                        </Button>
+                    </div>
+
+                    {/* 角色表格 */}
+                    <Table
+                        columns={columns}
+                        data={tableData}
+                        loading={tableLoading}
+                        pagination={false}
+                        scroll={{
+                            x: 1200,
+                            y: tableScrollHeight,
+                        }}
+                        rowKey="id"
+                        size="small"
+                    />
+
+                    {/* 分页 */}
+                    <div className="pagination-wrapper">
+                        <Pagination
+                            current={pagination.current}
+                            pageSize={pagination.pageSize}
+                            total={pagination.total}
+                            onChange={handlePageChange}
+                            showTotal={(total, range) =>
+                                `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
+                            }
+                            showSizeChanger
+                            pageSizeOptions={['10', '20', '50', '100']}
+                        />
+                    </div>
+                </Content>
+            </Layout>
+
+            {/* 新增角色对话框 */}
+            <Modal
+                title="新增角色"
+                visible={addModalVisible}
+                onOk={handleAddConfirm}
+                onCancel={() => setAddModalVisible(false)}
+                okText="确定"
+                cancelText="取消"
+            >
+                <Form form={addForm} layout="vertical">
+                    <Form.Item
+                        label="角色名称"
+                        field="name"
+                        rules={[
+                            { required: true, message: '请输入角色名称' },
+                            { max: 64, message: '角色名称长度不能超过64个字符' },
+                            { validator: validateRoleName },
+                        ]}
+                    >
+                        <Input placeholder="请输入角色名称" />
+                    </Form.Item>
+                    <Form.Item
+                        label="角色描述"
+                        field="descr"
+                        rules={[
+                            { max: 128, message: '角色描述长度不能超过128个字符' },
+                        ]}
+                    >
+                        <TextArea 
+                            placeholder="请输入角色描述" 
+                            rows={3}
+                            maxLength={128}
+                            showWordLimit
+                        />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* 编辑角色对话框 */}
+            <Modal
+                title="编辑角色"
+                visible={editModalVisible}
+                onOk={handleEditConfirm}
+                onCancel={() => setEditModalVisible(false)}
+                okText="确定"
+                cancelText="取消"
+            >
+                <Form form={editForm} layout="vertical">
+                    <Form.Item
+                        label="角色ID"
+                        field="id"
+                    >
+                        <Input disabled />
+                    </Form.Item>
+                    <Form.Item
+                        label="角色名称"
+                        field="name"
+                        rules={[
+                            { required: true, message: '请输入角色名称' },
+                            { max: 64, message: '角色名称长度不能超过64个字符' },
+                            { validator: validateRoleName },
+                        ]}
+                    >
+                        <Input placeholder="请输入角色名称" />
+                    </Form.Item>
+                    <Form.Item
+                        label="角色描述"
+                        field="descr"
+                        rules={[
+                            { max: 128, message: '角色描述长度不能超过128个字符' },
+                        ]}
+                    >
+                        <TextArea 
+                            placeholder="请输入角色描述" 
+                            rows={3}
+                            maxLength={128}
+                            showWordLimit
+                        />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* 删除确认对话框 */}
+            <Modal
+                title="删除角色"
+                visible={deleteModalVisible}
+                onOk={handleDeleteConfirm}
+                onCancel={() => setDeleteModalVisible(false)}
+                okText="确定"
+                cancelText="取消"
+            >
+                <p>确定要删除角色 "{currentRole?.name}" 吗？此操作不可恢复。</p>
+            </Modal>
         </div>
-      </Card>
+    );
+}
 
-      {/* 新建角色模态框 */}
-      <CreateRoleModal
-        visible={createModalVisible}
-        onCancel={() => setCreateModalVisible(false)}
-        onSuccess={() => {
-          setCreateModalVisible(false);
-          handleRefresh();
-        }}
-      />
-
-      {/* 编辑角色模态框 */}
-      <EditRoleModal
-        visible={editModalVisible}
-        role={selectedRole}
-        onCancel={() => {
-          setEditModalVisible(false);
-          setSelectedRole(null);
-        }}
-        onSuccess={() => {
-          setEditModalVisible(false);
-          setSelectedRole(null);
-          handleRefresh();
-        }}
-      />
-
-      {/* 角色详情模态框 */}
-      <RoleDetailModal
-        visible={detailModalVisible}
-        role={selectedRole}
-        onCancel={() => {
-          setDetailModalVisible(false);
-          setSelectedRole(null);
-        }}
-      />
-
-      {/* 角色菜单配置模态框 */}
-      <RoleMenuConfigModal
-        visible={menuConfigModalVisible}
-        role={selectedRole}
-        onCancel={() => {
-          setMenuConfigModalVisible(false);
-          setSelectedRole(null);
-        }}
-        onSuccess={() => {
-          setMenuConfigModalVisible(false);
-          setSelectedRole(null);
-          Message.success('菜单权限配置成功');
-        }}
-      />
-    </div>
-  );
-};
-
-export default RoleManagement;
+export default RoleManager;

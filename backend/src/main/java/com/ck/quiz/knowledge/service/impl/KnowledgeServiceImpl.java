@@ -137,13 +137,13 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Override
     @Transactional(readOnly = true)
     public Page<KnowledgeDto> searchKnowledge(KnowledgeQueryDto queryDto) {
-        StringBuilder sql = new StringBuilder("select * from knowledge where 1=1 ");
+        StringBuilder sql = new StringBuilder("select k.*, u.user_name create_user_name, s.name subject_name, c.name category_name from knowledge k left join user u on u.user_id = k.create_user left join subject s on s.subject_id = k.subject_id left join category c on c.category_id = k.category_id where 1=1 ");
         StringBuilder countSql = new StringBuilder("select count(1) from knowledge where 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
         // 知识点名称（模糊查询）
-        JdbcQueryHelper.lowerLike("name", queryDto.getName(),
-                " and lower(name) like :name ", params, namedParameterJdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("knowledgeName", queryDto.getName(),
+                " and lower(name) like :knowledgeName ", params, namedParameterJdbcTemplate, sql, countSql);
 
         // 分类ID
         JdbcQueryHelper.equals("categoryId", queryDto.getCategoryId(),
@@ -173,35 +173,34 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         );
 
         // 查询结果
-        List<Knowledge> knowledgeList = namedParameterJdbcTemplate.query(
+        List<KnowledgeDto> knowledgeList = namedParameterJdbcTemplate.query(
                 limitSql,
                 params,
                 (rs, rowNum) -> {
-                    Knowledge k = new Knowledge();
+                    KnowledgeDto k = new KnowledgeDto();
                     k.setId(rs.getString("knowledge_id"));
                     k.setName(rs.getString("name"));
                     k.setDescription(rs.getString("description"));
                     k.setCategoryId(rs.getString("category_id"));
+                    k.setCategoryName(rs.getString("category_name"));
                     k.setSubjectId(rs.getString("subject_id"));
+                    k.setSubjectName(rs.getString("subject_name"));
                     k.setDifficultyLevel(rs.getInt("difficulty_level"));
                     k.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
                     k.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
                     k.setCreateUser(rs.getString("create_user"));
+                    k.setCreateUserName(rs.getString("create_user_name"));
                     k.setUpdateUser(rs.getString("update_user"));
                     return k;
                 }
         );
-
-        List<KnowledgeDto> dtos = knowledgeList.stream()
-                .map(this::convertToDto)
-                .toList();
 
         // 分页结果封装
         return JdbcQueryHelper.toPage(
                 namedParameterJdbcTemplate,
                 countSql.toString(),
                 params,
-                dtos,
+                knowledgeList,
                 pageNum,
                 queryDto.getPageSize()
         );

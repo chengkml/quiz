@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
     Button,
     Dropdown,
@@ -17,19 +17,18 @@ import './style/index.less';
 import {
     createKnowledge,
     deleteKnowledge,
-    getKnowledgeList,
-    updateKnowledge,
-    checkKnowledgeNameExists,
     getAllCategories,
     getAllSubjects,
     getCategoriesBySubjectId,
+    getKnowledgeList,
     getKnowledgeQuestions,
+    updateKnowledge,
 } from './api';
-import { IconDelete, IconEdit, IconEye, IconList, IconPlus } from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconEye, IconList, IconPlus} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 
-const { TextArea } = Input;
-const { Content } = Layout;
+const {TextArea} = Input;
+const {Content} = Layout;
 
 function KnowledgeManager() {
     // 状态管理
@@ -73,11 +72,11 @@ function KnowledgeManager() {
 
     // 难度等级选项
     const difficultyOptions = [
-        { label: '1级', value: 1 },
-        { label: '2级', value: 2 },
-        { label: '3级', value: 3 },
-        { label: '4级', value: 4 },
-        { label: '5级', value: 5 },
+        {label: '1级', value: 1},
+        {label: '2级', value: 2},
+        {label: '3级', value: 3},
+        {label: '4级', value: 4},
+        {label: '5级', value: 5},
     ];
 
     // 表格列配置
@@ -88,7 +87,7 @@ function KnowledgeManager() {
             width: 200,
             ellipsis: true,
             render: (value) => (
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
                     {value}
                 </div>
             ),
@@ -99,7 +98,7 @@ function KnowledgeManager() {
             minWidth: 300,
             ellipsis: true,
             render: (value) => (
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
                     {value || '--'}
                 </div>
             ),
@@ -200,19 +199,19 @@ function KnowledgeManager() {
                                 className="handle-dropdown-menu"
                             >
                                 <Menu.Item key="detail">
-                                    <IconEye style={{ marginRight: '5px' }} />
+                                    <IconEye style={{marginRight: '5px'}}/>
                                     查看详情
                                 </Menu.Item>
                                 <Menu.Item key="edit">
-                                    <IconEdit style={{ marginRight: '5px' }} />
+                                    <IconEdit style={{marginRight: '5px'}}/>
                                     编辑
                                 </Menu.Item>
                                 <Menu.Item key="questions">
-                                    <IconList style={{ marginRight: '5px' }} />
+                                    <IconList style={{marginRight: '5px'}}/>
                                     查看关联问题
                                 </Menu.Item>
                                 <Menu.Item key="delete">
-                                    <IconDelete style={{ marginRight: '5px' }} />
+                                    <IconDelete style={{marginRight: '5px'}}/>
                                     删除
                                 </Menu.Item>
                             </Menu>
@@ -225,7 +224,7 @@ function KnowledgeManager() {
                                 e.stopPropagation();
                             }}
                         >
-                            <IconList />
+                            <IconList/>
                         </Button>
                     </Dropdown>
                 </Space>
@@ -345,7 +344,7 @@ function KnowledgeManager() {
         try {
             const values = await editFormRef.current.validate();
             setLoading(true);
-            await updateKnowledge({ ...values, id: currentRecord.id });
+            await updateKnowledge({...values, id: currentRecord.id});
             Message.success('知识点更新成功');
             setEditModalVisible(false);
             editFormRef.current.resetFields();
@@ -472,21 +471,25 @@ function KnowledgeManager() {
         <Layout className="knowledge-manager">
             <Content>
                 {/* 筛选区域 */}
-                <div className="filter-section">
-                    <FilterForm
-                        ref={filterFormRef}
-                        config={filterFormConfig}
-                        onSearch={searchTableData}
-                        onReset={() => fetchTableData()}
-                    />
-                </div>
+                <FilterForm
+                    ref={filterFormRef}
+                    config={filterFormConfig}
+                    onSearch={searchTableData}
+                    onReset={() => fetchTableData()}
+                >
+                    <Form.Item field='knowledgeName' label='关键字'>
+                        <Input
+                            placeholder='请输入关键字'
+                        />
+                    </Form.Item>
+                </FilterForm>
 
                 {/* 表格区域 */}
                 <div className="table-section">
                     <div className="table-header">
                         <div className="table-title">知识点列表</div>
                         <div className="table-actions">
-                            <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>
+                            <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
                                 新增知识点
                             </Button>
                         </div>
@@ -500,7 +503,7 @@ function KnowledgeManager() {
                                 ...pagination,
                                 onChange: handlePageChange,
                             }}
-                            scroll={{ x: 1200 }}
+                            scroll={{x: 1200}}
                             rowKey="id"
                         />
                     </div>
@@ -522,17 +525,17 @@ function KnowledgeManager() {
                             label="知识点名称"
                             field="name"
                             rules={[
-                                { required: true, message: '请输入知识点名称' },
-                                { maxLength: 64, message: '知识点名称不能超过64个字符' },
+                                {required: true, message: '请输入知识点名称'},
+                                {maxLength: 64, message: '知识点名称不能超过64个字符'},
                             ]}
                         >
-                            <Input placeholder="请输入知识点名称" />
+                            <Input placeholder="请输入知识点名称"/>
                         </Form.Item>
                         <Form.Item
                             label="描述"
                             field="description"
                             rules={[
-                                { maxLength: 255, message: '描述不能超过255个字符' },
+                                {maxLength: 255, message: '描述不能超过255个字符'},
                             ]}
                         >
                             <TextArea
@@ -545,10 +548,10 @@ function KnowledgeManager() {
                         <Form.Item
                             label="所属学科"
                             field="subjectId"
-                            rules={[{ required: true, message: '请选择所属学科' }]}
+                            rules={[{required: true, message: '请选择所属学科'}]}
                         >
-                            <Select 
-                                placeholder="请选择所属学科" 
+                            <Select
+                                placeholder="请选择所属学科"
                                 options={subjects}
                                 loading={subjectsLoading}
                                 allowClear
@@ -562,10 +565,10 @@ function KnowledgeManager() {
                         <Form.Item
                             label="所属分类"
                             field="categoryId"
-                            rules={[{ required: true, message: '请选择所属分类' }]}
+                            rules={[{required: true, message: '请选择所属分类'}]}
                         >
-                            <Select 
-                                placeholder="请选择所属分类" 
+                            <Select
+                                placeholder="请选择所属分类"
                                 options={categories}
                                 loading={categoriesLoading}
                                 allowClear
@@ -575,9 +578,9 @@ function KnowledgeManager() {
                         <Form.Item
                             label="难度等级"
                             field="difficultyLevel"
-                            rules={[{ required: true, message: '请选择难度等级' }]}
+                            rules={[{required: true, message: '请选择难度等级'}]}
                         >
-                            <Select placeholder="请选择难度等级" options={difficultyOptions} />
+                            <Select placeholder="请选择难度等级" options={difficultyOptions}/>
                         </Form.Item>
                         <div className="form-actions">
                             <Button
@@ -626,17 +629,17 @@ function KnowledgeManager() {
                             label="知识点名称"
                             field="name"
                             rules={[
-                                { required: true, message: '请输入知识点名称' },
-                                { maxLength: 64, message: '知识点名称不能超过64个字符' },
+                                {required: true, message: '请输入知识点名称'},
+                                {maxLength: 64, message: '知识点名称不能超过64个字符'},
                             ]}
                         >
-                            <Input placeholder="请输入知识点名称" />
+                            <Input placeholder="请输入知识点名称"/>
                         </Form.Item>
                         <Form.Item
                             label="描述"
                             field="description"
                             rules={[
-                                { maxLength: 255, message: '描述不能超过255个字符' },
+                                {maxLength: 255, message: '描述不能超过255个字符'},
                             ]}
                         >
                             <TextArea
@@ -649,10 +652,10 @@ function KnowledgeManager() {
                         <Form.Item
                             label="所属学科"
                             field="subjectId"
-                            rules={[{ required: true, message: '请选择所属学科' }]}
+                            rules={[{required: true, message: '请选择所属学科'}]}
                         >
-                            <Select 
-                                placeholder="请选择所属学科" 
+                            <Select
+                                placeholder="请选择所属学科"
                                 options={subjects}
                                 loading={subjectsLoading}
                                 allowClear
@@ -666,10 +669,10 @@ function KnowledgeManager() {
                         <Form.Item
                             label="所属分类"
                             field="categoryId"
-                            rules={[{ required: true, message: '请选择所属分类' }]}
+                            rules={[{required: true, message: '请选择所属分类'}]}
                         >
-                            <Select 
-                                placeholder="请选择所属分类" 
+                            <Select
+                                placeholder="请选择所属分类"
                                 options={categories}
                                 loading={categoriesLoading}
                                 allowClear
@@ -679,9 +682,9 @@ function KnowledgeManager() {
                         <Form.Item
                             label="难度等级"
                             field="difficultyLevel"
-                            rules={[{ required: true, message: '请选择难度等级' }]}
+                            rules={[{required: true, message: '请选择难度等级'}]}
                         >
-                            <Select placeholder="请选择难度等级" options={difficultyOptions} />
+                            <Select placeholder="请选择难度等级" options={difficultyOptions}/>
                         </Form.Item>
                         <div className="form-actions">
                             <Button
@@ -800,11 +803,11 @@ function KnowledgeManager() {
                                         <div style={{display: 'flex', alignItems: 'center', marginBottom: 8}}>
                                             <Tag color="blue" style={{marginRight: 8}}>
                                                 {question.type === 'SINGLE' ? '单选题' :
-                                                 question.type === 'MULTIPLE' ? '多选题' :
-                                                 question.type === 'BLANK' ? '填空题' : '简答题'}
+                                                    question.type === 'MULTIPLE' ? '多选题' :
+                                                        question.type === 'BLANK' ? '填空题' : '简答题'}
                                             </Tag>
-                                            <Tag color={question.difficultyLevel <= 2 ? 'green' : 
-                                                      question.difficultyLevel <= 4 ? 'orange' : 'red'}>
+                                            <Tag color={question.difficultyLevel <= 2 ? 'green' :
+                                                question.difficultyLevel <= 4 ? 'orange' : 'red'}>
                                                 难度: {question.difficultyLevel}级
                                             </Tag>
                                         </div>
