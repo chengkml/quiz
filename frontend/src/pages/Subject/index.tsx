@@ -79,7 +79,7 @@ function SubjectManager() {
         },
         {
             title: '创建人',
-            dataIndex: 'createUser',
+            dataIndex: 'createUserName',
             width: 120,
             ellipsis: true,
         },
@@ -519,7 +519,7 @@ function SubjectManager() {
                             </div>
                             <div className="detail-item">
                                 <label>创建人：</label>
-                                <span>{detailRecord.createUser || '--'}</span>
+                                <span>{detailRecord.createUserName || '--'}</span>
                             </div>
                             <div className="detail-item">
                                 <label>创建时间：</label>

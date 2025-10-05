@@ -41,7 +41,7 @@ public class SubjectDto {
     private String createUser;
 
     /**
-     * 创建该学科的用户名
+     * 创建该学科的用户中文名
      */
     private String createUserName;
 

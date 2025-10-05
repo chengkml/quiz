@@ -94,7 +94,7 @@ public class SubjectServiceImpl implements SubjectService {
     @Override
     @Transactional(readOnly = true)
     public Page<SubjectDto> searchSubjects(SubjectQueryDto queryDto) {
-        StringBuilder sql = new StringBuilder("select * from subject where 1=1 ");
+        StringBuilder sql = new StringBuilder("select s.*, u.user_name create_user_name from subject s left join user u on s.create_user = u.user_id where 1=1 ");
         StringBuilder countSql = new StringBuilder("select count(1) from subject where 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
@@ -114,14 +114,15 @@ public class SubjectServiceImpl implements SubjectService {
         );
 
         // 查询数据
-        List<Subject> subjects = jdbcTemplate.query(
+        List<SubjectDto> subjects = jdbcTemplate.query(
                 limitSql,
                 params,
                 (rs, rowNum) -> {
-                    Subject s = new Subject();
+                    SubjectDto s = new SubjectDto();
                     s.setId(rs.getString("subject_id"));
                     s.setName(rs.getString("name"));
                     s.setCreateUser(rs.getString("create_user"));
+                    s.setCreateUserName(rs.getString("create_user_name"));
                     s.setDescription(rs.getString("description"));
                     s.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
                     s.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
@@ -129,17 +130,12 @@ public class SubjectServiceImpl implements SubjectService {
                 }
         );
 
-        // 转换成DTO
-        List<SubjectDto> dtos = subjects.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-
         // 组装分页对象
         return JdbcQueryHelper.toPage(
                 jdbcTemplate,
                 countSql.toString(),
                 params,
-                dtos,
+                subjects,
                 queryDto.getPageNum(),
                 queryDto.getPageSize()
         );
