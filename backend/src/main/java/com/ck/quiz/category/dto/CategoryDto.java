@@ -66,7 +66,7 @@ public class CategoryDto {
     private String createUser;
 
     /**
-     * 创建该分类的用户名
+     * 创建该分类的用户中文名
      */
     private String createUserName;
 

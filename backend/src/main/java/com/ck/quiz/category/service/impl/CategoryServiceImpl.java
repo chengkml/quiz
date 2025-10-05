@@ -128,13 +128,13 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public Page<CategoryDto> searchCategories(CategoryQueryDto queryDto) {
-        StringBuilder sql = new StringBuilder("select * from category where 1=1 ");
+        StringBuilder sql = new StringBuilder("select c.*, u.user_name create_user_name, s.name subject_name from category c left join user u on u.user_id = c.create_user left join subject s on s.subject_id = c.subject_id where 1=1 ");
         StringBuilder countSql = new StringBuilder("select count(1) from category where 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
         // 分类名称模糊查询
-        JdbcQueryHelper.lowerLike("name", queryDto.getName(),
-                " and lower(name) like :name ", params, namedParameterJdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("categoryName", queryDto.getName(),
+                " and lower(name) like :categoryName ", params, namedParameterJdbcTemplate, sql, countSql);
 
         // 父分类 ID
         JdbcQueryHelper.equals("parentId", queryDto.getParentId(),
@@ -164,36 +164,32 @@ public class CategoryServiceImpl implements CategoryService {
         );
 
         // 查询数据
-        List<Category> categories = namedParameterJdbcTemplate.query(
+        List<CategoryDto> categories = namedParameterJdbcTemplate.query(
                 limitSql,
                 params,
                 (rs, rowNum) -> {
-                    Category c = new Category();
+                    CategoryDto c = new CategoryDto();
                     c.setId(rs.getString("category_id"));
                     c.setName(rs.getString("name"));
                     c.setParentId(rs.getString("parent_id"));
-                    c.setSubjectId(rs.getString("subject_id"));
+                    c.setSubjectName(rs.getString("subject_name"));
                     c.setLevel(rs.getInt("level"));
                     c.setDescription(rs.getString("description"));
                     c.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
                     c.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
                     c.setCreateUser(rs.getString("create_user"));
+                    c.setCreateUserName(rs.getString("create_user_name"));
                     c.setUpdateUser(rs.getString("update_user"));
                     return c;
                 }
         );
-
-        // 转 DTO
-        List<CategoryDto> dtos = categories.stream()
-                .map(this::convertToDto)
-                .toList();
 
         // 封装分页结果
         return JdbcQueryHelper.toPage(
                 namedParameterJdbcTemplate,
                 countSql.toString(),
                 params,
-                dtos,
+                categories,
                 pageNum,
                 queryDto.getPageSize()
         );
