@@ -4,8 +4,18 @@
     background: var(--background-color-base);
     height: 100%;
 
+    .arco-btn {
+        border-radius: 6px;
+    }
+
     .arco-layout-content {
+        margin: 10px;
+        background-color: #fff;
+        border-radius: 8px;
         padding: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        height: calc(100% - 20px);
+        width: calc(100% - 20px);
     }
 
     .title {
@@ -42,7 +52,7 @@
 
     // 分页组件固定在底部的样式
     .pagination-wrapper {
-        padding: 0px 16px 12px 16px;
+        padding: 12px 16px;
         background: var(--color-white);
         display: flex;
         justify-content: flex-end;
