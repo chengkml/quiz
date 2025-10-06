@@ -18,6 +18,13 @@ import lombok.NoArgsConstructor;
 public class RoleCreateDto {
 
     /**
+     * 角色ID
+     */
+    @NotBlank(message = "角色ID不能为空")
+    @Size(max = 32, message = "角色ID长度不能超过32个字符")
+    private String id;
+
+    /**
      * 角色名称
      */
     @NotBlank(message = "角色名称不能为空")

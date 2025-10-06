@@ -236,7 +236,7 @@ function QuestionManager() {
                             >
                                 <Menu.Item key="detail">
                                     <IconEye style={{marginRight: '5px'}}/>
-                                    查看详情
+                                    详情
                                 </Menu.Item>
                                 <Menu.Item key="edit">
                                     <IconEdit style={{marginRight: '5px'}}/>

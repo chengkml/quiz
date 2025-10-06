@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Button,
+    Dropdown,
     Form,
     Input,
     Layout,
+    Menu,
     Message,
     Modal,
     Pagination,
@@ -27,6 +29,7 @@ import {
     IconDelete,
     IconEdit,
     IconEye,
+    IconList,
     IconPlus,
     IconRefresh,
     IconSearch,
@@ -97,13 +100,13 @@ function RoleManager() {
             title: '角色描述',
             dataIndex: 'descr',
             key: 'descr',
-            width: 200,
             render: (descr) => descr || '-',
         },
         {
             title: '状态',
             dataIndex: 'state',
             key: 'state',
+            align: 'center',
             width: 80,
             render: (state) => (
                 <Tag color={state === 'ENABLED' ? 'green' : 'red'}>
@@ -116,7 +119,44 @@ function RoleManager() {
             dataIndex: 'createDate',
             key: 'createDate',
             width: 160,
-            render: (date) => date ? new Date(date).toLocaleString() : '-',
+            render: (value) => {
+                if (!value) return '--';
+
+                const now = new Date();
+                const date = new Date(value);
+                const diffMs = now.getTime() - date.getTime();
+                const diffSeconds = Math.floor(diffMs / 1000);
+                const diffMinutes = Math.floor(diffSeconds / 60);
+                const diffHours = Math.floor(diffMinutes / 60);
+                const diffDays = Math.floor(diffHours / 24);
+
+                // 今天
+                if (diffDays === 0) {
+                    if (diffSeconds < 60) {
+                        return `${diffSeconds}秒前`;
+                    } else if (diffMinutes < 60) {
+                        return `${diffMinutes}分钟前`;
+                    } else {
+                        return `${diffHours}小时前`;
+                    }
+                }
+                // 昨天
+                else if (diffDays === 1) {
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    return `昨天 ${hours}:${minutes}`;
+                }
+                // 昨天之前
+                else {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                }
+            },
         },
         {
             title: '创建人',
@@ -130,40 +170,87 @@ function RoleManager() {
             dataIndex: 'updateDate',
             key: 'updateDate',
             width: 160,
-            render: (date) => date ? new Date(date).toLocaleString() : '-',
+            render: (value) => {
+                if (!value) return '--';
+
+                const now = new Date();
+                const date = new Date(value);
+                const diffMs = now.getTime() - date.getTime();
+                const diffSeconds = Math.floor(diffMs / 1000);
+                const diffMinutes = Math.floor(diffSeconds / 60);
+                const diffHours = Math.floor(diffMinutes / 60);
+                const diffDays = Math.floor(diffHours / 24);
+
+                // 今天
+                if (diffDays === 0) {
+                    if (diffSeconds < 60) {
+                        return `${diffSeconds}秒前`;
+                    } else if (diffMinutes < 60) {
+                        return `${diffMinutes}分钟前`;
+                    } else {
+                        return `${diffHours}小时前`;
+                    }
+                }
+                // 昨天
+                else if (diffDays === 1) {
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    return `昨天 ${hours}:${minutes}`;
+                }
+                // 昨天之前
+                else {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                }
+            },
         },
         {
             title: '操作',
             key: 'action',
-            width: 180,
+            width: 100,
+            align: 'center',
             fixed: 'right',
             render: (_, record) => (
-                <Space size="small">
-                    <Tooltip content="编辑">
+                <Space size="large" className="dropdown-demo table-btn-group">
+                    <Dropdown
+                        position="bl"
+                        droplist={
+                            <Menu
+                                onClickMenuItem={(key, e) => {
+                                    handleMenuClick(key, e, record);
+                                }}
+                                className="handle-dropdown-menu"
+                            >
+                                <Menu.Item key="edit">
+                                    <IconEdit style={{marginRight: '5px'}}/>
+                                    编辑
+                                </Menu.Item>
+                                <Menu.Item key="toggle">
+                                    <IconUser style={{marginRight: '5px'}}/>
+                                    {record.state === 'ENABLED' ? '禁用' : '启用'}
+                                </Menu.Item>
+                                <Menu.Item key="delete">
+                                    <IconDelete style={{marginRight: '5px'}}/>
+                                    删除
+                                </Menu.Item>
+                            </Menu>
+                        }
+                    >
                         <Button
                             type="text"
-                            size="small"
-                            icon={<IconEdit />}
-                            onClick={() => handleEdit(record)}
-                        />
-                    </Tooltip>
-                    <Tooltip content={record.state === 'ENABLED' ? '禁用' : '启用'}>
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconUser />}
-                            onClick={() => handleToggleState(record)}
-                        />
-                    </Tooltip>
-                    <Tooltip content="删除">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconDelete />}
-                            onClick={() => handleDelete(record)}
-                            status="danger"
-                        />
-                    </Tooltip>
+                            className="more-btn"
+                            onClick={e => {
+                                e.stopPropagation();
+                            }}
+                        >
+                            <IconList/>
+                        </Button>
+                    </Dropdown>
                 </Space>
             ),
         },
@@ -171,6 +258,18 @@ function RoleManager() {
 
     // FilterForm引用
     const filterFormRef = useRef(null);
+
+    // 处理菜单点击
+    const handleMenuClick = (key, event, record) => {
+        event.stopPropagation();
+        if (key === 'edit') {
+            handleEdit(record);
+        } else if (key === 'delete') {
+            handleDelete(record);
+        } else if (key === 'toggle') {
+            handleToggleState(record);
+        }
+    };
 
     // 获取角色列表
     const fetchRoles = async (params = {}) => {
@@ -253,6 +352,33 @@ function RoleManager() {
         } catch (error) {
             Message.error('操作失败');
             console.error('切换角色状态失败:', error);
+        }
+    };
+
+    // 验证角色ID唯一性
+    const validateRoleId = async (value, callback) => {
+        if (!value) {
+            return callback();
+        }
+        
+        try {
+            // 检查角色ID是否已存在（通过查询角色列表）
+            const response = await getRoles({ 
+                roleName: '', 
+                state: '', 
+                pageNum: 0, 
+                pageSize: 1000 
+            });
+            
+            const existingRole = response.data.content.find(role => role.id === value);
+            if (existingRole) {
+                callback('角色ID已存在');
+            } else {
+                callback();
+            }
+        } catch (error) {
+            console.error('验证角色ID失败:', error);
+            callback();
         }
     };
 
@@ -394,12 +520,6 @@ function RoleManager() {
                         >
                             新增角色
                         </Button>
-                        <Button
-                            icon={<IconRefresh />}
-                            onClick={() => fetchRoles()}
-                        >
-                            刷新
-                        </Button>
                     </div>
 
                     {/* 角色表格 */}
@@ -443,6 +563,21 @@ function RoleManager() {
                 cancelText="取消"
             >
                 <Form form={addForm} layout="vertical">
+                    <Form.Item
+                        label="角色ID"
+                        field="id"
+                        rules={[
+                            { required: true, message: '请输入角色ID' },
+                            { max: 32, message: '角色ID长度不能超过32个字符' },
+                            { 
+                                pattern: /^[a-zA-Z0-9_-]+$/, 
+                                message: '角色ID只能包含字母、数字、下划线和连字符' 
+                            },
+                            { validator: validateRoleId },
+                        ]}
+                    >
+                        <Input placeholder="请输入角色ID（如：admin、user等）" />
+                    </Form.Item>
                     <Form.Item
                         label="角色名称"
                         field="name"

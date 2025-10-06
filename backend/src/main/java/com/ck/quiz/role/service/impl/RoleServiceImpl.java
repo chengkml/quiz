@@ -41,7 +41,6 @@ public class RoleServiceImpl implements RoleService {
         }
 
         UserRole role = new UserRole();
-        role.setId(IdHelper.genUuid());
         BeanUtils.copyProperties(roleCreateDto, role);
 
         UserRole savedRole = userRoleRepository.save(role);
@@ -110,7 +109,7 @@ public class RoleServiceImpl implements RoleService {
 
         Map<String, Object> params = new HashMap<>();
 
-        JdbcQueryHelper.lowerLike("name", queryDto.getName(), " AND LOWER(r.role_name) LIKE :name ", params, jdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("keyWord", queryDto.getName(), " AND (LOWER(r.role_id) LIKE :keyWord or LOWER(r.role_name) LIKE :keyWord) ", params, jdbcTemplate, sql, countSql);
         JdbcQueryHelper.equals("state", queryDto.getState() == null ? null : queryDto.getState().name(), " AND r.state = :state ", params, sql, countSql);
 
         JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);

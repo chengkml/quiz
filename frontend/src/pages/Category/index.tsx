@@ -344,29 +344,24 @@ function CategoryManager() {
                     </Form.Item>
                 </FilterForm>
 
-                <div className="table-container">
-                    {/* 操作按钮 */}
-                    <div className="action-buttons">
-                        <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
-                            新增分类
-                        </Button>
-                    </div>
-
-                    {/* 表格 */}
-                    <Table
-                        columns={columns}
-                        data={tableData}
-                        loading={loading}
-                        pagination={pagination}
-                        onChange={handleTableChange}
-                        rowKey="id"
-                        scroll={{
-                            y: tableScrollHeight,
-                        }}
-                    />
+                <div className="action-buttons">
+                    <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
+                        新增分类
+                    </Button>
                 </div>
 
-
+                {/* 表格 */}
+                <Table
+                    columns={columns}
+                    data={tableData}
+                    loading={loading}
+                    pagination={pagination}
+                    onChange={handleTableChange}
+                    rowKey="id"
+                    scroll={{
+                        y: tableScrollHeight,
+                    }}
+                />
                 {/* 新增模态框 */}
                 <AddCategoryModal
                     visible={addModalVisible}
