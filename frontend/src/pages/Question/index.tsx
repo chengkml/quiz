@@ -34,6 +34,7 @@ import {getKnowledgeList} from '../Knowledge/api';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot,} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import DynamicQuestionForm from '@/components/DynamicQuestionForm';
+import Sider from '@arco-design/web-react/es/Layout/sider';
 
 const {TextArea} = Input;
 const {Content} = Layout;
@@ -382,8 +383,8 @@ function QuestionManager() {
             const windowHeight = window.innerHeight;
             // 减去页面其他元素的高度，如头部、筛选区域、分页等
             // 这里可以根据实际页面布局调整计算逻辑
-            const otherElementsHeight = 235; // 预估其他元素占用的高度
-            const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+            const otherElementsHeight = 240; // 预估其他元素占用的高度
+            const newHeight = Math.max(100, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
 
@@ -691,336 +692,347 @@ function QuestionManager() {
 
     return (
         <div className="question-manager">
-            <Content>
-                <FilterForm
-                    ref={filterFormRef}
-                    onSearch={searchTableData}
-                    onReset={() => fetchTableData()}
+            <Layout>
+                <Sider
+                    resizeDirections={['right']}
+                    style={{
+                        minWidth: 150,
+                        maxWidth: 500,
+                        height: '100%',
+                    }}
                 >
-                    <Form.Item field='type' label='题目类型'>
-                        <Select allowClear
-                                placeholder='请选择题目类型'
-                                options={questionTypeOptions}
-                        />
-                    </Form.Item>
-                    <Form.Item field='content' label='题干内容'>
-                        <Input
-                            placeholder='请输入题干内容关键词'
-                        />
-                    </Form.Item>
-                    <Form.Item field='difficultyLevel' label='难度等级'>
-                        <Select allowClear
-                                placeholder='请选择难度等级'
-                                options={difficultyOptions}
-                        />
-                    </Form.Item>
-                </FilterForm>
+                    Sider
+                </Sider>
+                <Content>
+                    <FilterForm
+                        ref={filterFormRef}
+                        onSearch={searchTableData}
+                        onReset={() => fetchTableData()}
+                    >
+                        <Form.Item field='type' label='题目类型'>
+                            <Select allowClear
+                                    placeholder='请选择题目类型'
+                                    options={questionTypeOptions}
+                            />
+                        </Form.Item>
+                        <Form.Item field='content' label='题干内容'>
+                            <Input
+                                placeholder='请输入题干内容关键词'
+                            />
+                        </Form.Item>
+                        <Form.Item field='difficultyLevel' label='难度等级'>
+                            <Select allowClear
+                                    placeholder='请选择难度等级'
+                                    options={difficultyOptions}
+                            />
+                        </Form.Item>
+                    </FilterForm>
 
-                {/* 表格 */}
-                <div className="action-buttons">
-                    <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
-                        新增题目
-                    </Button>
-                    <Button type="outline" icon={<IconRobot/>} onClick={handleGenerate}>
-                        AI生成题目
-                    </Button>
-                </div>
-                <Table
-                    columns={columns}
-                    data={tableData}
-                    loading={tableLoading}
-                    pagination={false}
-                    scroll={{y: tableScrollHeight}}
-                    rowKey="id"
-                />
-
-                {/* 分页 */}
-                <div className="pagination-wrapper">
-                    <Pagination
-                        {...pagination}
-                        onChange={(current, pageSize) => {
-                            fetchTableData({}, pageSize, current);
-                        }}
+                    {/* 表格 */}
+                    <div className="action-buttons">
+                        <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
+                            新增题目
+                        </Button>
+                        <Button type="outline" icon={<IconRobot/>} onClick={handleGenerate}>
+                            AI生成题目
+                        </Button>
+                    </div>
+                    <Table
+                        columns={columns}
+                        data={tableData}
+                        loading={tableLoading}
+                        pagination={false}
+                        scroll={{y: tableScrollHeight}}
+                        rowKey="id"
                     />
-                </div>
-            </Content>
 
-            {/* 新增对话框 */}
-            <Modal
-                title="新增题目"
-                visible={addModalVisible}
-                footer={
-                    <div style={{textAlign: 'right'}}>
-                        <Button onClick={() => {
-                            setAddModalVisible(false);
-                            setAddDynamicFormData({options: {}, answer: {}});
-                            setAddQuestionType('');
-                        }} style={{marginRight: 8}}>
-                            取消
-                        </Button>
-                        <Button
-                            type="primary"
-                            loading={saveLoading}
-                            onClick={() => addFormRef.current?.submit()}
-                        >
-                            确定
-                        </Button>
-                    </div>
-                }
-            >
-                <Form
-                    ref={addFormRef}
-                    layout="vertical"
-                    onSubmit={handleAddSubmit}
-                    className="modal-form"
-                >
-                    <Form.Item
-                        label="题目类型"
-                        field="type"
-                        rules={[{required: true, message: '请选择题目类型'}]}
-                    >
-                        <Select
-                            options={questionTypeOptions}
-                            placeholder="请选择题目类型"
-                            onChange={handleAddTypeChange}
+                    {/* 分页 */}
+                    <div className="pagination-wrapper">
+                        <Pagination
+                            {...pagination}
+                            onChange={(current, pageSize) => {
+                                fetchTableData({}, pageSize, current);
+                            }}
                         />
-                    </Form.Item>
-                    <Form.Item
-                        label="题干内容"
-                        field="content"
-                        rules={[{required: true, message: '请输入题干内容'}]}
-                    >
-                        <TextArea placeholder="请输入题干内容" rows={4}/>
-                    </Form.Item>
-
-                    {/* 动态表单区域 */}
-                    {addQuestionType && (
-                        <div style={{marginBottom: 20}}>
-                            <DynamicQuestionForm
-                                questionType={addQuestionType}
-                                value={addDynamicFormData}
-                                onChange={setAddDynamicFormData}
-                            />
-                        </div>
-                    )}
-
-                    <Form.Item
-                        label="解析说明"
-                        field="explanation"
-                    >
-                        <TextArea placeholder="请输入解析说明" rows={3}/>
-                    </Form.Item>
-                    <Form.Item
-                        label="难度等级"
-                        field="difficultyLevel"
-                        initialValue={1}
-                        rules={[{required: true, message: '请选择难度等级'}]}
-                    >
-                        <Select options={difficultyOptions} placeholder="请选择难度等级"/>
-                    </Form.Item>
-                </Form>
-            </Modal>
-
-            {/* 编辑对话框 */}
-            <Modal
-                title="编辑题目"
-                visible={editModalVisible}
-                onCancel={() => {
-                    setEditModalVisible(false);
-                    setEditDynamicFormData({options: {}, answer: {}});
-                    setEditQuestionType('');
-                }}
-                onOk={() => editFormRef.current?.submit()}
-                width={800}
-            >
-                <Form
-                    ref={editFormRef}
-                    layout="vertical"
-                    onSubmit={handleEditSubmit}
-                    className="modal-form"
-                    initialValues={currentRecord || {}}
-                >
-                    <Form.Item
-                        label="题目类型"
-                        field="type"
-                        rules={[{required: true, message: '请选择题目类型'}]}
-                    >
-                        <Select
-                            options={questionTypeOptions}
-                            placeholder="请选择题目类型"
-                            onChange={handleEditTypeChange}
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        label="题干内容"
-                        field="content"
-                        rules={[{required: true, message: '请输入题干内容'}]}
-                    >
-                        <TextArea placeholder="请输入题干内容" rows={4}/>
-                    </Form.Item>
-
-                    {/* 动态表单区域 */}
-                    {editQuestionType && (
-                        <div style={{marginBottom: 20}}>
-                            <DynamicQuestionForm
-                                questionType={editQuestionType}
-                                value={editDynamicFormData}
-                                onChange={setEditDynamicFormData}
-                            />
-                        </div>
-                    )}
-
-                    <Form.Item
-                        label="解析说明"
-                        field="explanation"
-                    >
-                        <TextArea placeholder="请输入解析说明" rows={3}/>
-                    </Form.Item>
-                    <Form.Item
-                        label="难度等级"
-                        field="difficultyLevel"
-                        rules={[{required: true, message: '请选择难度等级'}]}
-                    >
-                        <Select options={difficultyOptions} placeholder="请选择难度等级"/>
-                    </Form.Item>
-                </Form>
-            </Modal>
-
-            {/* 删除确认对话框 */}
-            <Modal
-                title="删除确认"
-                visible={deleteModalVisible}
-                onCancel={() => setDeleteModalVisible(false)}
-                onOk={handleDeleteConfirm}
-                className="delete-modal"
-            >
-                <div className="delete-content">
-                    <div className="delete-text">
-                        确定要删除题目 "{currentRecord?.content?.substring(0, 50)}..." 吗？
-                        <br/>
-                        删除后将无法恢复。
                     </div>
-                </div>
-            </Modal>
+                </Content>
 
-            {/* AI生成题目对话框 */}
-            <Modal
-                title="AI生成题目"
-                visible={generateModalVisible}
-                footer={
-                    <div style={{textAlign: 'right'}}>
-                        <Button onClick={() => setGenerateModalVisible(false)} style={{marginRight: 8}}>
-                            取消
-                        </Button>
-                        <Button
-                            type="primary"
-                            onClick={() => generateFormRef.current?.submit()}
-                            loading={generateLoading}
-                        >
-                            确定
-                        </Button>
-                    </div>
-                }
-            >
-                <Spin loading={generateLoading} style={{width: '100%'}}>
-                    <Form
-                        ref={generateFormRef}
-                        layout="vertical"
-                        onSubmit={handleGenerateSubmit}
-                        className="modal-form"
-                    >
-                        <Form.Item
-                            label="知识点描述"
-                            field="knowledgeDescr"
-                            rules={[{required: true, message: '请输入知识点描述'}]}
-                        >
-                            <TextArea
-                                placeholder="请输入知识点描述，AI将根据此描述生成相关题目"
-                                rows={4}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="生成数量"
-                            field="num"
-                            initialValue={3}
-                            rules={[{required: true, message: '请输入生成数量'}]}
-                        >
-                            <InputNumber
-                                min={1}
-                                max={10}
-                                placeholder="请输入生成题目数量（1-10）"
-                                style={{width: '100%'}}
-                            />
-                        </Form.Item>
-                    </Form>
-                </Spin>
-            </Modal>
-
-            {/* AI生成题目展示 */}
-            {showGeneratedQuestions && generatedQuestions.length > 0 && (
+                {/* 新增对话框 */}
                 <Modal
-                    title={`AI生成的题目 (${generatedQuestions.length}道)`}
-                    visible={showGeneratedQuestions}
-                    onCancel={handleCancelSave}
+                    title="新增题目"
+                    visible={addModalVisible}
                     footer={
                         <div style={{textAlign: 'right'}}>
-                            <Button onClick={handleCancelSave} style={{marginRight: 8}}>
+                            <Button onClick={() => {
+                                setAddModalVisible(false);
+                                setAddDynamicFormData({options: {}, answer: {}});
+                                setAddQuestionType('');
+                            }} style={{marginRight: 8}}>
                                 取消
                             </Button>
                             <Button
                                 type="primary"
-                                onClick={handleSaveSelectedQuestions}
-                                disabled={selectedQuestions.length === 0}
                                 loading={saveLoading}
+                                onClick={() => addFormRef.current?.submit()}
                             >
-                                保存选中题目 ({selectedQuestions.length})
+                                确定
                             </Button>
                         </div>
                     }
                 >
-                    <div style={{marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #f0f0f0'}}>
-                        <Checkbox
-                            checked={selectedQuestions.length === generatedQuestions.length}
-                            indeterminate={selectedQuestions.length > 0 && selectedQuestions.length < generatedQuestions.length}
-                            onChange={handleSelectAll}
+                    <Form
+                        ref={addFormRef}
+                        layout="vertical"
+                        onSubmit={handleAddSubmit}
+                        className="modal-form"
+                    >
+                        <Form.Item
+                            label="题目类型"
+                            field="type"
+                            rules={[{required: true, message: '请选择题目类型'}]}
                         >
-                            全选
-                        </Checkbox>
-                    </div>
-                    <div style={{maxHeight: '60vh', overflowY: 'auto'}}>
-                        <Collapse
-                            defaultActiveKey={generatedQuestions.map((_, index) => index.toString())}
+                            <Select
+                                options={questionTypeOptions}
+                                placeholder="请选择题目类型"
+                                onChange={handleAddTypeChange}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="题干内容"
+                            field="content"
+                            rules={[{required: true, message: '请输入题干内容'}]}
                         >
-                            {generatedQuestions.map((question, index) => {
-                                const typeMap = {
-                                    'SINGLE': '单选题',
-                                    'MULTIPLE': '多选题',
-                                    'BLANK': '填空题',
-                                    'SHORT_ANSWER': '简答题'
-                                };
+                            <TextArea placeholder="请输入题干内容" rows={4}/>
+                        </Form.Item>
 
-                                return (
-                                    <Collapse.Item
-                                        key={index}
-                                        name={index.toString()}
-                                        header={
-                                            <div style={{display: 'flex', alignItems: 'center', width: '100%'}}>
-                                                <Checkbox
-                                                    checked={selectedQuestions.includes(index)}
-                                                    onChange={(checked) => handleQuestionSelect(index, checked)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    style={{marginRight: 12}}
-                                                />
-                                                <Tag color="blue" style={{marginRight: 8}}>
-                                                    {typeMap[question.type] || question.type}
-                                                </Tag>
-                                                <Tag
-                                                    color={question.difficultyLevel <= 2 ? 'green' : question.difficultyLevel <= 4 ? 'orange' : 'red'}
-                                                    style={{marginRight: 8}}
-                                                >
-                                                    {question.difficultyLevel}级
-                                                </Tag>
-                                                <Tooltip content={question.content}>
+                        {/* 动态表单区域 */}
+                        {addQuestionType && (
+                            <div style={{marginBottom: 20}}>
+                                <DynamicQuestionForm
+                                    questionType={addQuestionType}
+                                    value={addDynamicFormData}
+                                    onChange={setAddDynamicFormData}
+                                />
+                            </div>
+                        )}
+
+                        <Form.Item
+                            label="解析说明"
+                            field="explanation"
+                        >
+                            <TextArea placeholder="请输入解析说明" rows={3}/>
+                        </Form.Item>
+                        <Form.Item
+                            label="难度等级"
+                            field="difficultyLevel"
+                            initialValue={1}
+                            rules={[{required: true, message: '请选择难度等级'}]}
+                        >
+                            <Select options={difficultyOptions} placeholder="请选择难度等级"/>
+                        </Form.Item>
+                    </Form>
+                </Modal>
+
+                {/* 编辑对话框 */}
+                <Modal
+                    title="编辑题目"
+                    visible={editModalVisible}
+                    onCancel={() => {
+                        setEditModalVisible(false);
+                        setEditDynamicFormData({options: {}, answer: {}});
+                        setEditQuestionType('');
+                    }}
+                    onOk={() => editFormRef.current?.submit()}
+                    width={800}
+                >
+                    <Form
+                        ref={editFormRef}
+                        layout="vertical"
+                        onSubmit={handleEditSubmit}
+                        className="modal-form"
+                        initialValues={currentRecord || {}}
+                    >
+                        <Form.Item
+                            label="题目类型"
+                            field="type"
+                            rules={[{required: true, message: '请选择题目类型'}]}
+                        >
+                            <Select
+                                options={questionTypeOptions}
+                                placeholder="请选择题目类型"
+                                onChange={handleEditTypeChange}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="题干内容"
+                            field="content"
+                            rules={[{required: true, message: '请输入题干内容'}]}
+                        >
+                            <TextArea placeholder="请输入题干内容" rows={4}/>
+                        </Form.Item>
+
+                        {/* 动态表单区域 */}
+                        {editQuestionType && (
+                            <div style={{marginBottom: 20}}>
+                                <DynamicQuestionForm
+                                    questionType={editQuestionType}
+                                    value={editDynamicFormData}
+                                    onChange={setEditDynamicFormData}
+                                />
+                            </div>
+                        )}
+
+                        <Form.Item
+                            label="解析说明"
+                            field="explanation"
+                        >
+                            <TextArea placeholder="请输入解析说明" rows={3}/>
+                        </Form.Item>
+                        <Form.Item
+                            label="难度等级"
+                            field="difficultyLevel"
+                            rules={[{required: true, message: '请选择难度等级'}]}
+                        >
+                            <Select options={difficultyOptions} placeholder="请选择难度等级"/>
+                        </Form.Item>
+                    </Form>
+                </Modal>
+
+                {/* 删除确认对话框 */}
+                <Modal
+                    title="删除确认"
+                    visible={deleteModalVisible}
+                    onCancel={() => setDeleteModalVisible(false)}
+                    onOk={handleDeleteConfirm}
+                    className="delete-modal"
+                >
+                    <div className="delete-content">
+                        <div className="delete-text">
+                            确定要删除题目 "{currentRecord?.content?.substring(0, 50)}..." 吗？
+                            <br/>
+                            删除后将无法恢复。
+                        </div>
+                    </div>
+                </Modal>
+
+                {/* AI生成题目对话框 */}
+                <Modal
+                    title="AI生成题目"
+                    visible={generateModalVisible}
+                    footer={
+                        <div style={{textAlign: 'right'}}>
+                            <Button onClick={() => setGenerateModalVisible(false)} style={{marginRight: 8}}>
+                                取消
+                            </Button>
+                            <Button
+                                type="primary"
+                                onClick={() => generateFormRef.current?.submit()}
+                                loading={generateLoading}
+                            >
+                                确定
+                            </Button>
+                        </div>
+                    }
+                >
+                    <Spin loading={generateLoading} style={{width: '100%'}}>
+                        <Form
+                            ref={generateFormRef}
+                            layout="vertical"
+                            onSubmit={handleGenerateSubmit}
+                            className="modal-form"
+                        >
+                            <Form.Item
+                                label="知识点描述"
+                                field="knowledgeDescr"
+                                rules={[{required: true, message: '请输入知识点描述'}]}
+                            >
+                                <TextArea
+                                    placeholder="请输入知识点描述，AI将根据此描述生成相关题目"
+                                    rows={4}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="生成数量"
+                                field="num"
+                                initialValue={3}
+                                rules={[{required: true, message: '请输入生成数量'}]}
+                            >
+                                <InputNumber
+                                    min={1}
+                                    max={10}
+                                    placeholder="请输入生成题目数量（1-10）"
+                                    style={{width: '100%'}}
+                                />
+                            </Form.Item>
+                        </Form>
+                    </Spin>
+                </Modal>
+
+                {/* AI生成题目展示 */}
+                {showGeneratedQuestions && generatedQuestions.length > 0 && (
+                    <Modal
+                        title={`AI生成的题目 (${generatedQuestions.length}道)`}
+                        visible={showGeneratedQuestions}
+                        onCancel={handleCancelSave}
+                        footer={
+                            <div style={{textAlign: 'right'}}>
+                                <Button onClick={handleCancelSave} style={{marginRight: 8}}>
+                                    取消
+                                </Button>
+                                <Button
+                                    type="primary"
+                                    onClick={handleSaveSelectedQuestions}
+                                    disabled={selectedQuestions.length === 0}
+                                    loading={saveLoading}
+                                >
+                                    保存选中题目 ({selectedQuestions.length})
+                                </Button>
+                            </div>
+                        }
+                    >
+                        <div style={{marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #f0f0f0'}}>
+                            <Checkbox
+                                checked={selectedQuestions.length === generatedQuestions.length}
+                                indeterminate={selectedQuestions.length > 0 && selectedQuestions.length < generatedQuestions.length}
+                                onChange={handleSelectAll}
+                            >
+                                全选
+                            </Checkbox>
+                        </div>
+                        <div style={{maxHeight: '60vh', overflowY: 'auto'}}>
+                            <Collapse
+                                defaultActiveKey={generatedQuestions.map((_, index) => index.toString())}
+                            >
+                                {generatedQuestions.map((question, index) => {
+                                    const typeMap = {
+                                        'SINGLE': '单选题',
+                                        'MULTIPLE': '多选题',
+                                        'BLANK': '填空题',
+                                        'SHORT_ANSWER': '简答题'
+                                    };
+
+                                    return (
+                                        <Collapse.Item
+                                            key={index}
+                                            name={index.toString()}
+                                            header={
+                                                <div style={{display: 'flex', alignItems: 'center', width: '100%'}}>
+                                                    <Checkbox
+                                                        checked={selectedQuestions.includes(index)}
+                                                        onChange={(checked) => handleQuestionSelect(index, checked)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        style={{marginRight: 12}}
+                                                    />
+                                                    <Tag color="blue" style={{marginRight: 8}}>
+                                                        {typeMap[question.type] || question.type}
+                                                    </Tag>
+                                                    <Tag
+                                                        color={question.difficultyLevel <= 2 ? 'green' : question.difficultyLevel <= 4 ? 'orange' : 'red'}
+                                                        style={{marginRight: 8}}
+                                                    >
+                                                        {question.difficultyLevel}级
+                                                    </Tag>
+                                                    <Tooltip content={question.content}>
                                                     <span style={{
                                                         flex: 1,
                                                         overflow: 'hidden',
@@ -1029,183 +1041,184 @@ function QuestionManager() {
                                                     }}>
                                                         {question.content}
                                                     </span>
-                                                </Tooltip>
-                                            </div>
-                                        }
-                                    >
-                                        <div style={{padding: '0 16px'}}>
-                                            <div style={{marginBottom: 12}}>
-                                                <strong>题干:</strong>
-                                                <div style={{
-                                                    marginTop: 4,
-                                                    padding: '8px 12px',
-                                                    backgroundColor: '#f7f8fa',
-                                                    borderRadius: 4
-                                                }}>
-                                                    {question.content}
+                                                    </Tooltip>
                                                 </div>
-                                            </div>
-
-                                            {question.options && renderQuestionOptions(question.options, question.type)}
-                                            {question.answer && renderQuestionAnswer(question.answer)}
-
-                                            {question.explanation && (
-                                                <div style={{marginTop: 8}}>
-                                                    <strong>解析:</strong>
-                                                    <div style={{marginTop: 4, color: '#666'}}>
-                                                        {question.explanation}
+                                            }
+                                        >
+                                            <div style={{padding: '0 16px'}}>
+                                                <div style={{marginBottom: 12}}>
+                                                    <strong>题干:</strong>
+                                                    <div style={{
+                                                        marginTop: 4,
+                                                        padding: '8px 12px',
+                                                        backgroundColor: '#f7f8fa',
+                                                        borderRadius: 4
+                                                    }}>
+                                                        {question.content}
                                                     </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    </Collapse.Item>
-                                );
-                            })}
-                        </Collapse>
-                    </div>
-                </Modal>
-            )}
 
-            {/* 查看详情对话框 */}
-            {detailModalVisible && detailRecord && (
-                <Modal
-                    title="题目详情"
-                    visible={detailModalVisible}
-                    onCancel={() => setDetailModalVisible(false)}
-                    footer={null}
-                    width={800}
-                >
-                    <div style={{padding: '16px 0'}}>
-                        <div style={{marginBottom: 16}}>
-                            <div style={{display: 'flex', gap: 12, marginBottom: 12}}>
-                                <Tag color="blue">
-                                    {detailRecord.type === 'SINGLE' ? '单选题' :
-                                        detailRecord.type === 'MULTIPLE' ? '多选题' :
-                                            detailRecord.type === 'BLANK' ? '填空题' : '简答题'}
-                                </Tag>
-                                <Tag
-                                    color={detailRecord.difficultyLevel <= 2 ? 'green' : detailRecord.difficultyLevel <= 4 ? 'orange' : 'red'}>
-                                    难度: {detailRecord.difficultyLevel}级
-                                </Tag>
-                            </div>
+                                                {question.options && renderQuestionOptions(question.options, question.type)}
+                                                {question.answer && renderQuestionAnswer(question.answer)}
+
+                                                {question.explanation && (
+                                                    <div style={{marginTop: 8}}>
+                                                        <strong>解析:</strong>
+                                                        <div style={{marginTop: 4, color: '#666'}}>
+                                                            {question.explanation}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </Collapse.Item>
+                                    );
+                                })}
+                            </Collapse>
                         </div>
+                    </Modal>
+                )}
 
-                        <div style={{marginBottom: 16}}>
-                            <strong style={{fontSize: 16}}>题干:</strong>
-                            <div style={{
-                                marginTop: 8,
-                                padding: '12px 16px',
-                                backgroundColor: '#f7f8fa',
-                                borderRadius: 6,
-                                lineHeight: 1.6
-                            }}>
-                                {detailRecord.content}
+                {/* 查看详情对话框 */}
+                {detailModalVisible && detailRecord && (
+                    <Modal
+                        title="题目详情"
+                        visible={detailModalVisible}
+                        onCancel={() => setDetailModalVisible(false)}
+                        footer={null}
+                        width={800}
+                    >
+                        <div style={{padding: '16px 0'}}>
+                            <div style={{marginBottom: 16}}>
+                                <div style={{display: 'flex', gap: 12, marginBottom: 12}}>
+                                    <Tag color="blue">
+                                        {detailRecord.type === 'SINGLE' ? '单选题' :
+                                            detailRecord.type === 'MULTIPLE' ? '多选题' :
+                                                detailRecord.type === 'BLANK' ? '填空题' : '简答题'}
+                                    </Tag>
+                                    <Tag
+                                        color={detailRecord.difficultyLevel <= 2 ? 'green' : detailRecord.difficultyLevel <= 4 ? 'orange' : 'red'}>
+                                        难度: {detailRecord.difficultyLevel}级
+                                    </Tag>
+                                </div>
                             </div>
-                        </div>
 
-                        {detailRecord.options && renderQuestionOptions(detailRecord.options, detailRecord.type)}
-                        {detailRecord.answer && renderQuestionAnswer(detailRecord.answer)}
-
-                        {detailRecord.explanation && (
-                            <div style={{marginTop: 16}}>
-                                <strong style={{fontSize: 16}}>解析:</strong>
+                            <div style={{marginBottom: 16}}>
+                                <strong style={{fontSize: 16}}>题干:</strong>
                                 <div style={{
                                     marginTop: 8,
                                     padding: '12px 16px',
-                                    backgroundColor: '#f0f9ff',
+                                    backgroundColor: '#f7f8fa',
                                     borderRadius: 6,
-                                    color: '#666',
                                     lineHeight: 1.6
                                 }}>
-                                    {detailRecord.explanation}
+                                    {detailRecord.content}
                                 </div>
                             </div>
-                        )}
 
-                        <div style={{marginTop: 16, padding: '12px 0', borderTop: '1px solid #e5e6eb'}}>
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                color: '#86909c',
-                                fontSize: 14
-                            }}>
-                                <span>创建人: {detailRecord.createUserName || '--'}</span>
-                                <span>创建时间: {detailRecord.createDate || '--'}</span>
+                            {detailRecord.options && renderQuestionOptions(detailRecord.options, detailRecord.type)}
+                            {detailRecord.answer && renderQuestionAnswer(detailRecord.answer)}
+
+                            {detailRecord.explanation && (
+                                <div style={{marginTop: 16}}>
+                                    <strong style={{fontSize: 16}}>解析:</strong>
+                                    <div style={{
+                                        marginTop: 8,
+                                        padding: '12px 16px',
+                                        backgroundColor: '#f0f9ff',
+                                        borderRadius: 6,
+                                        color: '#666',
+                                        lineHeight: 1.6
+                                    }}>
+                                        {detailRecord.explanation}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div style={{marginTop: 16, padding: '12px 0', borderTop: '1px solid #e5e6eb'}}>
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    color: '#86909c',
+                                    fontSize: 14
+                                }}>
+                                    <span>创建人: {detailRecord.createUserName || '--'}</span>
+                                    <span>创建时间: {detailRecord.createDate || '--'}</span>
+                                </div>
                             </div>
+                        </div>
+                    </Modal>
+                )}
+
+                {/* 知识点关联模态框 */}
+                <Modal
+                    title={`关联知识点 - ${currentRecord?.content?.substring(0, 30)}...`}
+                    visible={knowledgeModalVisible}
+                    onCancel={() => {
+                        setKnowledgeModalVisible(false);
+                        setSelectedKnowledge([]);
+                        setCurrentQuestionKnowledge([]);
+                    }}
+                    onOk={async () => {
+                        try {
+                            setKnowledgeLoading(true);
+                            await associateKnowledge({
+                                questionId: currentRecord.id,
+                                knowledgeIds: selectedKnowledge
+                            });
+                            Message.success('知识点关联成功');
+                            setKnowledgeModalVisible(false);
+                            fetchTableData(); // 刷新表格数据
+                        } catch (error) {
+                            Message.error('知识点关联失败');
+                        } finally {
+                            setKnowledgeLoading(false);
+                        }
+                    }}
+                    confirmLoading={knowledgeLoading}
+                    width={600}
+                >
+                    <div style={{maxHeight: 400, overflowY: 'auto'}}>
+                        <div style={{marginBottom: 16}}>
+                            <strong>当前已关联的知识点:</strong>
+                            <div style={{marginTop: 8}}>
+                                {currentQuestionKnowledge.length > 0 ? (
+                                    currentQuestionKnowledge.map(knowledge => (
+                                        <Tag key={knowledge.id} color="cyan" style={{margin: '2px 4px 2px 0'}}>
+                                            {knowledge.name}
+                                        </Tag>
+                                    ))
+                                ) : (
+                                    <span style={{color: '#999'}}>暂无关联知识点</span>
+                                )}
+                            </div>
+                        </div>
+
+                        <div>
+                            <strong>选择要关联的知识点:</strong>
+                            <Checkbox.Group
+                                value={selectedKnowledge}
+                                onChange={setSelectedKnowledge}
+                                style={{marginTop: 8, width: '100%'}}
+                            >
+                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px'}}>
+                                    {knowledgeList.map(knowledge => (
+                                        <Checkbox key={knowledge.id} value={knowledge.id}>
+                                            <div style={{display: 'flex', flexDirection: 'column'}}>
+                                                <span style={{fontWeight: 500}}>{knowledge.name}</span>
+                                                {knowledge.description && (
+                                                    <span style={{fontSize: 12, color: '#999', marginTop: 2}}>
+                                                    {knowledge.description.substring(0, 50)}...
+                                                </span>
+                                                )}
+                                            </div>
+                                        </Checkbox>
+                                    ))}
+                                </div>
+                            </Checkbox.Group>
                         </div>
                     </div>
                 </Modal>
-            )}
-
-            {/* 知识点关联模态框 */}
-            <Modal
-                title={`关联知识点 - ${currentRecord?.content?.substring(0, 30)}...`}
-                visible={knowledgeModalVisible}
-                onCancel={() => {
-                    setKnowledgeModalVisible(false);
-                    setSelectedKnowledge([]);
-                    setCurrentQuestionKnowledge([]);
-                }}
-                onOk={async () => {
-                    try {
-                        setKnowledgeLoading(true);
-                        await associateKnowledge({
-                            questionId: currentRecord.id,
-                            knowledgeIds: selectedKnowledge
-                        });
-                        Message.success('知识点关联成功');
-                        setKnowledgeModalVisible(false);
-                        fetchTableData(); // 刷新表格数据
-                    } catch (error) {
-                        Message.error('知识点关联失败');
-                    } finally {
-                        setKnowledgeLoading(false);
-                    }
-                }}
-                confirmLoading={knowledgeLoading}
-                width={600}
-            >
-                <div style={{maxHeight: 400, overflowY: 'auto'}}>
-                    <div style={{marginBottom: 16}}>
-                        <strong>当前已关联的知识点:</strong>
-                        <div style={{marginTop: 8}}>
-                            {currentQuestionKnowledge.length > 0 ? (
-                                currentQuestionKnowledge.map(knowledge => (
-                                    <Tag key={knowledge.id} color="cyan" style={{margin: '2px 4px 2px 0'}}>
-                                        {knowledge.name}
-                                    </Tag>
-                                ))
-                            ) : (
-                                <span style={{color: '#999'}}>暂无关联知识点</span>
-                            )}
-                        </div>
-                    </div>
-
-                    <div>
-                        <strong>选择要关联的知识点:</strong>
-                        <Checkbox.Group
-                            value={selectedKnowledge}
-                            onChange={setSelectedKnowledge}
-                            style={{marginTop: 8, width: '100%'}}
-                        >
-                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px'}}>
-                                {knowledgeList.map(knowledge => (
-                                    <Checkbox key={knowledge.id} value={knowledge.id}>
-                                        <div style={{display: 'flex', flexDirection: 'column'}}>
-                                            <span style={{fontWeight: 500}}>{knowledge.name}</span>
-                                            {knowledge.description && (
-                                                <span style={{fontSize: 12, color: '#999', marginTop: 2}}>
-                                                    {knowledge.description.substring(0, 50)}...
-                                                </span>
-                                            )}
-                                        </div>
-                                    </Checkbox>
-                                ))}
-                            </div>
-                        </Checkbox.Group>
-                    </div>
-                </div>
-            </Modal>
+            </Layout>
         </div>
     );
 }
