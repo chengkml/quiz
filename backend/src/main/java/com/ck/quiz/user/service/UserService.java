@@ -1,13 +1,9 @@
 package com.ck.quiz.user.service;
 
-import com.ck.quiz.role.dto.RoleDto;
 import com.ck.quiz.user.dto.UserCreateDto;
 import com.ck.quiz.user.dto.UserDto;
 import com.ck.quiz.user.dto.UserUpdateDto;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
-import java.util.List;
 
 /**
  * 用户管理服务接口
@@ -33,13 +29,16 @@ public interface UserService {
     /**
      * 分页查询用户
      *
-     * @param userId   用户账号（模糊查询）
-     * @param userName 用户姓名（模糊查询）
-     * @param state    状态
-     * @param pageable 分页参数
-     * @return 用户分页列表
+     * @param userId
+     * @param userName
+     * @param state
+     * @param sortColumn
+     * @param sortType
+     * @param pageNum
+     * @param pageSize
+     * @return
      */
-    Page<UserDto> searchUsers(String userId, String userName, String state, Pageable pageable);
+    Page<UserDto> searchUsers(String userId, String userName, String state, String sortColumn, String sortType, int pageNum, int pageSize);
 
     /**
      * 更新用户信息

@@ -12,8 +12,6 @@ import com.ck.quiz.utils.JdbcQueryHelper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -83,7 +81,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public Page<UserDto> searchUsers(String userId, String userName, String state, Pageable pageable) {
+    public Page<UserDto> searchUsers(String userId, String userName, String state, String sortColumn, String sortType, int pageNum, int pageSize) {
         StringBuilder sql = new StringBuilder(
                 "select u.user_id, u.user_name, u.password, u.email, u.phone, u.state, u.logo, " +
                         "u.create_date, u.create_user, cu.user_name as create_user_name, " +
@@ -104,13 +102,13 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         JdbcQueryHelper.equals("state", state, " and u.state = :state ", params, sql, countSql);
 
         // 排序
-        JdbcQueryHelper.order(pageable.getSort().isEmpty() ? null : pageable.getSort().toString(), "u", sql);
+        JdbcQueryHelper.order(sortColumn, sortType, sql);
 
         // 分页
         String pageSql = JdbcQueryHelper.getLimitSql(
                 jdbcTemplate, sql.toString(),
-                (int) pageable.getPageNumber(),
-                pageable.getPageSize()
+                pageNum,
+                pageSize
         );
 
         // 查询数据并映射到 UserDto
@@ -132,10 +130,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 )
         );
 
-        // 查询总数
-        Long total = jdbcTemplate.queryForObject(countSql.toString(), params, Long.class);
-
-        return new PageImpl<>(users, pageable, total);
+        return JdbcQueryHelper.toPage(jdbcTemplate, countSql.toString(), params, users, pageNum, pageSize);
     }
 
 

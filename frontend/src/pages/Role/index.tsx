@@ -488,70 +488,68 @@ function RoleManager() {
 
     return (
         <div className="role-manager" ref={containerRef}>
-            <Layout>
-                <Content>
-                    {/* 搜索表单 */}
-                    <FilterForm
-                        ref={filterFormRef}
-                        onSearch={handleSearch}
-                        onReset={handleReset}
-                        initialValues={searchParams}
+            <Content>
+                {/* 搜索表单 */}
+                <FilterForm
+                    ref={filterFormRef}
+                    onSearch={handleSearch}
+                    onReset={handleReset}
+                    initialValues={searchParams}
+                >
+                    <Form.Item field="roleName" label="角色名称">
+                        <Input placeholder="请输入角色名称" />
+                    </Form.Item>
+                    <Form.Item field="state" label="状态">
+                        <Select placeholder="请选择状态" allowClear>
+                            {roleStateOptions.map(option => (
+                                <Option key={option.value} value={option.value}>
+                                    {option.label}
+                                </Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                </FilterForm>
+
+                {/* 操作按钮 */}
+                <div className="action-buttons">
+                    <Button
+                        type="primary"
+                        icon={<IconPlus />}
+                        onClick={handleAdd}
                     >
-                        <Form.Item field="roleName" label="角色名称">
-                            <Input placeholder="请输入角色名称" />
-                        </Form.Item>
-                        <Form.Item field="state" label="状态">
-                            <Select placeholder="请选择状态" allowClear>
-                                {roleStateOptions.map(option => (
-                                    <Option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </Option>
-                                ))}
-                            </Select>
-                        </Form.Item>
-                    </FilterForm>
+                        新增角色
+                    </Button>
+                </div>
 
-                    {/* 操作按钮 */}
-                    <div className="action-buttons">
-                        <Button
-                            type="primary"
-                            icon={<IconPlus />}
-                            onClick={handleAdd}
-                        >
-                            新增角色
-                        </Button>
-                    </div>
+                {/* 角色表格 */}
+                <Table
+                    columns={columns}
+                    data={tableData}
+                    loading={tableLoading}
+                    pagination={false}
+                    scroll={{
+                        x: 1200,
+                        y: tableScrollHeight,
+                    }}
+                    rowKey="id"
+                    size="small"
+                />
 
-                    {/* 角色表格 */}
-                    <Table
-                        columns={columns}
-                        data={tableData}
-                        loading={tableLoading}
-                        pagination={false}
-                        scroll={{
-                            x: 1200,
-                            y: tableScrollHeight,
-                        }}
-                        rowKey="id"
-                        size="small"
+                {/* 分页 */}
+                <div className="pagination-wrapper">
+                    <Pagination
+                        current={pagination.current}
+                        pageSize={pagination.pageSize}
+                        total={pagination.total}
+                        onChange={handlePageChange}
+                        showTotal={(total, range) =>
+                            `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
+                        }
+                        showSizeChanger
+                        pageSizeOptions={['10', '20', '50', '100']}
                     />
-
-                    {/* 分页 */}
-                    <div className="pagination-wrapper">
-                        <Pagination
-                            current={pagination.current}
-                            pageSize={pagination.pageSize}
-                            total={pagination.total}
-                            onChange={handlePageChange}
-                            showTotal={(total, range) =>
-                                `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
-                            }
-                            showSizeChanger
-                            pageSizeOptions={['10', '20', '50', '100']}
-                        />
-                    </div>
-                </Content>
-            </Layout>
+                </div>
+            </Content>
 
             {/* 新增角色对话框 */}
             <Modal

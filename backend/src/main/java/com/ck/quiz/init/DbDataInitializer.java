@@ -184,6 +184,7 @@ public class DbDataInitializer implements CommandLineRunner {
         adminUser.setPassword(passwordEncoder.encode("sys"));
         adminUser.setEmail("admin@asiainfo.com");
         adminUser.setPhone("12345678901");
+        adminUser.setCreateUser("admin");
         adminUser.setState(User.UserState.ENABLED); // 启用状态
         userRepository.save(adminUser);
     }

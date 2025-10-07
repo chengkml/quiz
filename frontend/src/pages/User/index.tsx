@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Button,
+    Dropdown,
     Form,
     Input,
     Layout,
+    Menu,
     Message,
     Modal,
     Pagination,
@@ -23,12 +25,12 @@ import {
     enableUser,
     disableUser,
     resetPassword,
-    checkUserId,
 } from './api';
 import {
     IconDelete,
     IconEdit,
     IconEye,
+    IconList,
     IconPlus,
     IconRefresh,
     IconSearch,
@@ -113,6 +115,7 @@ function UserManager() {
             title: '状态',
             dataIndex: 'state',
             key: 'state',
+            align: 'center',
             width: 80,
             render: (state) => (
                 <Tag color={state === 'ENABLED' ? 'green' : 'red'}>
@@ -125,7 +128,44 @@ function UserManager() {
             dataIndex: 'createDate',
             key: 'createDate',
             width: 160,
-            render: (date) => date ? new Date(date).toLocaleString() : '-',
+            render: (value) => {
+                if (!value) return '--';
+
+                const now = new Date();
+                const date = new Date(value);
+                const diffMs = now.getTime() - date.getTime();
+                const diffSeconds = Math.floor(diffMs / 1000);
+                const diffMinutes = Math.floor(diffSeconds / 60);
+                const diffHours = Math.floor(diffMinutes / 60);
+                const diffDays = Math.floor(diffHours / 24);
+
+                // 今天
+                if (diffDays === 0) {
+                    if (diffSeconds < 60) {
+                        return `${diffSeconds}秒前`;
+                    } else if (diffMinutes < 60) {
+                        return `${diffMinutes}分钟前`;
+                    } else {
+                        return `${diffHours}小时前`;
+                    }
+                }
+                // 昨天
+                else if (diffDays === 1) {
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    return `昨天 ${hours}:${minutes}`;
+                }
+                // 昨天之前
+                else {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                }
+            },
         },
         {
             title: '创建人',
@@ -136,71 +176,50 @@ function UserManager() {
         {
             title: '操作',
             key: 'action',
-            width: 200,
+            width: 100,
+            align: 'center',
             fixed: 'right',
             render: (_, record) => (
-                <Space size="small">
-                    <Tooltip content="编辑">
+                <Space size="large" className="dropdown-demo table-btn-group">
+                    <Dropdown
+                        position="bl"
+                        droplist={
+                            <Menu
+                                onClickMenuItem={(key, e) => {
+                                    handleMenuClick(key, e, record);
+                                }}
+                                className="handle-dropdown-menu"
+                            >
+                                <Menu.Item key="edit">
+                                    <IconEdit style={{marginRight: '5px'}}/>
+                                    编辑
+                                </Menu.Item>
+                                <Menu.Item key="resetPassword">
+                                    <IconRefresh style={{marginRight: '5px'}}/>
+                                    重置密码
+                                </Menu.Item>
+                                <Menu.Item key="toggleState">
+                                    <IconUser style={{marginRight: '5px'}}/>
+                                    {record.state === 'ENABLED' ? '禁用' : '启用'}
+                                </Menu.Item>
+                                <Menu.Item key="delete">
+                                    <IconDelete style={{marginRight: '5px'}}/>
+                                    删除
+                                </Menu.Item>
+                            </Menu>
+                        }
+                    >
                         <Button
                             type="text"
-                            size="small"
-                            icon={<IconEdit />}
-                            onClick={() => handleEdit(record)}
-                        />
-                    </Tooltip>
-                    <Tooltip content="重置密码">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconRefresh />}
-                            onClick={() => handleResetPassword(record)}
-                        />
-                    </Tooltip>
-                    <Tooltip content={record.state === 'ENABLED' ? '禁用' : '启用'}>
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconUser />}
-                            onClick={() => handleToggleState(record)}
-                        />
-                    </Tooltip>
-                    <Tooltip content="删除">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconDelete />}
-                            onClick={() => handleDelete(record)}
-                            status="danger"
-                        />
-                    </Tooltip>
+                            className="more-btn"
+                            onClick={e => {
+                                e.stopPropagation();
+                            }}
+                        >
+                            <IconList/>
+                        </Button>
+                    </Dropdown>
                 </Space>
-            ),
-        },
-    ];
-
-    // 搜索表单配置
-    const searchFormItems = [
-        {
-            label: '用户ID',
-            field: 'userId',
-            component: <Input placeholder="请输入用户ID" />,
-        },
-        {
-            label: '用户姓名',
-            field: 'name',
-            component: <Input placeholder="请输入用户姓名" />,
-        },
-        {
-            label: '状态',
-            field: 'state',
-            component: (
-                <Select placeholder="请选择状态" allowClear>
-                    {userStateOptions.map(option => (
-                        <Option key={option.value} value={option.value}>
-                            {option.label}
-                        </Option>
-                    ))}
-                </Select>
             ),
         },
     ];
@@ -214,7 +233,7 @@ function UserManager() {
                 ...params,
                 page: pagination.current - 1,
                 size: pagination.pageSize,
-                sortBy: 'createDate',
+                sortBy: 'create_date',
                 sortDir: 'desc',
             };
 
@@ -295,6 +314,20 @@ function UserManager() {
         } catch (error) {
             Message.error('操作失败');
             console.error('切换用户状态失败:', error);
+        }
+    };
+
+    // 处理菜单点击
+    const handleMenuClick = (key, event, record) => {
+        event.stopPropagation();
+        if (key === 'edit') {
+            handleEdit(record);
+        } else if (key === 'resetPassword') {
+            handleResetPassword(record);
+        } else if (key === 'toggleState') {
+            handleToggleState(record);
+        } else if (key === 'delete') {
+            handleDelete(record);
         }
     };
 
@@ -397,63 +430,64 @@ function UserManager() {
 
     return (
         <div className="user-manager" ref={containerRef}>
-            <Layout>
-                <Content>
-                    {/* 搜索表单 */}
-                    <FilterForm
-                        items={searchFormItems}
-                        onSearch={handleSearch}
-                        onReset={handleReset}
-                        initialValues={searchParams}
-                    />
-
-                    {/* 操作按钮 */}
-                    <div className="action-buttons">
-                        <Button
-                            type="primary"
-                            icon={<IconPlus />}
-                            onClick={handleAdd}
-                        >
-                            新增用户
-                        </Button>
-                        <Button
-                            icon={<IconRefresh />}
-                            onClick={() => fetchUsers()}
-                        >
-                            刷新
-                        </Button>
-                    </div>
-
-                    {/* 用户表格 */}
-                    <Table
-                        columns={columns}
-                        data={tableData}
-                        loading={tableLoading}
-                        pagination={false}
-                        scroll={{
-                            x: 1200,
-                            y: tableScrollHeight,
-                        }}
-                        rowKey="userId"
-                        size="small"
-                    />
-
-                    {/* 分页 */}
-                    <div className="pagination-wrapper">
-                        <Pagination
-                            current={pagination.current}
-                            pageSize={pagination.pageSize}
-                            total={pagination.total}
-                            onChange={handlePageChange}
-                            showTotal={(total, range) =>
-                                `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
-                            }
-                            showSizeChanger
-                            pageSizeOptions={['10', '20', '50', '100']}
+            <Content>
+                {/* 搜索表单 */}
+                <FilterForm
+                    onSearch={handleSearch}
+                    onReset={handleReset}
+                >
+                    <Form.Item field='userId' label='用户ID'>
+                        <Input
+                            placeholder='请输入用户ID关键词'
                         />
-                    </div>
-                </Content>
-            </Layout>
+                    </Form.Item>
+                    <Form.Item field='name' label='用户名'>
+                        <Input
+                            placeholder='请输入用户名关键词'
+                        />
+                    </Form.Item>
+                </FilterForm>
+
+                {/* 操作按钮 */}
+                <div className="action-buttons">
+                    <Button
+                        type="primary"
+                        icon={<IconPlus />}
+                        onClick={handleAdd}
+                    >
+                        新增用户
+                    </Button>
+                </div>
+
+                {/* 用户表格 */}
+                <Table
+                    columns={columns}
+                    data={tableData}
+                    loading={tableLoading}
+                    pagination={false}
+                    scroll={{
+                        x: 1200,
+                        y: tableScrollHeight,
+                    }}
+                    rowKey="userId"
+                    size="small"
+                />
+
+                {/* 分页 */}
+                <div className="pagination-wrapper">
+                    <Pagination
+                        current={pagination.current}
+                        pageSize={pagination.pageSize}
+                        total={pagination.total}
+                        onChange={handlePageChange}
+                        showTotal={(total, range) =>
+                            `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
+                        }
+                        showSizeChanger
+                        pageSizeOptions={['10', '20', '50', '100']}
+                    />
+                </div>
+            </Content>
 
             {/* 新增用户对话框 */}
             <Modal
