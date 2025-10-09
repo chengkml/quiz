@@ -1,5 +1,7 @@
 package com.ck.quiz.question.service.impl;
 
+import com.ck.quiz.knowledge.dto.KnowledgeCreateDto;
+import com.ck.quiz.knowledge.dto.KnowledgeDto;
 import com.ck.quiz.knowledge.entity.Knowledge;
 import com.ck.quiz.knowledge.repository.KnowledgeRepository;
 import com.ck.quiz.knowledge.service.KnowledgeService;
@@ -62,6 +64,47 @@ public class QuestionServiceImpl implements QuestionService {
         question.setAnswer(questionCreateDto.getAnswer());
         question.setExplanation(questionCreateDto.getExplanation());
         question.setDifficultyLevel(questionCreateDto.getDifficultyLevel());
+        String subjectId = questionCreateDto.getSubjectId();
+        String categoryId = questionCreateDto.getCategoryId();
+
+        // 将题目内容作为知识点存储
+        if (StringUtils.hasText(subjectId) && StringUtils.hasText(categoryId)) {
+            // 基于题目内容生成知识点名称（取前30个字符作为知识点名称）
+            String knowledgeName = questionCreateDto.getContent().length() > 30
+                    ? questionCreateDto.getContent().substring(0, 30) + "..."
+                    : questionCreateDto.getContent();
+
+            // 检查是否已存在相同名称的知识点
+            Optional<Knowledge> existingKnowledge = knowledgeRepository.findByName(knowledgeName);
+
+            Knowledge knowledge;
+            if (!existingKnowledge.isPresent()) {
+                // 创建新的知识点
+                KnowledgeCreateDto knowledgeCreateDto =
+                        new com.ck.quiz.knowledge.dto.KnowledgeCreateDto();
+                knowledgeCreateDto.setName(knowledgeName);
+                knowledgeCreateDto.setDescription(questionCreateDto.getContent());
+                knowledgeCreateDto.setSubjectId(subjectId);
+                knowledgeCreateDto.setCategoryId(categoryId);
+                knowledgeCreateDto.setDifficultyLevel(questionCreateDto.getDifficultyLevel());
+
+                KnowledgeDto createdKnowledge = knowledgeService.createKnowledge(knowledgeCreateDto);
+                knowledge = knowledgeRepository.findById(createdKnowledge.getId()).orElse(null);
+            } else {
+                knowledge = existingKnowledge.get();
+            }
+
+            // 保存题目
+            Question savedQuestion = questionRepository.save(question);
+
+            // 建立题目与知识点的关联关系
+            if (knowledge != null) {
+                savedQuestion.getKnowledgePoints().add(knowledge);
+                questionRepository.save(savedQuestion);
+            }
+
+            return convertToDto(savedQuestion);
+        }
 
         Question savedQuestion = questionRepository.save(question);
         return convertToDto(savedQuestion);

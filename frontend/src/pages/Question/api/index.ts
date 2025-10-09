@@ -32,6 +32,12 @@ const disassociateKnowledge = params => axios.post(`${base}/api/question/disasso
 // 获取问题关联的知识点列表
 const getQuestionKnowledge = questionId => axios.get(`${base}/api/question/${questionId}/knowledge`);
 
+// 获取所有学科列表
+const getAllSubjects = () => axios.get(`${base}/api/subject/list/all`);
+
+// 根据学科ID获取分类列表
+const getCategoriesBySubjectId = (subjectId) => axios.get(`${base}/api/categories/subject/${subjectId}`);
+
 export {
   getQuestionList,
   getQuestionById,
@@ -42,5 +48,7 @@ export {
   generateQuestions,
   associateKnowledge,
   disassociateKnowledge,
-  getQuestionKnowledge
+  getQuestionKnowledge,
+  getAllSubjects,
+  getCategoriesBySubjectId
 };

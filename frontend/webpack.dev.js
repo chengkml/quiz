@@ -9,7 +9,7 @@ module.exports = merge(common, {
     publicPath: '/',
   },
   devServer: {
-    port: process.env.PORT || 3000,
+    port: process.env.PORT || 3001,
     historyApiFallback: true,
     hot: true,
     open: true,

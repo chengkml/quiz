@@ -29,6 +29,8 @@ import {
     getQuestionKnowledge,
     getQuestionList,
     updateQuestion,
+    getAllSubjects,
+    getCategoriesBySubjectId,
 } from './api';
 import {getKnowledgeList} from '../Knowledge/api';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot,} from '@arco-design/web-react/icon';
@@ -69,6 +71,16 @@ function QuestionManager() {
     const [selectedKnowledge, setSelectedKnowledge] = useState([]);
     const [currentQuestionKnowledge, setCurrentQuestionKnowledge] = useState([]);
     const [knowledgeLoading, setKnowledgeLoading] = useState(false);
+
+    // 学科和分类相关状态
+    const [subjects, setSubjects] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [subjectsLoading, setSubjectsLoading] = useState(false);
+    const [categoriesLoading, setCategoriesLoading] = useState(false);
+
+    // AI生成时选择的学科和分类信息
+    const [selectedSubjectForGenerate, setSelectedSubjectForGenerate] = useState(null);
+    const [selectedCategoryForGenerate, setSelectedCategoryForGenerate] = useState(null);
 
     // 表单引用
     const filterFormRef = useRef();
@@ -375,7 +387,51 @@ function QuestionManager() {
     // 初始化数据
     useEffect(() => {
         fetchTableData();
+        fetchSubjects();
     }, []);
+
+    // 获取学科列表
+    const fetchSubjects = async () => {
+        try {
+            setSubjectsLoading(true);
+            const response = await getAllSubjects();
+            if (response.data) {
+                setSubjects(response.data.map(item => ({
+                    label: item.name,
+                    value: item.id
+                })));
+            }
+        } catch (error) {
+            console.error('获取学科列表失败:', error);
+            Message.error('获取学科列表失败');
+        } finally {
+            setSubjectsLoading(false);
+        }
+    };
+
+    // 根据学科ID获取分类列表
+    const fetchCategoriesBySubject = async (subjectId) => {
+        if (!subjectId) {
+            setCategories([]);
+            return;
+        }
+        try {
+            setCategoriesLoading(true);
+            const response = await getCategoriesBySubjectId(subjectId);
+            if (response.data) {
+                setCategories(response.data.map(item => ({
+                    label: item.name,
+                    value: item.id
+                })));
+            }
+        } catch (error) {
+            console.error('获取分类列表失败:', error);
+            Message.error('获取分类列表失败');
+            setCategories([]);
+        } finally {
+            setCategoriesLoading(false);
+        }
+    };
 
     // 监听窗口大小变化，动态调整表格高度
     useEffect(() => {
@@ -476,6 +532,10 @@ function QuestionManager() {
     const handleGenerateSubmit = async (values) => {
         setGenerateLoading(true);
         try {
+            // 保存生成时选择的学科和分类信息
+            setSelectedSubjectForGenerate(values.subjectId);
+            setSelectedCategoryForGenerate(values.categoryId);
+            
             const response = await generateQuestions(values);
             if (response.data && response.data.length > 0) {
                 setGeneratedQuestions(response.data);
@@ -518,6 +578,8 @@ function QuestionManager() {
 
             editFormRef.current.setFieldsValue({
                 type: currentRecord.type,
+                subjectId: currentRecord.subjectId,
+                categoryId: currentRecord.categoryId,
                 content: currentRecord.content,
                 explanation: currentRecord.explanation,
                 difficultyLevel: currentRecord.difficultyLevel,
@@ -528,6 +590,11 @@ function QuestionManager() {
                 options: parsedOptions,
                 answer: parsedAnswer
             });
+
+            // 如果有学科ID，获取对应的分类列表
+            if (currentRecord.subjectId) {
+                fetchCategoriesBySubject(currentRecord.subjectId);
+            }
         }
     }, [editModalVisible, currentRecord]);
 
@@ -583,10 +650,17 @@ function QuestionManager() {
 
         setSaveLoading(true);
         try {
+            // 使用状态中保存的学科和分类信息
+            const subjectId = selectedSubjectForGenerate;
+            const categoryId = selectedCategoryForGenerate;
+
             const questionsToSave = selectedQuestions.map(index => {
                 const question = generatedQuestions[index];
                 return {
                     ...question,
+                    // 添加学科和分类信息
+                    subjectId: subjectId,
+                    categoryId: categoryId,
                     // 对于AI生成的题目，options和answer已经是正确格式，不需要再次JSON.stringify
                     options: question.options || null,
                     answer: question.answer || null
@@ -601,6 +675,8 @@ function QuestionManager() {
             setGeneratedQuestions([]);
             setSelectedQuestions([]);
             setShowGeneratedQuestions(false);
+            setSelectedSubjectForGenerate(null);
+            setSelectedCategoryForGenerate(null);
 
             // 刷新表格数据
             fetchTableData();
@@ -616,6 +692,8 @@ function QuestionManager() {
         setGeneratedQuestions([]);
         setSelectedQuestions([]);
         setShowGeneratedQuestions(false);
+        setSelectedSubjectForGenerate(null);
+        setSelectedCategoryForGenerate(null);
     };
 
     // 渲染题目选项
@@ -798,6 +876,36 @@ function QuestionManager() {
                             />
                         </Form.Item>
                         <Form.Item
+                            label="学科"
+                            field="subjectId"
+                            rules={[{required: true, message: '请选择学科'}]}
+                        >
+                            <Select
+                                options={subjects}
+                                placeholder="请选择学科"
+                                loading={subjectsLoading}
+                                onChange={(value) => {
+                                    // 清空分类选择
+                                    addFormRef.current?.setFieldValue('categoryId', undefined);
+                                    setCategories([]);
+                                    // 获取该学科下的分类
+                                    fetchCategoriesBySubject(value);
+                                }}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="分类"
+                            field="categoryId"
+                            rules={[{required: true, message: '请选择分类'}]}
+                        >
+                            <Select
+                                options={categories}
+                                placeholder="请先选择学科"
+                                loading={categoriesLoading}
+                                disabled={categories.length === 0}
+                            />
+                        </Form.Item>
+                        <Form.Item
                             label="题干内容"
                             field="content"
                             rules={[{required: true, message: '请输入题干内容'}]}
@@ -861,6 +969,36 @@ function QuestionManager() {
                                 options={questionTypeOptions}
                                 placeholder="请选择题目类型"
                                 onChange={handleEditTypeChange}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="学科"
+                            field="subjectId"
+                            rules={[{required: true, message: '请选择学科'}]}
+                        >
+                            <Select
+                                options={subjects}
+                                placeholder="请选择学科"
+                                loading={subjectsLoading}
+                                onChange={(value) => {
+                                    // 清空分类选择
+                                    editFormRef.current?.setFieldValue('categoryId', undefined);
+                                    setCategories([]);
+                                    // 获取该学科下的分类
+                                    fetchCategoriesBySubject(value);
+                                }}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="分类"
+                            field="categoryId"
+                            rules={[{required: true, message: '请选择分类'}]}
+                        >
+                            <Select
+                                options={categories}
+                                placeholder="请先选择学科"
+                                loading={categoriesLoading}
+                                disabled={categories.length === 0}
                             />
                         </Form.Item>
                         <Form.Item
@@ -942,6 +1080,36 @@ function QuestionManager() {
                             className="modal-form"
                         >
                             <Form.Item
+                                label="学科"
+                                field="subjectId"
+                                rules={[{required: true, message: '请选择学科'}]}
+                            >
+                                <Select
+                                    options={subjects}
+                                    placeholder="请选择学科"
+                                    loading={subjectsLoading}
+                                    onChange={(value) => {
+                                        // 清空分类选择
+                                        generateFormRef.current?.setFieldValue('categoryId', undefined);
+                                        setCategories([]);
+                                        // 获取该学科下的分类
+                                        fetchCategoriesBySubject(value);
+                                    }}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="分类"
+                                field="categoryId"
+                                rules={[{required: true, message: '请选择分类'}]}
+                            >
+                                <Select
+                                    options={categories}
+                                    placeholder="请先选择学科"
+                                    loading={categoriesLoading}
+                                    disabled={categories.length === 0}
+                                />
+                            </Form.Item>
+                            <Form.Item
                                 label="知识点描述"
                                 field="knowledgeDescr"
                                 rules={[{required: true, message: '请输入知识点描述'}]}
@@ -990,6 +1158,33 @@ function QuestionManager() {
                             </div>
                         }
                     >
+                        {/* 显示选择的学科和分类信息 */}
+                        {(selectedSubjectForGenerate || selectedCategoryForGenerate) && (
+                            <div style={{
+                                marginBottom: 16, 
+                                padding: 12, 
+                                backgroundColor: '#f7f8fa', 
+                                borderRadius: 6,
+                                border: '1px solid #e5e6eb'
+                            }}>
+                                <div style={{fontWeight: 'bold', marginBottom: 8, color: '#1d2129'}}>
+                                    生成信息:
+                                </div>
+                                <div style={{display: 'flex', gap: 12}}>
+                                    {selectedSubjectForGenerate && (
+                                        <Tag color="blue">
+                                            学科: {subjects.find(s => s.id === selectedSubjectForGenerate)?.name || selectedSubjectForGenerate}
+                                        </Tag>
+                                    )}
+                                    {selectedCategoryForGenerate && (
+                                        <Tag color="green">
+                                            分类: {categories.find(c => c.id === selectedCategoryForGenerate)?.name || selectedCategoryForGenerate}
+                                        </Tag>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        
                         <div style={{marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #f0f0f0'}}>
                             <Checkbox
                                 checked={selectedQuestions.length === generatedQuestions.length}
