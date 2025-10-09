@@ -39,7 +39,7 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/role',
+        path: '/quiz/role',
         element: (
             <ProtectedRoute>
                 <RoleManagement/>
@@ -47,7 +47,7 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/menu',
+        path: '/quiz/menu',
         element: (
             <ProtectedRoute>
                 <MenuManagement/>
@@ -63,7 +63,7 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/exam',
+        path: '/quiz/exam',
         element: (
             <ProtectedRoute>
                 <ExamManagement/>
@@ -71,7 +71,7 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/subject',
+        path: '/quiz/subject',
         element: (
             <ProtectedRoute>
                 <SubjectManagement/>
@@ -79,7 +79,7 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/category',
+        path: '/quiz/category',
         element: (
             <ProtectedRoute>
                 <CategoryManagement/>
@@ -87,7 +87,7 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/knowledge',
+        path: '/quiz/knowledge',
         element: (
             <ProtectedRoute>
                 <KnowledgeManagement/>
@@ -95,7 +95,7 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/user',
+        path: '/quiz/user',
         element: (
             <ProtectedRoute>
                 <UserManagement/>
