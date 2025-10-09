@@ -53,4 +53,8 @@ public class QuestionQueryDto {
      * 排序方式，asc 或 desc
      */
     private String sortType = "desc";
+
+    private String subjectId;
+
+    private String categoryId;
 }

@@ -140,7 +140,7 @@ public class Question {
     @JoinTable(
             name = "question_knowledge_rela",
             joinColumns = @JoinColumn(name = "question_id"),
-            inverseJoinColumns = @JoinColumn(name = "kp_id")
+            inverseJoinColumns = @JoinColumn(name = "knowledge_id")
     )
     private List<Knowledge> knowledgePoints = new ArrayList<>();
 

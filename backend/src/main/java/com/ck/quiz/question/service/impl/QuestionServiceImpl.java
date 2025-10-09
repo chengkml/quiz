@@ -1,16 +1,16 @@
 package com.ck.quiz.question.service.impl;
 
+import com.ck.quiz.knowledge.entity.Knowledge;
+import com.ck.quiz.knowledge.repository.KnowledgeRepository;
+import com.ck.quiz.knowledge.service.KnowledgeService;
 import com.ck.quiz.question.dto.QuestionCreateDto;
 import com.ck.quiz.question.dto.QuestionDto;
 import com.ck.quiz.question.dto.QuestionQueryDto;
 import com.ck.quiz.question.dto.QuestionUpdateDto;
 import com.ck.quiz.question.entity.Question;
-import com.ck.quiz.question.repository.QuestionRepository;
 import com.ck.quiz.question.repository.QuestionKnowledgeRepository;
+import com.ck.quiz.question.repository.QuestionRepository;
 import com.ck.quiz.question.service.QuestionService;
-import com.ck.quiz.knowledge.entity.Knowledge;
-import com.ck.quiz.knowledge.repository.KnowledgeRepository;
-import com.ck.quiz.knowledge.service.KnowledgeService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -130,12 +130,20 @@ public class QuestionServiceImpl implements QuestionService {
         StringBuilder sql = new StringBuilder(
                 "SELECT q.question_id AS id, q.type, q.content, q.options, q.answer, q.explanation, " +
                         "q.difficulty_level, q.create_date, q.create_user, q.update_date, q.update_user, u.user_name create_user_name " +
-                        "FROM question q left join user u on u.user_id = q.create_user WHERE 1=1 "
+                        "FROM question q left join user u on u.user_id = q.create_user "
         );
 
         StringBuilder countSql = new StringBuilder(
-                "SELECT COUNT(1) FROM question q WHERE 1=1 "
+                "SELECT COUNT(1) FROM question q "
         );
+
+        if (queryDto.getCategoryId() != null || queryDto.getSubjectId() != null) {
+            sql.append(" LEFT JOIN question_knowledge_rela r on q.question_id = r.question_id LEFT JOIN knowledge k on k.knowledge_id = r.knowledge_id ");
+            countSql.append(" LEFT JOIN question_knowledge_rela r on q.question_id = r.question_id LEFT JOIN knowledge k on k.knowledge_id = r.knowledge_id ");
+        }
+
+        sql.append(" WHERE 1=1 ");
+        countSql.append(" WHERE 1=1 ");
 
         Map<String, Object> params = new HashMap<>();
 
@@ -144,17 +152,17 @@ public class QuestionServiceImpl implements QuestionService {
             JdbcQueryHelper.equals("type", queryDto.getType().name(), " AND q.type = :type ", params, sql, countSql);
         }
 
-        if (StringUtils.hasText(queryDto.getContent())) {
-            JdbcQueryHelper.lowerLike("keyWord", queryDto.getContent(), " AND LOWER(q.content) LIKE :keyWord ", params, jdbcTemplate, sql, countSql);
-        }
+        JdbcQueryHelper.equals("categoryId", queryDto.getCategoryId(), " AND k.category_id = :categoryId ", params, sql, countSql);
+
+        JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(), " AND k.subject_id = :subjectId ", params, sql, countSql);
+
+        JdbcQueryHelper.lowerLike("keyWord", queryDto.getContent(), " AND LOWER(q.content) LIKE :keyWord ", params, jdbcTemplate, sql, countSql);
 
         if (queryDto.getDifficultyLevel() != null) {
             JdbcQueryHelper.equals("difficultyLevel", String.valueOf(queryDto.getDifficultyLevel()), " AND q.difficulty_level = :difficultyLevel ", params, sql, countSql);
         }
 
-        if (StringUtils.hasText(queryDto.getCreateUser())) {
-            JdbcQueryHelper.equals("createUser", queryDto.getCreateUser(), " AND q.create_user = :createUser ", params, sql, countSql);
-        }
+        JdbcQueryHelper.equals("createUser", queryDto.getCreateUser(), " AND q.create_user = :createUser ", params, sql, countSql);
 
         // 添加排序
         JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);

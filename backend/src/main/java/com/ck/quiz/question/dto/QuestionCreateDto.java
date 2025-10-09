@@ -24,6 +24,12 @@ public class QuestionCreateDto {
     @NotNull(message = "题目类型不能为空")
     private Question.QuestionType type;
 
+    @NotBlank(message = "学科不能为空")
+    private String subjectId;
+
+    @NotBlank(message = "分类不能为空")
+    private String categoryId;
+
     /**
      * 题干内容
      */
