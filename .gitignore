@@ -12,3 +12,5 @@
 /gradlew
 /gradlew.bat
 /logs/
+/backend/src/main/resources/static/
+/frontend/dist/
