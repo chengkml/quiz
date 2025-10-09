@@ -1,6 +1,6 @@
 import axios from '@/core/src/http';
 
-const base = 'quiz';
+const base = '/quiz';
 
 // 获取分类列表（分页查询）
 const getCategoryList = params => axios.post(`${base}/api/categories/search`, params);

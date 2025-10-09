@@ -1,6 +1,6 @@
 import axios from '@/core/src/http';
 import http from '@/core/src/http';
-const base = 'quiz';
+const base = '/quiz';
 
 //登录
 const LoginSubmitPost = Params => axios.post(`/${base}/api/user/login`, Params);

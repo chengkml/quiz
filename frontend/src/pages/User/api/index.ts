@@ -1,6 +1,6 @@
 import axios from '@/core/src/http';
 
-const base = 'quiz';
+const base = '/quiz';
 
 // 用户注册
 const registerUser = params => axios.post(`${base}/api/user/register`, params);

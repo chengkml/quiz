@@ -1,6 +1,6 @@
 import axios from '@/core/src/http';
 
-const base = 'quiz';
+const base = '/quiz';
 
 // 获取知识点列表（分页查询）
 const getKnowledgeList = params => axios.post(`${base}/api/knowledge/search`, params);

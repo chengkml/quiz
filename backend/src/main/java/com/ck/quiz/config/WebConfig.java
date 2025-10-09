@@ -11,16 +11,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-
-    /**
-     * 配置视图控制器
-     * 将特定路径映射到静态页面
-     */
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        // 将 /login 路径映射到 index.html
-        registry.addViewController("/login").setViewName("forward:/index.html");
-        // 将根路径也映射到 index.html
+        // 根路径和登录页
         registry.addViewController("/").setViewName("forward:/index.html");
+        registry.addViewController("/login").setViewName("forward:/index.html");
+
+        // 让 React Router 的前端路由都交给 index.html 渲染
+        registry.addViewController("/{spring:[a-zA-Z0-9-_]+}")
+                .setViewName("forward:/index.html");
+        registry.addViewController("/{spring:[a-zA-Z0-9-_]+}/{spring2:[a-zA-Z0-9-_]+}")
+                .setViewName("forward:/index.html");
     }
 }

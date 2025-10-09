@@ -1,6 +1,6 @@
 import axios from '@/core/src/http';
 
-const base = 'quiz';
+const base = '/quiz';
 
 // 创建角色
 const createRole = params => axios.post(`${base}/api/role/create`, params);

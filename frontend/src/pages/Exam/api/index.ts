@@ -1,6 +1,6 @@
 import axios from '@/core/src/http';
 
-const base = 'quiz';
+const base = '/quiz';
 
 // 获取试卷列表（分页查询）
 const getExamList = params => axios.get(`${base}/api/exam`, {params});

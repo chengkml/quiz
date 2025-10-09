@@ -55,7 +55,7 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/question',
+        path: '/quiz/question',
         element: (
             <ProtectedRoute>
                 <QuestionManagement/>
