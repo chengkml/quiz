@@ -59,4 +59,6 @@ public class QuestionCreateDto {
     @Min(value = 1, message = "难度等级最小为1")
     @Max(value = 5, message = "难度等级最大为5")
     private Integer difficultyLevel = 1;
+
+    private String knowledge;
 }

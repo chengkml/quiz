@@ -68,11 +68,8 @@ public class QuestionServiceImpl implements QuestionService {
         String categoryId = questionCreateDto.getCategoryId();
 
         // 将题目内容作为知识点存储
-        if (StringUtils.hasText(subjectId) && StringUtils.hasText(categoryId)) {
-            // 基于题目内容生成知识点名称（取前30个字符作为知识点名称）
-            String knowledgeName = questionCreateDto.getContent().length() > 30
-                    ? questionCreateDto.getContent().substring(0, 30) + "..."
-                    : questionCreateDto.getContent();
+        if (StringUtils.hasText(subjectId) && StringUtils.hasText(categoryId) && StringUtils.hasText(questionCreateDto.getKnowledge())) {
+            String knowledgeName = questionCreateDto.getKnowledge();
 
             // 检查是否已存在相同名称的知识点
             Optional<Knowledge> existingKnowledge = knowledgeRepository.findByName(knowledgeName);
@@ -81,9 +78,9 @@ public class QuestionServiceImpl implements QuestionService {
             if (!existingKnowledge.isPresent()) {
                 // 创建新的知识点
                 KnowledgeCreateDto knowledgeCreateDto =
-                        new com.ck.quiz.knowledge.dto.KnowledgeCreateDto();
+                        new KnowledgeCreateDto();
                 knowledgeCreateDto.setName(knowledgeName);
-                knowledgeCreateDto.setDescription(questionCreateDto.getContent());
+                knowledgeCreateDto.setDescription(knowledgeName);
                 knowledgeCreateDto.setSubjectId(subjectId);
                 knowledgeCreateDto.setCategoryId(categoryId);
                 knowledgeCreateDto.setDifficultyLevel(questionCreateDto.getDifficultyLevel());

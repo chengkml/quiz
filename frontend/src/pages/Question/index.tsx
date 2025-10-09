@@ -58,6 +58,7 @@ function QuestionManager() {
     const [showGeneratedQuestions, setShowGeneratedQuestions] = useState(false);
     const [generateLoading, setGenerateLoading] = useState(false);
     const [saveLoading, setSaveLoading] = useState(false);
+    const [knowledge, setKnowledge] = useState('');
 
     // 查看详情相关状态
     const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -702,7 +703,8 @@ function QuestionManager() {
                     categoryId: categoryId,
                     // 对于AI生成的题目，options和answer已经是正确格式，不需要再次JSON.stringify
                     options: question.options || null,
-                    answer: question.answer || null
+                    answer: question.answer || null,
+                    knowledge: knowledge
                 };
             });
 
@@ -1210,7 +1212,7 @@ function QuestionManager() {
                             </Button>
                             <Button
                                 type="primary"
-                                onClick={() => generateFormRef.current?.submit()}
+                                onClick={() => {setKnowledge(generateFormRef.current.getFieldValue('knowledgeDescr'));generateFormRef.current?.submit()}}
                                 loading={generateLoading}
                             >
                                 确定
