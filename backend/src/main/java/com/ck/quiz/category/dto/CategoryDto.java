@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 分类信息 DTO（Data Transfer Object）
@@ -84,4 +85,6 @@ public class CategoryDto {
      * 最后更新该分类的用户名
      */
     private String updateUserName;
+
+    private List<CategoryDto> children;
 }

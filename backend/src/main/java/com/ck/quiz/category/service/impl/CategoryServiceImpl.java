@@ -8,6 +8,8 @@ import com.ck.quiz.category.entity.Category;
 import com.ck.quiz.category.exception.CategoryException;
 import com.ck.quiz.category.repository.CategoryRepository;
 import com.ck.quiz.category.service.CategoryService;
+import com.ck.quiz.subject.dto.SubjectDto;
+import com.ck.quiz.subject.service.SubjectService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +40,9 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Autowired
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+    @Autowired
+    private SubjectService subjectService;
 
     @Override
     @Transactional
@@ -272,6 +278,64 @@ public class CategoryServiceImpl implements CategoryService {
         dto.setUpdateUserName(null);
 
         return dto;
+    }
+
+    @Override
+    public List<SubjectDto> getSubjectCategoryTree() {
+        log.info("获取学科分类树");
+        
+        // 1. 获取所有学科
+        List<SubjectDto> subjects = subjectService.getAllSubjects();
+        
+        // 2. 为每个学科构建分类树
+        for (SubjectDto subject : subjects) {
+            // 获取该学科下的所有分类
+            List<CategoryDto> categories = getCategoriesBySubjectId(subject.getId());
+            
+            // 构建树形结构
+            List<CategoryDto> categoryTree = buildCategoryTree(categories);
+            
+            // 设置到学科对象中
+            subject.setCategories(categoryTree);
+        }
+        
+        return subjects;
+    }
+    
+    /**
+     * 构建分类树形结构
+     * 
+     * @param categories 分类列表
+     * @return 树形结构的分类列表
+     */
+    private List<CategoryDto> buildCategoryTree(List<CategoryDto> categories) {
+        if (categories == null || categories.isEmpty()) {
+            return List.of();
+        }
+        
+        // 创建ID到分类的映射
+        Map<String, CategoryDto> categoryMap = new HashMap<>();
+        for (CategoryDto category : categories) {
+            categoryMap.put(category.getId(), category);
+            category.setChildren(new ArrayList<>());
+        }
+        
+        // 构建树形结构
+        List<CategoryDto> rootCategories = new ArrayList<>();
+        for (CategoryDto category : categories) {
+            if (category.getParentId() == null || category.getParentId().isEmpty()) {
+                // 根节点
+                rootCategories.add(category);
+            } else {
+                // 子节点，添加到父节点的children中
+                CategoryDto parent = categoryMap.get(category.getParentId());
+                if (parent != null) {
+                    parent.getChildren().add(category);
+                }
+            }
+        }
+        
+        return rootCategories;
     }
 
 }

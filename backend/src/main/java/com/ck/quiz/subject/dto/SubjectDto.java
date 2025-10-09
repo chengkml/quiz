@@ -1,10 +1,12 @@
 package com.ck.quiz.subject.dto;
 
+import com.ck.quiz.category.dto.CategoryDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 学科信息 DTO（Data Transfer Object）
@@ -59,4 +61,6 @@ public class SubjectDto {
      * 最后更新该学科的用户名
      */
     private String updateUserName;
+
+    private List<CategoryDto> categories;
 }

@@ -5,6 +5,7 @@ import com.ck.quiz.category.dto.CategoryDto;
 import com.ck.quiz.category.dto.CategoryQueryDto;
 import com.ck.quiz.category.dto.CategoryUpdateDto;
 import com.ck.quiz.category.service.CategoryService;
+import com.ck.quiz.subject.dto.SubjectDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -182,6 +183,11 @@ public class CategoryController {
         return ResponseEntity.ok(exists);
     }
 
-    
+    @GetMapping("/subject/category/tree")
+    @Operation(summary = "获取学科分类树", description = "获取学科分类树")
+    public ResponseEntity<List<SubjectDto>> getSubjectCategoryTree() {
+        List<SubjectDto> subjectDtos = categoryService.getSubjectCategoryTree();
+        return ResponseEntity.ok(subjectDtos);
+    }
 
 }

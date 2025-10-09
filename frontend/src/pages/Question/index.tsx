@@ -1,7 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
     Button,
-    Checkbox,
     Collapse,
     Dropdown,
     Form,
@@ -18,21 +17,20 @@ import {
     Table,
     Tag,
     Tooltip,
+    Tree,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
-    associateKnowledge,
     batchCreateQuestion,
     createQuestion,
     deleteQuestion,
     generateQuestions,
-    getQuestionKnowledge,
     getQuestionList,
     updateQuestion,
     getAllSubjects,
     getCategoriesBySubjectId,
+    getSubjectCategoryTree,
 } from './api';
-import {getKnowledgeList} from '../Knowledge/api';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot,} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import DynamicQuestionForm from '@/components/DynamicQuestionForm';
@@ -65,18 +63,23 @@ function QuestionManager() {
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [detailRecord, setDetailRecord] = useState(null);
 
-    // 知识点关联相关状态
-    const [knowledgeModalVisible, setKnowledgeModalVisible] = useState(false);
-    const [knowledgeList, setKnowledgeList] = useState([]);
-    const [selectedKnowledge, setSelectedKnowledge] = useState([]);
-    const [currentQuestionKnowledge, setCurrentQuestionKnowledge] = useState([]);
-    const [knowledgeLoading, setKnowledgeLoading] = useState(false);
-
     // 学科和分类相关状态
     const [subjects, setSubjects] = useState([]);
     const [categories, setCategories] = useState([]);
     const [subjectsLoading, setSubjectsLoading] = useState(false);
     const [categoriesLoading, setCategoriesLoading] = useState(false);
+
+    // 左侧树相关状态
+    const [treeData, setTreeData] = useState([]);
+    const [filteredTreeData, setFilteredTreeData] = useState([]);
+    const [treeLoading, setTreeLoading] = useState(false);
+    const [selectedTreeNode, setSelectedTreeNode] = useState(null);
+    const [expandedKeys, setExpandedKeys] = useState([]);
+    const [searchKeyword, setSearchKeyword] = useState('');
+    
+    // 当前选中的过滤条件
+    const [currentSubjectId, setCurrentSubjectId] = useState(null);
+    const [currentCategoryId, setCurrentCategoryId] = useState(null);
 
     // AI生成时选择的学科和分类信息
     const [selectedSubjectForGenerate, setSelectedSubjectForGenerate] = useState(null);
@@ -138,29 +141,6 @@ function QuestionManager() {
             },
         },
         {
-            title: '关联知识点',
-            dataIndex: 'knowledgePoints',
-            width: 200,
-            ellipsis: true,
-            render: (value, record) => {
-                if (!value || value.length === 0) {
-                    return <span style={{color: '#999'}}>未关联</span>;
-                }
-                return (
-                    <div>
-                        {value.slice(0, 2).map((knowledge, index) => (
-                            <Tag key={index} color="cyan" style={{marginBottom: 2}}>
-                                {knowledge.name}
-                            </Tag>
-                        ))}
-                        {value.length > 2 && (
-                            <Tag color="gray">+{value.length - 2}</Tag>
-                        )}
-                    </div>
-                );
-            },
-        },
-        {
             title: '题干内容',
             dataIndex: 'content',
             minWidth: 300,
@@ -171,6 +151,7 @@ function QuestionManager() {
                 </div>
             ),
         },
+
         {
             title: '难度等级',
             dataIndex: 'difficultyLevel',
@@ -255,10 +236,6 @@ function QuestionManager() {
                                     <IconEdit style={{marginRight: '5px'}}/>
                                     编辑
                                 </Menu.Item>
-                                <Menu.Item key="knowledge">
-                                    <IconList style={{marginRight: '5px'}}/>
-                                    关联知识点
-                                </Menu.Item>
                                 <Menu.Item key="delete">
                                     <IconDelete style={{marginRight: '5px'}}/>
                                     删除
@@ -282,7 +259,7 @@ function QuestionManager() {
     ];
 
     // 获取表格数据
-    const fetchTableData = async (params = {}, pageSize = pagination.pageSize, current = pagination.current) => {
+    const fetchTableData = async (params = {}, pageSize = pagination.pageSize, current = pagination.current, subjectId, categoryId) => {
         setTableLoading(true);
         try {
             const targetParams = {
@@ -290,6 +267,15 @@ function QuestionManager() {
                 pageNum: current - 1,
                 pageSize: pageSize,
             };
+            
+            // 如果有选中的学科或分类，添加到查询参数中
+            if (subjectId) {
+                targetParams.subjectId = subjectId;
+            }
+            if (categoryId) {
+                targetParams.categoryId = categoryId;
+            }
+            
             const response = await getQuestionList(targetParams);
             if (response.data) {
                 setTableData(response.data.content || []);
@@ -309,6 +295,7 @@ function QuestionManager() {
 
     // 搜索表格数据
     const searchTableData = (params) => {
+        // 重置分页到第一页，但保持当前的学科和分类过滤条件
         fetchTableData(params, pagination.pageSize, 1);
     };
 
@@ -341,35 +328,6 @@ function QuestionManager() {
         setDetailModalVisible(true);
     };
 
-    // 处理知识点关联
-    const handleKnowledgeAssociation = async (record) => {
-        setCurrentRecord(record);
-        setKnowledgeLoading(true);
-        try {
-            // 获取所有知识点列表
-            const knowledgeResponse = await getKnowledgeList({
-                pageNum: 0,
-                pageSize: 1000
-            });
-            if (knowledgeResponse.data) {
-                setKnowledgeList(knowledgeResponse.data.content || []);
-            }
-
-            // 获取当前问题已关联的知识点
-            const currentKnowledgeResponse = await getQuestionKnowledge(record.id);
-            if (currentKnowledgeResponse.data) {
-                const currentKnowledgeIds = currentKnowledgeResponse.data.map(k => k.id);
-                setCurrentQuestionKnowledge(currentKnowledgeResponse.data);
-                setSelectedKnowledge(currentKnowledgeIds);
-            }
-        } catch (error) {
-            Message.error('获取知识点数据失败');
-        } finally {
-            setKnowledgeLoading(false);
-            setKnowledgeModalVisible(true);
-        }
-    };
-
     // 处理菜单点击
     const handleMenuClick = (key, event, record) => {
         event.stopPropagation();
@@ -379,8 +337,6 @@ function QuestionManager() {
             handleDelete(record);
         } else if (key === 'detail') {
             handleDetail(record);
-        } else if (key === 'knowledge') {
-            handleKnowledgeAssociation(record);
         }
     };
 
@@ -388,7 +344,90 @@ function QuestionManager() {
     useEffect(() => {
         fetchTableData();
         fetchSubjects();
+        fetchSubjectCategoryTree();
     }, []);
+
+    // 获取学科分类树数据
+    const fetchSubjectCategoryTree = async () => {
+        try {
+            setTreeLoading(true);
+            const response = await getSubjectCategoryTree();
+            if (response.data) {
+                // 递归转换分类数据为Tree组件需要的格式
+                const convertCategoriesToTreeNodes = (categories) => {
+                    if (!categories || !Array.isArray(categories)) return [];
+                    
+                    return categories.map(category => ({
+                        key: `${category.id}`,
+                        title: category.name,
+                        children: convertCategoriesToTreeNodes(category.children)
+                    }));
+                };
+
+                // 转换数据格式为Tree组件需要的格式
+                const treeData = response.data.map(subject => ({
+                    key: `${subject.id}`,
+                    title: subject.name,
+                    children: convertCategoriesToTreeNodes(subject.categories)
+                }));
+                
+                setTreeData(treeData);
+                setFilteredTreeData(treeData);
+                // 默认展开第一级节点
+                setExpandedKeys(treeData.map(item => item.key));
+            }
+        } catch (error) {
+            console.error('获取学科分类树失败:', error);
+            Message.error('获取学科分类树失败');
+        } finally {
+            setTreeLoading(false);
+        }
+    };
+
+    // 搜索过滤树数据
+    const filterTreeData = (data, keyword) => {
+        if (!keyword) return data;
+        
+        const filterNode = (node) => {
+            const titleMatch = node.title.toLowerCase().includes(keyword.toLowerCase());
+            const filteredChildren = node.children ? node.children.map(filterNode).filter(Boolean) : [];
+            
+            if (titleMatch || filteredChildren.length > 0) {
+                return {
+                    ...node,
+                    children: filteredChildren
+                };
+            }
+            return null;
+        };
+        
+        return data.map(filterNode).filter(Boolean);
+    };
+
+    // 处理搜索输入变化
+    const handleSearchChange = (value) => {
+        setSearchKeyword(value);
+        const filtered = filterTreeData(treeData, value);
+        setFilteredTreeData(filtered);
+        
+        // 如果有搜索关键字，展开所有匹配的节点
+        if (value) {
+            const getAllKeys = (nodes) => {
+                let keys = [];
+                nodes.forEach(node => {
+                    keys.push(node.key);
+                    if (node.children && node.children.length > 0) {
+                        keys = keys.concat(getAllKeys(node.children));
+                    }
+                });
+                return keys;
+            };
+            setExpandedKeys(getAllKeys(filtered));
+        } else {
+            // 没有搜索关键字时，只展开第一级
+            setExpandedKeys(treeData.map(item => item.key));
+        }
+    };
 
     // 获取学科列表
     const fetchSubjects = async () => {
@@ -774,12 +813,119 @@ function QuestionManager() {
                 <Sider
                     resizeDirections={['right']}
                     style={{
-                        minWidth: 150,
-                        maxWidth: 500,
+                        minWidth: 200,
+                        maxWidth: 400,
                         height: '100%',
+                        backgroundColor: '#fff',
+                        borderRight: '1px solid #e5e6eb',
                     }}
                 >
-                    Sider
+                    <div style={{ padding: '12px', borderBottom: '1px solid #e5e6eb' }}>
+                        <Input.Search
+                            placeholder="搜索学科分类"
+                            allowClear
+                            style={{ width: '100%' }}
+                            value={searchKeyword}
+                            onChange={(value) => {
+                                handleSearchChange(value);
+                            }}
+                        />
+                    </div>
+                    <div style={{ padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto' }}>
+                        <Spin loading={treeLoading}>
+                            {filteredTreeData.length > 0 ? (
+                                <Tree
+                                    treeData={filteredTreeData}
+                                    expandedKeys={expandedKeys}
+                                    selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
+                                    onExpand={(expandedKeys) => {
+                                        setExpandedKeys(expandedKeys);
+                                    }}
+                                    onSelect={(selectedKeys, info) => {
+                                        if (selectedKeys.length > 0) {
+                                            setSelectedTreeNode(selectedKeys[0]);
+                                            
+                                            // 解析选中的节点，判断是学科还是分类
+                                            const selectedKey = selectedKeys[0];
+                                            const node = info.node;
+                                            
+                                            // 根据树的层级结构判断：第一级是学科，第二级及以下是分类
+                                            // 通过查找父节点来确定层级
+                                            const findNodeInTree = (treeData, key) => {
+                                                for (const item of treeData) {
+                                                    if (item.key === key) {
+                                                        return { node: item, parent: null };
+                                                    }
+                                                    if (item.children) {
+                                                        const result = findNodeInTreeRecursive(item.children, key, item);
+                                                        if (result) return result;
+                                                    }
+                                                }
+                                                return null;
+                                            };
+                                            
+                                            const findNodeInTreeRecursive = (children, key, parent) => {
+                                                for (const child of children) {
+                                                    if (child.key === key) {
+                                                        return { node: child, parent };
+                                                    }
+                                                    if (child.children) {
+                                                        const result = findNodeInTreeRecursive(child.children, key, child);
+                                                        if (result) return result;
+                                                    }
+                                                }
+                                                return null;
+                                            };
+                                            
+                                            const nodeInfo = findNodeInTree(treeData, selectedKey);
+                                            
+                                            if (nodeInfo && nodeInfo.parent) {
+                                                // 这是一个分类节点
+                                                const categoryId = selectedKey;
+                                                const subjectId = nodeInfo.parent.key;
+                                                
+                                                setCurrentSubjectId(subjectId);
+                                                setCurrentCategoryId(categoryId);
+                                                
+                                                console.log('选中分类:', { subjectId, categoryId, categoryName: nodeInfo.node.title, subjectName: nodeInfo.parent.title });
+                                                fetchTableData(null, pagination.pageSize, pagination.current, subjectId, categoryId);
+                                            } else {
+                                                // 这是一个学科节点
+                                                const subjectId = selectedKey;
+                                                
+                                                setCurrentSubjectId(subjectId);
+                                                setCurrentCategoryId(null);
+                                                
+                                                console.log('选中学科:', { subjectId, subjectName: nodeInfo?.node.title });
+                                                fetchTableData(null, pagination.pageSize, pagination.current, subjectId, null);
+
+                                            }
+                                            // 重新获取表格数据
+                                        } else {
+                                            setSelectedTreeNode(null);
+                                            setCurrentSubjectId(null);
+                                            setCurrentCategoryId(null);
+                                            fetchTableData();
+                                        }
+                                    }}
+                                    blockNode
+                                    showLine
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                    }}
+                                />
+                            ) : (
+                                <div style={{ 
+                                    textAlign: 'center', 
+                                    color: '#86909c', 
+                                    padding: '20px 0',
+                                    fontSize: '14px'
+                                }}>
+                                    暂无数据
+                                </div>
+                            )}
+                        </Spin>
+                    </div>
                 </Sider>
                 <Content>
                     <FilterForm
@@ -1302,8 +1448,9 @@ function QuestionManager() {
                                 <div style={{
                                     marginTop: 8,
                                     padding: '12px 16px',
-                                    backgroundColor: '#f7f8fa',
+                                    backgroundColor: '#f0f9ff',
                                     borderRadius: 6,
+                                    color: '#666',
                                     lineHeight: 1.6
                                 }}>
                                     {detailRecord.content}
@@ -1319,7 +1466,7 @@ function QuestionManager() {
                                     <div style={{
                                         marginTop: 8,
                                         padding: '12px 16px',
-                                        backgroundColor: '#f0f9ff',
+                                        backgroundColor: '#00ff00',
                                         borderRadius: 6,
                                         color: '#666',
                                         lineHeight: 1.6
@@ -1344,75 +1491,6 @@ function QuestionManager() {
                     </Modal>
                 )}
 
-                {/* 知识点关联模态框 */}
-                <Modal
-                    title={`关联知识点 - ${currentRecord?.content?.substring(0, 30)}...`}
-                    visible={knowledgeModalVisible}
-                    onCancel={() => {
-                        setKnowledgeModalVisible(false);
-                        setSelectedKnowledge([]);
-                        setCurrentQuestionKnowledge([]);
-                    }}
-                    onOk={async () => {
-                        try {
-                            setKnowledgeLoading(true);
-                            await associateKnowledge({
-                                questionId: currentRecord.id,
-                                knowledgeIds: selectedKnowledge
-                            });
-                            Message.success('知识点关联成功');
-                            setKnowledgeModalVisible(false);
-                            fetchTableData(); // 刷新表格数据
-                        } catch (error) {
-                            Message.error('知识点关联失败');
-                        } finally {
-                            setKnowledgeLoading(false);
-                        }
-                    }}
-                    confirmLoading={knowledgeLoading}
-                    width={600}
-                >
-                    <div style={{maxHeight: 400, overflowY: 'auto'}}>
-                        <div style={{marginBottom: 16}}>
-                            <strong>当前已关联的知识点:</strong>
-                            <div style={{marginTop: 8}}>
-                                {currentQuestionKnowledge.length > 0 ? (
-                                    currentQuestionKnowledge.map(knowledge => (
-                                        <Tag key={knowledge.id} color="cyan" style={{margin: '2px 4px 2px 0'}}>
-                                            {knowledge.name}
-                                        </Tag>
-                                    ))
-                                ) : (
-                                    <span style={{color: '#999'}}>暂无关联知识点</span>
-                                )}
-                            </div>
-                        </div>
-
-                        <div>
-                            <strong>选择要关联的知识点:</strong>
-                            <Checkbox.Group
-                                value={selectedKnowledge}
-                                onChange={setSelectedKnowledge}
-                                style={{marginTop: 8, width: '100%'}}
-                            >
-                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px'}}>
-                                    {knowledgeList.map(knowledge => (
-                                        <Checkbox key={knowledge.id} value={knowledge.id}>
-                                            <div style={{display: 'flex', flexDirection: 'column'}}>
-                                                <span style={{fontWeight: 500}}>{knowledge.name}</span>
-                                                {knowledge.description && (
-                                                    <span style={{fontSize: 12, color: '#999', marginTop: 2}}>
-                                                    {knowledge.description.substring(0, 50)}...
-                                                </span>
-                                                )}
-                                            </div>
-                                        </Checkbox>
-                                    ))}
-                                </div>
-                            </Checkbox.Group>
-                        </div>
-                    </div>
-                </Modal>
             </Layout>
         </div>
     );

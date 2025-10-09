@@ -5,6 +5,7 @@ import com.ck.quiz.category.dto.CategoryDto;
 import com.ck.quiz.category.dto.CategoryQueryDto;
 import com.ck.quiz.category.dto.CategoryUpdateDto;
 import com.ck.quiz.category.entity.Category;
+import com.ck.quiz.subject.dto.SubjectDto;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -110,4 +111,5 @@ public interface CategoryService {
      */
     CategoryDto convertToDto(Category category);
 
+    List<SubjectDto> getSubjectCategoryTree();
 }
