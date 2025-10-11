@@ -14,6 +14,8 @@ import {
     Table,
     Tag,
     Tooltip,
+    Drawer,
+    Tree,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
@@ -24,6 +26,8 @@ import {
     enableRole,
     disableRole,
     checkRoleName,
+    getRoleMenuTree,
+    replaceRoleMenus,
 } from './api';
 import {
     IconDelete,
@@ -34,7 +38,9 @@ import {
     IconRefresh,
     IconSearch,
     IconUser,
+    IconMenu,
 } from '@arco-design/web-react/icon';
+import { getMenuTree } from '@/pages/Menu/api';
 import FilterForm from '@/components/FilterForm';
 
 const { Content } = Layout;
@@ -67,6 +73,12 @@ function RoleManager() {
 
     // 当前操作的角色
     const [currentRole, setCurrentRole] = useState(null);
+
+    // 分配菜单：抽屉、加载、树数据与选中项
+    const [assignVisible, setAssignVisible] = useState(false);
+    const [assignLoading, setAssignLoading] = useState(false);
+    const [menuTreeData, setMenuTreeData] = useState([]);
+    const [checkedMenuKeys, setCheckedMenuKeys] = useState([]);
 
     // 表单引用
     const [addForm] = Form.useForm();
@@ -226,6 +238,10 @@ function RoleManager() {
                                 }}
                                 className="handle-dropdown-menu"
                             >
+                                <Menu.Item key="assign">
+                                    <IconMenu style={{marginRight: '5px'}}/>
+                                    分配菜单
+                                </Menu.Item>
                                 <Menu.Item key="edit">
                                     <IconEdit style={{marginRight: '5px'}}/>
                                     编辑
@@ -268,6 +284,75 @@ function RoleManager() {
             handleDelete(record);
         } else if (key === 'toggle') {
             handleToggleState(record);
+        } else if (key === 'assign') {
+            handleAssignMenus(record);
+        }
+    };
+
+    // 将后端MenuDto转换为Tree组件数据结构
+    const convertToTreeNodes = (nodes = []) => {
+        return (nodes || []).map(n => ({
+            key: n.menuId,
+            title: n.menuLabel || n.menuName || n.menuId,
+            children: convertToTreeNodes(n.children || []),
+        }));
+    };
+
+    // 提取树中的所有key
+    const extractKeys = (nodes = []) => {
+        const keys = [];
+        const walk = (list) => {
+            (list || []).forEach(n => {
+                keys.push(n.menuId || n.key);
+                if (n.children && n.children.length) {
+                    walk(n.children);
+                }
+            });
+        };
+        walk(nodes);
+        return keys;
+    };
+
+    // 打开分配菜单抽屉并加载数据
+    const handleAssignMenus = async (record) => {
+        setCurrentRole(record);
+        setAssignVisible(true);
+        setAssignLoading(true);
+        try {
+            const [allResp, assignedResp] = await Promise.all([
+                getMenuTree(),
+                getRoleMenuTree(record.id)
+            ]);
+            const allTree = convertToTreeNodes(allResp.data || []);
+            const assignedTree = assignedResp.data || [];
+            const assignedKeys = extractKeys(assignedTree);
+            setMenuTreeData(allTree);
+            setCheckedMenuKeys(assignedKeys);
+        } catch (e) {
+            Message.error('加载菜单数据失败');
+            console.error('加载菜单数据失败:', e);
+        } finally {
+            setAssignLoading(false);
+        }
+    };
+
+    const handleAssignCancel = () => {
+        setAssignVisible(false);
+        setCheckedMenuKeys([]);
+    };
+
+    const handleAssignSave = async () => {
+        if (!currentRole) return;
+        setAssignLoading(true);
+        try {
+            await replaceRoleMenus(currentRole.id, checkedMenuKeys);
+            Message.success('菜单分配已保存');
+            setAssignVisible(false);
+        } catch (e) {
+            Message.error('保存菜单分配失败');
+            console.error('保存菜单分配失败:', e);
+        } finally {
+            setAssignLoading(false);
         }
     };
 
@@ -549,6 +634,30 @@ function RoleManager() {
                         pageSizeOptions={['10', '20', '50', '100']}
                     />
                 </div>
+
+                {/* 分配菜单抽屉 */}
+                <Drawer
+                    title={`分配菜单 - ${currentRole?.name || ''}`}
+                    visible={assignVisible}
+                    width={520}
+                    maskClosable={false}
+                    onCancel={handleAssignCancel}
+                    footer={
+                        <Space>
+                            <Button onClick={handleAssignCancel} disabled={assignLoading}>取消</Button>
+                            <Button type="primary" onClick={handleAssignSave} loading={assignLoading}>保存</Button>
+                        </Space>
+                    }
+                >
+                    <div style={{ maxHeight: 420, overflow: 'auto' }}>
+                        <Tree
+                            checkable
+                            treeData={menuTreeData}
+                            checkedKeys={checkedMenuKeys}
+                            onCheck={(keys) => setCheckedMenuKeys(keys)}
+                        />
+                    </div>
+                </Drawer>
             </Content>
 
             {/* 新增角色对话框 */}

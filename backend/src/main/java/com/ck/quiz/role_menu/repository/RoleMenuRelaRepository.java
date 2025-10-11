@@ -3,6 +3,8 @@ package com.ck.quiz.role_menu.repository;
 import com.ck.quiz.role_menu.entity.RoleMenuRela;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -23,7 +25,8 @@ public interface RoleMenuRelaRepository extends JpaRepository<RoleMenuRela, Stri
      * 根据角色ID删除所有关联记录
      */
     @Modifying
-    int deleteByRoleId(String roleId);
+    @Query("delete from RoleMenuRela r where r.roleId = :roleId")
+    int deleteByRoleId(@Param("roleId") String roleId);
 
     /**
      * 根据菜单ID删除所有关联记录

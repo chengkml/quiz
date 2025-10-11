@@ -1,10 +1,7 @@
 package com.ck.quiz.menu.dto;
 
 import com.ck.quiz.menu.entity.Menu;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -37,8 +34,7 @@ public class MenuUpdateDto {
     /**
      * 菜单类型：MENU, DIRECTORY, BUTTON
      */
-    @NotBlank(message = "菜单类型不能为空")
-    @Pattern(regexp = "^(MENU|DIRECTORY|BUTTON)$", message = "菜单类型必须为MENU、DIRECTORY或BUTTON")
+    @NotNull
     private Menu.MenuType menuType;
 
     /**
@@ -64,13 +60,6 @@ public class MenuUpdateDto {
      */
     @Min(value = 0, message = "排序号必须大于或等于0")
     private Integer seq;
-
-    /**
-     * 状态：ENABLED, DISABLED
-     */
-    @NotBlank(message = "菜单状态不能为空")
-    @Pattern(regexp = "^(ENABLED|DISABLED)$", message = "状态必须为ENABLED或DISABLED")
-    private Menu.MenuState state;
 
     /**
      * 菜单描述

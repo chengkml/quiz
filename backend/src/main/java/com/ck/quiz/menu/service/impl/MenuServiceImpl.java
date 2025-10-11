@@ -9,6 +9,7 @@ import com.ck.quiz.menu.exception.MenuException;
 import com.ck.quiz.menu.repository.MenuRepository;
 import com.ck.quiz.menu.service.MenuService;
 import com.ck.quiz.role_menu.repository.RoleMenuRelaRepository;
+import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,7 @@ public class MenuServiceImpl implements MenuService {
 
     @Override
     public MenuDto createMenu(MenuCreateDto menuCreateDto) {
+        menuCreateDto.setMenuId(IdHelper.genUuid());
         // 检查菜单ID是否已存在
         if (menuRepository.existsById(menuCreateDto.getMenuId())) {
             throw new MenuException("MENU_ID_EXISTS", "菜单ID已存在: " + menuCreateDto.getMenuId());
@@ -110,9 +112,6 @@ public class MenuServiceImpl implements MenuService {
         }
         if (menuUpdateDto.getSeq() != null) {
             menu.setSeq(menuUpdateDto.getSeq());
-        }
-        if (menuUpdateDto.getState() != null) {
-            menu.setState(menuUpdateDto.getState());
         }
         if (menuUpdateDto.getMenuDescr() != null) {
             menu.setMenuDescr(menuUpdateDto.getMenuDescr());

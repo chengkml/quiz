@@ -13,6 +13,7 @@ import {
     IconStorage,
     IconUser,
 } from '@arco-design/web-react/icon';
+import * as ArcoIcons from '@arco-design/web-react/icon';
 import {MenuTreeDto} from '../../types/menu';
 import {useUser} from '@/contexts/UserContext';
 import {clearUserInfo} from '@/utils/userUtils';
@@ -126,38 +127,47 @@ const AppLayout: React.FC = () => {
         return openKeys;
     };
 
-    // 根据菜单配置获取图标
+    // 根据菜单配置获取图标（支持菜单配置值与自动回退）
+    const toPascal = (name: string) =>
+        (name || '')
+            .split(/[-_\s]+/)
+            .filter(Boolean)
+            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+            .join('');
+
     const getMenuIcon = (menu: MenuTreeDto) => {
-        // 如果菜单有图标配置，使用配置的图标
+        // 1) 优先根据 menuIcon 字段渲染（如：'user-add' -> IconUserAdd）
         if (menu.menuIcon) {
-            // 这里可以根据图标名称返回对应的图标组件
-            switch (menu.menuIcon) {
-                case 'dashboard':
-                    return <IconDashboard/>;
-                case 'user':
-                    return <IconUser/>;
-                case 'settings':
-                    return <IconSettings/>;
-                case 'file':
-                    return <IconFile/>;
-                case 'storage':
-                    return <IconStorage/>;
-                case 'lock':
-                    return <IconLock/>;
-                default:
-                    return <IconFile/>;
+            const compName = `${toPascal(menu.menuIcon)}`;
+            const IconComp = (ArcoIcons as any)[compName];
+            if (IconComp) {
+                return <IconComp/>;
+            }
+            // 常用简写的兼容映射
+            const fallbackMap: Record<string, JSX.Element> = {
+                dashboard: <IconDashboard/>,
+                user: <IconUser/>,
+                settings: <IconSettings/>,
+                file: <IconFile/>,
+                storage: <IconStorage/>,
+                lock: <IconLock/>,
+                home: <IconHome/>,
+            };
+            if (fallbackMap[menu.menuIcon]) {
+                return fallbackMap[menu.menuIcon];
             }
         }
 
-        // 根据菜单路径或名称提供默认图标
-        if (menu.url) {
-            if (menu.url.includes('dashboard')) return <IconDashboard/>;
-            if (menu.url.includes('user')) return <IconUser/>;
-            if (menu.url.includes('exam')) return <IconFile/>;
-            if (menu.url.includes('question')) return <IconStorage/>;
-            if (menu.url.includes('setting')) return <IconSettings/>;
-        }
+        // 2) 根据菜单路径或名称提供默认图标
+        const url = (menu.url || '').toLowerCase();
+        if (url.includes('dashboard')) return <IconDashboard/>;
+        if (url.includes('user')) return <IconUser/>;
+        if (url.includes('exam') || url.includes('file')) return <IconFile/>;
+        if (url.includes('question') || url.includes('storage')) return <IconStorage/>;
+        if (url.includes('setting') || url.includes('config')) return <IconSettings/>;
+        if (url.includes('home')) return <IconHome/>;
 
+        // 3) 最终回退
         return <IconFile/>;
     };
 

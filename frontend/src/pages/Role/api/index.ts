@@ -50,3 +50,11 @@ export {
   disableRole,
   checkRoleName
 };
+
+// ================== 角色菜单分配相关接口 ==================
+
+// 获取指定角色的已分配菜单树
+export const getRoleMenuTree = (roleId) => axios.get(`${base}/api/role/menu/rela/role/${roleId}/tree`);
+
+// 替换指定角色的菜单分配（传入菜单ID数组）
+export const replaceRoleMenus = (roleId, menuIds) => axios.post(`${base}/api/role/menu/rela/${roleId}/replace`, menuIds);

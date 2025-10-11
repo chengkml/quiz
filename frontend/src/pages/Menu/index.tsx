@@ -2,27 +2,33 @@ import React, {useEffect, useState} from 'react';
 import {
     Button,
     Cascader,
+    Dropdown,
     Form,
     Input,
     InputNumber,
     Layout,
+    Menu,
     Message,
     Modal,
     Select,
     Space,
     Table,
     Tag,
-    Tooltip,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {createMenu, deleteMenu, disableMenu, enableMenu, getMenuList, getMenuTree, updateMenu,} from './api';
 import {
     IconApps,
+    IconArchive,
     IconBook,
     IconBug,
+    IconBulb,
     IconCalendar,
     IconCamera,
+    IconCheckCircle,
+    IconClockCircle,
     IconCloud,
+    IconCloudDownload,
     IconCode,
     IconCommand,
     IconCompass,
@@ -31,13 +37,18 @@ import {
     IconDashboard,
     IconDelete,
     IconDesktop,
+    IconDice,
+    IconDownload,
     IconDriveFile,
+    IconEar,
     IconEdit,
     IconEmail,
     IconExclamation,
     IconEye,
+    IconEyeInvisible,
     IconFaceSmileFill,
     IconFile,
+    IconFire,
     IconFolder,
     IconGift,
     IconHeart,
@@ -46,33 +57,63 @@ import {
     IconIdcard,
     IconImage,
     IconInfo,
+    IconInteraction,
     IconLanguage,
+    IconLink,
     IconList,
+    IconLoading,
     IconLocation,
     IconLock,
     IconMenu,
+    IconMindMapping,
     IconMobile,
+    IconMusic,
+    IconNav,
     IconNotification,
     IconPalette,
     IconPhone,
+    IconPlayArrow,
     IconPlus,
+    IconPoweroff,
     IconPrinter,
+    IconPushpin,
+    IconQrcode,
     IconQuestionCircle,
+    IconRecord,
+    IconRefresh,
+    IconReply,
     IconRobot,
     IconSafe,
+    IconSave,
+    IconScan,
     IconSchedule,
     IconSearch,
+    IconSelectAll,
     IconSend,
     IconSettings,
+    IconShake,
+    IconShareAlt,
+    IconSound,
     IconStar,
     IconStorage,
+    IconSync,
     IconTag,
+    IconThumbUp,
     IconThunderbolt,
+    IconTiktokColor,
     IconTool,
+    IconTranslate,
     IconTrophy,
+    IconUndo,
+    IconUpload,
     IconUser,
+    IconUserGroup,
     IconVideoCamera,
+    IconVoice,
+    IconWechat,
     IconWifi,
+    IconZoomIn,
+    IconZoomOut,
 } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 
@@ -137,6 +178,7 @@ function MenuManager() {
         {label: '首页', value: 'IconHome', icon: <IconHome/>},
         {label: '应用', value: 'IconApps', icon: <IconApps/>},
         {label: '桌面', value: 'IconDesktop', icon: <IconDesktop/>},
+        {label: '导航', value: 'IconNav', icon: <IconNav/>},
 
         // 文件和文档图标
         {label: '文件', value: 'IconFile', icon: <IconFile/>},
@@ -145,9 +187,14 @@ function MenuManager() {
         {label: '驱动文件', value: 'IconDriveFile', icon: <IconDriveFile/>},
         {label: '复制', value: 'IconCopy', icon: <IconCopy/>},
         {label: '列表', value: 'IconList', icon: <IconList/>},
+        {label: '归档', value: 'IconArchive', icon: <IconArchive/>},
+        {label: '保存', value: 'IconSave', icon: <IconSave/>},
+        {label: '下载', value: 'IconDownload', icon: <IconDownload/>},
+        {label: '上传', value: 'IconUpload', icon: <IconUpload/>},
 
         // 用户和权限图标
         {label: '用户', value: 'IconUser', icon: <IconUser/>},
+        {label: '用户组', value: 'IconUserGroup', icon: <IconUserGroup/>},
         {label: '身份证', value: 'IconIdcard', icon: <IconIdcard/>},
         {label: '锁定', value: 'IconLock', icon: <IconLock/>},
         {label: '安全', value: 'IconSafe', icon: <IconSafe/>},
@@ -159,6 +206,9 @@ function MenuManager() {
         {label: '命令', value: 'IconCommand', icon: <IconCommand/>},
         {label: '代码', value: 'IconCode', icon: <IconCode/>},
         {label: '调试', value: 'IconBug', icon: <IconBug/>},
+        {label: '刷新', value: 'IconRefresh', icon: <IconRefresh/>},
+        {label: '同步', value: 'IconSync', icon: <IconSync/>},
+        {label: '电源', value: 'IconPoweroff', icon: <IconPoweroff/>},
 
         // 通信和联系图标
         {label: '邮件', value: 'IconEmail', icon: <IconEmail/>},
@@ -167,6 +217,9 @@ function MenuManager() {
         {label: '发送', value: 'IconSend', icon: <IconSend/>},
         {label: '通知', value: 'IconNotification', icon: <IconNotification/>},
         {label: '客服', value: 'IconCustomerService', icon: <IconCustomerService/>},
+        {label: '微信', value: 'IconWechat', icon: <IconWechat/>},
+        {label: '分享', value: 'IconShareAlt', icon: <IconShareAlt/>},
+        {label: '回复', value: 'IconReply', icon: <IconReply/>},
 
         // 媒体和娱乐图标
         {label: '图片', value: 'IconImage', icon: <IconImage/>},
@@ -178,32 +231,63 @@ function MenuManager() {
         {label: '星星', value: 'IconStar', icon: <IconStar/>},
         {label: '奖杯', value: 'IconTrophy', icon: <IconTrophy/>},
         {label: '礼物', value: 'IconGift', icon: <IconGift/>},
+        {label: '音乐', value: 'IconMusic', icon: <IconMusic/>},
+        {label: '声音', value: 'IconSound', icon: <IconSound/>},
+        {label: '语音', value: 'IconVoice', icon: <IconVoice/>},
+        {label: '播放', value: 'IconPlayArrow', icon: <IconPlayArrow/>},
+        {label: '录制', value: 'IconRecord', icon: <IconRecord/>},
+        {label: '点赞', value: 'IconThumbUp', icon: <IconThumbUp/>},
 
         // 导航和位置图标
         {label: '搜索', value: 'IconSearch', icon: <IconSearch/>},
         {label: '指南针', value: 'IconCompass', icon: <IconCompass/>},
         {label: '位置', value: 'IconLocation', icon: <IconLocation/>},
+        {label: '链接', value: 'IconLink', icon: <IconLink/>},
+        {label: '放大', value: 'IconZoomIn', icon: <IconZoomIn/>},
+        {label: '缩小', value: 'IconZoomOut', icon: <IconZoomOut/>},
+        {label: '全选', value: 'IconSelectAll', icon: <IconSelectAll/>},
 
         // 时间和日程图标
         {label: '日历', value: 'IconCalendar', icon: <IconCalendar/>},
         {label: '日程', value: 'IconSchedule', icon: <IconSchedule/>},
         {label: '历史', value: 'IconHistory', icon: <IconHistory/>},
+        {label: '时钟', value: 'IconClockCircle', icon: <IconClockCircle/>},
+        {label: '撤销', value: 'IconUndo', icon: <IconUndo/>},
 
         // 网络和云服务图标
         {label: '云', value: 'IconCloud', icon: <IconCloud/>},
+        {label: '云下载', value: 'IconCloudDownload', icon: <IconCloudDownload/>},
         {label: 'WiFi', value: 'IconWifi', icon: <IconWifi/>},
+        {label: '加载', value: 'IconLoading', icon: <IconLoading/>},
 
         // 商业和购物图标
         {label: '标签', value: 'IconTag', icon: <IconTag/>},
+
+        // 工作流程图标
+        {label: '检查', value: 'IconCheckCircle', icon: <IconCheckCircle/>},
+        {label: '图钉', value: 'IconPushpin', icon: <IconPushpin/>},
+        {label: '交互', value: 'IconInteraction', icon: <IconInteraction/>},
+        {label: '思维导图', value: 'IconMindMapping', icon: <IconMindMapping/>},
+        {label: '火焰', value: 'IconFire', icon: <IconFire/>},
+        {label: '灯泡', value: 'IconBulb', icon: <IconBulb/>},
 
         // 其他功能图标
         {label: '打印机', value: 'IconPrinter', icon: <IconPrinter/>},
         {label: '机器人', value: 'IconRobot', icon: <IconRobot/>},
         {label: '闪电', value: 'IconThunderbolt', icon: <IconThunderbolt/>},
         {label: '语言', value: 'IconLanguage', icon: <IconLanguage/>},
+        {label: '翻译', value: 'IconTranslate', icon: <IconTranslate/>},
         {label: '信息', value: 'IconInfo', icon: <IconInfo/>},
         {label: '问号', value: 'IconQuestionCircle', icon: <IconQuestionCircle/>},
         {label: '感叹号', value: 'IconExclamation', icon: <IconExclamation/>},
+        {label: '二维码', value: 'IconQrcode', icon: <IconQrcode/>},
+        {label: '扫描', value: 'IconScan', icon: <IconScan/>},
+        {label: '眼睛', value: 'IconEye', icon: <IconEye/>},
+        {label: '隐藏', value: 'IconEyeInvisible', icon: <IconEyeInvisible/>},
+        {label: '耳朵', value: 'IconEar', icon: <IconEar/>},
+        {label: '骰子', value: 'IconDice', icon: <IconDice/>},
+        {label: '震动', value: 'IconShake', icon: <IconShake/>},
+        {label: '抖音', value: 'IconTiktokColor', icon: <IconTiktokColor/>},
     ];
 
     // 转换菜单树为级联选择器数据
@@ -318,45 +402,57 @@ function MenuManager() {
         {
             title: '操作',
             key: 'action',
-            width: 200,
+            width: 100,
             fixed: 'right',
             render: (_, record) => (
-                <Space>
-                    <Tooltip content="查看详情">
+                <Space size="large" className="dropdown-demo table-btn-group">
+                    <Dropdown
+                        position="bl"
+                        droplist={
+                            <Menu
+                                onClickMenuItem={(key, e) => {
+                                    handleMenuClick(key, e, record);
+                                }}
+                                className="handle-dropdown-menu"
+                            >
+                                <Menu.Item key="view">
+                                    <IconEye style={{marginRight: '5px'}}/>
+                                    查看详情
+                                </Menu.Item>
+                                <Menu.Item key="edit">
+                                    <IconEdit style={{marginRight: '5px'}}/>
+                                    编辑
+                                </Menu.Item>
+                                <Menu.Item key="toggle">
+                                    {record.state === 'ENABLED' ? (
+                                        <>
+                                            <IconPoweroff style={{marginRight: '5px'}}/>
+                                            禁用
+                                        </>
+                                    ) : (
+                                        <>
+                                            <IconPoweroff style={{marginRight: '5px'}}/>
+                                            启用
+                                        </>
+                                    )}
+                                </Menu.Item>
+                                <Menu.Item key="delete">
+                                    <IconDelete style={{marginRight: '5px'}}/>
+                                    删除
+                                </Menu.Item>
+                            </Menu>
+                        }
+                    >
                         <Button
                             type="text"
-                            size="small"
-                            icon={<IconEye/>}
-                            onClick={() => handleView(record)}
-                        />
-                    </Tooltip>
-                    <Tooltip content="编辑">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconEdit/>}
-                            onClick={() => handleEdit(record)}
-                        />
-                    </Tooltip>
-                    <Tooltip content={record.state === 'ENABLED' ? '禁用' : '启用'}>
-                        <Button
-                            type="text"
-                            size="small"
-                            status={record.state === 'ENABLED' ? 'warning' : 'success'}
-                            onClick={() => handleToggleState(record)}
+                            className="more-btn"
+                            onClick={e => {
+                                e.stopPropagation();
+                            }}
                         >
-                            {record.state === 'ENABLED' ? '禁用' : '启用'}
+                            <IconList/>
                         </Button>
-                    </Tooltip>
-                    <Tooltip content="删除">
-                        <Button
-                            type="text"
-                            size="small"
-                            status="danger"
-                            icon={<IconDelete/>}
-                            onClick={() => handleDelete(record)}
-                        />
-                    </Tooltip>
+                    </Dropdown>
                 </Space>
             ),
         },
@@ -478,6 +574,20 @@ function MenuManager() {
         } catch (error) {
             Message.error('操作失败');
             console.error('切换菜单状态失败:', error);
+        }
+    };
+
+    // 处理菜单点击
+    const handleMenuClick = (key, event, record) => {
+        event.stopPropagation();
+        if (key === 'view') {
+            handleView(record);
+        } else if (key === 'edit') {
+            handleEdit(record);
+        } else if (key === 'toggle') {
+            handleToggleState(record);
+        } else if (key === 'delete') {
+            handleDelete(record);
         }
     };
 
