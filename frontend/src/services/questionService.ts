@@ -36,8 +36,13 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
+      // 处理未授权错误 - 清除所有用户相关信息
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      localStorage.removeItem('userInfo');
+      localStorage.removeItem('menuInfo');
+      localStorage.removeItem('username');
+      // 跳转到登录页面
+      window.location.href = '/quiz/login';
     }
     return Promise.reject(error);
   }
