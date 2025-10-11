@@ -122,6 +122,7 @@ const {TextArea} = Input;
 const {Content} = Layout;
 
 function MenuManager() {
+
     // 状态管理
     const [tableData, setTableData] = useState([]);
     const [tableLoading, setTableLoading] = useState(false);
@@ -643,6 +644,32 @@ function MenuManager() {
         }
     };
 
+    useEffect(() => {
+        const calculateTableHeight = () => {
+            const windowHeight = window.innerHeight;
+            // 减去页面其他元素的高度，如头部、筛选区域、分页等
+            // 这里可以根据实际页面布局调整计算逻辑
+            const otherElementsHeight = 240; // 预估其他元素占用的高度
+            const newHeight = Math.max(100, windowHeight - otherElementsHeight);
+            setTableScrollHeight(newHeight);
+        };
+
+        // 初始计算
+        calculateTableHeight();
+
+        // 监听窗口大小变化
+        const handleResize = () => {
+            calculateTableHeight();
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        // 清理事件监听器
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+
     // 初始化
     useEffect(() => {
         fetchMenuList();
@@ -720,10 +747,7 @@ function MenuManager() {
                         loading={tableLoading}
                         pagination={pagination}
                         onChange={handleTableChange}
-                        scroll={{
-                            x: 1200,
-                            y: tableScrollHeight,
-                        }}
+                        scroll={{y: tableScrollHeight}}
                         rowKey="menuId"
                     />
                 </Content>
