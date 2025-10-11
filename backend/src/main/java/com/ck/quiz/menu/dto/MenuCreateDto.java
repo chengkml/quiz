@@ -68,13 +68,6 @@ public class MenuCreateDto {
     private Integer seq;
 
     /**
-     * 状态：ENABLED, DISABLED
-     */
-    @NotBlank(message = "菜单状态不能为空")
-    @Pattern(regexp = "^(ENABLED|DISABLED)$", message = "状态必须为ENABLED或DISABLED")
-    private Menu.MenuState state = Menu.MenuState.ENABLED;
-
-    /**
      * 菜单描述
      */
     @Size(max = 512, message = "菜单描述长度不能超过512个字符")

@@ -1,34 +1,79 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     Button,
-    Collapse,
-    Dropdown,
+    Cascader,
     Form,
     Input,
+    InputNumber,
     Layout,
-    Menu,
     Message,
     Modal,
-    Pagination,
     Select,
     Space,
-    Spin,
     Table,
     Tag,
     Tooltip,
-    Tree,
 } from '@arco-design/web-react';
 import './style/index.less';
+import {createMenu, deleteMenu, disableMenu, enableMenu, getMenuList, getMenuTree, updateMenu,} from './api';
 import {
-    createMenu,
-    deleteMenu,
-    getMenuList,
-    updateMenu,
-    enableMenu,
-    disableMenu,
-    getMenuTree,
-} from './api';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconMenu} from '@arco-design/web-react/icon';
+    IconApps,
+    IconBook,
+    IconBug,
+    IconCalendar,
+    IconCamera,
+    IconCloud,
+    IconCode,
+    IconCommand,
+    IconCompass,
+    IconCopy,
+    IconCustomerService,
+    IconDashboard,
+    IconDelete,
+    IconDesktop,
+    IconDriveFile,
+    IconEdit,
+    IconEmail,
+    IconExclamation,
+    IconEye,
+    IconFaceSmileFill,
+    IconFile,
+    IconFolder,
+    IconGift,
+    IconHeart,
+    IconHistory,
+    IconHome,
+    IconIdcard,
+    IconImage,
+    IconInfo,
+    IconLanguage,
+    IconList,
+    IconLocation,
+    IconLock,
+    IconMenu,
+    IconMobile,
+    IconNotification,
+    IconPalette,
+    IconPhone,
+    IconPlus,
+    IconPrinter,
+    IconQuestionCircle,
+    IconRobot,
+    IconSafe,
+    IconSchedule,
+    IconSearch,
+    IconSend,
+    IconSettings,
+    IconStar,
+    IconStorage,
+    IconTag,
+    IconThunderbolt,
+    IconTool,
+    IconTrophy,
+    IconUser,
+    IconVideoCamera,
+    IconWifi,
+} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 
 const {TextArea} = Input;
@@ -39,6 +84,7 @@ function MenuManager() {
     const [tableData, setTableData] = useState([]);
     const [tableLoading, setTableLoading] = useState(false);
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
+    const [menuTree, setMenuTree] = useState([]);
 
     // 对话框状态
     const [addModalVisible, setAddModalVisible] = useState(false);
@@ -83,16 +129,133 @@ function MenuManager() {
         {label: '禁用', value: 'DISABLED'},
     ];
 
+    // 菜单图标选项
+    const menuIconOptions = [
+        // 基础功能图标
+        {label: '仪表盘', value: 'IconDashboard', icon: <IconDashboard/>},
+        {label: '菜单', value: 'IconMenu', icon: <IconMenu/>},
+        {label: '首页', value: 'IconHome', icon: <IconHome/>},
+        {label: '应用', value: 'IconApps', icon: <IconApps/>},
+        {label: '桌面', value: 'IconDesktop', icon: <IconDesktop/>},
+
+        // 文件和文档图标
+        {label: '文件', value: 'IconFile', icon: <IconFile/>},
+        {label: '文件夹', value: 'IconFolder', icon: <IconFolder/>},
+        {label: '书籍', value: 'IconBook', icon: <IconBook/>},
+        {label: '驱动文件', value: 'IconDriveFile', icon: <IconDriveFile/>},
+        {label: '复制', value: 'IconCopy', icon: <IconCopy/>},
+        {label: '列表', value: 'IconList', icon: <IconList/>},
+
+        // 用户和权限图标
+        {label: '用户', value: 'IconUser', icon: <IconUser/>},
+        {label: '身份证', value: 'IconIdcard', icon: <IconIdcard/>},
+        {label: '锁定', value: 'IconLock', icon: <IconLock/>},
+        {label: '安全', value: 'IconSafe', icon: <IconSafe/>},
+
+        // 系统和设置图标
+        {label: '设置', value: 'IconSettings', icon: <IconSettings/>},
+        {label: '存储', value: 'IconStorage', icon: <IconStorage/>},
+        {label: '工具', value: 'IconTool', icon: <IconTool/>},
+        {label: '命令', value: 'IconCommand', icon: <IconCommand/>},
+        {label: '代码', value: 'IconCode', icon: <IconCode/>},
+        {label: '调试', value: 'IconBug', icon: <IconBug/>},
+
+        // 通信和联系图标
+        {label: '邮件', value: 'IconEmail', icon: <IconEmail/>},
+        {label: '电话', value: 'IconPhone', icon: <IconPhone/>},
+        {label: '手机', value: 'IconMobile', icon: <IconMobile/>},
+        {label: '发送', value: 'IconSend', icon: <IconSend/>},
+        {label: '通知', value: 'IconNotification', icon: <IconNotification/>},
+        {label: '客服', value: 'IconCustomerService', icon: <IconCustomerService/>},
+
+        // 媒体和娱乐图标
+        {label: '图片', value: 'IconImage', icon: <IconImage/>},
+        {label: '相机', value: 'IconCamera', icon: <IconCamera/>},
+        {label: '摄像头', value: 'IconVideoCamera', icon: <IconVideoCamera/>},
+        {label: '调色板', value: 'IconPalette', icon: <IconPalette/>},
+        {label: '笑脸', value: 'IconFaceSmileFill', icon: <IconFaceSmileFill/>},
+        {label: '心形', value: 'IconHeart', icon: <IconHeart/>},
+        {label: '星星', value: 'IconStar', icon: <IconStar/>},
+        {label: '奖杯', value: 'IconTrophy', icon: <IconTrophy/>},
+        {label: '礼物', value: 'IconGift', icon: <IconGift/>},
+
+        // 导航和位置图标
+        {label: '搜索', value: 'IconSearch', icon: <IconSearch/>},
+        {label: '指南针', value: 'IconCompass', icon: <IconCompass/>},
+        {label: '位置', value: 'IconLocation', icon: <IconLocation/>},
+
+        // 时间和日程图标
+        {label: '日历', value: 'IconCalendar', icon: <IconCalendar/>},
+        {label: '日程', value: 'IconSchedule', icon: <IconSchedule/>},
+        {label: '历史', value: 'IconHistory', icon: <IconHistory/>},
+
+        // 网络和云服务图标
+        {label: '云', value: 'IconCloud', icon: <IconCloud/>},
+        {label: 'WiFi', value: 'IconWifi', icon: <IconWifi/>},
+
+        // 商业和购物图标
+        {label: '标签', value: 'IconTag', icon: <IconTag/>},
+
+        // 其他功能图标
+        {label: '打印机', value: 'IconPrinter', icon: <IconPrinter/>},
+        {label: '机器人', value: 'IconRobot', icon: <IconRobot/>},
+        {label: '闪电', value: 'IconThunderbolt', icon: <IconThunderbolt/>},
+        {label: '语言', value: 'IconLanguage', icon: <IconLanguage/>},
+        {label: '信息', value: 'IconInfo', icon: <IconInfo/>},
+        {label: '问号', value: 'IconQuestionCircle', icon: <IconQuestionCircle/>},
+        {label: '感叹号', value: 'IconExclamation', icon: <IconExclamation/>},
+    ];
+
+    // 转换菜单树为级联选择器数据
+    const convertMenuTreeToCascaderData = (menuTree) => {
+        return menuTree.map(menu => ({
+            value: menu.menuId,
+            label: menu.menuLabel,
+            children: menu.children && menu.children.length > 0
+                ? convertMenuTreeToCascaderData(menu.children)
+                : undefined
+        }));
+    };
+
+    // 查找菜单在树中的完整路径
+    const findMenuPath = (menuTree, targetId, path = []) => {
+        for (const menu of menuTree) {
+            const currentPath = [...path, menu.menuId];
+
+            if (menu.menuId === targetId) {
+                return currentPath;
+            }
+
+            if (menu.children && menu.children.length > 0) {
+                const result = findMenuPath(menu.children, targetId, currentPath);
+                if (result) {
+                    return result;
+                }
+            }
+        }
+        return null;
+    };
+
+    // 获取菜单树数据
+    const fetchMenuTree = async () => {
+        try {
+            const response = await getMenuTree();
+            setMenuTree(response.data || []);
+        } catch (error) {
+            console.error('获取菜单树失败:', error);
+        }
+    };
+
     // 表格列定义
     const columns = [
         {
-            title: '菜单名称',
+            title: '菜单编码',
             dataIndex: 'menuName',
             key: 'menuName',
             width: 150,
         },
         {
-            title: '显示名称',
+            title: '菜单名称',
             dataIndex: 'menuLabel',
             key: 'menuLabel',
             width: 150,
@@ -163,7 +326,7 @@ function MenuManager() {
                         <Button
                             type="text"
                             size="small"
-                            icon={<IconEye />}
+                            icon={<IconEye/>}
                             onClick={() => handleView(record)}
                         />
                     </Tooltip>
@@ -171,7 +334,7 @@ function MenuManager() {
                         <Button
                             type="text"
                             size="small"
-                            icon={<IconEdit />}
+                            icon={<IconEdit/>}
                             onClick={() => handleEdit(record)}
                         />
                     </Tooltip>
@@ -190,7 +353,7 @@ function MenuManager() {
                             type="text"
                             size="small"
                             status="danger"
-                            icon={<IconDelete />}
+                            icon={<IconDelete/>}
                             onClick={() => handleDelete(record)}
                         />
                     </Tooltip>
@@ -209,7 +372,7 @@ function MenuManager() {
                 pageNum: pagination.current - 1,
                 pageSize: pagination.pageSize,
             };
-            
+
             const response = await getMenuList(queryParams);
             if (response.data) {
                 setTableData(response.data.content || []);
@@ -263,7 +426,17 @@ function MenuManager() {
     // 处理编辑
     const handleEdit = (record) => {
         setCurrentMenu(record);
-        editForm.setFieldsValue(record);
+
+        // 处理父菜单路径回显
+        const formValues = {...record};
+        if (record.parentId && menuTree.length > 0) {
+            const parentPath = findMenuPath(menuTree, record.parentId);
+            if (parentPath) {
+                formValues.parentId = parentPath;
+            }
+        }
+
+        editForm.setFieldsValue(formValues);
         setEditModalVisible(true);
     };
 
@@ -311,7 +484,13 @@ function MenuManager() {
     // 处理新增提交
     const handleAddSubmit = async (values) => {
         try {
-            await createMenu(values);
+            // 处理级联选择器的值，取最后一个作为父菜单ID
+            const submitValues = {...values};
+            if (values.parentId && Array.isArray(values.parentId)) {
+                submitValues.parentId = values.parentId[values.parentId.length - 1];
+            }
+
+            await createMenu(submitValues);
             Message.success('创建成功');
             setAddModalVisible(false);
             fetchMenuList();
@@ -324,7 +503,13 @@ function MenuManager() {
     // 处理编辑提交
     const handleEditSubmit = async (values) => {
         try {
-            await updateMenu(currentMenu.menuId, values);
+            // 处理级联选择器的值，取最后一个作为父菜单ID
+            const submitValues = {...values};
+            if (values.parentId && Array.isArray(values.parentId)) {
+                submitValues.parentId = values.parentId[values.parentId.length - 1];
+            }
+
+            await updateMenu(currentMenu.menuId, submitValues);
             Message.success('更新成功');
             setEditModalVisible(false);
             fetchMenuList();
@@ -337,14 +522,15 @@ function MenuManager() {
     // 初始化
     useEffect(() => {
         fetchMenuList();
+        fetchMenuTree();
     }, []);
 
     // 搜索表单配置
     const searchFormItems = [
         {
-            label: '菜单名称',
+            label: '菜单编码',
             field: 'menuName',
-            component: <Input placeholder="请输入菜单名称" />,
+            component: <Input placeholder="请输入菜单编码"/>,
         },
         {
             label: '菜单类型',
@@ -393,7 +579,7 @@ function MenuManager() {
                         <Space>
                             <Button
                                 type="primary"
-                                icon={<IconPlus />}
+                                icon={<IconPlus/>}
                                 onClick={handleAdd}
                             >
                                 新增菜单
@@ -433,18 +619,18 @@ function MenuManager() {
                     onSubmit={handleAddSubmit}
                 >
                     <Form.Item
-                        label="菜单名称"
+                        label="菜单编码"
                         field="menuName"
-                        rules={[{required: true, message: '请输入菜单名称'}]}
+                        rules={[{required: true, message: '请输入菜单编码'}]}
                     >
-                        <Input placeholder="请输入菜单名称" />
+                        <Input placeholder="请输入菜单编码"/>
                     </Form.Item>
                     <Form.Item
-                        label="显示名称"
+                        label="菜单名称"
                         field="menuLabel"
-                        rules={[{required: true, message: '请输入显示名称'}]}
+                        rules={[{required: true, message: '请输入菜单名称'}]}
                     >
-                        <Input placeholder="请输入显示名称" />
+                        <Input placeholder="请输入菜单名称"/>
                     </Form.Item>
                     <Form.Item
                         label="菜单类型"
@@ -459,20 +645,36 @@ function MenuManager() {
                             ))}
                         </Select>
                     </Form.Item>
-                    <Form.Item label="父菜单ID" field="parentId">
-                        <Input placeholder="请输入父菜单ID（可选）" />
+                    <Form.Item label="父菜单" field="parentId">
+                        <Cascader
+                            placeholder="请选择父菜单（可选）"
+                            options={convertMenuTreeToCascaderData(menuTree)}
+                            allowClear
+                            changeOnSelect
+                        />
                     </Form.Item>
                     <Form.Item label="路由地址" field="url">
-                        <Input placeholder="请输入路由地址" />
+                        <Input placeholder="请输入路由地址"/>
                     </Form.Item>
                     <Form.Item label="菜单图标" field="menuIcon">
-                        <Input placeholder="请输入菜单图标" />
+                        <Select placeholder="请选择菜单图标" allowClear showSearch filterOption={(inputValue, option) =>
+                            option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
+                        }>
+                            {menuIconOptions.map(option => (
+                                <Select.Option key={option.value} value={option.value}>
+                                    <Space>
+                                        {option.icon}
+                                        {option.label}
+                                    </Space>
+                                </Select.Option>
+                            ))}
+                        </Select>
                     </Form.Item>
                     <Form.Item label="排序号" field="seq">
-                        <Input placeholder="请输入排序号" />
+                        <InputNumber placeholder="请输入排序号" min={0} style={{width: '100%'}}/>
                     </Form.Item>
                     <Form.Item label="菜单描述" field="menuDescr">
-                        <TextArea placeholder="请输入菜单描述" rows={3} />
+                        <TextArea placeholder="请输入菜单描述" rows={3}/>
                     </Form.Item>
                 </Form>
             </Modal>
@@ -491,18 +693,18 @@ function MenuManager() {
                     onSubmit={handleEditSubmit}
                 >
                     <Form.Item
-                        label="菜单名称"
+                        label="菜单编码"
                         field="menuName"
-                        rules={[{required: true, message: '请输入菜单名称'}]}
+                        rules={[{required: true, message: '请输入菜单编码'}]}
                     >
-                        <Input placeholder="请输入菜单名称" />
+                        <Input placeholder="请输入菜单编码"/>
                     </Form.Item>
                     <Form.Item
-                        label="显示名称"
+                        label="菜单名称"
                         field="menuLabel"
-                        rules={[{required: true, message: '请输入显示名称'}]}
+                        rules={[{required: true, message: '请输入菜单名称'}]}
                     >
-                        <Input placeholder="请输入显示名称" />
+                        <Input placeholder="请输入菜单名称"/>
                     </Form.Item>
                     <Form.Item
                         label="菜单类型"
@@ -517,20 +719,34 @@ function MenuManager() {
                             ))}
                         </Select>
                     </Form.Item>
-                    <Form.Item label="父菜单ID" field="parentId">
-                        <Input placeholder="请输入父菜单ID（可选）" />
+                    <Form.Item label="父菜单" field="parentId">
+                        <Cascader
+                            placeholder="请选择父菜单（可选）"
+                            options={convertMenuTreeToCascaderData(menuTree)}
+                            allowClear
+                            changeOnSelect
+                        />
                     </Form.Item>
                     <Form.Item label="路由地址" field="url">
-                        <Input placeholder="请输入路由地址" />
+                        <Input placeholder="请输入路由地址"/>
                     </Form.Item>
                     <Form.Item label="菜单图标" field="menuIcon">
-                        <Input placeholder="请输入菜单图标" />
+                        <Select placeholder="请选择菜单图标" allowClear>
+                            {menuIconOptions.map(option => (
+                                <Select.Option key={option.value} value={option.value}>
+                                    <Space>
+                                        {option.icon}
+                                        {option.label}
+                                    </Space>
+                                </Select.Option>
+                            ))}
+                        </Select>
                     </Form.Item>
                     <Form.Item label="排序号" field="seq">
-                        <Input placeholder="请输入排序号" />
+                        <InputNumber placeholder="请输入排序号" min={0} style={{width: '100%'}}/>
                     </Form.Item>
                     <Form.Item label="菜单描述" field="menuDescr">
-                        <TextArea placeholder="请输入菜单描述" rows={3} />
+                        <TextArea placeholder="请输入菜单描述" rows={3}/>
                     </Form.Item>
                 </Form>
             </Modal>
@@ -550,11 +766,11 @@ function MenuManager() {
                             <span className="value">{currentMenu.menuId}</span>
                         </div>
                         <div className="detail-item">
-                            <span className="label">菜单名称：</span>
+                            <span className="label">菜单编码：</span>
                             <span className="value">{currentMenu.menuName}</span>
                         </div>
                         <div className="detail-item">
-                            <span className="label">显示名称：</span>
+                            <span className="label">菜单名称：</span>
                             <span className="value">{currentMenu.menuLabel}</span>
                         </div>
                         <div className="detail-item">
@@ -562,10 +778,10 @@ function MenuManager() {
                             <span className="value">
                                 <Tag color={
                                     currentMenu.menuType === 'DIRECTORY' ? 'blue' :
-                                    currentMenu.menuType === 'MENU' ? 'green' : 'orange'
+                                        currentMenu.menuType === 'MENU' ? 'green' : 'orange'
                                 }>
                                     {currentMenu.menuType === 'DIRECTORY' ? '目录' :
-                                     currentMenu.menuType === 'MENU' ? '菜单' : '按钮'}
+                                        currentMenu.menuType === 'MENU' ? '菜单' : '按钮'}
                                 </Tag>
                             </span>
                         </div>

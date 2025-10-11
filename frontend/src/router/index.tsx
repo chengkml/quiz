@@ -139,18 +139,6 @@ export const router = createBrowserRouter([
         ],
     },
 
-    // 独立页面（无Layout）
-    ...protectedPages.map((route) => ({
-        path: `/quiz/${route.path}`,
-        element: (
-            <UserProvider>
-                <MenuPermissionRoute requiredPath={route.requiredPath}>
-                    {route.element}
-                </MenuPermissionRoute>
-            </UserProvider>
-        ),
-    })),
-
     // 404
     {
         path: '*',

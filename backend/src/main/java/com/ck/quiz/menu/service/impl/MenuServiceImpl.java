@@ -53,6 +53,7 @@ public class MenuServiceImpl implements MenuService {
 
         // 创建菜单实体
         Menu menu = new Menu();
+        menu.setState(Menu.MenuState.ENABLED);
         BeanUtils.copyProperties(menuCreateDto, menu);
 
         // 保存菜单
