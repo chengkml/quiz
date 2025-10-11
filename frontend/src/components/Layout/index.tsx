@@ -1,19 +1,21 @@
 import React, {useEffect, useState} from 'react';
-import {Button, Dropdown, Layout, Menu, Message, Spin} from '@arco-design/web-react';
-import {Outlet, useLocation, useNavigate} from 'react-router-dom';
+import {Button, Dropdown, Layout, Menu, Message, Space} from '@arco-design/web-react';
+import {useLocation, useNavigate} from 'react-router-dom';
 import {
-  IconDashboard,
-  IconDown,
-  IconFile,
-  IconLock,
-  IconPoweroff,
-  IconSettings,
-  IconStorage,
-  IconUser,
+    IconCaretLeft,
+    IconCaretRight,
+    IconDashboard,
+    IconFile,
+    IconHome,
+    IconLock,
+    IconPoweroff,
+    IconSettings,
+    IconStorage,
+    IconUser,
 } from '@arco-design/web-react/icon';
 import {MenuTreeDto} from '../../types/menu';
 import {useUser} from '@/contexts/UserContext';
-import {clearUserInfo, getUserDisplayName} from '@/utils/userUtils';
+import {clearUserInfo} from '@/utils/userUtils';
 import './style.less';
 
 const {Header, Content, Sider} = Layout;
@@ -72,7 +74,7 @@ const AppLayout: React.FC = () => {
     // 获取菜单选中项
     const getSelectedKeys = () => {
         const path = location.pathname;
-        
+
         // 递归查找匹配的菜单项
         const findMatchingMenu = (menus: MenuTreeDto[]): string[] => {
             for (const menu of menus) {
@@ -130,32 +132,32 @@ const AppLayout: React.FC = () => {
             // 这里可以根据图标名称返回对应的图标组件
             switch (menu.menuIcon) {
                 case 'dashboard':
-                    return <IconDashboard />;
+                    return <IconDashboard/>;
                 case 'user':
-                    return <IconUser />;
+                    return <IconUser/>;
                 case 'settings':
-                    return <IconSettings />;
+                    return <IconSettings/>;
                 case 'file':
-                    return <IconFile />;
+                    return <IconFile/>;
                 case 'storage':
-                    return <IconStorage />;
+                    return <IconStorage/>;
                 case 'lock':
-                    return <IconLock />;
+                    return <IconLock/>;
                 default:
-                    return <IconFile />;
+                    return <IconFile/>;
             }
         }
 
         // 根据菜单路径或名称提供默认图标
         if (menu.url) {
-            if (menu.url.includes('dashboard')) return <IconDashboard />;
-            if (menu.url.includes('user')) return <IconUser />;
-            if (menu.url.includes('exam')) return <IconFile />;
-            if (menu.url.includes('question')) return <IconStorage />;
-            if (menu.url.includes('setting')) return <IconSettings />;
+            if (menu.url.includes('dashboard')) return <IconDashboard/>;
+            if (menu.url.includes('user')) return <IconUser/>;
+            if (menu.url.includes('exam')) return <IconFile/>;
+            if (menu.url.includes('question')) return <IconStorage/>;
+            if (menu.url.includes('setting')) return <IconSettings/>;
         }
 
-        return <IconFile />;
+        return <IconFile/>;
     };
 
     // 渲染菜单项
@@ -229,51 +231,51 @@ const AppLayout: React.FC = () => {
     );
 
     return (
-        <Layout className="app-layout">
-            <Header className="app-header">
-                <div className="header-content">
-                    {/*<div className="header-left">*/}
-                    {/*    <div className="app-title">Quiz Management System</div>*/}
-                    {/*</div>*/}
-                    <div className="header-right">
-                        <Dropdown droplist={userDropdownMenu} trigger="click">
-                            <Button type="text" className="user-dropdown-btn">
-                                <IconUser/>
-                                <span className="user-name">{getUserDisplayName(user)}</span>
-                                <IconDown/>
-                            </Button>
-                        </Dropdown>
-                    </div>
-                </div>
-            </Header>
-            <Layout>
-                <Sider
-                    collapsed={collapsed}
-                    onCollapse={setCollapsed}
-                    collapsible
-                    width={240}
-                    className="app-sider"
+        <Layout className='app-layout'>
+            <Sider
+                collapsed={collapsed}
+                onCollapse={(value) => setCollapsed(value)}
+                collapsible
+                trigger={collapsed ? <IconCaretRight/> : <IconCaretLeft/>}
+                breakpoint='xl'
+            >
+                <div className='logo'/>
+                <Menu
+                    selectedKeys={getSelectedKeys()}
+                    openKeys={getOpenKeys()}
+                    onClickMenuItem={handleMenuClick}
+                    style={{width: '100%'}}
                 >
-                    {loading ? (
-                        <div style={{padding: '20px', textAlign: 'center'}}>
-                            <Spin size={16}/>
-                        </div>
+                    {menuTree && menuTree.length > 0 ? (
+                        renderMenuItems(menuTree)
                     ) : (
-                        <Menu
-                            mode="vertical"
-                            selectedKeys={getSelectedKeys()}
-                            openKeys={getOpenKeys()}
-                            onClickMenuItem={handleMenuClick}
-                            className="side-menu"
-                        >
-                            {renderMenuItems(menuTree || [])}
-                        </Menu>
+                        <MenuItem key="no-menu" disabled>
+                            <IconHome/>
+                            暂无菜单
+                        </MenuItem>
                     )}
-                </Sider>
+                </Menu>
+            </Sider>
+            <Layout>
+                <Header className="app-header">
+                    <div className="header-content">
+                        <div className="header-left">
+                            <h2>Quiz管理系统</h2>
+                        </div>
+                        <div className="header-right">
+                            <Space>
+                                <span>欢迎，{user?.username || '用户'}</span>
+                                <Dropdown droplist={userDropdownMenu} position="br">
+                                    <Button type="text" icon={<IconUser />}>
+                                        {user?.username || '用户'}
+                                    </Button>
+                                </Dropdown>
+                            </Space>
+                        </div>
+                    </div>
+                </Header>
                 <Layout>
-                    <Content className="app-content">
-                        <Outlet/>
-                    </Content>
+                    <Content>Content</Content>
                 </Layout>
             </Layout>
         </Layout>

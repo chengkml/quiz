@@ -60,6 +60,17 @@ public class UserController {
         return ResponseEntity.ok(userDto);
     }
 
+    @Operation(summary = "用户登出", description = "注销当前登录用户")
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate(); // 使当前 session 失效
+        }
+        SecurityContextHolder.clearContext(); // 清除 Spring Security 上下文
+        return ResponseEntity.ok("用户已成功登出");
+    }
+
     @Operation(summary = "获取用户详情", description = "根据用户ID获取用户详细信息")
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(@PathVariable String id) {

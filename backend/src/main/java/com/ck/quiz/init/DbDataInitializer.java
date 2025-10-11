@@ -78,6 +78,7 @@ public class DbDataInitializer implements CommandLineRunner {
         Menu sysMgr = new Menu();
         sysMgr.setMenuId("sys_mgr");
         sysMgr.setMenuName("sys_mgr");
+        sysMgr.setUrl("");
         sysMgr.setMenuLabel("系统管理");
         sysMgr.setMenuType(Menu.MenuType.DIRECTORY);
         sysMgr.setSeq(1);
@@ -92,6 +93,7 @@ public class DbDataInitializer implements CommandLineRunner {
         Menu menuMgr = new Menu();
         menuMgr.setMenuId("menu_mgr");
         menuMgr.setMenuName("menu_mgr");
+        menuMgr.setUrl("menu");
         menuMgr.setMenuLabel("菜单管理");
         menuMgr.setMenuType(Menu.MenuType.MENU);
         menuMgr.setParentId("sys_mgr");
@@ -104,6 +106,7 @@ public class DbDataInitializer implements CommandLineRunner {
         Menu roleMgr = new Menu();
         roleMgr.setMenuId("role_mgr");
         roleMgr.setMenuName("role_mgr");
+        roleMgr.setUrl("role");
         roleMgr.setMenuLabel("角色管理");
         roleMgr.setMenuType(Menu.MenuType.MENU);
         roleMgr.setParentId("sys_mgr");
@@ -117,6 +120,7 @@ public class DbDataInitializer implements CommandLineRunner {
         Menu userMgr = new Menu();
         userMgr.setMenuId("user_mgr");
         userMgr.setMenuName("user_mgr");
+        userMgr.setUrl("user");
         userMgr.setMenuLabel("用户管理");
         userMgr.setMenuType(Menu.MenuType.MENU);
         userMgr.setParentId("sys_mgr");
