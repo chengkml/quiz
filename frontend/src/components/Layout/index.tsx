@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
-import {Button, Dropdown, Layout, Menu, Message, Space} from '@arco-design/web-react';
-import {useLocation, useNavigate} from 'react-router-dom';
+import {Button, Dropdown, Layout, Menu, Message, Space, Breadcrumb} from '@arco-design/web-react';
+import {useLocation, useNavigate, Outlet} from 'react-router-dom';
 import {
     IconCaretLeft,
     IconCaretRight,
@@ -230,6 +230,46 @@ const AppLayout: React.FC = () => {
         </Menu>
     );
 
+    // 获取面包屑导航数据
+    const getBreadcrumbItems = () => {
+        const path = location.pathname;
+        const breadcrumbItems = [
+            {
+                key: 'home',
+                label: '首页',
+                onClick: () => navigate('/quiz/frame')
+            }
+        ];
+
+        // 路径映射表
+        const pathMap: { [key: string]: string } = {
+            'user': '用户管理',
+            'role': '角色管理', 
+            'menu': '菜单管理',
+            'subject': '科目管理',
+            'category': '分类管理',
+            'knowledge': '知识点管理',
+            'question': '题目管理',
+            'exam': '考试管理',
+            'notfound': '页面未找到'
+        };
+
+        // 解析当前路径
+        const pathSegments = path.split('/').filter(segment => segment && segment !== 'quiz' && segment !== 'frame');
+        
+        if (pathSegments.length > 0) {
+            const currentPath = pathSegments[0];
+            const label = pathMap[currentPath] || currentPath;
+            
+            breadcrumbItems.push({
+                key: currentPath,
+                label: label
+            });
+        }
+
+        return breadcrumbItems;
+    };
+
     return (
         <Layout className='app-layout'>
             <Sider
@@ -260,7 +300,17 @@ const AppLayout: React.FC = () => {
                 <Header className="app-header">
                     <div className="header-content">
                         <div className="header-left">
-                            <h2>Quiz管理系统</h2>
+                            <Breadcrumb>
+                                {getBreadcrumbItems().map((item, index) => (
+                                    <Breadcrumb.Item 
+                                        key={item.key}
+                                        onClick={item.onClick}
+                                        style={{ cursor: item.onClick ? 'pointer' : 'default' }}
+                                    >
+                                        {item.label}
+                                    </Breadcrumb.Item>
+                                ))}
+                            </Breadcrumb>
                         </div>
                         <div className="header-right">
                             <Space>
@@ -275,7 +325,9 @@ const AppLayout: React.FC = () => {
                     </div>
                 </Header>
                 <Layout>
-                    <Content>Content</Content>
+                    <Content>
+                        <Outlet />
+                    </Content>
                 </Layout>
             </Layout>
         </Layout>
