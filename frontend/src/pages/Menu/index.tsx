@@ -116,6 +116,7 @@ import {
     IconZoomOut,
 } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
+import * as ArcoIcons from '@arco-design/web-react/icon';
 
 const {TextArea} = Input;
 const {Content} = Layout;
@@ -330,6 +331,15 @@ function MenuManager() {
         }
     };
 
+    // 根据英文编码渲染图标组件（用于列表与详情展示）
+    const renderIconByName = (iconName?: string) => {
+        if (!iconName) return null;
+        const IconComp = (ArcoIcons as any)[iconName];
+        if (IconComp) return <IconComp/>;
+        const fallback = menuIconOptions.find(opt => opt.value === iconName);
+        return fallback ? fallback.icon : null;
+    };
+
     // 表格列定义
     const columns = [
         {
@@ -371,6 +381,10 @@ function MenuManager() {
             dataIndex: 'menuIcon',
             key: 'menuIcon',
             width: 80,
+            render: (iconName) => {
+                const iconEl = renderIconByName(iconName);
+                return iconEl ? iconEl : '-';
+            }
         },
         {
             title: '排序',
@@ -905,7 +919,9 @@ function MenuManager() {
                         </div>
                         <div className="detail-item">
                             <span className="label">菜单图标：</span>
-                            <span className="value">{currentMenu.menuIcon || '-'}</span>
+                            <span className="value">
+                                {renderIconByName(currentMenu.menuIcon) || '-'}
+                            </span>
                         </div>
                         <div className="detail-item">
                             <span className="label">排序号：</span>

@@ -52,3 +52,14 @@ export {
   deleteUser,
   logoutUser
 };
+
+// ================== 用户角色分配相关接口 ==================
+
+// 获取启用角色列表
+export const getActiveRoles = () => axios.get(`${base}/api/role/list/active`);
+
+// 获取指定用户已分配的角色
+export const getUserRoles = (userId) => axios.get(`${base}/api/user/role/rela/${userId}/roles`);
+
+// 替换指定用户的角色分配（传入角色ID数组）
+export const replaceUserRoles = (userId, roleIds) => axios.post(`${base}/api/user/role/rela/${userId}/replace`, roleIds);

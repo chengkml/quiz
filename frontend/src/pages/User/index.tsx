@@ -15,6 +15,8 @@ import {
     Table,
     Tag,
     Tooltip,
+    Drawer,
+    Checkbox,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
@@ -26,6 +28,7 @@ import {
     disableUser,
     resetPassword,
 } from './api';
+import { getActiveRoles, getUserRoles, replaceUserRoles } from './api';
 import {
     IconDelete,
     IconEdit,
@@ -35,6 +38,7 @@ import {
     IconRefresh,
     IconSearch,
     IconUser,
+    IconMenu,
 } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 
@@ -83,6 +87,12 @@ function UserManager() {
         { label: '启用', value: 'ENABLED' },
         { label: '禁用', value: 'DISABLED' },
     ];
+
+    // 角色分配 Drawer 与数据
+    const [assignRoleVisible, setAssignRoleVisible] = useState(false);
+    const [assignRoleLoading, setAssignRoleLoading] = useState(false);
+    const [roleOptions, setRoleOptions] = useState([]);
+    const [selectedRoleIds, setSelectedRoleIds] = useState([]);
 
     // 表格列定义
     const columns = [
@@ -197,6 +207,10 @@ function UserManager() {
                                 <Menu.Item key="resetPassword">
                                     <IconRefresh style={{marginRight: '5px'}}/>
                                     重置密码
+                                </Menu.Item>
+                                <Menu.Item key="assignRoles">
+                                    <IconMenu style={{marginRight: '5px'}}/>
+                                    分配角色
                                 </Menu.Item>
                                 <Menu.Item key="toggleState">
                                     <IconUser style={{marginRight: '5px'}}/>
@@ -317,6 +331,48 @@ function UserManager() {
         }
     };
 
+    // 打开角色分配抽屉并加载数据
+    const openAssignRoles = async (record) => {
+        setCurrentUser(record);
+        setAssignRoleVisible(true);
+        setAssignRoleLoading(true);
+        try {
+            const [activeResp, userResp] = await Promise.all([
+                getActiveRoles(),
+                getUserRoles(record.userId),
+            ]);
+            const activeRoles = activeResp.data || [];
+            const userRoles = userResp.data || [];
+            setRoleOptions(activeRoles);
+            setSelectedRoleIds(userRoles.map(r => r.id));
+        } catch (error) {
+            Message.error('加载角色数据失败');
+            console.error('加载角色数据失败:', error);
+        } finally {
+            setAssignRoleLoading(false);
+        }
+    };
+
+    // 保存角色分配
+    const handleAssignRolesSave = async () => {
+        if (!currentUser) return;
+        setAssignRoleLoading(true);
+        try {
+            await replaceUserRoles(currentUser.userId, selectedRoleIds);
+            Message.success('角色分配已保存');
+            setAssignRoleVisible(false);
+        } catch (error) {
+            if (error.response?.data?.message) {
+                Message.error(error.response.data.message);
+            } else {
+                Message.error('保存角色分配失败');
+            }
+            console.error('保存角色分配失败:', error);
+        } finally {
+            setAssignRoleLoading(false);
+        }
+    };
+
     // 处理菜单点击
     const handleMenuClick = (key, event, record) => {
         event.stopPropagation();
@@ -324,6 +380,8 @@ function UserManager() {
             handleEdit(record);
         } else if (key === 'resetPassword') {
             handleResetPassword(record);
+        } else if (key === 'assignRoles') {
+            openAssignRoles(record);
         } else if (key === 'toggleState') {
             handleToggleState(record);
         } else if (key === 'delete') {
@@ -472,6 +530,42 @@ function UserManager() {
                     rowKey="userId"
                     size="small"
                 />
+
+                {/* 分配角色抽屉 */}
+                <Drawer
+                    title={`分配角色${currentUser ? ` - ${currentUser.userName || currentUser.userId}` : ''}`}
+                    visible={assignRoleVisible}
+                    onCancel={() => setAssignRoleVisible(false)}
+                    onOk={handleAssignRolesSave}
+                    okButtonProps={{ loading: assignRoleLoading }}
+                >
+                    <Spin loading={assignRoleLoading} tip="加载中...">
+                        <div style={{ maxHeight: 360, overflow: 'auto', paddingRight: 8 }}>
+                            <Checkbox.Group
+                                value={selectedRoleIds}
+                                onChange={vals => setSelectedRoleIds(vals)}
+                            >
+                                <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                                    {roleOptions && roleOptions.length > 0 ? (
+                                        roleOptions.map(role => (
+                                            <Checkbox key={role.id} value={role.id}>
+                                                <Space>
+                                                    <Tag color={role.state === 'ENABLED' ? 'green' : 'red'}>
+                                                        {role.state === 'ENABLED' ? '启用' : '禁用'}
+                                                    </Tag>
+                                                    <span>{role.name}</span>
+                                                    <span style={{ color: 'var(--color-text-3)' }}>（{role.id}）</span>
+                                                </Space>
+                                            </Checkbox>
+                                        ))
+                                    ) : (
+                                        <span style={{ color: 'var(--color-text-3)' }}>暂无启用角色</span>
+                                    )}
+                                </Space>
+                            </Checkbox.Group>
+                        </div>
+                    </Spin>
+                </Drawer>
 
                 {/* 分页 */}
                 <div className="pagination-wrapper">
