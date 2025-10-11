@@ -285,7 +285,7 @@ public class QuestionServiceImpl implements QuestionService {
                 "\n" +
                 "1. 输出严格 JSON，包含以下字段：\n" +
                 "[{\n" +
-                "  \"type\": \"SINGLE | MULTIPLE | BLANK | SHORT_ANSWER\",  // 题型\n" +
+                "  \"type\": \"SINGLE | MULTIPLE\",  // 题型\n" +
                 "  \"content\": \"题干文本\",\n" +
                 "  \"options\": \"A.选项1;B.选项2;C.选项3;D.选项4\",   // 所有选项用分号分隔，单选/多选题必填，填空/简答可为空\n" +
                 "  \"answer\": \"正确答案的 key 或文本，如 A 或 选项文本\",  // 对应正确答案，多个答案用逗号分隔\n" +
@@ -296,13 +296,10 @@ public class QuestionServiceImpl implements QuestionService {
                 "2. 题型说明：\n" +
                 "- SINGLE: 单选题\n" +
                 "- MULTIPLE: 多选题，答案多个时请用逗号分隔\n" +
-                "- BLANK: 填空题\n" +
-                "- SHORT_ANSWER: 简答题\n" +
                 "\n" +
                 "3. 输出规则：\n" +
                 "- 题目必须紧扣知识点描述\n" +
                 "- 单选题选项互斥，多选题选项合理\n" +
-                "- 填空题、简答题可为空选项，但必须提供答案\n" +
                 "- 解析要详细，便于学习者理解\n" +
                 "- options 和 answer 必须为字符串，不要输出 JSON 对象或数组\n" +
                 "- 输出 JSON 严格规范，不要多余文字\n" +

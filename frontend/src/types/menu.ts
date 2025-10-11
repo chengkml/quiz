@@ -7,23 +7,24 @@ export enum MenuType {
   BUTTON = 'BUTTON'        // 按钮
 }
 
-// 基础菜单DTO
+// 基础菜单DTO（与后端MenuDto保持一致）
 export interface MenuDto {
-  menuName: string;         // 菜单ID
-  menuLabel: string;        // 菜单名称
+  menuId: string;           // 菜单ID
+  menuName: string;         // 菜单名称（唯一业务标识）
+  menuLabel: string;        // 菜单显示名称（前端展示用）
   menuType: MenuType;       // 菜单类型
   parentId?: string;        // 父菜单ID
-  icon?: string;            // 图标
-  seq: number;              // 排序
-  state: string;       // 状态
-  visible: boolean;         // 是否可见
-  keepAlive: boolean;       // 是否缓存
-  menuExtConf?: string; // 菜单扩展配置
-  menuDescr?: string;          // 备注
-  createTime: string;       // 创建时间
-  updateTime: string;       // 更新时间
-  createBy?: string;        // 创建人
-  updateBy?: string;        // 更新人
+  parentName?: string;      // 父菜单名称（可选）
+  url?: string;             // 菜单路由地址或按钮权限标识
+  menuIcon?: string;        // 菜单图标
+  seq: number;              // 排序号（数值越小越靠前）
+  state: string;            // 菜单状态：ENABLED / DISABLED
+  menuDescr?: string;       // 菜单描述
+  createDate?: string;      // 创建时间
+  createUser?: string;      // 创建人
+  updateDate?: string;      // 最后更新时间
+  updateUser?: string;      // 最后更新人
+  children?: MenuDto[];     // 子菜单列表（树形结构）
 }
 
 // 菜单树形结构DTO
@@ -33,43 +34,42 @@ export interface MenuTreeDto extends MenuDto {
   expanded?: boolean;       // 是否展开（前端状态）
 }
 
-// 创建菜单DTO
+// 创建菜单DTO（与后端MenuCreateDto保持一致）
 export interface MenuCreateDto {
-  menuId: string;         // 菜单ID
-  menuName: string;         // 菜单英文名
-  menuLabel: string;        // 菜单名称
+  menuId?: string;          // 菜单ID（一般由后端生成）
+  menuName: string;         // 菜单名称（唯一业务标识）
+  menuLabel?: string;       // 菜单显示名称（前端展示用）
   menuType: MenuType;       // 菜单类型
   parentId?: string;        // 父菜单ID
-  icon?: string;            // 图标
-  seq: number;              // 排序
-  visible: boolean;         // 是否可见
-  keepAlive: boolean;       // 是否缓存
-  menuExtConf?: string;     // 菜单扩展配置（JSON字符串）
-  menuDescr?: string;          // 备注
+  url?: string;             // 菜单路由地址或按钮权限标识
+  menuIcon?: string;        // 菜单图标
+  seq?: number;             // 排序号（数值越小越靠前）
+  state?: string;           // 菜单状态：ENABLED / DISABLED
+  menuDescr?: string;       // 菜单描述
 }
 
-// 更新菜单DTO
+// 更新菜单DTO（与后端MenuUpdateDto保持一致）
 export interface MenuUpdateDto {
-  menuName?: string;        // 菜单ID（用于批量更新）
-  menuLabel?: string;       // 菜单名称
+  menuId?: string;          // 菜单ID
+  menuName?: string;        // 菜单名称（唯一业务标识）
+  menuLabel?: string;       // 菜单显示名称（前端展示用）
   menuType?: MenuType;      // 菜单类型
   parentId?: string;        // 父菜单ID
-  icon?: string;            // 图标
-  seq?: number;             // 排序
-  visible?: boolean;        // 是否可见
-  keepAlive?: boolean;      // 是否缓存
-  menuExtConf?: string;     // 菜单扩展配置（JSON字符串）
-  menuDescr?: string;          // 备注
+  url?: string;             // 菜单路由地址或按钮权限标识
+  menuIcon?: string;        // 菜单图标
+  seq?: number;             // 排序号（数值越小越靠前）
+  state?: string;           // 菜单状态：ENABLED / DISABLED
+  menuDescr?: string;       // 菜单描述
 }
 
-// 角色菜单关联DTO
+// 角色菜单关联DTO（与后端RoleMenuRelaDto保持一致）
 export interface RoleMenuRelaDto {
   id: string;               // 关联ID
   roleId: string;           // 角色ID
-  menuName: string;         // 菜单ID
+  menuId: string;           // 菜单ID
   roleName?: string;        // 角色名称（关联查询）
-  menuLabel?: string;       // 菜单名称（关联查询）
-  createTime: string;       // 创建时间
+  menuName?: string;        // 菜单名称（关联查询）
+  createDate?: string;      // 创建时间
 }
 
 // 菜单查询参数

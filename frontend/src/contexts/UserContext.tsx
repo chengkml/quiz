@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useNavigate } from 'react-router-dom';
 import { Message } from '@arco-design/web-react';
 import { LoginUserInfo } from '@/types/user';
-import { MenuTreeDto, MenuType } from '@/types/menu';
+import { MenuDto, MenuTreeDto, MenuType } from '@/types/menu';
 import { menuService } from '@/services/menuService';
 
 interface UserContextType {
@@ -39,17 +39,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [menuTree, setMenuTree] = useState<MenuTreeDto[]>([]);
 
-
-
   // 递归查找第一个可访问的菜单项
   const findFirstAccessibleMenu = (menuList: MenuTreeDto[]): string | null => {
     for (const menu of menuList) {
       // 如果是菜单类型且有路径配置，返回该路径
-      if (menu.menuType === MenuType.MENU && menu.menuExtConf) {
-        const parseConf = JSON.parse(menu.menuExtConf);
-        if(parseConf.path) {
-          return parseConf.path;
-        }
+      if (menu.menuType === MenuType.MENU && menu.url) {
+        return menu.url;
       }
       // 如果有子菜单，递归查找
       if (menu.children && menu.children.length > 0) {
@@ -80,7 +75,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         setMenuTree(response.data);
 
         if(location.pathname === '/quiz/frame') {
-
           // 获取菜单数据成功且不为空时，跳转到第一个菜单
           const firstMenuPath = findFirstAccessibleMenu(response.data);
           if (firstMenuPath) {

@@ -49,38 +49,24 @@ const AppLayout: React.FC = () => {
 
     // 处理菜单点击
     const handleMenuClick = (key: string) => {
-        // 在菜单树中查找对应的菜单项
-        const findMenuByKey = (menus: MenuTreeDto[], targetKey: string): MenuTreeDto | null => {
-            for (const menu of menus) {
-                if (menu.menuName === targetKey) {
-                    return menu;
-                }
-                if (menu.children) {
-                    const found = findMenuByKey(menu.children, targetKey);
-                    if (found) return found;
-                }
-            }
-            return null;
-        };
+        const menu = findMenuByKey(menuTree, key);
+        if (menu && menu.url) {
+            navigate(`/quiz/frame/${menu.url}`);
+        }
+    };
 
-        const menuItem = findMenuByKey(menuTree || [], key);
-        if (menuItem && menuItem.menuExtConf) {
-            try {
-                const extConf = typeof menuItem.menuExtConf === 'string' 
-                    ? JSON.parse(menuItem.menuExtConf) 
-                    : menuItem.menuExtConf;
-                if (extConf.path) {
-                    // 直接跳转到对应路径，不带frame前缀
-                    navigate(extConf.path);
-                    return;
-                }
-            } catch (error) {
-                console.error('解析菜单扩展配置失败:', error);
+    // 根据key查找菜单项
+    const findMenuByKey = (menus: MenuTreeDto[], key: string): MenuTreeDto | null => {
+        for (const menu of menus) {
+            if (menu.menuId === key) {
+                return menu;
+            }
+            if (menu.children && menu.children.length > 0) {
+                const found = findMenuByKey(menu.children, key);
+                if (found) return found;
             }
         }
-        
-        // 如果没有找到对应的菜单项或路径，使用默认路径
-        navigate(`/${key}`);
+        return null;
     };
 
     // 获取菜单选中项
@@ -90,19 +76,9 @@ const AppLayout: React.FC = () => {
         // 递归查找匹配的菜单项
         const findMatchingMenu = (menus: MenuTreeDto[]): string[] => {
             for (const menu of menus) {
-                if (menu.menuExtConf) {
-                    try {
-                        const extConf = typeof menu.menuExtConf === 'string' 
-                            ? JSON.parse(menu.menuExtConf) 
-                            : menu.menuExtConf;
-                        if (extConf.path && path.includes(extConf.path.replace('/', ''))) {
-                            return [menu.menuName];
-                        }
-                    } catch (error) {
-                        console.error('解析菜单扩展配置失败:', error);
-                    }
+                if (menu.url && path.includes(menu.url.replace('/', ''))) {
+                    return [menu.menuId];
                 }
-                
                 if (menu.children) {
                     const childResult = findMatchingMenu(menu.children);
                     if (childResult.length > 0) {
@@ -116,36 +92,28 @@ const AppLayout: React.FC = () => {
         return findMatchingMenu(menuTree || []);
     };
 
-    // 获取展开的菜单项
+    // 获取需要展开的菜单项
     const getOpenKeys = () => {
         const path = location.pathname;
         const openKeys: string[] = [];
-        
+
         // 递归查找需要展开的父菜单
         const findOpenKeys = (menus: MenuTreeDto[], parentKey?: string): boolean => {
             for (const menu of menus) {
-                if (menu.menuExtConf) {
-                    try {
-                        const extConf = typeof menu.menuExtConf === 'string' 
-                            ? JSON.parse(menu.menuExtConf) 
-                            : menu.menuExtConf;
-                        if (extConf.path && path.includes(extConf.path.replace('/', ''))) {
-                            if (parentKey) {
-                                openKeys.push(parentKey);
-                            }
-                            return true;
-                        }
-                    } catch (error) {
-                        console.error('解析菜单扩展配置失败:', error);
-                    }
-                }
-                
-                if (menu.children && findOpenKeys(menu.children, menu.menuName)) {
+                if (menu.url && path.includes(menu.url.replace('/', ''))) {
                     if (parentKey) {
                         openKeys.push(parentKey);
                     }
-                    openKeys.push(menu.menuName);
                     return true;
+                }
+                if (menu.children && menu.children.length > 0) {
+                    if (findOpenKeys(menu.children, menu.menuId)) {
+                        if (parentKey) {
+                            openKeys.push(parentKey);
+                        }
+                        openKeys.push(menu.menuId);
+                        return true;
+                    }
                 }
             }
             return false;
@@ -155,45 +123,39 @@ const AppLayout: React.FC = () => {
         return openKeys;
     };
 
-    // 根据菜单路径获取图标
-    const getMenuIcon = (menuExtConf?: any, icon?: string) => {
-        // 如果后台返回了图标，可以在这里处理图标映射
-        if (icon) {
-            // 这里可以根据icon字符串返回对应的React图标组件
-            // 暂时使用默认图标
-        }
-
-        // 解析菜单扩展配置获取路径
-        let path = '';
-        if (menuExtConf) {
-            try {
-                const extConf = typeof menuExtConf === 'string' ? JSON.parse(menuExtConf) : menuExtConf;
-                path = extConf.path || '';
-            } catch (error) {
-                console.error('解析菜单扩展配置失败:', error);
+    // 根据菜单配置获取图标
+    const getMenuIcon = (menu: MenuTreeDto) => {
+        // 如果菜单有图标配置，使用配置的图标
+        if (menu.menuIcon) {
+            // 这里可以根据图标名称返回对应的图标组件
+            switch (menu.menuIcon) {
+                case 'dashboard':
+                    return <IconDashboard />;
+                case 'user':
+                    return <IconUser />;
+                case 'settings':
+                    return <IconSettings />;
+                case 'file':
+                    return <IconFile />;
+                case 'storage':
+                    return <IconStorage />;
+                case 'lock':
+                    return <IconLock />;
+                default:
+                    return <IconFile />;
             }
         }
 
-        // 根据路径返回默认图标
-        if (path?.includes('dataset')) {
-            if (path.includes('list')) return <IconStorage/>;
-            if (path.includes('upload')) return <IconFile/>;
-            if (path.includes('analysis')) return <IconDashboard/>;
-            return <IconStorage/>;
+        // 根据菜单路径或名称提供默认图标
+        if (menu.url) {
+            if (menu.url.includes('dashboard')) return <IconDashboard />;
+            if (menu.url.includes('user')) return <IconUser />;
+            if (menu.url.includes('exam')) return <IconFile />;
+            if (menu.url.includes('question')) return <IconStorage />;
+            if (menu.url.includes('setting')) return <IconSettings />;
         }
-        if (path?.includes('datasource')) {
-            return <IconStorage/>;
-        }
-        if (path?.includes('synthesizers')) {
-            return <IconSettings/>;
-        }
-        if (path?.includes('system') || path?.includes('user') || path?.includes('role')) {
-            return <IconUser/>;
-        }
-        if (path?.includes('permission')) {
-            return <IconSettings/>;
-        }
-        return <IconDashboard/>;
+
+        return <IconFile />;
     };
 
     // 渲染菜单项
@@ -202,10 +164,10 @@ const AppLayout: React.FC = () => {
             if (menu.children && menu.children.length > 0) {
                 return (
                     <SubMenu
-                        key={menu.menuName}
+                        key={menu.menuId}
                         title={
                             <span>
-                                {getMenuIcon(menu.menuExtConf, menu.icon)}
+                                {getMenuIcon(menu)}
                                 {menu.menuLabel}
                             </span>
                         }
@@ -215,8 +177,8 @@ const AppLayout: React.FC = () => {
                 );
             } else {
                 return (
-                    <MenuItem key={menu.menuName}>
-                        {getMenuIcon(menu.menuExtConf, menu.icon)}
+                    <MenuItem key={menu.menuId}>
+                        {getMenuIcon(menu)}
                         {menu.menuLabel}
                     </MenuItem>
                 );
@@ -283,9 +245,9 @@ const AppLayout: React.FC = () => {
         <Layout className="app-layout">
             <Header className="app-header">
                 <div className="header-content">
-                    <div className="header-left">
-                        <div className="app-title">Quiz Management System</div>
-                    </div>
+                    {/*<div className="header-left">*/}
+                    {/*    <div className="app-title">Quiz Management System</div>*/}
+                    {/*</div>*/}
                     <div className="header-right">
                         <Dropdown droplist={userDropdownMenu} trigger="click">
                             <Button type="text" className="user-dropdown-btn">

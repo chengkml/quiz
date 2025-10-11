@@ -39,37 +39,45 @@ import {
 } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import ExamQuestionManager from './components/ExamQuestionManager';
+import {
+    ExamDto,
+    ExamStatus,
+    PaginationConfig,
+    StatusOption,
+    FormRef,
+    ExamQueryDto
+} from './types';
 
 const {TextArea} = Input;
 const {Content} = Layout;
 
-function ExamManager() {
+function ExamManager(): React.ReactElement {
     // 状态管理
-    const [tableData, setTableData] = useState([]);
-    const [tableLoading, setTableLoading] = useState(false);
-    const [tableScrollHeight, setTableScrollHeight] = useState(200);
+    const [tableData, setTableData] = useState<ExamDto[]>([]);
+    const [tableLoading, setTableLoading] = useState<boolean>(false);
+    const [tableScrollHeight, setTableScrollHeight] = useState<number>(200);
 
     // 对话框状态
-    const [addModalVisible, setAddModalVisible] = useState(false);
-    const [editModalVisible, setEditModalVisible] = useState(false);
-    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-    const [currentRecord, setCurrentRecord] = useState(null);
+    const [addModalVisible, setAddModalVisible] = useState<boolean>(false);
+    const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
+    const [deleteModalVisible, setDeleteModalVisible] = useState<boolean>(false);
+    const [currentRecord, setCurrentRecord] = useState<ExamDto | null>(null);
 
     // 查看详情相关状态
-    const [detailModalVisible, setDetailModalVisible] = useState(false);
-    const [detailRecord, setDetailRecord] = useState(null);
+    const [detailModalVisible, setDetailModalVisible] = useState<boolean>(false);
+    const [detailRecord, setDetailRecord] = useState<ExamDto | null>(null);
 
     // 题目管理相关状态
-    const [questionManagerVisible, setQuestionManagerVisible] = useState(false);
-    const [currentExamForQuestions, setCurrentExamForQuestions] = useState(null);
+    const [questionManagerVisible, setQuestionManagerVisible] = useState<boolean>(false);
+    const [currentExamForQuestions, setCurrentExamForQuestions] = useState<ExamDto | null>(null);
 
     // 表单引用
-    const filterFormRef = useRef();
-    const addFormRef = useRef();
-    const editFormRef = useRef();
+    const filterFormRef = useRef<FormRef['current']>();
+    const addFormRef = useRef<FormRef['current']>();
+    const editFormRef = useRef<FormRef['current']>();
 
     // 分页配置
-    const [pagination, setPagination] = useState({
+    const [pagination, setPagination] = useState<PaginationConfig>({
         current: 1,
         pageSize: 20,
         total: 0,
@@ -79,10 +87,10 @@ function ExamManager() {
     });
 
     // 试卷状态选项
-    const statusOptions = [
-        {label: '草稿', value: 'DRAFT'},
-        {label: '已发布', value: 'PUBLISHED'},
-        {label: '已归档', value: 'ARCHIVED'},
+    const statusOptions: StatusOption[] = [
+        {label: '草稿', value: ExamStatus.DRAFT},
+        {label: '已发布', value: ExamStatus.PUBLISHED},
+        {label: '已归档', value: ExamStatus.ARCHIVED},
     ];
 
     // 表格列配置
@@ -263,13 +271,13 @@ function ExamManager() {
     ];
 
     // 获取表格数据
-    const fetchTableData = async (params = {}, pageSize = pagination.pageSize, current = pagination.current) => {
+    const fetchTableData = async (params: Partial<ExamQueryDto> = {}, pageSize: number = pagination.pageSize, current: number = pagination.current): Promise<void> => {
         setTableLoading(true);
         try {
-            const targetParams = {
+            const targetParams: ExamQueryDto = {
                 ...params,
-                pageNum: current - 1,
-                pageSize: pageSize,
+                page: current - 1,
+                size: pageSize,
             };
             const response = await getExamList(targetParams);
             if (response.data) {
@@ -289,12 +297,12 @@ function ExamManager() {
     };
 
     // 搜索表格数据
-    const searchTableData = (params) => {
+    const searchTableData = (params: Partial<ExamQueryDto>): void => {
         fetchTableData(params, pagination.pageSize, 1);
     };
 
     // 处理菜单点击
-    const handleMenuClick = async (key, e, record) => {
+    const handleMenuClick = async (key: string, e: React.MouseEvent, record: ExamDto): Promise<void> => {
         e.stopPropagation();
         setCurrentRecord(record);
 
@@ -323,7 +331,7 @@ function ExamManager() {
     };
 
     // 查看详情
-    const handleViewDetail = async (record) => {
+    const handleViewDetail = async (record: ExamDto): Promise<void> => {
         try {
             const response = await getExamById(record.id);
             if (response.data) {
@@ -336,7 +344,7 @@ function ExamManager() {
     };
 
     // 管理题目
-    const handleManageQuestions = async (record) => {
+    const handleManageQuestions = async (record: ExamDto): Promise<void> => {
         try {
             const response = await getExamById(record.id);
             if (response.data) {
@@ -349,7 +357,7 @@ function ExamManager() {
     };
 
     // 题目变化回调
-    const handleQuestionsChange = async () => {
+    const handleQuestionsChange = async (): Promise<void> => {
         if (currentExamForQuestions) {
             try {
                 const response = await getExamById(currentExamForQuestions.id);
@@ -363,7 +371,9 @@ function ExamManager() {
             }
         }
     };
-    const handleEdit = (record) => {
+
+    // 编辑试卷
+    const handleEdit = (record: ExamDto): void => {
         setCurrentRecord(record);
         setEditModalVisible(true);
         setTimeout(() => {
@@ -377,7 +387,7 @@ function ExamManager() {
     };
 
     // 发布试卷
-    const handlePublish = async (record) => {
+    const handlePublish = async (record: ExamDto): Promise<void> => {
         try {
             await publishExam(record.id);
             Message.success('试卷发布成功');
@@ -388,7 +398,7 @@ function ExamManager() {
     };
 
     // 归档试卷
-    const handleArchive = async (record) => {
+    const handleArchive = async (record: ExamDto): Promise<void> => {
         try {
             await archiveExam(record.id);
             Message.success('试卷归档成功');
@@ -399,12 +409,12 @@ function ExamManager() {
     };
 
     // 添加试卷
-    const handleAdd = () => {
+    const handleAdd = (): void => {
         setAddModalVisible(true);
     };
 
     // 确认添加
-    const handleAddConfirm = async () => {
+    const handleAddConfirm = async (): Promise<void> => {
         try {
             const values = await addFormRef.current?.validate();
             if (values) {
@@ -420,10 +430,10 @@ function ExamManager() {
     };
 
     // 确认编辑
-    const handleEditConfirm = async () => {
+    const handleEditConfirm = async (): Promise<void> => {
         try {
             const values = await editFormRef.current?.validate();
-            if (values) {
+            if (values && currentRecord) {
                 await updateExam({
                     id: currentRecord.id,
                     ...values,
@@ -439,7 +449,7 @@ function ExamManager() {
     };
 
     // 确认删除
-    const handleDeleteConfirm = async () => {
+    const handleDeleteConfirm = async (): Promise<void> => {
         try {
             await deleteExam(currentRecord.id);
             Message.success('试卷删除成功');
@@ -451,7 +461,7 @@ function ExamManager() {
     };
 
     // 分页变化
-    const handlePaginationChange = (current, pageSize) => {
+    const handlePaginationChange = (current: number, pageSize: number): void => {
         fetchTableData({}, pageSize, current);
     };
 

@@ -112,8 +112,6 @@ function QuestionManager() {
     const questionTypeOptions = [
         {label: '单选题', value: 'SINGLE'},
         {label: '多选题', value: 'MULTIPLE'},
-        {label: '填空题', value: 'BLANK'},
-        {label: '简答题', value: 'SHORT_ANSWER'},
     ];
 
     // 难度等级选项
@@ -134,9 +132,7 @@ function QuestionManager() {
             render: (value) => {
                 const typeMap = {
                     'SINGLE': '单选题',
-                    'MULTIPLE': '多选题',
-                    'BLANK': '填空题',
-                    'SHORT_ANSWER': '简答题'
+                    'MULTIPLE': '多选题'
                 };
                 return <Tag color="blue">{typeMap[value] || value}</Tag>;
             },
@@ -1349,9 +1345,7 @@ function QuestionManager() {
                                 {generatedQuestions.map((question, index) => {
                                     const typeMap = {
                                         'SINGLE': '单选题',
-                                        'MULTIPLE': '多选题',
-                                        'BLANK': '填空题',
-                                        'SHORT_ANSWER': '简答题'
+                                        'MULTIPLE': '多选题'
                                     };
 
                                     return (
@@ -1434,9 +1428,7 @@ function QuestionManager() {
                             <div style={{marginBottom: 16}}>
                                 <div style={{display: 'flex', gap: 12, marginBottom: 12}}>
                                     <Tag color="blue">
-                                        {detailRecord.type === 'SINGLE' ? '单选题' :
-                                            detailRecord.type === 'MULTIPLE' ? '多选题' :
-                                                detailRecord.type === 'BLANK' ? '填空题' : '简答题'}
+                                        {detailRecord.type === 'SINGLE' ? '单选题' : '多选题'}
                                     </Tag>
                                     <Tag
                                         color={detailRecord.difficultyLevel <= 2 ? 'green' : detailRecord.difficultyLevel <= 4 ? 'orange' : 'red'}>
