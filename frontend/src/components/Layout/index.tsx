@@ -245,38 +245,60 @@ const AppLayout: React.FC = () => {
     // 获取面包屑导航数据
     const getBreadcrumbItems = () => {
         const path = location.pathname;
-        const breadcrumbItems = [
-            {
-                key: 'home',
-                label: '首页',
-                onClick: () => navigate('/quiz/frame')
-            }
-        ];
+        const breadcrumbItems: Array<{
+            key: string;
+            label: string;
+            onClick?: () => void;
+            isDirectory?: boolean;
+        }> = [];
 
-        // 路径映射表
-        const pathMap: { [key: string]: string } = {
-            'user': '用户管理',
-            'role': '角色管理', 
-            'menu': '菜单管理',
-            'subject': '科目管理',
-            'category': '分类管理',
-            'knowledge': '知识点管理',
-            'question': '题目管理',
-            'exam': '考试管理',
-            'notfound': '页面未找到'
+        // 递归查找当前路径对应的菜单项及其父级路径
+        const findMenuPath = (menus: MenuTreeDto[], targetPath: string, currentPath: MenuTreeDto[] = []): MenuTreeDto[] | null => {
+            for (const menu of menus) {
+                const newPath = [...currentPath, menu];
+                
+                // 检查当前菜单是否匹配路径
+                if (menu.url && targetPath.includes(menu.url.replace('/', ''))) {
+                    return newPath;
+                }
+                
+                // 递归检查子菜单
+                if (menu.children && menu.children.length > 0) {
+                    const result = findMenuPath(menu.children, targetPath, newPath);
+                    if (result) {
+                        return result;
+                    }
+                }
+            }
+            return null;
         };
 
-        // 解析当前路径
-        const pathSegments = path.split('/').filter(segment => segment && segment !== 'quiz' && segment !== 'frame');
+        // 获取当前路径的菜单层级
+        const menuPath = findMenuPath(menuTree || [], path);
         
-        if (pathSegments.length > 0) {
-            const currentPath = pathSegments[0];
-            const label = pathMap[currentPath] || currentPath;
-            
-            breadcrumbItems.push({
-                key: currentPath,
-                label: label
+        if (menuPath && menuPath.length > 0) {
+            // 根据菜单层级生成面包屑
+            menuPath.forEach((menu, index) => {
+                const isDirectory = menu.menuType === 'DIRECTORY';
+                const isLast = index === menuPath.length - 1;
+                
+                breadcrumbItems.push({
+                    key: menu.menuId,
+                    label: menu.menuLabel,
+                    isDirectory: isDirectory,
+                    // 只有非目录类型的菜单才允许点击跳转，且不是最后一个
+                    onClick: (!isDirectory && !isLast && menu.url) ? () => navigate(`/quiz/frame/${menu.url}`) : undefined
+                });
             });
+        } else {
+            // 如果没有找到匹配的菜单，显示页面未找到
+            const pathSegments = path.split('/').filter(segment => segment && segment !== 'quiz' && segment !== 'frame');
+            if (pathSegments.length > 0 && pathSegments[0] === 'notfound') {
+                breadcrumbItems.push({
+                    key: 'notfound',
+                    label: '页面未找到'
+                });
+            }
         }
 
         return breadcrumbItems;
@@ -317,7 +339,10 @@ const AppLayout: React.FC = () => {
                                     <Breadcrumb.Item 
                                         key={item.key}
                                         onClick={item.onClick}
-                                        style={{ cursor: item.onClick ? 'pointer' : 'default' }}
+                                        style={{ 
+                                            cursor: item.onClick ? 'pointer' : 'default',
+                                            color: item.isDirectory ? '#999' : undefined
+                                        }}
                                     >
                                         {item.label}
                                     </Breadcrumb.Item>

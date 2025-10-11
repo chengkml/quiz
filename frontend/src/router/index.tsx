@@ -12,6 +12,34 @@ import KnowledgeManagement from '@/pages/Knowledge';
 import UserManagement from '@/pages/User';
 import NotFound from '@/pages/NotFound';
 import { UserProvider } from '@/contexts/UserContext';
+import { MenuTreeDto, MenuType } from '@/types/menu';
+
+/**
+ * 检查用户是否有访问指定路径的权限
+ * @param path 要检查的路径
+ * @param menuTree 用户菜单树
+ * @returns 是否有权限访问
+ */
+const hasMenuPermission = (path: string, menuTree: MenuTreeDto[]): boolean => {
+  // 递归检查菜单树中是否包含指定路径
+  const checkMenuTree = (menus: MenuTreeDto[]): boolean => {
+    for (const menu of menus) {
+      // 检查当前菜单项
+      if (menu.menuType === MenuType.MENU && menu.url === path) {
+        return true;
+      }
+      // 递归检查子菜单
+      if (menu.children && menu.children.length > 0) {
+        if (checkMenuTree(menu.children)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  return checkMenuTree(menuTree);
+};
 
 /**
  * 路由守卫组件
@@ -26,17 +54,52 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 /**
+ * 菜单权限路由守卫组件
+ * 检查用户是否有访问当前页面的菜单权限
+ */
+const MenuPermissionRoute: React.FC<{ 
+  children: React.ReactNode; 
+  requiredPath: string;
+}> = ({ children, requiredPath }) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/quiz/login" replace />;
+  }
+
+  // 获取用户菜单信息
+  const menuInfoStr = localStorage.getItem('menuInfo');
+  if (!menuInfoStr) {
+    // 如果没有菜单信息，跳转到NotFound页面
+    return <Navigate to="/quiz/frame/notfound" replace />;
+  }
+
+  try {
+    const menuTree: MenuTreeDto[] = JSON.parse(menuInfoStr);
+    
+    // 检查是否有访问权限
+    if (!hasMenuPermission(requiredPath, menuTree)) {
+      return <Navigate to="/quiz/frame/notfound" replace />;
+    }
+
+    return <>{children}</>;
+  } catch (error) {
+    console.error('Failed to parse menu info:', error);
+    return <Navigate to="/quiz/frame/notfound" replace />;
+  }
+};
+
+/**
  * 需要登录访问的页面（不带Layout）
  */
 const protectedPages = [
-    { path: 'user', element: <UserManagement /> },
-    { path: 'role', element: <RoleManagement /> },
-    { path: 'menu', element: <MenuManagement /> },
-    { path: 'subject', element: <SubjectManagement /> },
-    { path: 'category', element: <CategoryManagement /> },
-    { path: 'knowledge', element: <KnowledgeManagement /> },
-    { path: 'question', element: <QuestionManagement /> },
-    { path: 'exam', element: <ExamManagement /> },
+    { path: 'user', element: <UserManagement />, requiredPath: 'user' },
+    { path: 'role', element: <RoleManagement />, requiredPath: 'role' },
+    { path: 'menu', element: <MenuManagement />, requiredPath: 'menu' },
+    { path: 'subject', element: <SubjectManagement />, requiredPath: 'subject' },
+    { path: 'category', element: <CategoryManagement />, requiredPath: 'category' },
+    { path: 'knowledge', element: <KnowledgeManagement />, requiredPath: 'knowledge' },
+    { path: 'question', element: <QuestionManagement />, requiredPath: 'question' },
+    { path: 'exam', element: <ExamManagement />, requiredPath: 'exam' },
 ];
 
 /**
@@ -64,7 +127,14 @@ export const router = createBrowserRouter([
             </UserProvider>
         ),
         children: [
-            ...protectedPages,
+            ...protectedPages.map((route) => ({
+                path: route.path,
+                element: (
+                    <MenuPermissionRoute requiredPath={route.requiredPath}>
+                        {route.element}
+                    </MenuPermissionRoute>
+                ),
+            })),
             { path: 'notfound', element: <NotFound /> },
         ],
     },
@@ -74,7 +144,9 @@ export const router = createBrowserRouter([
         path: `/quiz/${route.path}`,
         element: (
             <UserProvider>
-                <ProtectedRoute>{route.element}</ProtectedRoute>
+                <MenuPermissionRoute requiredPath={route.requiredPath}>
+                    {route.element}
+                </MenuPermissionRoute>
             </UserProvider>
         ),
     })),

@@ -73,6 +73,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           return;
         }
         setMenuTree(response);
+        // 保存菜单信息到localStorage，供路由守卫使用
+        localStorage.setItem('menuInfo', JSON.stringify(response));
 
         if(location.pathname === '/quiz/frame') {
           // 获取菜单数据成功且不为空时，跳转到第一个菜单
@@ -89,12 +91,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         console.error('Failed to load menu from server:', response.message);
         Message.error('加载菜单失败');
         setMenuTree([]);
+        localStorage.removeItem('menuInfo');
         navigate('/quiz/frame/notfound');
       }
     } catch (error) {
       console.error('Error loading menu from server:', error);
       Message.error('加载菜单失败');
       setMenuTree([]);
+      localStorage.removeItem('menuInfo');
       navigate('/quiz/frame/notfound');
     }
   }, [user?.userId, navigate]);
