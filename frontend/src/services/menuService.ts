@@ -188,7 +188,7 @@ class MenuService {
    * 获取用户的菜单树
    */
   async getUserMenuTree(userId: string): Promise<ApiResponse<MenuTreeDto[]>> {
-    const response = await axios.get(`${this.baseURL}/user/${userId}/tree`);
+    const response = await axios.get(`/quiz/api/role/menu/rela/user/${userId}/tree`);
     return response.data;
   }
 

@@ -66,17 +66,17 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
       
       const response = await menuService.getUserMenuTree(user.userId);
-      if (response.success && response.data) {
-        if (response.data.length === 0) {
+      if (response) {
+        if (response.length === 0) {
           console.warn('菜单数据为空，跳转到NotFound页面');
           navigate('/quiz/frame/notfound');
           return;
         }
-        setMenuTree(response.data);
+        setMenuTree(response);
 
         if(location.pathname === '/quiz/frame') {
           // 获取菜单数据成功且不为空时，跳转到第一个菜单
-          const firstMenuPath = findFirstAccessibleMenu(response.data);
+          const firstMenuPath = findFirstAccessibleMenu(response);
           if (firstMenuPath) {
             console.log('跳转到第一个菜单:', firstMenuPath);
             navigate('/quiz/frame/'+firstMenuPath);

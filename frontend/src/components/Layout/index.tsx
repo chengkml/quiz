@@ -193,12 +193,6 @@ const AppLayout: React.FC = () => {
         Message.success('退出登录成功');
     };
 
-    // 处理选择团队
-    const handleSelectTeam = () => {
-        Message.info('选择团队功能');
-        // TODO: 实现选择团队逻辑
-    };
-
     // 处理修改密码
     const handleChangePassword = () => {
         Message.info('修改密码功能');
@@ -211,9 +205,6 @@ const AppLayout: React.FC = () => {
             case 'logout':
                 handleLogout();
                 break;
-            case 'team':
-                handleSelectTeam();
-                break;
             case 'password':
                 handleChangePassword();
                 break;
@@ -225,10 +216,6 @@ const AppLayout: React.FC = () => {
     // 用户下拉菜单配置
     const userDropdownMenu = (
         <Menu onClickMenuItem={handleUserMenuClick}>
-            <MenuItem key="team">
-                <IconUser/>
-                选择团队
-            </MenuItem>
             <MenuItem key="password">
                 <IconLock/>
                 修改密码

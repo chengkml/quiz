@@ -38,11 +38,11 @@ public class SecurityConfig {
                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                                 .requestMatchers("/static/**", "/**/*.html", "/**/*.css", "/**/*.js",
                                         "/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.gif", "/**/*.ico").permitAll()
-//                        .anyRequest().authenticated()
-                                .anyRequest().permitAll() // 所有请求都允许
+                        .anyRequest().authenticated()
+//                                .anyRequest().permitAll() // 所有请求都允许
                 )
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) -> {
