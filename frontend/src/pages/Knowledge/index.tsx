@@ -24,13 +24,14 @@ import {
     getKnowledgeQuestions,
     updateKnowledge,
 } from './api';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 
 const {TextArea} = Input;
 const {Content} = Layout;
 
 function KnowledgeManager() {
+    const [tableScrollHeight, setTableScrollHeight] = useState(200);
     // 状态管理
     const [tableData, setTableData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -443,6 +444,33 @@ function KnowledgeManager() {
         }
     };
 
+    // 监听窗口大小变化，动态调整表格高度
+    useEffect(() => {
+        const calculateTableHeight = () => {
+            const windowHeight = window.innerHeight;
+            // 减去页面其他元素的高度，如头部、筛选区域、分页等
+            // 这里可以根据实际页面布局调整计算逻辑
+            const otherElementsHeight = 240; // 预估其他元素占用的高度
+            const newHeight = Math.max(100, windowHeight - otherElementsHeight);
+            setTableScrollHeight(newHeight);
+        };
+
+        // 初始计算
+        calculateTableHeight();
+
+        // 监听窗口大小变化
+        const handleResize = () => {
+            calculateTableHeight();
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        // 清理事件监听器
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+
     // 初始化数据
     useEffect(() => {
         fetchTableData();
@@ -469,380 +497,373 @@ function KnowledgeManager() {
 
     return (
         <Layout className="knowledge-manager">
-            <Content>
-                {/* 筛选区域 */}
-                <FilterForm
-                    ref={filterFormRef}
-                    config={filterFormConfig}
-                    onSearch={searchTableData}
-                    onReset={() => fetchTableData()}
-                >
-                    <Form.Item field='knowledgeName' label='关键字'>
-                        <Input
-                            placeholder='请输入关键字'
-                        />
-                    </Form.Item>
-                </FilterForm>
-
-                {/* 表格区域 */}
-                <div className="table-section">
-                    <div className="table-header">
-                        <div className="table-title">知识点列表</div>
-                        <div className="table-actions">
-                            <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
-                                新增知识点
-                            </Button>
-                        </div>
-                    </div>
-                    <div className="table-content">
-                        <Table
-                            columns={columns}
-                            data={tableData}
-                            loading={tableLoading}
-                            pagination={{
-                                ...pagination,
-                                onChange: handlePageChange,
-                            }}
-                            scroll={{x: 1200}}
-                            rowKey="id"
-                        />
-                    </div>
-                </div>
-
-                {/* 新增对话框 */}
-                <Modal
-                    title="新增知识点"
-                    visible={addModalVisible}
-                    onCancel={() => {
-                        setAddModalVisible(false);
-                        addFormRef.current?.resetFields();
-                    }}
-                    footer={null}
-                    width={600}
-                >
-                    <Form ref={addFormRef} className="modal-form" layout="vertical">
-                        <Form.Item
-                            label="知识点名称"
-                            field="name"
-                            rules={[
-                                {required: true, message: '请输入知识点名称'},
-                                {maxLength: 64, message: '知识点名称不能超过64个字符'},
-                            ]}
-                        >
-                            <Input placeholder="请输入知识点名称"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="描述"
-                            field="description"
-                            rules={[
-                                {maxLength: 255, message: '描述不能超过255个字符'},
-                            ]}
-                        >
-                            <TextArea
-                                placeholder="请输入知识点描述"
-                                rows={4}
-                                maxLength={255}
-                                showWordLimit
+            <Layout>
+                <Content>
+                    {/* 筛选区域 */}
+                    <FilterForm
+                        ref={filterFormRef}
+                        config={filterFormConfig}
+                        onSearch={searchTableData}
+                        onReset={() => fetchTableData()}
+                    >
+                        <Form.Item field='knowledgeName' label='关键字'>
+                            <Input
+                                placeholder='请输入关键字'
                             />
                         </Form.Item>
-                        <Form.Item
-                            label="所属学科"
-                            field="subjectId"
-                            rules={[{required: true, message: '请选择所属学科'}]}
-                        >
-                            <Select
-                                placeholder="请选择所属学科"
-                                options={subjects}
-                                loading={subjectsLoading}
-                                allowClear
-                                onChange={(value) => {
-                                    // 当学科改变时，清空分类选择并重新加载分类列表
-                                    addFormRef.current?.setFieldValue('categoryId', undefined);
-                                    fetchCategoriesBySubject(value);
-                                }}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="所属分类"
-                            field="categoryId"
-                            rules={[{required: true, message: '请选择所属分类'}]}
-                        >
-                            <Select
-                                placeholder="请选择所属分类"
-                                options={categories}
-                                loading={categoriesLoading}
-                                allowClear
-                                disabled={!addFormRef.current?.getFieldValue('subjectId')}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="难度等级"
-                            field="difficultyLevel"
-                            rules={[{required: true, message: '请选择难度等级'}]}
-                        >
-                            <Select placeholder="请选择难度等级" options={difficultyOptions}/>
-                        </Form.Item>
-                        <div className="form-actions">
-                            <Button
-                                onClick={() => {
-                                    setAddModalVisible(false);
-                                    addFormRef.current?.resetFields();
-                                }}
-                            >
-                                取消
-                            </Button>
-                            <Button type="primary" loading={loading} onClick={confirmAdd}>
-                                确定
-                            </Button>
-                        </div>
-                    </Form>
-                </Modal>
-
-                {/* 编辑对话框 */}
-                <Modal
-                    title="编辑知识点"
-                    visible={editModalVisible}
-                    onCancel={() => {
-                        setEditModalVisible(false);
-                        editFormRef.current?.resetFields();
-                    }}
-                    footer={null}
-                    width={600}
-                    afterOpen={() => {
-                        if (currentRecord) {
-                            editFormRef.current?.setFieldsValue({
-                                name: currentRecord.name,
-                                description: currentRecord.description,
-                                categoryId: currentRecord.categoryId,
-                                subjectId: currentRecord.subjectId,
-                                difficultyLevel: currentRecord.difficultyLevel,
-                            });
-                            // 编辑时根据当前记录的学科ID加载对应的分类列表
-                            if (currentRecord.subjectId) {
-                                fetchCategoriesBySubject(currentRecord.subjectId);
-                            }
-                        }
-                    }}
-                >
-                    <Form ref={editFormRef} className="modal-form" layout="vertical">
-                        <Form.Item
-                            label="知识点名称"
-                            field="name"
-                            rules={[
-                                {required: true, message: '请输入知识点名称'},
-                                {maxLength: 64, message: '知识点名称不能超过64个字符'},
-                            ]}
-                        >
-                            <Input placeholder="请输入知识点名称"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="描述"
-                            field="description"
-                            rules={[
-                                {maxLength: 255, message: '描述不能超过255个字符'},
-                            ]}
-                        >
-                            <TextArea
-                                placeholder="请输入知识点描述"
-                                rows={4}
-                                maxLength={255}
-                                showWordLimit
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="所属学科"
-                            field="subjectId"
-                            rules={[{required: true, message: '请选择所属学科'}]}
-                        >
-                            <Select
-                                placeholder="请选择所属学科"
-                                options={subjects}
-                                loading={subjectsLoading}
-                                allowClear
-                                onChange={(value) => {
-                                    // 当学科改变时，清空分类选择并重新加载分类列表
-                                    editFormRef.current?.setFieldValue('categoryId', undefined);
-                                    fetchCategoriesBySubject(value);
-                                }}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="所属分类"
-                            field="categoryId"
-                            rules={[{required: true, message: '请选择所属分类'}]}
-                        >
-                            <Select
-                                placeholder="请选择所属分类"
-                                options={categories}
-                                loading={categoriesLoading}
-                                allowClear
-                                disabled={!editFormRef.current?.getFieldValue('subjectId')}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="难度等级"
-                            field="difficultyLevel"
-                            rules={[{required: true, message: '请选择难度等级'}]}
-                        >
-                            <Select placeholder="请选择难度等级" options={difficultyOptions}/>
-                        </Form.Item>
-                        <div className="form-actions">
-                            <Button
-                                onClick={() => {
-                                    setEditModalVisible(false);
-                                    editFormRef.current?.resetFields();
-                                }}
-                            >
-                                取消
-                            </Button>
-                            <Button type="primary" loading={loading} onClick={confirmEdit}>
-                                确定
-                            </Button>
-                        </div>
-                    </Form>
-                </Modal>
-
-                {/* 删除确认对话框 */}
-                <Modal
-                    title="删除知识点"
-                    visible={deleteModalVisible}
-                    onCancel={() => setDeleteModalVisible(false)}
-                    onOk={confirmDelete}
-                    confirmLoading={loading}
-                >
-                    <p>确定要删除知识点 "{currentRecord?.name}" 吗？此操作不可撤销。</p>
-                </Modal>
-
-                {/* 详情对话框 */}
-                <Modal
-                    title="知识点详情"
-                    visible={detailModalVisible}
-                    onCancel={() => setDetailModalVisible(false)}
-                    footer={
-                        <Button onClick={() => setDetailModalVisible(false)}>
-                            关闭
+                    </FilterForm>
+                    <div className="action-buttons">
+                        <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
+                            新增知识点
                         </Button>
-                    }
-                    width={600}
-                >
-                    <div className="detail-modal">
-                        <div className="detail-item">
-                            <div className="detail-label">知识点名称：</div>
-                            <div className="detail-value">{detailRecord?.name}</div>
-                        </div>
-                        <div className="detail-item">
-                            <div className="detail-label">描述：</div>
-                            <div className="detail-value">{detailRecord?.description || '--'}</div>
-                        </div>
-                        <div className="detail-item">
-                            <div className="detail-label">所属分类：</div>
-                            <div className="detail-value">{detailRecord?.categoryName || '--'}</div>
-                        </div>
-                        <div className="detail-item">
-                            <div className="detail-label">所属学科：</div>
-                            <div className="detail-value">{detailRecord?.subjectName || '--'}</div>
-                        </div>
-                        <div className="detail-item">
-                            <div className="detail-label">难度等级：</div>
-                            <div className="detail-value">
-                                {detailRecord?.difficultyLevel ? `${detailRecord.difficultyLevel}级` : '--'}
-                            </div>
-                        </div>
-                        <div className="detail-item">
-                            <div className="detail-label">创建人：</div>
-                            <div className="detail-value">{detailRecord?.createUserName || '--'}</div>
-                        </div>
-                        <div className="detail-item">
-                            <div className="detail-label">创建时间：</div>
-                            <div className="detail-value">
-                                {detailRecord?.createDate ? new Date(detailRecord.createDate).toLocaleString() : '--'}
-                            </div>
-                        </div>
-                        <div className="detail-item">
-                            <div className="detail-label">更新人：</div>
-                            <div className="detail-value">{detailRecord?.updateUserName || '--'}</div>
-                        </div>
-                        <div className="detail-item">
-                            <div className="detail-label">更新时间：</div>
-                            <div className="detail-value">
-                                {detailRecord?.updateDate ? new Date(detailRecord.updateDate).toLocaleString() : '--'}
-                            </div>
-                        </div>
                     </div>
-                </Modal>
+                    <Table
+                        columns={columns}
+                        data={tableData}
+                        loading={tableLoading}
+                        pagination={{
+                            ...pagination,
+                            onChange: handlePageChange,
+                        }}
+                        scroll={{y: tableScrollHeight}}
+                        rowKey="id"
+                    />
 
-                {/* 关联问题模态框 */}
-                <Modal
-                    title={`关联问题 - ${currentRecord?.name}`}
-                    visible={questionsModalVisible}
-                    onCancel={() => {
-                        setQuestionsModalVisible(false);
-                        setRelatedQuestions([]);
-                    }}
-                    footer={null}
-                    width={800}
-                >
-                    <div style={{maxHeight: 500, overflowY: 'auto'}}>
-                        {questionsLoading ? (
-                            <div style={{textAlign: 'center', padding: '20px'}}>
-                                加载中...
+                    {/* 新增对话框 */}
+                    <Modal
+                        title="新增知识点"
+                        visible={addModalVisible}
+                        onCancel={() => {
+                            setAddModalVisible(false);
+                            addFormRef.current?.resetFields();
+                        }}
+                        footer={null}
+                        width={600}
+                    >
+                        <Form ref={addFormRef} className="modal-form" layout="vertical">
+                            <Form.Item
+                                label="知识点名称"
+                                field="name"
+                                rules={[
+                                    {required: true, message: '请输入知识点名称'},
+                                    {maxLength: 64, message: '知识点名称不能超过64个字符'},
+                                ]}
+                            >
+                                <Input placeholder="请输入知识点名称"/>
+                            </Form.Item>
+                            <Form.Item
+                                label="描述"
+                                field="description"
+                                rules={[
+                                    {maxLength: 255, message: '描述不能超过255个字符'},
+                                ]}
+                            >
+                                <TextArea
+                                    placeholder="请输入知识点描述"
+                                    rows={4}
+                                    maxLength={255}
+                                    showWordLimit
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="所属学科"
+                                field="subjectId"
+                                rules={[{required: true, message: '请选择所属学科'}]}
+                            >
+                                <Select
+                                    placeholder="请选择所属学科"
+                                    options={subjects}
+                                    loading={subjectsLoading}
+                                    allowClear
+                                    onChange={(value) => {
+                                        // 当学科改变时，清空分类选择并重新加载分类列表
+                                        addFormRef.current?.setFieldValue('categoryId', undefined);
+                                        fetchCategoriesBySubject(value);
+                                    }}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="所属分类"
+                                field="categoryId"
+                                rules={[{required: true, message: '请选择所属分类'}]}
+                            >
+                                <Select
+                                    placeholder="请选择所属分类"
+                                    options={categories}
+                                    loading={categoriesLoading}
+                                    allowClear
+                                    disabled={!addFormRef.current?.getFieldValue('subjectId')}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="难度等级"
+                                field="difficultyLevel"
+                                rules={[{required: true, message: '请选择难度等级'}]}
+                            >
+                                <Select placeholder="请选择难度等级" options={difficultyOptions}/>
+                            </Form.Item>
+                            <div className="form-actions">
+                                <Button
+                                    onClick={() => {
+                                        setAddModalVisible(false);
+                                        addFormRef.current?.resetFields();
+                                    }}
+                                >
+                                    取消
+                                </Button>
+                                <Button type="primary" loading={loading} onClick={confirmAdd}>
+                                    确定
+                                </Button>
                             </div>
-                        ) : relatedQuestions.length > 0 ? (
-                            <div>
-                                <div style={{marginBottom: 16, color: '#666'}}>
-                                    共找到 {relatedQuestions.length} 道关联问题
+                        </Form>
+                    </Modal>
+
+                    {/* 编辑对话框 */}
+                    <Modal
+                        title="编辑知识点"
+                        visible={editModalVisible}
+                        onCancel={() => {
+                            setEditModalVisible(false);
+                            editFormRef.current?.resetFields();
+                        }}
+                        footer={null}
+                        width={600}
+                        afterOpen={() => {
+                            if (currentRecord) {
+                                editFormRef.current?.setFieldsValue({
+                                    name: currentRecord.name,
+                                    description: currentRecord.description,
+                                    categoryId: currentRecord.categoryId,
+                                    subjectId: currentRecord.subjectId,
+                                    difficultyLevel: currentRecord.difficultyLevel,
+                                });
+                                // 编辑时根据当前记录的学科ID加载对应的分类列表
+                                if (currentRecord.subjectId) {
+                                    fetchCategoriesBySubject(currentRecord.subjectId);
+                                }
+                            }
+                        }}
+                    >
+                        <Form ref={editFormRef} className="modal-form" layout="vertical">
+                            <Form.Item
+                                label="知识点名称"
+                                field="name"
+                                rules={[
+                                    {required: true, message: '请输入知识点名称'},
+                                    {maxLength: 64, message: '知识点名称不能超过64个字符'},
+                                ]}
+                            >
+                                <Input placeholder="请输入知识点名称"/>
+                            </Form.Item>
+                            <Form.Item
+                                label="描述"
+                                field="description"
+                                rules={[
+                                    {maxLength: 255, message: '描述不能超过255个字符'},
+                                ]}
+                            >
+                                <TextArea
+                                    placeholder="请输入知识点描述"
+                                    rows={4}
+                                    maxLength={255}
+                                    showWordLimit
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="所属学科"
+                                field="subjectId"
+                                rules={[{required: true, message: '请选择所属学科'}]}
+                            >
+                                <Select
+                                    placeholder="请选择所属学科"
+                                    options={subjects}
+                                    loading={subjectsLoading}
+                                    allowClear
+                                    onChange={(value) => {
+                                        // 当学科改变时，清空分类选择并重新加载分类列表
+                                        editFormRef.current?.setFieldValue('categoryId', undefined);
+                                        fetchCategoriesBySubject(value);
+                                    }}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="所属分类"
+                                field="categoryId"
+                                rules={[{required: true, message: '请选择所属分类'}]}
+                            >
+                                <Select
+                                    placeholder="请选择所属分类"
+                                    options={categories}
+                                    loading={categoriesLoading}
+                                    allowClear
+                                    disabled={!editFormRef.current?.getFieldValue('subjectId')}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="难度等级"
+                                field="difficultyLevel"
+                                rules={[{required: true, message: '请选择难度等级'}]}
+                            >
+                                <Select placeholder="请选择难度等级" options={difficultyOptions}/>
+                            </Form.Item>
+                            <div className="form-actions">
+                                <Button
+                                    onClick={() => {
+                                        setEditModalVisible(false);
+                                        editFormRef.current?.resetFields();
+                                    }}
+                                >
+                                    取消
+                                </Button>
+                                <Button type="primary" loading={loading} onClick={confirmEdit}>
+                                    确定
+                                </Button>
+                            </div>
+                        </Form>
+                    </Modal>
+
+                    {/* 删除确认对话框 */}
+                    <Modal
+                        title="删除知识点"
+                        visible={deleteModalVisible}
+                        onCancel={() => setDeleteModalVisible(false)}
+                        onOk={confirmDelete}
+                        confirmLoading={loading}
+                    >
+                        <p>确定要删除知识点 "{currentRecord?.name}" 吗？此操作不可撤销。</p>
+                    </Modal>
+
+                    {/* 详情对话框 */}
+                    <Modal
+                        title="知识点详情"
+                        visible={detailModalVisible}
+                        onCancel={() => setDetailModalVisible(false)}
+                        footer={
+                            <Button onClick={() => setDetailModalVisible(false)}>
+                                关闭
+                            </Button>
+                        }
+                        width={600}
+                    >
+                        <div className="detail-modal">
+                            <div className="detail-item">
+                                <div className="detail-label">知识点名称：</div>
+                                <div className="detail-value">{detailRecord?.name}</div>
+                            </div>
+                            <div className="detail-item">
+                                <div className="detail-label">描述：</div>
+                                <div className="detail-value">{detailRecord?.description || '--'}</div>
+                            </div>
+                            <div className="detail-item">
+                                <div className="detail-label">所属分类：</div>
+                                <div className="detail-value">{detailRecord?.categoryName || '--'}</div>
+                            </div>
+                            <div className="detail-item">
+                                <div className="detail-label">所属学科：</div>
+                                <div className="detail-value">{detailRecord?.subjectName || '--'}</div>
+                            </div>
+                            <div className="detail-item">
+                                <div className="detail-label">难度等级：</div>
+                                <div className="detail-value">
+                                    {detailRecord?.difficultyLevel ? `${detailRecord.difficultyLevel}级` : '--'}
                                 </div>
-                                {relatedQuestions.map((question, index) => (
-                                    <div key={question.id} style={{
-                                        marginBottom: 16,
-                                        padding: 16,
-                                        border: '1px solid #e5e6eb',
-                                        borderRadius: 6,
-                                        backgroundColor: '#fafbfc'
-                                    }}>
-                                        <div style={{display: 'flex', alignItems: 'center', marginBottom: 8}}>
-                                            <Tag color="blue" style={{marginRight: 8}}>
-                                                {question.type === 'SINGLE' ? '单选题' :
-                                                    question.type === 'MULTIPLE' ? '多选题' :
-                                                        question.type === 'BLANK' ? '填空题' : '简答题'}
-                                            </Tag>
-                                            <Tag color={question.difficultyLevel <= 2 ? 'green' :
-                                                question.difficultyLevel <= 4 ? 'orange' : 'red'}>
-                                                难度: {question.difficultyLevel}级
-                                            </Tag>
-                                        </div>
-                                        <div style={{
-                                            fontSize: 14,
-                                            lineHeight: 1.6,
-                                            color: '#333',
-                                            marginBottom: 8
-                                        }}>
-                                            <strong>题目 {index + 1}:</strong> {question.content}
-                                        </div>
-                                        <div style={{
-                                            fontSize: 12,
-                                            color: '#999',
-                                            display: 'flex',
-                                            justifyContent: 'space-between'
-                                        }}>
-                                            <span>创建人: {question.createUser || '--'}</span>
-                                            <span>创建时间: {question.createDate || '--'}</span>
-                                        </div>
+                            </div>
+                            <div className="detail-item">
+                                <div className="detail-label">创建人：</div>
+                                <div className="detail-value">{detailRecord?.createUserName || '--'}</div>
+                            </div>
+                            <div className="detail-item">
+                                <div className="detail-label">创建时间：</div>
+                                <div className="detail-value">
+                                    {detailRecord?.createDate ? new Date(detailRecord.createDate).toLocaleString() : '--'}
+                                </div>
+                            </div>
+                            <div className="detail-item">
+                                <div className="detail-label">更新人：</div>
+                                <div className="detail-value">{detailRecord?.updateUserName || '--'}</div>
+                            </div>
+                            <div className="detail-item">
+                                <div className="detail-label">更新时间：</div>
+                                <div className="detail-value">
+                                    {detailRecord?.updateDate ? new Date(detailRecord.updateDate).toLocaleString() : '--'}
+                                </div>
+                            </div>
+                        </div>
+                    </Modal>
+
+                    {/* 关联问题模态框 */}
+                    <Modal
+                        title={`关联问题 - ${currentRecord?.name}`}
+                        visible={questionsModalVisible}
+                        onCancel={() => {
+                            setQuestionsModalVisible(false);
+                            setRelatedQuestions([]);
+                        }}
+                        footer={null}
+                        width={800}
+                    >
+                        <div style={{maxHeight: 500, overflowY: 'auto'}}>
+                            {questionsLoading ? (
+                                <div style={{textAlign: 'center', padding: '20px'}}>
+                                    加载中...
+                                </div>
+                            ) : relatedQuestions.length > 0 ? (
+                                <div>
+                                    <div style={{marginBottom: 16, color: '#666'}}>
+                                        共找到 {relatedQuestions.length} 道关联问题
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div style={{
-                                textAlign: 'center',
-                                padding: '40px 20px',
-                                color: '#999'
-                            }}>
-                                该知识点暂无关联问题
-                            </div>
-                        )}
-                    </div>
-                </Modal>
-            </Content>
+                                    {relatedQuestions.map((question, index) => (
+                                        <div key={question.id} style={{
+                                            marginBottom: 16,
+                                            padding: 16,
+                                            border: '1px solid #e5e6eb',
+                                            borderRadius: 6,
+                                            backgroundColor: '#fafbfc'
+                                        }}>
+                                            <div style={{display: 'flex', alignItems: 'center', marginBottom: 8}}>
+                                                <Tag color="blue" style={{marginRight: 8}}>
+                                                    {question.type === 'SINGLE' ? '单选题' :
+                                                        question.type === 'MULTIPLE' ? '多选题' :
+                                                            question.type === 'BLANK' ? '填空题' : '简答题'}
+                                                </Tag>
+                                                <Tag color={question.difficultyLevel <= 2 ? 'green' :
+                                                    question.difficultyLevel <= 4 ? 'orange' : 'red'}>
+                                                    难度: {question.difficultyLevel}级
+                                                </Tag>
+                                            </div>
+                                            <div style={{
+                                                fontSize: 14,
+                                                lineHeight: 1.6,
+                                                color: '#333',
+                                                marginBottom: 8
+                                            }}>
+                                                <strong>题目 {index + 1}:</strong> {question.content}
+                                            </div>
+                                            <div style={{
+                                                fontSize: 12,
+                                                color: '#999',
+                                                display: 'flex',
+                                                justifyContent: 'space-between'
+                                            }}>
+                                                <span>创建人: {question.createUser || '--'}</span>
+                                                <span>创建时间: {question.createDate || '--'}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '40px 20px',
+                                    color: '#999'
+                                }}>
+                                    该知识点暂无关联问题
+                                </div>
+                            )}
+                        </div>
+                    </Modal>
+                </Content>
+            </Layout>
         </Layout>
     );
 }

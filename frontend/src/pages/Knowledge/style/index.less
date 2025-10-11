@@ -1,7 +1,26 @@
 .knowledge-manager {
-  padding: 20px;
-  background: #f5f5f5;
-  min-height: calc(100vh - 60px);
+  box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+  overflow: hidden;
+  background: var(--background-color-base);
+  height: 100%;
+
+  .arco-layout {
+    margin: 10px;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: calc(100% - 20px);
+    width: calc(100% - 20px);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: var(--color-white);
+    margin-bottom: 16px;
+  }
 
   .filter-section {
     background: white;
