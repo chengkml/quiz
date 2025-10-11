@@ -4,10 +4,6 @@
     background: var(--background-color-base);
     height: 100%;
 
-    .arco-btn {
-        border-radius: 6px;
-    }
-
     .arco-layout {
         margin: 10px;
         background-color: #fff;
@@ -16,15 +12,15 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         height: calc(100% - 20px);
         width: calc(100% - 20px);
-        
-        .arco-layout-content {
-            overflow: hidden;
-            background-color: #fff;
-            border-radius: 8px;
-            padding-left: 10px;
-            height: 100%;
-            width: 100%;
-        }
+    }
+
+    // 操作按钮样式
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        background: var(--color-white);
+        margin-bottom: 16px;
     }
 
     .title {
@@ -50,50 +46,6 @@
         }
     }
 
-    // 搜索区域样式
-    .search-section {
-        margin-bottom: 16px;
-        padding: 16px;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    // 操作按钮区域样式
-    .action-section {
-        margin-bottom: 16px;
-        padding: 16px;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    // 表格区域样式
-    .table-section {
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-
-        .arco-table {
-            .arco-table-th {
-                background-color: #f7f8fa;
-                font-weight: 600;
-            }
-
-            .arco-table-td {
-                border-bottom: 1px solid #f0f0f0;
-            }
-
-            .arco-table-row:hover {
-                background-color: #f7f8fa;
-            }
-        }
-    }
-
     // 菜单详情样式
     .menu-detail {
         .detail-item {
@@ -113,17 +65,6 @@
                 color: #666;
                 word-break: break-all;
             }
-        }
-    }
-
-    // 表单样式优化
-    .arco-form {
-        .arco-form-item {
-            margin-bottom: 16px;
-        }
-
-        .arco-form-item-label {
-            font-weight: 600;
         }
     }
 

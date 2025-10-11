@@ -689,43 +689,43 @@ function MenuManager() {
             <Layout>
                 <Content>
                     {/* 搜索区域 */}
-                    <div className="search-section">
-                        <FilterForm
-                            form={searchForm}
-                            items={searchFormItems}
-                            onSearch={handleSearch}
-                            onReset={handleReset}
-                        />
-                    </div>
+                    <FilterForm
+                        form={searchForm}
+                        items={searchFormItems}
+                        onSearch={handleSearch}
+                        onReset={handleReset}
+                    >
+                        <Form.Item field='menuName' label='菜单名'>
+                            <Input
+                                placeholder='请输入菜单名关键词'
+                            />
+                        </Form.Item>
+                    </FilterForm>
 
                     {/* 操作按钮区域 */}
-                    <div className="action-section">
-                        <Space>
-                            <Button
-                                type="primary"
-                                icon={<IconPlus/>}
-                                onClick={handleAdd}
-                            >
-                                新增菜单
-                            </Button>
-                        </Space>
+                    <div className="action-buttons">
+                        <Button
+                            type="primary"
+                            icon={<IconPlus/>}
+                            onClick={handleAdd}
+                        >
+                            新增菜单
+                        </Button>
                     </div>
 
                     {/* 表格区域 */}
-                    <div className="table-section">
-                        <Table
-                            columns={columns}
-                            data={tableData}
-                            loading={tableLoading}
-                            pagination={pagination}
-                            onChange={handleTableChange}
-                            scroll={{
-                                x: 1200,
-                                y: tableScrollHeight,
-                            }}
-                            rowKey="menuId"
-                        />
-                    </div>
+                    <Table
+                        columns={columns}
+                        data={tableData}
+                        loading={tableLoading}
+                        pagination={pagination}
+                        onChange={handleTableChange}
+                        scroll={{
+                            x: 1200,
+                            y: tableScrollHeight,
+                        }}
+                        rowKey="menuId"
+                    />
                 </Content>
             </Layout>
 
