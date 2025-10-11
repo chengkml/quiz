@@ -16,6 +16,7 @@ import {
 import {MenuTreeDto} from '../../types/menu';
 import {useUser} from '@/contexts/UserContext';
 import {clearUserInfo} from '@/utils/userUtils';
+import {logoutUser} from '@/pages/User/api';
 import './style.less';
 
 const {Header, Content, Sider} = Layout;
@@ -189,10 +190,21 @@ const AppLayout: React.FC = () => {
     };
 
     // 处理退出登录
-    const handleLogout = () => {
-        clearUserInfo();
-        logout();
-        Message.success('退出登录成功');
+    const handleLogout = async () => {
+        try {
+            // 调用后端登出API
+            await logoutUser();
+            // 清除本地用户信息
+            clearUserInfo();
+            logout();
+            Message.success('退出登录成功');
+        } catch (error) {
+            console.error('登出失败:', error);
+            // 即使后端调用失败，也要清除本地信息
+            clearUserInfo();
+            logout();
+            Message.success('退出登录成功');
+        }
     };
 
     // 处理修改密码

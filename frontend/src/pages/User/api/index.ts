@@ -36,6 +36,9 @@ const checkUserId = userId => axios.get(`${base}/api/user/check/userId`, {
 // 删除用户
 const deleteUser = id => axios.delete(`${base}/api/user/delete/${id}`);
 
+// 用户登出
+const logoutUser = () => axios.post(`${base}/api/user/logout`);
+
 export {
   registerUser,
   loginUser,
@@ -46,5 +49,6 @@ export {
   enableUser,
   disableUser,
   checkUserId,
-  deleteUser
+  deleteUser,
+  logoutUser
 };
