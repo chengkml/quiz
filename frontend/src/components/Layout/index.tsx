@@ -27,6 +27,7 @@ const SubMenu = Menu.SubMenu;
 const AppLayout: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const [openKeys, setOpenKeys] = useState<string[]>([]);
     const [collapsed, setCollapsed] = useState(false);
     const {user, logout, menuTree, loadMenuFromServer} = useUser();
     const [loading, setLoading] = useState(false);
@@ -50,6 +51,10 @@ const AppLayout: React.FC = () => {
 
         loadUserMenus();
     }, [user?.userId, loadMenuFromServer]);
+
+    useEffect(() => {
+        setOpenKeys(getOpenKeys());
+    }, [location.pathname, menuTree]);
 
     // 处理菜单点击
     const handleMenuClick = (key: string) => {
@@ -282,8 +287,9 @@ const AppLayout: React.FC = () => {
                 </div>
                 <Menu
                     selectedKeys={getSelectedKeys()}
-                    openKeys={getOpenKeys()}
+                    openKeys={openKeys}
                     onClickMenuItem={handleMenuClick}
+                    onClickSubMenu={(_key, keys) => setOpenKeys(keys)}
                     style={{width: '100%'}}
                 >
                     {menuTree && menuTree.length > 0 ? (
