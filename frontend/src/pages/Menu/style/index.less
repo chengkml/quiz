@@ -1,0 +1,254 @@
+.menu-manager {
+    box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+    overflow: hidden;
+    background: var(--background-color-base);
+    height: 100%;
+
+    .arco-btn {
+        border-radius: 6px;
+    }
+
+    .arco-layout {
+        margin: 10px;
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        height: calc(100% - 20px);
+        width: calc(100% - 20px);
+        
+        .arco-layout-content {
+            overflow: hidden;
+            background-color: #fff;
+            border-radius: 8px;
+            padding-left: 10px;
+            height: 100%;
+            width: 100%;
+        }
+    }
+
+    .title {
+        display: inline-block;
+        height: 24px;
+        line-height: 24px;
+        background: var(--color-white);
+        border-radius: 8px;
+        padding: 0 10px;
+        font-size: 12px;
+        box-shadow: var(--modo-card-box-shadow);
+
+        .moda-icon {
+            height: unset;
+            vertical-align: middle;
+        }
+
+        span {
+            font-weight: 700;
+            color: var(--gray-10);
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+    }
+
+    // 搜索区域样式
+    .search-section {
+        margin-bottom: 16px;
+        padding: 16px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    // 操作按钮区域样式
+    .action-section {
+        margin-bottom: 16px;
+        padding: 16px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    // 表格区域样式
+    .table-section {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+
+        .arco-table {
+            .arco-table-th {
+                background-color: #f7f8fa;
+                font-weight: 600;
+            }
+
+            .arco-table-td {
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            .arco-table-row:hover {
+                background-color: #f7f8fa;
+            }
+        }
+    }
+
+    // 菜单详情样式
+    .menu-detail {
+        .detail-item {
+            display: flex;
+            margin-bottom: 12px;
+            align-items: flex-start;
+
+            .label {
+                width: 100px;
+                font-weight: 600;
+                color: #333;
+                flex-shrink: 0;
+            }
+
+            .value {
+                flex: 1;
+                color: #666;
+                word-break: break-all;
+            }
+        }
+    }
+
+    // 表单样式优化
+    .arco-form {
+        .arco-form-item {
+            margin-bottom: 16px;
+        }
+
+        .arco-form-item-label {
+            font-weight: 600;
+        }
+    }
+
+    // 模态框样式
+    .arco-modal {
+        .arco-modal-header {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 16px 24px;
+        }
+
+        .arco-modal-body {
+            padding: 24px;
+        }
+
+        .arco-modal-footer {
+            border-top: 1px solid #f0f0f0;
+            padding: 16px 24px;
+        }
+    }
+
+    // 标签样式
+    .arco-tag {
+        border-radius: 4px;
+        font-size: 12px;
+        padding: 2px 8px;
+    }
+
+    // 按钮样式
+    .arco-btn-text {
+        padding: 4px 8px;
+        
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+        }
+    }
+
+    // 工具提示样式
+    .arco-tooltip {
+        .arco-tooltip-content {
+            font-size: 12px;
+        }
+    }
+
+    // 分页样式
+    .arco-pagination {
+        margin-top: 16px;
+        text-align: right;
+        padding: 16px;
+        background: #fff;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    // 加载状态样式
+    .arco-spin {
+        .arco-spin-dot {
+            color: var(--color-primary-6);
+        }
+    }
+
+    // 响应式设计
+    @media (max-width: 768px) {
+        .arco-layout {
+            margin: 5px;
+            padding: 5px;
+            height: calc(100% - 10px);
+            width: calc(100% - 10px);
+        }
+
+        .search-section,
+        .action-section {
+            padding: 12px;
+        }
+
+        .table-section {
+            .arco-table {
+                font-size: 12px;
+            }
+        }
+
+        .menu-detail {
+            .detail-item {
+                flex-direction: column;
+                
+                .label {
+                    width: auto;
+                    margin-bottom: 4px;
+                }
+            }
+        }
+    }
+
+    // 暗色主题支持
+    @media (prefers-color-scheme: dark) {
+        background: var(--color-bg-2);
+
+        .arco-layout {
+            background-color: var(--color-bg-3);
+        }
+
+        .search-section,
+        .action-section,
+        .table-section {
+            background: var(--color-bg-3);
+        }
+
+        .arco-table {
+            .arco-table-th {
+                background-color: var(--color-bg-4);
+            }
+
+            .arco-table-row:hover {
+                background-color: var(--color-bg-4);
+            }
+        }
+
+        .menu-detail {
+            .detail-item {
+                .label {
+                    color: var(--color-text-1);
+                }
+
+                .value {
+                    color: var(--color-text-2);
+                }
+            }
+        }
+    }
+}

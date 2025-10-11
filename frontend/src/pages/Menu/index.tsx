@@ -1,616 +1,627 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
-  Card,
-  Table,
-  Button,
-  Form,
-  Input,
-  Select,
-  Space,
-  Message,
-  Popconfirm,
-  Tag,
-  Grid,
-  Pagination,
-  Tooltip,
-  Tree,
-  Modal,
+    Button,
+    Collapse,
+    Dropdown,
+    Form,
+    Input,
+    Layout,
+    Menu,
+    Message,
+    Modal,
+    Pagination,
+    Select,
+    Space,
+    Spin,
+    Table,
+    Tag,
+    Tooltip,
+    Tree,
 } from '@arco-design/web-react';
+import './style/index.less';
 import {
-  IconPlus,
-  IconRefresh,
-  IconEdit,
-  IconDelete,
-  IconEye,
-  IconEyeInvisible,
-  IconFolder,
-  IconFile,
-  IconSettings,
-  IconSearch,
-  IconExpand,
-  IconShrink,
-  IconUnlock,
-  IconLock,
-} from '@arco-design/web-react/icon';
-import { MenuDto, MenuTreeDto, MenuQueryParams, MenuType } from '../../types/menu';
-import { menuService } from '../../services/menuService';
-import CreateMenuModal from './components/CreateMenuModal';
-import EditMenuModal from './components/EditMenuModal';
-import MenuTree from './components/MenuTree';
-import styles from './index.module.css';
+    createMenu,
+    deleteMenu,
+    getMenuList,
+    updateMenu,
+    enableMenu,
+    disableMenu,
+    getMenuTree,
+} from './api';
+import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconMenu} from '@arco-design/web-react/icon';
+import FilterForm from '@/components/FilterForm';
 
-const Row = Grid.Row;
-const Col = Grid.Col;
-const FormItem = Form.Item;
-const Option = Select.Option;
-const TreeNode = Tree.Node;
+const {TextArea} = Input;
+const {Content} = Layout;
 
-interface MenuTableData extends MenuDto {
-  key: string;
+function MenuManager() {
+    // 状态管理
+    const [tableData, setTableData] = useState([]);
+    const [tableLoading, setTableLoading] = useState(false);
+    const [tableScrollHeight, setTableScrollHeight] = useState(200);
+
+    // 对话框状态
+    const [addModalVisible, setAddModalVisible] = useState(false);
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [viewModalVisible, setViewModalVisible] = useState(false);
+    const [currentMenu, setCurrentMenu] = useState(null);
+
+    // 分页状态
+    const [pagination, setPagination] = useState({
+        current: 1,
+        pageSize: 20,
+        total: 0,
+        showTotal: true,
+        showJumper: true,
+        showPageSize: true,
+        pageSizeOptions: ['10', '20', '50', '100'],
+    });
+
+    // 查询条件
+    const [searchParams, setSearchParams] = useState({
+        menuName: '',
+        menuType: '',
+        state: '',
+        parentId: '',
+    });
+
+    // 表单引用
+    const [addForm] = Form.useForm();
+    const [editForm] = Form.useForm();
+    const [searchForm] = Form.useForm();
+
+    // 菜单类型选项
+    const menuTypeOptions = [
+        {label: '目录', value: 'DIRECTORY'},
+        {label: '菜单', value: 'MENU'},
+        {label: '按钮', value: 'BUTTON'},
+    ];
+
+    // 菜单状态选项
+    const menuStateOptions = [
+        {label: '启用', value: 'ENABLED'},
+        {label: '禁用', value: 'DISABLED'},
+    ];
+
+    // 表格列定义
+    const columns = [
+        {
+            title: '菜单名称',
+            dataIndex: 'menuName',
+            key: 'menuName',
+            width: 150,
+        },
+        {
+            title: '显示名称',
+            dataIndex: 'menuLabel',
+            key: 'menuLabel',
+            width: 150,
+        },
+        {
+            title: '菜单类型',
+            dataIndex: 'menuType',
+            key: 'menuType',
+            width: 100,
+            render: (type) => {
+                const typeMap = {
+                    'DIRECTORY': {color: 'blue', text: '目录'},
+                    'MENU': {color: 'green', text: '菜单'},
+                    'BUTTON': {color: 'orange', text: '按钮'},
+                };
+                const config = typeMap[type] || {color: 'gray', text: type};
+                return <Tag color={config.color}>{config.text}</Tag>;
+            },
+        },
+        {
+            title: '路由地址',
+            dataIndex: 'url',
+            key: 'url',
+            width: 200,
+            ellipsis: true,
+        },
+        {
+            title: '图标',
+            dataIndex: 'menuIcon',
+            key: 'menuIcon',
+            width: 80,
+        },
+        {
+            title: '排序',
+            dataIndex: 'seq',
+            key: 'seq',
+            width: 80,
+        },
+        {
+            title: '状态',
+            dataIndex: 'state',
+            key: 'state',
+            width: 80,
+            render: (state) => {
+                const stateMap = {
+                    'ENABLED': {color: 'green', text: '启用'},
+                    'DISABLED': {color: 'red', text: '禁用'},
+                };
+                const config = stateMap[state] || {color: 'gray', text: state};
+                return <Tag color={config.color}>{config.text}</Tag>;
+            },
+        },
+        {
+            title: '创建时间',
+            dataIndex: 'createDate',
+            key: 'createDate',
+            width: 180,
+            render: (date) => date ? new Date(date).toLocaleString() : '-',
+        },
+        {
+            title: '操作',
+            key: 'action',
+            width: 200,
+            fixed: 'right',
+            render: (_, record) => (
+                <Space>
+                    <Tooltip content="查看详情">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconEye />}
+                            onClick={() => handleView(record)}
+                        />
+                    </Tooltip>
+                    <Tooltip content="编辑">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconEdit />}
+                            onClick={() => handleEdit(record)}
+                        />
+                    </Tooltip>
+                    <Tooltip content={record.state === 'ENABLED' ? '禁用' : '启用'}>
+                        <Button
+                            type="text"
+                            size="small"
+                            status={record.state === 'ENABLED' ? 'warning' : 'success'}
+                            onClick={() => handleToggleState(record)}
+                        >
+                            {record.state === 'ENABLED' ? '禁用' : '启用'}
+                        </Button>
+                    </Tooltip>
+                    <Tooltip content="删除">
+                        <Button
+                            type="text"
+                            size="small"
+                            status="danger"
+                            icon={<IconDelete />}
+                            onClick={() => handleDelete(record)}
+                        />
+                    </Tooltip>
+                </Space>
+            ),
+        },
+    ];
+
+    // 获取菜单列表
+    const fetchMenuList = async (params = {}) => {
+        setTableLoading(true);
+        try {
+            const queryParams = {
+                ...searchParams,
+                ...params,
+                pageNum: pagination.current - 1,
+                pageSize: pagination.pageSize,
+            };
+            
+            const response = await getMenuList(queryParams);
+            if (response.data) {
+                setTableData(response.data.content || []);
+                setPagination(prev => ({
+                    ...prev,
+                    total: response.data.totalElements || 0,
+                }));
+            }
+        } catch (error) {
+            Message.error('获取菜单列表失败');
+            console.error('获取菜单列表失败:', error);
+        } finally {
+            setTableLoading(false);
+        }
+    };
+
+    // 处理搜索
+    const handleSearch = (values) => {
+        setSearchParams(values);
+        setPagination(prev => ({...prev, current: 1}));
+        fetchMenuList(values);
+    };
+
+    // 处理重置
+    const handleReset = () => {
+        searchForm.resetFields();
+        const resetParams = {
+            menuName: '',
+            menuType: '',
+            state: '',
+            parentId: '',
+        };
+        setSearchParams(resetParams);
+        setPagination(prev => ({...prev, current: 1}));
+        fetchMenuList(resetParams);
+    };
+
+    // 处理分页变化
+    const handleTableChange = (pagination) => {
+        setPagination(prev => ({...prev, ...pagination}));
+        fetchMenuList();
+    };
+
+    // 处理新增
+    const handleAdd = () => {
+        setCurrentMenu(null);
+        addForm.resetFields();
+        setAddModalVisible(true);
+    };
+
+    // 处理编辑
+    const handleEdit = (record) => {
+        setCurrentMenu(record);
+        editForm.setFieldsValue(record);
+        setEditModalVisible(true);
+    };
+
+    // 处理查看
+    const handleView = (record) => {
+        setCurrentMenu(record);
+        setViewModalVisible(true);
+    };
+
+    // 处理删除
+    const handleDelete = (record) => {
+        Modal.confirm({
+            title: '确认删除',
+            content: `确定要删除菜单"${record.menuLabel || record.menuName}"吗？`,
+            onOk: async () => {
+                try {
+                    await deleteMenu(record.menuId);
+                    Message.success('删除成功');
+                    fetchMenuList();
+                } catch (error) {
+                    Message.error('删除失败');
+                    console.error('删除菜单失败:', error);
+                }
+            },
+        });
+    };
+
+    // 处理状态切换
+    const handleToggleState = async (record) => {
+        try {
+            if (record.state === 'ENABLED') {
+                await disableMenu(record.menuId);
+                Message.success('禁用成功');
+            } else {
+                await enableMenu(record.menuId);
+                Message.success('启用成功');
+            }
+            fetchMenuList();
+        } catch (error) {
+            Message.error('操作失败');
+            console.error('切换菜单状态失败:', error);
+        }
+    };
+
+    // 处理新增提交
+    const handleAddSubmit = async (values) => {
+        try {
+            await createMenu(values);
+            Message.success('创建成功');
+            setAddModalVisible(false);
+            fetchMenuList();
+        } catch (error) {
+            Message.error('创建失败');
+            console.error('创建菜单失败:', error);
+        }
+    };
+
+    // 处理编辑提交
+    const handleEditSubmit = async (values) => {
+        try {
+            await updateMenu(currentMenu.menuId, values);
+            Message.success('更新成功');
+            setEditModalVisible(false);
+            fetchMenuList();
+        } catch (error) {
+            Message.error('更新失败');
+            console.error('更新菜单失败:', error);
+        }
+    };
+
+    // 初始化
+    useEffect(() => {
+        fetchMenuList();
+    }, []);
+
+    // 搜索表单配置
+    const searchFormItems = [
+        {
+            label: '菜单名称',
+            field: 'menuName',
+            component: <Input placeholder="请输入菜单名称" />,
+        },
+        {
+            label: '菜单类型',
+            field: 'menuType',
+            component: (
+                <Select placeholder="请选择菜单类型" allowClear>
+                    {menuTypeOptions.map(option => (
+                        <Select.Option key={option.value} value={option.value}>
+                            {option.label}
+                        </Select.Option>
+                    ))}
+                </Select>
+            ),
+        },
+        {
+            label: '状态',
+            field: 'state',
+            component: (
+                <Select placeholder="请选择状态" allowClear>
+                    {menuStateOptions.map(option => (
+                        <Select.Option key={option.value} value={option.value}>
+                            {option.label}
+                        </Select.Option>
+                    ))}
+                </Select>
+            ),
+        },
+    ];
+
+    return (
+        <div className="menu-manager">
+            <Layout>
+                <Content>
+                    {/* 搜索区域 */}
+                    <div className="search-section">
+                        <FilterForm
+                            form={searchForm}
+                            items={searchFormItems}
+                            onSearch={handleSearch}
+                            onReset={handleReset}
+                        />
+                    </div>
+
+                    {/* 操作按钮区域 */}
+                    <div className="action-section">
+                        <Space>
+                            <Button
+                                type="primary"
+                                icon={<IconPlus />}
+                                onClick={handleAdd}
+                            >
+                                新增菜单
+                            </Button>
+                        </Space>
+                    </div>
+
+                    {/* 表格区域 */}
+                    <div className="table-section">
+                        <Table
+                            columns={columns}
+                            data={tableData}
+                            loading={tableLoading}
+                            pagination={pagination}
+                            onChange={handleTableChange}
+                            scroll={{
+                                x: 1200,
+                                y: tableScrollHeight,
+                            }}
+                            rowKey="menuId"
+                        />
+                    </div>
+                </Content>
+            </Layout>
+
+            {/* 新增菜单对话框 */}
+            <Modal
+                title="新增菜单"
+                visible={addModalVisible}
+                onCancel={() => setAddModalVisible(false)}
+                onOk={() => addForm.submit()}
+                width={600}
+            >
+                <Form
+                    form={addForm}
+                    layout="vertical"
+                    onSubmit={handleAddSubmit}
+                >
+                    <Form.Item
+                        label="菜单名称"
+                        field="menuName"
+                        rules={[{required: true, message: '请输入菜单名称'}]}
+                    >
+                        <Input placeholder="请输入菜单名称" />
+                    </Form.Item>
+                    <Form.Item
+                        label="显示名称"
+                        field="menuLabel"
+                        rules={[{required: true, message: '请输入显示名称'}]}
+                    >
+                        <Input placeholder="请输入显示名称" />
+                    </Form.Item>
+                    <Form.Item
+                        label="菜单类型"
+                        field="menuType"
+                        rules={[{required: true, message: '请选择菜单类型'}]}
+                    >
+                        <Select placeholder="请选择菜单类型">
+                            {menuTypeOptions.map(option => (
+                                <Select.Option key={option.value} value={option.value}>
+                                    {option.label}
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                    <Form.Item label="父菜单ID" field="parentId">
+                        <Input placeholder="请输入父菜单ID（可选）" />
+                    </Form.Item>
+                    <Form.Item label="路由地址" field="url">
+                        <Input placeholder="请输入路由地址" />
+                    </Form.Item>
+                    <Form.Item label="菜单图标" field="menuIcon">
+                        <Input placeholder="请输入菜单图标" />
+                    </Form.Item>
+                    <Form.Item label="排序号" field="seq">
+                        <Input placeholder="请输入排序号" />
+                    </Form.Item>
+                    <Form.Item label="菜单描述" field="menuDescr">
+                        <TextArea placeholder="请输入菜单描述" rows={3} />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* 编辑菜单对话框 */}
+            <Modal
+                title="编辑菜单"
+                visible={editModalVisible}
+                onCancel={() => setEditModalVisible(false)}
+                onOk={() => editForm.submit()}
+                width={600}
+            >
+                <Form
+                    form={editForm}
+                    layout="vertical"
+                    onSubmit={handleEditSubmit}
+                >
+                    <Form.Item
+                        label="菜单名称"
+                        field="menuName"
+                        rules={[{required: true, message: '请输入菜单名称'}]}
+                    >
+                        <Input placeholder="请输入菜单名称" />
+                    </Form.Item>
+                    <Form.Item
+                        label="显示名称"
+                        field="menuLabel"
+                        rules={[{required: true, message: '请输入显示名称'}]}
+                    >
+                        <Input placeholder="请输入显示名称" />
+                    </Form.Item>
+                    <Form.Item
+                        label="菜单类型"
+                        field="menuType"
+                        rules={[{required: true, message: '请选择菜单类型'}]}
+                    >
+                        <Select placeholder="请选择菜单类型">
+                            {menuTypeOptions.map(option => (
+                                <Select.Option key={option.value} value={option.value}>
+                                    {option.label}
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                    <Form.Item label="父菜单ID" field="parentId">
+                        <Input placeholder="请输入父菜单ID（可选）" />
+                    </Form.Item>
+                    <Form.Item label="路由地址" field="url">
+                        <Input placeholder="请输入路由地址" />
+                    </Form.Item>
+                    <Form.Item label="菜单图标" field="menuIcon">
+                        <Input placeholder="请输入菜单图标" />
+                    </Form.Item>
+                    <Form.Item label="排序号" field="seq">
+                        <Input placeholder="请输入排序号" />
+                    </Form.Item>
+                    <Form.Item label="菜单描述" field="menuDescr">
+                        <TextArea placeholder="请输入菜单描述" rows={3} />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* 查看菜单详情对话框 */}
+            <Modal
+                title="菜单详情"
+                visible={viewModalVisible}
+                onCancel={() => setViewModalVisible(false)}
+                footer={null}
+                width={600}
+            >
+                {currentMenu && (
+                    <div className="menu-detail">
+                        <div className="detail-item">
+                            <span className="label">菜单ID：</span>
+                            <span className="value">{currentMenu.menuId}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">菜单名称：</span>
+                            <span className="value">{currentMenu.menuName}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">显示名称：</span>
+                            <span className="value">{currentMenu.menuLabel}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">菜单类型：</span>
+                            <span className="value">
+                                <Tag color={
+                                    currentMenu.menuType === 'DIRECTORY' ? 'blue' :
+                                    currentMenu.menuType === 'MENU' ? 'green' : 'orange'
+                                }>
+                                    {currentMenu.menuType === 'DIRECTORY' ? '目录' :
+                                     currentMenu.menuType === 'MENU' ? '菜单' : '按钮'}
+                                </Tag>
+                            </span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">父菜单ID：</span>
+                            <span className="value">{currentMenu.parentId || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">路由地址：</span>
+                            <span className="value">{currentMenu.url || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">菜单图标：</span>
+                            <span className="value">{currentMenu.menuIcon || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">排序号：</span>
+                            <span className="value">{currentMenu.seq || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">状态：</span>
+                            <span className="value">
+                                <Tag color={currentMenu.state === 'ENABLED' ? 'green' : 'red'}>
+                                    {currentMenu.state === 'ENABLED' ? '启用' : '禁用'}
+                                </Tag>
+                            </span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">菜单描述：</span>
+                            <span className="value">{currentMenu.menuDescr || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">创建时间：</span>
+                            <span className="value">
+                                {currentMenu.createDate ? new Date(currentMenu.createDate).toLocaleString() : '-'}
+                            </span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">创建人：</span>
+                            <span className="value">{currentMenu.createUser || '-'}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">更新时间：</span>
+                            <span className="value">
+                                {currentMenu.updateDate ? new Date(currentMenu.updateDate).toLocaleString() : '-'}
+                            </span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">更新人：</span>
+                            <span className="value">{currentMenu.updateUser || '-'}</span>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+        </div>
+    );
 }
 
-const MenuManagement: React.FC = () => {
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [treeLoading, setTreeLoading] = useState(false);
-  const [menus, setMenus] = useState<MenuDto[]>([]);
-  const [menuTree, setMenuTree] = useState<MenuTreeDto[]>([]);
-  const [total, setTotal] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [selectedTreeNodeId, setSelectedTreeNodeId] = useState<string>('');
-  const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
-  const [treeSearchValue, setTreeSearchValue] = useState('');
-  
-  // 模态框状态
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [currentMenu, setCurrentMenu] = useState<MenuDto | null>(null);
-
-  // 菜单类型选项
-  const menuTypeOptions = [
-    { label: '全部', value: '' },
-    { label: '目录', value: MenuType.DIRECTORY },
-    { label: '菜单', value: MenuType.MENU },
-    { label: '按钮', value: MenuType.BUTTON },
-  ];
-
-  // 状态选项
-  const statusOptions = [
-    { label: '全部', value: '' },
-    { label: '生效', value: 1 },
-    { label: '失效', value: 0 },
-  ];
-
-  // 获取菜单树
-  const fetchMenuTree = useCallback(async () => {
-    setTreeLoading(true);
-    try {
-      const response = await menuService.getMenuTree();
-      if (response.success) {
-        setMenuTree(response.data);
-        // 默认展开第一层
-        const firstLevelKeys = response.data.map(item => item.menuName);
-        setExpandedKeys(firstLevelKeys);
-      } else {
-        Message.error('获取菜单树失败');
-      }
-    } catch (error) {
-      console.error('获取菜单树失败:', error);
-      Message.error('获取菜单树失败');
-    } finally {
-      setTreeLoading(false);
-    }
-  }, []);
-
-  // 获取菜单列表
-  const fetchMenus = useCallback(async (params?: Partial<MenuQueryParams>) => {
-    setLoading(true);
-    try {
-      const queryParams: MenuQueryParams = {
-        page: currentPage - 1, // 后端从0开始
-        size: pageSize,
-        parentId: selectedTreeNodeId || undefined,
-        ...params,
-      };
-      
-      const response = await menuService.getMenus(queryParams);
-      if (response.success) {
-        setMenus(response.data);
-        setTotal(response.totalElements || 0);
-      } else {
-        Message.error('获取菜单列表失败');
-      }
-    } catch (error) {
-      console.error('获取菜单列表失败:', error);
-      Message.error('获取菜单列表失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, pageSize, selectedTreeNodeId]);
-
-  // 初始化加载
-  useEffect(() => {
-    fetchMenuTree();
-  }, [fetchMenuTree]);
-
-  useEffect(() => {
-    fetchMenus();
-  }, [fetchMenus]);
-
-  // 查询
-  const handleSearch = () => {
-    const values = form.getFieldsValue();
-    setCurrentPage(1);
-    fetchMenus(values);
-  };
-
-  // 重置
-  const handleReset = () => {
-    form.resetFields();
-    setCurrentPage(1);
-    setSelectedTreeNodeId('');
-    fetchMenus();
-  };
-
-  // 刷新
-  const handleRefresh = () => {
-    const values = form.getFieldsValue();
-    fetchMenus(values);
-    fetchMenuTree();
-  };
-
-  // 分页变化
-  const handlePageChange = (page: number, size?: number) => {
-    setCurrentPage(page);
-    if (size && size !== pageSize) {
-      setPageSize(size);
-    }
-  };
-
-  // 树节点选择
-  const handleTreeSelect = (selectedKeys: string[]) => {
-    const nodeId = selectedKeys[0] || '';
-    setSelectedTreeNodeId(nodeId);
-    setCurrentPage(1);
-    const values = form.getFieldsValue();
-    fetchMenus(values);
-  };
-
-  // 菜单树操作回调
-  const handleTreeCreateMenu = (parentId?: string) => {
-    setCurrentMenu(null);
-    setCreateModalVisible(true);
-  };
-
-  const handleTreeEditMenu = (menu: MenuTreeDto) => {
-    // 将 MenuTreeDto 转换为 MenuDto
-     const menuDto: MenuDto = {
-       menuName: menu.menuName,
-       menuLabel: menu.menuLabel,
-      menuType: menu.menuType,
-      parentId: menu.parentId,
-      path: menu.path,
-      component: menu.component,
-      icon: menu.icon,
-      seq: menu.seq,
-      status: menu.status,
-      remark: menu.remark,
-      createTime: menu.createTime,
-      updateTime: menu.updateTime,
-    };
-    setCurrentMenu(menuDto);
-    setEditModalVisible(true);
-  };
-
-  const handleTreeDeleteMenu = (menuName: string) => {
-    fetchMenus();
-    fetchMenuTree();
-  };
-
-  // 展开全部
-  const handleExpandAll = () => {
-    const getAllKeys = (nodes: MenuTreeDto[]): string[] => {
-      let keys: string[] = [];
-      nodes.forEach(node => {
-        keys.push(node.menuName);
-        if (node.children && node.children.length > 0) {
-          keys = keys.concat(getAllKeys(node.children));
-        }
-      });
-      return keys;
-    };
-    setExpandedKeys(getAllKeys(menuTree));
-  };
-
-  // 折叠全部
-  const handleCollapseAll = () => {
-    setExpandedKeys([]);
-  };
-
-  // 启用菜单
-  const handleEnableMenu = async (menu: MenuDto) => {
-    try {
-      const response = await menuService.enableMenu(menu.menuId);
-      if (response.success) {
-        Message.success('启用菜单成功');
-        handleRefresh();
-      } else {
-        Message.error(response.message || '启用菜单失败');
-      }
-    } catch (error) {
-      console.error('启用菜单失败:', error);
-      Message.error('启用菜单失败');
-    }
-  };
-
-  // 禁用菜单
-  const handleDisableMenu = async (menu: MenuDto) => {
-    try {
-      const response = await menuService.disableMenu(menu.menuId);
-      if (response.success) {
-        Message.success('禁用菜单成功');
-        handleRefresh();
-      } else {
-        Message.error(response.message || '禁用菜单失败');
-      }
-    } catch (error) {
-      console.error('禁用菜单失败:', error);
-      Message.error('禁用菜单失败');
-    }
-  };
-
-  // 删除菜单
-  const handleDeleteMenu = async (menu: MenuDto) => {
-    try {
-      const response = await menuService.deleteMenu(menu.menuId);
-      if (response.success) {
-        Message.success('删除菜单成功');
-        handleRefresh();
-      } else {
-        Message.error(response.message || '删除菜单失败');
-      }
-    } catch (error) {
-      console.error('删除菜单失败:', error);
-      Message.error('删除菜单失败');
-    }
-  };
-
-  // 编辑菜单
-  const handleEditMenu = (menu: MenuDto) => {
-    setCurrentMenu(menu);
-    setEditModalVisible(true);
-  };
-
-  // 模态框成功回调
-  const handleModalSuccess = () => {
-    setCreateModalVisible(false);
-    setEditModalVisible(false);
-    setCurrentMenu(null);
-    fetchMenus();
-    fetchMenuTree();
-  };
-
-  // 渲染菜单类型图标
-  const renderMenuTypeIcon = (type: MenuType) => {
-    switch (type) {
-      case MenuType.DIRECTORY:
-        return <IconFolder style={{ color: '#f7ba2a' }} />;
-      case MenuType.MENU:
-        return <IconFile style={{ color: '#165dff' }} />;
-      case MenuType.BUTTON:
-        return <IconSettings style={{ color: '#00b42a' }} />;
-      default:
-        return <IconFile />;
-    }
-  };
-
-  // 渲染树节点
-  const renderTreeNodes = (nodes: MenuTreeDto[]): React.ReactNode => {
-    return nodes.map(node => {
-      const title = (
-        <span className={styles.treeNodeTitle}>
-          {renderMenuTypeIcon(node.menuType)}
-          <span className={styles.treeNodeText}>{node.menuName}</span>
-        </span>
-      );
-      
-      if (node.children && node.children.length > 0) {
-        return (
-          <TreeNode key={node.menuName} title={title}>
-            {renderTreeNodes(node.children)}
-          </TreeNode>
-        );
-      }
-      return <TreeNode key={node.menuName} title={title} />;
-    });
-  };
-
-  // 表格列定义
-  const columns = [
-    {
-      title: '序号',
-      dataIndex: 'index',
-      width: 60,
-      render: (_: any, __: any, index: number) => {
-        return (currentPage - 1) * pageSize + index + 1;
-      },
-    },
-    {
-      title: '菜单名称',
-      dataIndex: 'menuLabel',
-      width: 150,
-      render: (menuLabel: string, record: MenuDto) => (
-        <Space>
-          {renderMenuTypeIcon(record.menuType)}
-          <span>{menuLabel}</span>
-        </Space>
-      ),
-    },
-    {
-      title: '菜单ID',
-      dataIndex: 'menuName',
-      width: 120,
-    },
-    {
-      title: '菜单类型',
-      dataIndex: 'menuType',
-      width: 100,
-      render: (type: MenuType) => {
-        const typeMap = {
-          [MenuType.DIRECTORY]: { text: '目录', color: 'orange' },
-          [MenuType.MENU]: { text: '菜单', color: 'blue' },
-          [MenuType.BUTTON]: { text: '按钮', color: 'green' },
-        };
-        const config = typeMap[type] || { text: type, color: 'gray' };
-        return (
-          <Tag color={config.color} size="small">
-            {config.text}
-          </Tag>
-        );
-      },
-    },
-    {
-      title: '路由路径',
-      dataIndex: 'menuExtConf',
-      width: 150,
-      render: (menuExtConf: any, record: MenuDto) => {
-        if (record.menuType === MenuType.MENU && menuExtConf) {
-          try {
-            const extConf = typeof menuExtConf === 'string' ? JSON.parse(menuExtConf) : menuExtConf;
-            return extConf?.path || '-';
-          } catch (error) {
-            console.error('解析menuExtConf失败:', error);
-            return '-';
-          }
-        }
-        return '-';
-      },
-    },
-    {
-      title: '图标',
-      dataIndex: 'icon',
-      width: 80,
-      align: 'center' as const,
-      render: (icon: string) => {
-        if (icon) {
-          return <span className={styles.iconPreview}>{icon}</span>;
-        }
-        return '-';
-      },
-    },
-    {
-      title: '状态',
-      dataIndex: 'state',
-      width: 80,
-      align: 'center' as const,
-      render: (state: string) => {
-        const isEnabled = state === '1';
-        return (
-          <Tag color={isEnabled ? 'green' : 'red'} size="small">
-            {isEnabled ? '生效' : '失效'}
-          </Tag>
-        );
-      },
-    },
-    {
-      title: '排序号',
-      dataIndex: 'seq',
-      width: 80,
-      align: 'center' as const,
-    },
-    {
-      title: '操作',
-      dataIndex: 'action',
-      width: 120,
-      fixed: 'right' as const,
-      render: (_: any, record: MenuDto) => (
-        <Space>
-          <Tooltip content="编辑">
-              <Button
-                 type="text"
-                 size="small"
-                 icon={<IconEdit />}
-                 onClick={() => handleEditMenu(record)}
-               />
-            </Tooltip>
-          {record.state === '1' ? (
-            <Popconfirm
-              title="确定要禁用该菜单吗？"
-              onOk={() => handleDisableMenu(record)}
-            >
-              <Tooltip content="禁用">
-                <Button
-                  type="text"
-                  size="small"
-                  status="warning"
-                  icon={<IconLock />}
-                />
-              </Tooltip>
-            </Popconfirm>
-          ) : (
-            <Popconfirm
-              title="确定要启用该菜单吗？"
-              onOk={() => handleEnableMenu(record)}
-            >
-              <Tooltip content="启用">
-                <Button
-                  type="text"
-                  size="small"
-                  status="success"
-                  icon={<IconUnlock />}
-                />
-              </Tooltip>
-            </Popconfirm>
-          )}
-          <Popconfirm
-            title="确定要删除该菜单吗？删除后不可恢复！"
-            onOk={() => handleDeleteMenu(record)}
-          >
-            <Tooltip content="删除">
-              <Button
-                type="text"
-                size="small"
-                status="danger"
-                icon={<IconDelete />}
-              />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
-  // 转换数据格式
-  const tableData: MenuTableData[] = menus.map(menu => ({
-    ...menu,
-    key: menu.menuName,
-  }));
-
-  return (
-    <div className={styles.menuManagement}>
-      <Row gutter={16} className={styles.mainLayout}>
-        {/* 左侧菜单树 */}
-        <Col span={4} className={styles.leftPanel}>
-          <MenuTree
-            menuTree={menuTree}
-            selectedKeys={selectedTreeNodeId ? [selectedTreeNodeId] : []}
-            onSelect={handleTreeSelect}
-            onRefresh={fetchMenuTree}
-            onCreateMenu={handleTreeCreateMenu}
-            onEditMenu={handleTreeEditMenu}
-            onDeleteMenu={handleTreeDeleteMenu}
-          />
-        </Col>
-
-        {/* 右侧内容区 */}
-        <Col span={20} className={styles.rightPanel}>
-          {/* 过滤表单 */}
-          <Card className={styles.filterCard}>
-            <Form form={form} layout="horizontal" className={styles.filterForm}>
-              <div className={styles.formRow}>
-                <div className={styles.formItem}>
-                  <FormItem field="menuName" label="名称" className={styles.arcoFormItem}>
-                    <Input placeholder="请输入菜单名称" allowClear />
-                  </FormItem>
-                </div>
-                <div className={styles.formItem}>
-                  <FormItem field="menuType" label="类型" className={styles.arcoFormItem}>
-                    <Select placeholder="请选择菜单类型" allowClear>
-                      {menuTypeOptions.map(option => (
-                        <Option key={option.value} value={option.value}>
-                          {option.label}
-                        </Option>
-                      ))}
-                    </Select>
-                  </FormItem>
-                </div>
-                <div className={styles.formItem}>
-                  <FormItem field="status" label="状态" className={styles.arcoFormItem}>
-                    <Select placeholder="请选择状态" allowClear>
-                      {statusOptions.map(option => (
-                        <Option key={option.value} value={option.value}>
-                          {option.label}
-                        </Option>
-                      ))}
-                    </Select>
-                  </FormItem>
-                </div>
-                <div className={styles.buttonGroup}>
-                  <Button type="primary" onClick={handleSearch}>
-                    查询
-                  </Button>
-                  <Button onClick={handleReset}>
-                    重置
-                  </Button>
-                </div>
-              </div>
-            </Form>
-          </Card>
-
-          {/* 数据表格 */}
-          <Card className={styles.tableCard}>
-            <div className={styles.tableHeader}>
-              <div className={styles.tableTitle}>菜单列表</div>
-              <div className={styles.tableActions}>
-                <Button
-                  type="primary"
-                  icon={<IconPlus />}
-                  onClick={() => setCreateModalVisible(true)}
-                >
-                  新增菜单
-                </Button>
-                <Button icon={<IconRefresh />} onClick={handleRefresh}>
-                  刷新
-                </Button>
-              </div>
-            </div>
-            <Table
-              columns={columns}
-              data={tableData}
-              loading={loading}
-              pagination={false}
-              scroll={{ x: 1200 }}
-              rowKey="key"
-            />
-            
-            {/* 分页 */}
-            <div className={styles.paginationWrapper}>
-              <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={total}
-                showTotal={(total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`}
-                showQuickJumper
-                sizeCanChange
-                sizeOptions={[10, 20, 50, 100]}
-                onChange={handlePageChange}
-                onPageSizeChange={handlePageChange}
-              />
-            </div>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* 创建菜单模态框 */}
-      <CreateMenuModal
-        visible={createModalVisible}
-        onCancel={() => setCreateModalVisible(false)}
-        onSuccess={handleModalSuccess}
-      />
-      
-      {/* 编辑菜单模态框 */}
-      <EditMenuModal
-        visible={editModalVisible}
-        menu={currentMenu}
-        onCancel={() => {
-          setEditModalVisible(false);
-          setCurrentMenu(null);
-        }}
-        onSuccess={handleModalSuccess}
-      />
-    </div>
-  );
-};
-
-export default MenuManagement;
+export default MenuManager;
