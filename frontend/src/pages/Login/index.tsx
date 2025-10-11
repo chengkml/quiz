@@ -163,16 +163,14 @@ class appLogin extends React.Component<LoginProps> {
 
             // 构建用户信息对象
             const userInfo: LoginUserInfo = {
-                id: response.data?.data?.id || '',
-                userId: response.data?.data?.userId || this.state.infoData.userId || '',
-                userName: response.data?.data?.username || response.data?.data?.userName || this.state.infoData.userId || '',
-                email: response.data?.data?.email || '',
-                phone: response.data?.data?.phone || '',
-                acctType: response.data?.data?.acctType || '',
-                defaultTeam: response.data?.data?.defaultTeam || '',
-                logo: response.data?.data?.logo || '',
-                roles: response.data?.data?.roles || [],
-                permissions: response.data?.data?.permissions || [],
+                userId: response.data?.userId || '',
+                userName: response.data?.userName || '',
+                email: response.data?.email || '',
+                phone: response.data?.phone || '',
+                acctType: response.data?.acctType || '',
+                logo: response.data?.logo || '',
+                roles: response.data?.roles || [],
+                permissions: response.data?.permissions || [],
                 loginTime: new Date().toISOString()
             };
 

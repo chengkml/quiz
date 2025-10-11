@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
-import {Button, Dropdown, Layout, Menu, Message, Space, Breadcrumb} from '@arco-design/web-react';
-import {useLocation, useNavigate, Outlet} from 'react-router-dom';
+import {Button, Dropdown, Layout, Menu, Message} from '@arco-design/web-react';
+import {Outlet, useLocation, useNavigate} from 'react-router-dom';
+import * as ArcoIcons from '@arco-design/web-react/icon';
 import {
     IconCaretLeft,
     IconCaretRight,
@@ -13,14 +14,13 @@ import {
     IconStorage,
     IconUser,
 } from '@arco-design/web-react/icon';
-import * as ArcoIcons from '@arco-design/web-react/icon';
 import {MenuTreeDto} from '../../types/menu';
 import {useUser} from '@/contexts/UserContext';
 import {clearUserInfo} from '@/utils/userUtils';
 import {logoutUser} from '@/pages/User/api';
 import './style.less';
 
-const {Header, Content, Sider} = Layout;
+const {Content, Sider} = Layout;
 const MenuItem = Menu.Item;
 const SubMenu = Menu.SubMenu;
 
@@ -252,67 +252,7 @@ const AppLayout: React.FC = () => {
         </Menu>
     );
 
-    // 获取面包屑导航数据
-    const getBreadcrumbItems = () => {
-        const path = location.pathname;
-        const breadcrumbItems: Array<{
-            key: string;
-            label: string;
-            onClick?: () => void;
-            isDirectory?: boolean;
-        }> = [];
-
-        // 递归查找当前路径对应的菜单项及其父级路径
-        const findMenuPath = (menus: MenuTreeDto[], targetPath: string, currentPath: MenuTreeDto[] = []): MenuTreeDto[] | null => {
-            for (const menu of menus) {
-                const newPath = [...currentPath, menu];
-                
-                // 检查当前菜单是否匹配路径
-                if (menu.url && targetPath.includes(menu.url.replace('/', ''))) {
-                    return newPath;
-                }
-                
-                // 递归检查子菜单
-                if (menu.children && menu.children.length > 0) {
-                    const result = findMenuPath(menu.children, targetPath, newPath);
-                    if (result) {
-                        return result;
-                    }
-                }
-            }
-            return null;
-        };
-
-        // 获取当前路径的菜单层级
-        const menuPath = findMenuPath(menuTree || [], path);
-        
-        if (menuPath && menuPath.length > 0) {
-            // 根据菜单层级生成面包屑
-            menuPath.forEach((menu, index) => {
-                const isDirectory = menu.menuType === 'DIRECTORY';
-                const isLast = index === menuPath.length - 1;
-                
-                breadcrumbItems.push({
-                    key: menu.menuId,
-                    label: menu.menuLabel,
-                    isDirectory: isDirectory,
-                    // 只有非目录类型的菜单才允许点击跳转，且不是最后一个
-                    onClick: (!isDirectory && !isLast && menu.url) ? () => navigate(`/quiz/frame/${menu.url}`) : undefined
-                });
-            });
-        } else {
-            // 如果没有找到匹配的菜单，显示页面未找到
-            const pathSegments = path.split('/').filter(segment => segment && segment !== 'quiz' && segment !== 'frame');
-            if (pathSegments.length > 0 && pathSegments[0] === 'notfound') {
-                breadcrumbItems.push({
-                    key: 'notfound',
-                    label: '页面未找到'
-                });
-            }
-        }
-
-        return breadcrumbItems;
-    };
+    // 已移除 Header 与面包屑，用户信息与操作移至侧边菜单顶部
 
     return (
         <Layout className='app-layout'>
@@ -323,7 +263,23 @@ const AppLayout: React.FC = () => {
                 trigger={collapsed ? <IconCaretRight/> : <IconCaretLeft/>}
                 breakpoint='xl'
             >
-                <div className='logo'/>
+                <div className='sider-user' style={{
+                    height: 56,
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0 12px',
+                    borderBottom: '1px solid #f0f0f0'
+                }}>
+                    <Dropdown droplist={userDropdownMenu} position="br">
+                        <Button
+                            type="text"
+                            icon={<IconUser/>}
+                            style={{width: '100%', textAlign: collapsed ? 'center' : 'left'}}
+                        >
+                            {!collapsed && user?.userName}
+                        </Button>
+                    </Dropdown>
+                </div>
                 <Menu
                     selectedKeys={getSelectedKeys()}
                     openKeys={getOpenKeys()}
@@ -341,41 +297,9 @@ const AppLayout: React.FC = () => {
                 </Menu>
             </Sider>
             <Layout>
-                <Header className="app-header">
-                    <div className="header-content">
-                        <div className="header-left">
-                            <Breadcrumb>
-                                {getBreadcrumbItems().map((item, index) => (
-                                    <Breadcrumb.Item 
-                                        key={item.key}
-                                        onClick={item.onClick}
-                                        style={{ 
-                                            cursor: item.onClick ? 'pointer' : 'default',
-                                            color: item.isDirectory ? '#999' : undefined
-                                        }}
-                                    >
-                                        {item.label}
-                                    </Breadcrumb.Item>
-                                ))}
-                            </Breadcrumb>
-                        </div>
-                        <div className="header-right">
-                            <Space>
-                                <span>欢迎，{user?.username || '用户'}</span>
-                                <Dropdown droplist={userDropdownMenu} position="br">
-                                    <Button type="text" icon={<IconUser />}>
-                                        {user?.username || '用户'}
-                                    </Button>
-                                </Dropdown>
-                            </Space>
-                        </div>
-                    </div>
-                </Header>
-                <Layout>
-                    <Content>
-                        <Outlet />
-                    </Content>
-                </Layout>
+                <Content style={{height: '100%'}}>
+                    <Outlet/>
+                </Content>
             </Layout>
         </Layout>
     );
