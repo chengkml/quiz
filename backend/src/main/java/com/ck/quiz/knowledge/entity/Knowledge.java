@@ -38,7 +38,7 @@ public class Knowledge {
      * 知识点名称
      * 示例：导数定义、链式法则
      */
-    @Column(name = "name", length = 64, nullable = false)
+    @Column(name = "name", length = 512, nullable = false)
     private String name;
 
     /**

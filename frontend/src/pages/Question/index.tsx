@@ -983,6 +983,11 @@ function QuestionManager() {
                 <Modal
                     title="新增题目"
                     visible={addModalVisible}
+                    onCancel={() => {
+                        setAddModalVisible(false);
+                        setAddDynamicFormData({options: {}, answer: {}});
+                        setAddQuestionType('');
+                    }}
                     footer={
                         <div style={{textAlign: 'right'}}>
                             <Button onClick={() => {
@@ -1201,6 +1206,7 @@ function QuestionManager() {
                 <Modal
                     title="AI生成题目"
                     visible={generateModalVisible}
+                    onCancel={() => setGenerateModalVisible(false)}
                     footer={
                         <div style={{textAlign: 'right'}}>
                             <Button onClick={() => setGenerateModalVisible(false)} style={{marginRight: 8}}>
