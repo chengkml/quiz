@@ -605,6 +605,28 @@ function QuestionManager() {
         }
     };
 
+    // 解析非JSON格式的选项字符串，如：
+    // "A.读（r）权限;B.写（w）权限;C.执行（x）权限;D.读和执行（rx）权限"
+    // 返回：{ A: '读（r）权限', B: '写（w）权限', C: '执行（x）权限', D: '读和执行（rx）权限' }
+    const parseOptionsText = (text: string): Record<string, string> => {
+        if (!text || typeof text !== 'string') return {};
+        const result: Record<string, string> = {};
+        // 按中文/英文分号或换行切分
+        const segments = text.split(/[；;\n]+/).map(s => s.trim()).filter(Boolean);
+        segments.forEach(seg => {
+            // 匹配形如 "A. 内容"、"B: 内容"、"C、内容" 等
+            const match = seg.match(/^\s*([A-Z])\s*[\.\u3002、:：]?\s*(.+)$/);
+            if (match) {
+                const key = match[1].toUpperCase();
+                const value = match[2].trim();
+                if (key) {
+                    result[key] = value;
+                }
+            }
+        });
+        return result;
+    };
+
     // 处理新增表单题目类型变化
     const handleAddTypeChange = (type) => {
         setAddQuestionType(type);
@@ -1067,19 +1089,31 @@ function QuestionManager() {
                                 if (editFormRef.current) {
                                     let parsedOptions = {};
                                     let parsedAnswer = '';
-                                    try {
-                                        if (currentRecord.options) {
-                                            parsedOptions = typeof currentRecord.options === 'string'
-                                                ? JSON.parse(currentRecord.options)
-                                                : currentRecord.options;
+                                    // 解析选项：兼容 JSON 与 文本串 两种格式
+                                    if (currentRecord.options) {
+                                        if (typeof currentRecord.options === 'string') {
+                                            try {
+                                                parsedOptions = JSON.parse(currentRecord.options);
+                                            } catch (e) {
+                                                // 回退到文本解析
+                                                parsedOptions = parseOptionsText(currentRecord.options);
+                                            }
+                                        } else {
+                                            parsedOptions = currentRecord.options;
                                         }
-                                        if (currentRecord.answer) {
-                                            parsedAnswer = typeof currentRecord.answer === 'string'
-                                                ? JSON.parse(currentRecord.answer)
-                                                : currentRecord.answer;
+                                    }
+
+                                    // 解析答案：保持原有逻辑，优先尝试 JSON
+                                    if (currentRecord.answer) {
+                                        if (typeof currentRecord.answer === 'string') {
+                                            try {
+                                                parsedAnswer = JSON.parse(currentRecord.answer);
+                                            } catch (e) {
+                                                parsedAnswer = currentRecord.answer;
+                                            }
+                                        } else {
+                                            parsedAnswer = currentRecord.answer;
                                         }
-                                    } catch (error) {
-                                        console.error('解析JSON数据失败:', error);
                                     }
 
                                     const { type, subjectId, categoryId, content, explanation, difficultyLevel } = currentRecord;
