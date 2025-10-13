@@ -77,7 +77,7 @@ function QuestionManager() {
     const [selectedTreeNode, setSelectedTreeNode] = useState(null);
     const [expandedKeys, setExpandedKeys] = useState([]);
     const [searchKeyword, setSearchKeyword] = useState('');
-    
+
     // 当前选中的过滤条件
     const [currentSubjectId, setCurrentSubjectId] = useState(null);
     const [currentCategoryId, setCurrentCategoryId] = useState(null);
@@ -123,6 +123,45 @@ function QuestionManager() {
         {label: '5级', value: 5},
     ];
 
+    const renderCreateDate = (value)=>{
+        if (!value) return '--';
+
+        const now = new Date();
+        const date = new Date(value);
+        const diffMs = now.getTime() - date.getTime();
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffSeconds / 60);
+        const diffHours = Math.floor(diffMinutes / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        // 今天
+        if (diffDays === 0) {
+            if (diffSeconds < 60) {
+                return `${diffSeconds}秒前`;
+            } else if (diffMinutes < 60) {
+                return `${diffMinutes}分钟前`;
+            } else {
+                return `${diffHours}小时前`;
+            }
+        }
+        // 昨天
+        else if (diffDays === 1) {
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `昨天 ${hours}:${minutes}`;
+        }
+        // 昨天之前
+        else {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+    };
+
     // 表格列配置
     const columns = [
         {
@@ -134,7 +173,7 @@ function QuestionManager() {
                     'SINGLE': '单选题',
                     'MULTIPLE': '多选题'
                 };
-                return <Tag color="blue">{typeMap[value] || value}</Tag>;
+                return <Tag color="blue" bordered>{typeMap[value] || value}</Tag>;
             },
         },
         {
@@ -155,7 +194,7 @@ function QuestionManager() {
             width: 100,
             align: 'center',
             render: (value) => (
-                <Tag color={value <= 2 ? 'green' : value <= 4 ? 'orange' : 'red'}>
+                <Tag color={value <= 2 ? 'green' : value <= 4 ? 'orange' : 'red'} bordered>
                     难度: {value}级
                 </Tag>
             ),
@@ -171,42 +210,7 @@ function QuestionManager() {
             dataIndex: 'createDate',
             width: 170,
             render: (value) => {
-                if (!value) return '--';
-
-                const now = new Date();
-                const date = new Date(value);
-                const diffMs = now.getTime() - date.getTime();
-                const diffSeconds = Math.floor(diffMs / 1000);
-                const diffMinutes = Math.floor(diffSeconds / 60);
-                const diffHours = Math.floor(diffMinutes / 60);
-                const diffDays = Math.floor(diffHours / 24);
-
-                // 今天
-                if (diffDays === 0) {
-                    if (diffSeconds < 60) {
-                        return `${diffSeconds}秒前`;
-                    } else if (diffMinutes < 60) {
-                        return `${diffMinutes}分钟前`;
-                    } else {
-                        return `${diffHours}小时前`;
-                    }
-                }
-                // 昨天
-                else if (diffDays === 1) {
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    return `昨天 ${hours}:${minutes}`;
-                }
-                // 昨天之前
-                else {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const seconds = String(date.getSeconds()).padStart(2, '0');
-                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-                }
+                return renderCreateDate(value);
             },
         },
         {
@@ -262,7 +266,7 @@ function QuestionManager() {
                 pageNum: current - 1,
                 pageSize: pageSize,
             };
-            
+
             // 如果有选中的学科或分类，添加到查询参数中
             if (subjectId) {
                 targetParams.subjectId = subjectId;
@@ -270,7 +274,7 @@ function QuestionManager() {
             if (categoryId) {
                 targetParams.categoryId = categoryId;
             }
-            
+
             const response = await getQuestionList(targetParams);
             if (response.data) {
                 setTableData(response.data.content || []);
@@ -351,7 +355,7 @@ function QuestionManager() {
                 // 递归转换分类数据为Tree组件需要的格式
                 const convertCategoriesToTreeNodes = (categories) => {
                     if (!categories || !Array.isArray(categories)) return [];
-                    
+
                     return categories.map(category => ({
                         key: `${category.id}`,
                         title: category.name,
@@ -365,7 +369,7 @@ function QuestionManager() {
                     title: subject.name,
                     children: convertCategoriesToTreeNodes(subject.categories)
                 }));
-                
+
                 setTreeData(treeData);
                 setFilteredTreeData(treeData);
                 // 默认展开第一级节点
@@ -382,11 +386,11 @@ function QuestionManager() {
     // 搜索过滤树数据
     const filterTreeData = (data, keyword) => {
         if (!keyword) return data;
-        
+
         const filterNode = (node) => {
             const titleMatch = node.title.toLowerCase().includes(keyword.toLowerCase());
             const filteredChildren = node.children ? node.children.map(filterNode).filter(Boolean) : [];
-            
+
             if (titleMatch || filteredChildren.length > 0) {
                 return {
                     ...node,
@@ -395,7 +399,7 @@ function QuestionManager() {
             }
             return null;
         };
-        
+
         return data.map(filterNode).filter(Boolean);
     };
 
@@ -404,7 +408,7 @@ function QuestionManager() {
         setSearchKeyword(value);
         const filtered = filterTreeData(treeData, value);
         setFilteredTreeData(filtered);
-        
+
         // 如果有搜索关键字，展开所有匹配的节点
         if (value) {
             const getAllKeys = (nodes) => {
@@ -569,7 +573,7 @@ function QuestionManager() {
             // 保存生成时选择的学科和分类信息
             setSelectedSubjectForGenerate(values.subjectId);
             setSelectedCategoryForGenerate(values.categoryId);
-            
+
             const response = await generateQuestions(values);
             if (response.data && response.data.length > 0) {
                 setGeneratedQuestions(response.data);
@@ -587,50 +591,6 @@ function QuestionManager() {
             setGenerateLoading(false);
         }
     };
-
-    // 设置编辑表单初始值
-    useEffect(() => {
-        if (editModalVisible && currentRecord && editFormRef.current) {
-            // 解析JSON数据
-            let parsedOptions = {};
-            let parsedAnswer = '';
-
-            try {
-                if (currentRecord.options) {
-                    parsedOptions = typeof currentRecord.options === 'string'
-                        ? JSON.parse(currentRecord.options)
-                        : currentRecord.options;
-                }
-                if (currentRecord.answer) {
-                    parsedAnswer = typeof currentRecord.answer === 'string'
-                        ? JSON.parse(currentRecord.answer)
-                        : currentRecord.answer;
-                }
-            } catch (error) {
-                console.error('解析JSON数据失败:', error);
-            }
-
-            editFormRef.current.setFieldsValue({
-                type: currentRecord.type,
-                subjectId: currentRecord.subjectId,
-                categoryId: currentRecord.categoryId,
-                content: currentRecord.content,
-                explanation: currentRecord.explanation,
-                difficultyLevel: currentRecord.difficultyLevel,
-            });
-
-            setEditQuestionType(currentRecord.type);
-            setEditDynamicFormData({
-                options: parsedOptions,
-                answer: parsedAnswer
-            });
-
-            // 如果有学科ID，获取对应的分类列表
-            if (currentRecord.subjectId) {
-                fetchCategoriesBySubject(currentRecord.subjectId);
-            }
-        }
-    }, [editModalVisible, currentRecord]);
 
     const getDefaultAnswer = (type: string) => {
         switch (type) {
@@ -840,11 +800,11 @@ function QuestionManager() {
                                     onSelect={(selectedKeys, info) => {
                                         if (selectedKeys.length > 0) {
                                             setSelectedTreeNode(selectedKeys[0]);
-                                            
+
                                             // 解析选中的节点，判断是学科还是分类
                                             const selectedKey = selectedKeys[0];
                                             const node = info.node;
-                                            
+
                                             // 根据树的层级结构判断：第一级是学科，第二级及以下是分类
                                             // 通过查找父节点来确定层级
                                             const findNodeInTree = (treeData, key) => {
@@ -859,7 +819,7 @@ function QuestionManager() {
                                                 }
                                                 return null;
                                             };
-                                            
+
                                             const findNodeInTreeRecursive = (children, key, parent) => {
                                                 for (const child of children) {
                                                     if (child.key === key) {
@@ -872,26 +832,26 @@ function QuestionManager() {
                                                 }
                                                 return null;
                                             };
-                                            
+
                                             const nodeInfo = findNodeInTree(treeData, selectedKey);
-                                            
+
                                             if (nodeInfo && nodeInfo.parent) {
                                                 // 这是一个分类节点
                                                 const categoryId = selectedKey;
                                                 const subjectId = nodeInfo.parent.key;
-                                                
+
                                                 setCurrentSubjectId(subjectId);
                                                 setCurrentCategoryId(categoryId);
-                                                
+
                                                 console.log('选中分类:', { subjectId, categoryId, categoryName: nodeInfo.node.title, subjectName: nodeInfo.parent.title });
                                                 fetchTableData(null, pagination.pageSize, pagination.current, subjectId, categoryId);
                                             } else {
                                                 // 这是一个学科节点
                                                 const subjectId = selectedKey;
-                                                
+
                                                 setCurrentSubjectId(subjectId);
                                                 setCurrentCategoryId(null);
-                                                
+
                                                 console.log('选中学科:', { subjectId, subjectName: nodeInfo?.node.title });
                                                 fetchTableData(null, pagination.pageSize, pagination.current, subjectId, null);
 
@@ -911,9 +871,9 @@ function QuestionManager() {
                                     }}
                                 />
                             ) : (
-                                <div style={{ 
-                                    textAlign: 'center', 
-                                    color: '#86909c', 
+                                <div style={{
+                                    textAlign: 'center',
+                                    color: '#86909c',
                                     padding: '20px 0',
                                     fontSize: '14px'
                                 }}>
@@ -1098,7 +1058,73 @@ function QuestionManager() {
                         setEditQuestionType('');
                     }}
                     onOk={() => editFormRef.current?.submit()}
-                    width={800}
+                    afterOpen={() => {
+                        // 模态框完全打开后触发
+                        if (currentRecord && editFormRef.current) {
+                            // 在这里执行初始化逻辑，代码同上（带 setTimeout 或直接执行）
+                            // 但因为是在 afterOpen 后，ref 通常已就绪
+                            setTimeout(() => {
+                                if (editFormRef.current) {
+                                    let parsedOptions = {};
+                                    let parsedAnswer = '';
+                                    try {
+                                        if (currentRecord.options) {
+                                            parsedOptions = typeof currentRecord.options === 'string'
+                                                ? JSON.parse(currentRecord.options)
+                                                : currentRecord.options;
+                                        }
+                                        if (currentRecord.answer) {
+                                            parsedAnswer = typeof currentRecord.answer === 'string'
+                                                ? JSON.parse(currentRecord.answer)
+                                                : currentRecord.answer;
+                                        }
+                                    } catch (error) {
+                                        console.error('解析JSON数据失败:', error);
+                                    }
+
+                                    const { type, subjectId, categoryId, content, explanation, difficultyLevel } = currentRecord;
+
+                                    // 先设置除了 categoryId 之外的所有字段
+                                    editFormRef.current.setFieldsValue({
+                                        type,
+                                        subjectId,
+                                        content,
+                                        explanation,
+                                        difficultyLevel,
+                                        // 注意：这里不设置 categoryId
+                                    });
+
+                                    setEditQuestionType(type);
+                                    setEditDynamicFormData({
+                                        options: parsedOptions,
+                                        answer: parsedAnswer
+                                    });
+
+                                    // 清空当前的 categoryId 以防万一
+                                    editFormRef.current.setFieldValue('categoryId', undefined);
+
+                                    // 如果有学科ID，获取对应的分类列表
+                                    if (subjectId) {
+                                        fetchCategoriesBySubject(subjectId).then(() => {
+                                            // 关键点：在 fetchCategoriesBySubject 完成后，再设置 categoryId
+                                            // 此时 categories 状态已经更新，包含了该学科下的所有分类
+                                            editFormRef.current?.setFieldValue('categoryId', categoryId);
+                                        }).catch(error => {
+                                            console.error('加载分类列表失败:', error);
+                                            Message.error('加载分类信息失败');
+                                        });
+                                    } else {
+                                        // 如果没有学科ID，则直接设置（虽然这种情况很少见）
+                                        editFormRef.current.setFieldValue('categoryId', categoryId);
+                                    }
+                                }
+                            }, 0);
+                        }
+                    }}
+                    afterClose={() => {
+                        // 清理
+                        setCurrentRecord(null);
+                    }}
                 >
                     <Form
                         ref={editFormRef}
@@ -1309,9 +1335,9 @@ function QuestionManager() {
                         {/* 显示选择的学科和分类信息 */}
                         {(selectedSubjectForGenerate || selectedCategoryForGenerate) && (
                             <div style={{
-                                marginBottom: 16, 
-                                padding: 12, 
-                                backgroundColor: '#f7f8fa', 
+                                marginBottom: 16,
+                                padding: 12,
+                                backgroundColor: '#f7f8fa',
                                 borderRadius: 6,
                                 border: '1px solid #e5e6eb'
                             }}>
@@ -1320,19 +1346,19 @@ function QuestionManager() {
                                 </div>
                                 <div style={{display: 'flex', gap: 12}}>
                                     {selectedSubjectForGenerate && (
-                                        <Tag color="blue">
+                                        <Tag color="blue" bordered>
                                             学科: {subjects.find(s => s.id === selectedSubjectForGenerate)?.name || selectedSubjectForGenerate}
                                         </Tag>
                                     )}
                                     {selectedCategoryForGenerate && (
-                                        <Tag color="green">
+                                        <Tag color="green" bordered>
                                             分类: {categories.find(c => c.id === selectedCategoryForGenerate)?.name || selectedCategoryForGenerate}
                                         </Tag>
                                     )}
                                 </div>
                             </div>
                         )}
-                        
+
                         <div style={{marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #f0f0f0'}}>
                             <Checkbox
                                 checked={selectedQuestions.length === generatedQuestions.length}
@@ -1364,10 +1390,10 @@ function QuestionManager() {
                                                         onClick={(e) => e.stopPropagation()}
                                                         style={{marginRight: 12}}
                                                     />
-                                                    <Tag color="blue" style={{marginRight: 8}}>
+                                                    <Tag color="blue" style={{marginRight: 8}} bordered>
                                                         {typeMap[question.type] || question.type}
                                                     </Tag>
-                                                    <Tag
+                                                    <Tag bordered
                                                         color={question.difficultyLevel <= 2 ? 'green' : question.difficultyLevel <= 4 ? 'orange' : 'red'}
                                                         style={{marginRight: 8}}
                                                     >
@@ -1428,13 +1454,13 @@ function QuestionManager() {
                         footer={null}
                         width={800}
                     >
-                        <div style={{padding: '16px 0'}}>
+                        <div style={{paddingTop: '16px'}}>
                             <div style={{marginBottom: 16}}>
                                 <div style={{display: 'flex', gap: 12, marginBottom: 12}}>
-                                    <Tag color="blue">
+                                    <Tag color="blue" bordered>
                                         {detailRecord.type === 'SINGLE' ? '单选题' : '多选题'}
                                     </Tag>
-                                    <Tag
+                                    <Tag bordered
                                         color={detailRecord.difficultyLevel <= 2 ? 'green' : detailRecord.difficultyLevel <= 4 ? 'orange' : 'red'}>
                                         难度: {detailRecord.difficultyLevel}级
                                     </Tag>
@@ -1464,7 +1490,7 @@ function QuestionManager() {
                                     <div style={{
                                         marginTop: 8,
                                         padding: '12px 16px',
-                                        backgroundColor: '#00ff00',
+                                        backgroundColor: '#f7f8fa',
                                         borderRadius: 6,
                                         color: '#666',
                                         lineHeight: 1.6
@@ -1482,7 +1508,7 @@ function QuestionManager() {
                                     fontSize: 14
                                 }}>
                                     <span>创建人: {detailRecord.createUserName || '--'}</span>
-                                    <span>创建时间: {detailRecord.createDate || '--'}</span>
+                                    <span>创建时间: {renderCreateDate(detailRecord.createDate)}</span>
                                 </div>
                             </div>
                         </div>

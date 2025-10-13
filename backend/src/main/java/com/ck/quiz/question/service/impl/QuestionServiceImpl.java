@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 题目管理服务实现类
@@ -226,6 +227,47 @@ public class QuestionServiceImpl implements QuestionService {
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;
         });
+        if (!list.isEmpty()) {
+            List<String> questionIds = list.stream().map(QuestionDto::getId).collect(Collectors.toList());
+
+            // 查询题目关联的知识点、分类、学科
+            String relaSql = """
+        SELECT r.question_id,
+               k.category_id,
+               c.name category_name,
+               k.subject_id,
+               s.name subject_name
+        FROM question_knowledge_rela r
+        INNER JOIN knowledge k ON r.knowledge_id = k.knowledge_id
+        INNER JOIN category c ON k.category_id = c.category_id
+        INNER JOIN subject s ON c.subject_id = s.subject_id
+        WHERE r.question_id IN (:questionIds)
+        """;
+
+            Map<String, Object> relaParams = new HashMap<>();
+            relaParams.put("questionIds", questionIds);
+
+            // 查询所有关联结果
+            List<Map<String, Object>> relaList = jdbcTemplate.queryForList(relaSql, relaParams);
+
+            // 按 question_id 组织映射（如果题目属于多个分类，只取一个或第一个）
+            Map<String, Map<String, Object>> relaMap = new HashMap<>();
+            for (Map<String, Object> row : relaList) {
+                String qid = (String) row.get("question_id");
+                relaMap.putIfAbsent(qid, row);
+            }
+
+            // 回填字段
+            for (QuestionDto dto : list) {
+                Map<String, Object> row = relaMap.get(dto.getId());
+                if (row != null) {
+                    dto.setSubjectId((String) row.get("subject_id"));
+                    dto.setSubjectName((String) row.get("subject_name"));
+                    dto.setCategoryId((String) row.get("category_id"));
+                    dto.setCategoryName((String) row.get("category_name"));
+                }
+            }
+        }
 
         // 获取总数
         Long total = jdbcTemplate.queryForObject(countSql.toString(), params, Long.class);

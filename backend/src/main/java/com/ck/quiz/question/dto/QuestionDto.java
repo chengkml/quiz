@@ -75,4 +75,12 @@ public class QuestionDto {
      * 更新人
      */
     private String updateUser;
+
+    private String subjectId;
+
+    private String subjectName;
+
+    private String categoryId;
+
+    private String categoryName;
 }
