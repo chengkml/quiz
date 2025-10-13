@@ -165,7 +165,7 @@ public class ExamServiceImpl implements ExamService {
         // 查询数据
         List<ExamDto> exams = jdbcTemplate.query(listSql, params, (rs, rowNum) -> {
             ExamDto dto = new ExamDto();
-            dto.setId(rs.getString("id"));
+            dto.setId(rs.getString("paper_id"));
             dto.setName(rs.getString("name"));
             dto.setDescription(rs.getString("description"));
             dto.setStatus(Exam.ExamPaperStatus.valueOf(rs.getString("status")));
