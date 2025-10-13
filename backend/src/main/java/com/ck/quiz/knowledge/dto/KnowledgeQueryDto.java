@@ -16,7 +16,7 @@ public class KnowledgeQueryDto {
     /**
      * 知识点名称（模糊查询）
      */
-    private String name;
+    private String knowledgeName;
 
     /**
      * 所属分类ID

@@ -987,87 +987,89 @@ function QuestionManager() {
                         </div>
                     }
                 >
-                    <Form
-                        ref={addFormRef}
-                        layout="vertical"
-                        onSubmit={handleAddSubmit}
-                        className="modal-form"
-                    >
-                        <Form.Item
-                            label="题目类型"
-                            field="type"
-                            rules={[{required: true, message: '请选择题目类型'}]}
+                    <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                        <Form
+                            ref={addFormRef}
+                            layout="vertical"
+                            onSubmit={handleAddSubmit}
+                            className="modal-form"
                         >
-                            <Select
-                                options={questionTypeOptions}
-                                placeholder="请选择题目类型"
-                                onChange={handleAddTypeChange}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="学科"
-                            field="subjectId"
-                            rules={[{required: true, message: '请选择学科'}]}
-                        >
-                            <Select
-                                options={subjects}
-                                placeholder="请选择学科"
-                                loading={subjectsLoading}
-                                onChange={(value) => {
-                                    // 清空分类选择
-                                    addFormRef.current?.setFieldValue('categoryId', undefined);
-                                    setCategories([]);
-                                    // 获取该学科下的分类
-                                    fetchCategoriesBySubject(value);
-                                }}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="分类"
-                            field="categoryId"
-                            rules={[{required: true, message: '请选择分类'}]}
-                        >
-                            <Select
-                                options={categories}
-                                placeholder="请先选择学科"
-                                loading={categoriesLoading}
-                                disabled={categories.length === 0}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="题干内容"
-                            field="content"
-                            rules={[{required: true, message: '请输入题干内容'}]}
-                        >
-                            <TextArea placeholder="请输入题干内容" rows={4}/>
-                        </Form.Item>
-
-                        {/* 动态表单区域 */}
-                        {addQuestionType && (
-                            <div style={{marginBottom: 20}}>
-                                <DynamicQuestionForm
-                                    questionType={addQuestionType}
-                                    value={addDynamicFormData}
-                                    onChange={setAddDynamicFormData}
+                            <Form.Item
+                                label="题目类型"
+                                field="type"
+                                rules={[{required: true, message: '请选择题目类型'}]}
+                            >
+                                <Select
+                                    options={questionTypeOptions}
+                                    placeholder="请选择题目类型"
+                                    onChange={handleAddTypeChange}
                                 />
-                            </div>
-                        )}
+                            </Form.Item>
+                            <Form.Item
+                                label="学科"
+                                field="subjectId"
+                                rules={[{required: true, message: '请选择学科'}]}
+                            >
+                                <Select
+                                    options={subjects}
+                                    placeholder="请选择学科"
+                                    loading={subjectsLoading}
+                                    onChange={(value) => {
+                                        // 清空分类选择
+                                        addFormRef.current?.setFieldValue('categoryId', undefined);
+                                        setCategories([]);
+                                        // 获取该学科下的分类
+                                        fetchCategoriesBySubject(value);
+                                    }}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="分类"
+                                field="categoryId"
+                                rules={[{required: true, message: '请选择分类'}]}
+                            >
+                                <Select
+                                    options={categories}
+                                    placeholder="请先选择学科"
+                                    loading={categoriesLoading}
+                                    disabled={categories.length === 0}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="题干内容"
+                                field="content"
+                                rules={[{required: true, message: '请输入题干内容'}]}
+                            >
+                                <TextArea placeholder="请输入题干内容" rows={4}/>
+                            </Form.Item>
 
-                        <Form.Item
-                            label="解析说明"
-                            field="explanation"
-                        >
-                            <TextArea placeholder="请输入解析说明" rows={3}/>
-                        </Form.Item>
-                        <Form.Item
-                            label="难度等级"
-                            field="difficultyLevel"
-                            initialValue={1}
-                            rules={[{required: true, message: '请选择难度等级'}]}
-                        >
-                            <Select options={difficultyOptions} placeholder="请选择难度等级"/>
-                        </Form.Item>
-                    </Form>
+                            {/* 动态表单区域 */}
+                            {addQuestionType && (
+                                <div style={{marginBottom: 20}}>
+                                    <DynamicQuestionForm
+                                        questionType={addQuestionType}
+                                        value={addDynamicFormData}
+                                        onChange={setAddDynamicFormData}
+                                    />
+                                </div>
+                            )}
+
+                            <Form.Item
+                                label="解析说明"
+                                field="explanation"
+                            >
+                                <TextArea placeholder="请输入解析说明" rows={3}/>
+                            </Form.Item>
+                            <Form.Item
+                                label="难度等级"
+                                field="difficultyLevel"
+                                initialValue={1}
+                                rules={[{required: true, message: '请选择难度等级'}]}
+                            >
+                                <Select options={difficultyOptions} placeholder="请选择难度等级"/>
+                            </Form.Item>
+                        </Form>
+                    </div>
                 </Modal>
 
                 {/* 编辑对话框 */}
@@ -1160,87 +1162,89 @@ function QuestionManager() {
                         setCurrentRecord(null);
                     }}
                 >
-                    <Form
-                        ref={editFormRef}
-                        layout="vertical"
-                        onSubmit={handleEditSubmit}
-                        className="modal-form"
-                        initialValues={currentRecord || {}}
-                    >
-                        <Form.Item
-                            label="题目类型"
-                            field="type"
-                            rules={[{required: true, message: '请选择题目类型'}]}
+                    <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                        <Form
+                            ref={editFormRef}
+                            layout="vertical"
+                            onSubmit={handleEditSubmit}
+                            className="modal-form"
+                            initialValues={currentRecord || {}}
                         >
-                            <Select
-                                options={questionTypeOptions}
-                                placeholder="请选择题目类型"
-                                onChange={handleEditTypeChange}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="学科"
-                            field="subjectId"
-                            rules={[{required: true, message: '请选择学科'}]}
-                        >
-                            <Select
-                                options={subjects}
-                                placeholder="请选择学科"
-                                loading={subjectsLoading}
-                                onChange={(value) => {
-                                    // 清空分类选择
-                                    editFormRef.current?.setFieldValue('categoryId', undefined);
-                                    setCategories([]);
-                                    // 获取该学科下的分类
-                                    fetchCategoriesBySubject(value);
-                                }}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="分类"
-                            field="categoryId"
-                            rules={[{required: true, message: '请选择分类'}]}
-                        >
-                            <Select
-                                options={categories}
-                                placeholder="请先选择学科"
-                                loading={categoriesLoading}
-                                disabled={categories.length === 0}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="题干内容"
-                            field="content"
-                            rules={[{required: true, message: '请输入题干内容'}]}
-                        >
-                            <TextArea placeholder="请输入题干内容" rows={4}/>
-                        </Form.Item>
-
-                        {/* 动态表单区域 */}
-                        {editQuestionType && (
-                            <div style={{marginBottom: 20}}>
-                                <DynamicQuestionForm
-                                    questionType={editQuestionType}
-                                    value={editDynamicFormData}
-                                    onChange={setEditDynamicFormData}
+                            <Form.Item
+                                label="题目类型"
+                                field="type"
+                                rules={[{required: true, message: '请选择题目类型'}]}
+                            >
+                                <Select
+                                    options={questionTypeOptions}
+                                    placeholder="请选择题目类型"
+                                    onChange={handleEditTypeChange}
                                 />
-                            </div>
-                        )}
+                            </Form.Item>
+                            <Form.Item
+                                label="学科"
+                                field="subjectId"
+                                rules={[{required: true, message: '请选择学科'}]}
+                            >
+                                <Select
+                                    options={subjects}
+                                    placeholder="请选择学科"
+                                    loading={subjectsLoading}
+                                    onChange={(value) => {
+                                        // 清空分类选择
+                                        editFormRef.current?.setFieldValue('categoryId', undefined);
+                                        setCategories([]);
+                                        // 获取该学科下的分类
+                                        fetchCategoriesBySubject(value);
+                                    }}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="分类"
+                                field="categoryId"
+                                rules={[{required: true, message: '请选择分类'}]}
+                            >
+                                <Select
+                                    options={categories}
+                                    placeholder="请先选择学科"
+                                    loading={categoriesLoading}
+                                    disabled={categories.length === 0}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="题干内容"
+                                field="content"
+                                rules={[{required: true, message: '请输入题干内容'}]}
+                            >
+                                <TextArea placeholder="请输入题干内容" rows={4}/>
+                            </Form.Item>
 
-                        <Form.Item
-                            label="解析说明"
-                            field="explanation"
-                        >
-                            <TextArea placeholder="请输入解析说明" rows={3}/>
-                        </Form.Item>
-                        <Form.Item
-                            label="难度等级"
-                            field="difficultyLevel"
-                            rules={[{required: true, message: '请选择难度等级'}]}
-                        >
-                            <Select options={difficultyOptions} placeholder="请选择难度等级"/>
-                        </Form.Item>
-                    </Form>
+                            {/* 动态表单区域 */}
+                            {editQuestionType && (
+                                <div style={{marginBottom: 20}}>
+                                    <DynamicQuestionForm
+                                        questionType={editQuestionType}
+                                        value={editDynamicFormData}
+                                        onChange={setEditDynamicFormData}
+                                    />
+                                </div>
+                            )}
+
+                            <Form.Item
+                                label="解析说明"
+                                field="explanation"
+                            >
+                                <TextArea placeholder="请输入解析说明" rows={3}/>
+                            </Form.Item>
+                            <Form.Item
+                                label="难度等级"
+                                field="difficultyLevel"
+                                rules={[{required: true, message: '请选择难度等级'}]}
+                            >
+                                <Select options={difficultyOptions} placeholder="请选择难度等级"/>
+                            </Form.Item>
+                        </Form>
+                    </div>
                 </Modal>
 
                 {/* 删除确认对话框 */}
@@ -1318,9 +1322,9 @@ function QuestionManager() {
                                 />
                             </Form.Item>
                             <Form.Item
-                                label="知识点描述"
+                                label="知识点"
                                 field="knowledgeDescr"
-                                rules={[{required: true, message: '请输入知识点描述'}]}
+                                rules={[{required: true, message: '请输入知识点'}]}
                             >
                                 <TextArea
                                     placeholder="请输入知识点描述，AI将根据此描述生成相关题目"

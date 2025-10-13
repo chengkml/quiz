@@ -138,25 +138,25 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Transactional(readOnly = true)
     public Page<KnowledgeDto> searchKnowledge(KnowledgeQueryDto queryDto) {
         StringBuilder sql = new StringBuilder("select k.*, u.user_name create_user_name, s.name subject_name, c.name category_name from knowledge k left join user u on u.user_id = k.create_user left join subject s on s.subject_id = k.subject_id left join category c on c.category_id = k.category_id where 1=1 ");
-        StringBuilder countSql = new StringBuilder("select count(1) from knowledge where 1=1 ");
+        StringBuilder countSql = new StringBuilder("select count(1) from knowledge k where 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
         // 知识点名称（模糊查询）
-        JdbcQueryHelper.lowerLike("knowledgeName", queryDto.getName(),
-                " and lower(name) like :knowledgeName ", params, namedParameterJdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("knowledgeName", queryDto.getKnowledgeName(),
+                " and lower(k.name) like :knowledgeName ", params, namedParameterJdbcTemplate, sql, countSql);
 
         // 分类ID
         JdbcQueryHelper.equals("categoryId", queryDto.getCategoryId(),
-                " and category_id = :categoryId ", params, sql, countSql);
+                " and k.category_id = :categoryId ", params, sql, countSql);
 
         // 学科ID
         JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(),
-                " and subject_id = :subjectId ", params, sql, countSql);
+                " and k.subject_id = :subjectId ", params, sql, countSql);
 
         // 难度等级
         if (queryDto.getDifficultyLevel() != null) {
-            sql.append(" and difficulty_level = :difficultyLevel ");
-            countSql.append(" and difficulty_level = :difficultyLevel ");
+            sql.append(" and k.difficulty_level = :difficultyLevel ");
+            countSql.append(" and k.difficulty_level = :difficultyLevel ");
             params.put("difficultyLevel", queryDto.getDifficultyLevel());
         }
 
