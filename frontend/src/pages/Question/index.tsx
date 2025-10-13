@@ -1599,12 +1599,12 @@ function QuestionManager() {
                                 <div style={{display: 'flex', gap: 12}}>
                                     {selectedSubjectForGenerate && (
                                         <Tag color="blue" bordered>
-                                            学科: {subjects.find(s => s.id === selectedSubjectForGenerate)?.name || selectedSubjectForGenerate}
+                                            学科: {subjects.find(s => s.value === selectedSubjectForGenerate)?.label || selectedSubjectForGenerate}
                                         </Tag>
                                     )}
                                     {selectedCategoryForGenerate && (
                                         <Tag color="green" bordered>
-                                            分类: {categories.find(c => c.id === selectedCategoryForGenerate)?.name || selectedCategoryForGenerate}
+                                            分类: {categories.find(c => c.value === selectedCategoryForGenerate)?.label || selectedCategoryForGenerate}
                                         </Tag>
                                     )}
                                 </div>

@@ -122,7 +122,7 @@ class FilterForm extends React.Component {
                         {/* 自定义表单区域 */}
                         <Col flex="auto" style={{ width: '100%' }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                                <Form ref={this.    formRef} onValuesChange={(value, values)=>{this.handleValuesChange(value, values)}}>
+                                <Form ref={this.formRef} onValuesChange={(value, values)=>{this.handleValuesChange(value, values)}}>
                                     {!more ? childrenArray.slice(0, min) : childrenArray}
                                 </Form>
                             </div>

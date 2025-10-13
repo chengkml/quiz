@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
     Button,
+    Drawer,
     Dropdown,
     Form,
     Input,
@@ -13,34 +14,22 @@ import {
     Space,
     Table,
     Tag,
-    Tooltip,
-    Drawer,
     Tree,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
-    createRole,
-    updateRole,
-    deleteRole,
-    getRoles,
-    enableRole,
-    disableRole,
     checkRoleName,
+    createRole,
+    deleteRole,
+    disableRole,
+    enableRole,
     getRoleMenuTree,
+    getRoles,
     replaceRoleMenus,
+    updateRole,
 } from './api';
-import {
-    IconDelete,
-    IconEdit,
-    IconEye,
-    IconList,
-    IconPlus,
-    IconRefresh,
-    IconSearch,
-    IconUser,
-    IconMenu,
-} from '@arco-design/web-react/icon';
-import { getMenuTree } from '@/pages/Menu/api';
+import {IconDelete, IconEdit, IconList, IconMenu, IconPlus, IconUser,} from '@arco-design/web-react/icon';
+import {getMenuTree} from '@/pages/Menu/api';
 import FilterForm from '@/components/FilterForm';
 
 const { Content } = Layout;
