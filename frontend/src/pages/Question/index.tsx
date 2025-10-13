@@ -27,6 +27,7 @@ import {
     generateQuestions,
     getQuestionList,
     updateQuestion,
+    associateKnowledge,
     getAllSubjects,
     getCategoriesBySubjectId,
     getSubjectCategoryTree,
@@ -35,6 +36,7 @@ import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot,} from '@ar
 import FilterForm from '@/components/FilterForm';
 import DynamicQuestionForm from '@/components/DynamicQuestionForm';
 import Sider from '@arco-design/web-react/es/Layout/sider';
+import { getKnowledgeList, createKnowledge } from '../Knowledge/api';
 
 const {TextArea} = Input;
 const {Content} = Layout;
@@ -59,6 +61,9 @@ function QuestionManager() {
     const [generateLoading, setGenerateLoading] = useState(false);
     const [saveLoading, setSaveLoading] = useState(false);
     const [knowledge, setKnowledge] = useState('');
+    const [knowledgeDescrDisabled, setKnowledgeDescrDisabled] = useState(false);
+    const [addKnowledgeDescrDisabled, setAddKnowledgeDescrDisabled] = useState(false);
+    const [editKnowledgeDescrDisabled, setEditKnowledgeDescrDisabled] = useState(false);
 
     // 查看详情相关状态
     const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -68,6 +73,10 @@ function QuestionManager() {
     const [subjects, setSubjects] = useState([]);
     const [categories, setCategories] = useState([]);
     const [subjectsLoading, setSubjectsLoading] = useState(false);
+    // 知识点下拉选项（按学科/分类过滤）
+    const [knowledgeOptions, setKnowledgeOptions] = useState([]);
+    const [knowledgeOptionsRaw, setKnowledgeOptionsRaw] = useState([]);
+    const [knowledgeLoading, setKnowledgeLoading] = useState(false);
     const [categoriesLoading, setCategoriesLoading] = useState(false);
 
     // 左侧树相关状态
@@ -512,8 +521,16 @@ function QuestionManager() {
                     ? JSON.stringify(addDynamicFormData.answer)
                     : null
             };
-
-            await createQuestion(submitData);
+            const resp = await createQuestion(submitData);
+            const createdQuestionId = resp?.data?.id || resp?.id;
+            // 如果选择了既有知识点，建立关联
+            if (createdQuestionId && values?.knowledgeId) {
+                try {
+                    await associateKnowledge({ questionId: createdQuestionId, knowledgeIds: [values.knowledgeId] });
+                } catch (e) {
+                    console.error('关联知识点失败', e);
+                }
+            }
             Message.success('新增成功');
             setAddModalVisible(false);
             addFormRef.current?.resetFields();
@@ -543,6 +560,27 @@ function QuestionManager() {
             };
 
             await updateQuestion(submitData);
+            // 编辑后处理知识点关联：优先使用选择的知识点，其次使用输入的知识点
+            try {
+                if (values?.knowledgeId) {
+                    await associateKnowledge({ questionId: currentRecord.id, knowledgeIds: [values.knowledgeId] });
+                } else if (values?.knowledge && values?.subjectId && values?.categoryId) {
+                    // 创建新知识点再关联
+                    const createResp = await createKnowledge({
+                        name: values.knowledge,
+                        description: values.knowledge,
+                        subjectId: values.subjectId,
+                        categoryId: values.categoryId,
+                        difficultyLevel: values.difficultyLevel,
+                    });
+                    const newKnowledgeId = createResp?.data?.id || createResp?.id;
+                    if (newKnowledgeId) {
+                        await associateKnowledge({ questionId: currentRecord.id, knowledgeIds: [newKnowledgeId] });
+                    }
+                }
+            } catch (e) {
+                console.error('编辑关联知识点失败', e);
+            }
             Message.success('编辑成功');
             setEditModalVisible(false);
             editFormRef.current?.resetFields();
@@ -701,6 +739,35 @@ function QuestionManager() {
             Message.error('保存题目失败');
         } finally {
             setSaveLoading(false);
+        }
+    };
+
+    // 根据已选学科/分类加载知识点选项
+    const fetchKnowledgeBySubjectCategory = async (subjectId, categoryId) => {
+        if (!subjectId || !categoryId) {
+            setKnowledgeOptions([]);
+            setKnowledgeOptionsRaw([]);
+            return;
+        }
+        setKnowledgeLoading(true);
+        try {
+            const params = {
+                subjectId,
+                categoryId,
+                pageNum: 1,
+                pageSize: 200,
+            };
+            const resp = await getKnowledgeList(params);
+            const list = resp?.data?.content || resp?.data || resp?.content || [];
+            const options = list.map(item => ({ label: item.name, value: item.id }));
+            setKnowledgeOptions(options);
+            setKnowledgeOptionsRaw(list);
+        } catch (e) {
+            console.error('加载知识点失败:', e);
+            setKnowledgeOptions([]);
+            setKnowledgeOptionsRaw([]);
+        } finally {
+            setKnowledgeLoading(false);
         }
     };
 
@@ -1018,6 +1085,12 @@ function QuestionManager() {
                                         // 清空分类选择
                                         addFormRef.current?.setFieldValue('categoryId', undefined);
                                         setCategories([]);
+                                        // 清空知识点选择与输入
+                                        addFormRef.current?.setFieldValue('knowledgeId', undefined);
+                                        addFormRef.current?.setFieldValue('knowledge', undefined);
+                                        setAddKnowledgeDescrDisabled(false);
+                                        setKnowledgeOptions([]);
+                                        setKnowledgeOptionsRaw([]);
                                         // 获取该学科下的分类
                                         fetchCategoriesBySubject(value);
                                     }}
@@ -1033,6 +1106,52 @@ function QuestionManager() {
                                     placeholder="请先选择学科"
                                     loading={categoriesLoading}
                                     disabled={categories.length === 0}
+                                    onChange={(value) => {
+                                        // 当分类选择变化时，清空并按学科/分类加载知识点
+                                        addFormRef.current?.setFieldValue('knowledgeId', undefined);
+                                        addFormRef.current?.setFieldValue('knowledge', undefined);
+                                        setAddKnowledgeDescrDisabled(false);
+                                        const sid = addFormRef.current?.getFieldValue('subjectId');
+                                        if (sid && value) {
+                                            fetchKnowledgeBySubjectCategory(sid, value);
+                                        } else {
+                                            setKnowledgeOptions([]);
+                                            setKnowledgeOptionsRaw([]);
+                                        }
+                                    }}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="知识点选择"
+                                field="knowledgeId"
+                            >
+                                <Select
+                                    placeholder="请选择知识点（将自动填充下方描述）"
+                                    options={knowledgeOptions}
+                                    loading={knowledgeLoading}
+                                    allowClear
+                                    disabled={!addFormRef.current?.getFieldValue('subjectId') || !addFormRef.current?.getFieldValue('categoryId')}
+                                    onChange={(value) => {
+                                        const selected = knowledgeOptionsRaw.find(k => k.id === value);
+                                        const descr = selected?.name || selected?.description || '';
+                                        if (value === undefined) {
+                                            addFormRef.current?.setFieldValue('knowledge', undefined);
+                                            setAddKnowledgeDescrDisabled(false);
+                                        } else {
+                                            addFormRef.current?.setFieldValue('knowledge', descr);
+                                            setAddKnowledgeDescrDisabled(true);
+                                        }
+                                    }}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="知识点"
+                                field="knowledge"
+                            >
+                                <TextArea
+                                    placeholder="请输入知识点描述，保存时将与题目关联"
+                                    rows={3}
+                                    disabled={addKnowledgeDescrDisabled}
                                 />
                             </Form.Item>
                             <Form.Item
@@ -1194,6 +1313,12 @@ function QuestionManager() {
                                         // 清空分类选择
                                         editFormRef.current?.setFieldValue('categoryId', undefined);
                                         setCategories([]);
+                                        // 清空知识点选择与输入
+                                        editFormRef.current?.setFieldValue('knowledgeId', undefined);
+                                        editFormRef.current?.setFieldValue('knowledge', undefined);
+                                        setEditKnowledgeDescrDisabled(false);
+                                        setKnowledgeOptions([]);
+                                        setKnowledgeOptionsRaw([]);
                                         // 获取该学科下的分类
                                         fetchCategoriesBySubject(value);
                                     }}
@@ -1209,6 +1334,52 @@ function QuestionManager() {
                                     placeholder="请先选择学科"
                                     loading={categoriesLoading}
                                     disabled={categories.length === 0}
+                                    onChange={(value) => {
+                                        // 当分类选择变化时，清空并按学科/分类加载知识点
+                                        editFormRef.current?.setFieldValue('knowledgeId', undefined);
+                                        editFormRef.current?.setFieldValue('knowledge', undefined);
+                                        setEditKnowledgeDescrDisabled(false);
+                                        const sid = editFormRef.current?.getFieldValue('subjectId');
+                                        if (sid && value) {
+                                            fetchKnowledgeBySubjectCategory(sid, value);
+                                        } else {
+                                            setKnowledgeOptions([]);
+                                            setKnowledgeOptionsRaw([]);
+                                        }
+                                    }}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="知识点选择"
+                                field="knowledgeId"
+                            >
+                                <Select
+                                    placeholder="请选择知识点（将自动填充下方描述）"
+                                    options={knowledgeOptions}
+                                    loading={knowledgeLoading}
+                                    allowClear
+                                    disabled={!editFormRef.current?.getFieldValue('subjectId') || !editFormRef.current?.getFieldValue('categoryId')}
+                                    onChange={(value) => {
+                                        const selected = knowledgeOptionsRaw.find(k => k.id === value);
+                                        const descr = selected?.name || selected?.description || '';
+                                        if (value === undefined) {
+                                            editFormRef.current?.setFieldValue('knowledge', undefined);
+                                            setEditKnowledgeDescrDisabled(false);
+                                        } else {
+                                            editFormRef.current?.setFieldValue('knowledge', descr);
+                                            setEditKnowledgeDescrDisabled(true);
+                                        }
+                                    }}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="知识点"
+                                field="knowledge"
+                            >
+                                <TextArea
+                                    placeholder="请输入知识点描述，保存时将与题目关联"
+                                    rows={3}
+                                    disabled={editKnowledgeDescrDisabled}
                                 />
                             </Form.Item>
                             <Form.Item
@@ -1304,6 +1475,12 @@ function QuestionManager() {
                                         // 清空分类选择
                                         generateFormRef.current?.setFieldValue('categoryId', undefined);
                                         setCategories([]);
+                                        // 清空知识点选择
+                                        generateFormRef.current?.setFieldValue('knowledgeId', undefined);
+                                        generateFormRef.current?.setFieldValue('knowledgeDescr', undefined);
+                                        setKnowledgeDescrDisabled(false);
+                                        setKnowledgeOptions([]);
+                                        setKnowledgeOptionsRaw([]);
                                         // 获取该学科下的分类
                                         fetchCategoriesBySubject(value);
                                     }}
@@ -1319,6 +1496,42 @@ function QuestionManager() {
                                     placeholder="请先选择学科"
                                     loading={categoriesLoading}
                                     disabled={categories.length === 0}
+                                    onChange={(value) => {
+                                        // 当分类选择变化时，清空并按学科/分类加载知识点
+                                        generateFormRef.current?.setFieldValue('knowledgeId', undefined);
+                                        generateFormRef.current?.setFieldValue('knowledgeDescr', undefined);
+                                        setKnowledgeDescrDisabled(false);
+                                        const sid = generateFormRef.current?.getFieldValue('subjectId');
+                                        if (sid && value) {
+                                            fetchKnowledgeBySubjectCategory(sid, value);
+                                        } else {
+                                            setKnowledgeOptions([]);
+                                            setKnowledgeOptionsRaw([]);
+                                        }
+                                    }}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="知识点选择"
+                                field="knowledgeId"
+                            >
+                                <Select
+                                    placeholder="请选择知识点（将自动填充下方描述）"
+                                    options={knowledgeOptions}
+                                    loading={knowledgeLoading}
+                                    allowClear
+                                    disabled={!generateFormRef.current?.getFieldValue('subjectId') || !generateFormRef.current?.getFieldValue('categoryId')}
+                                    onChange={(value) => {
+                                        const selected = knowledgeOptionsRaw.find(k => k.id === value);
+                                        const descr = selected?.name || selected?.description || '';
+                                        if (value === undefined) {
+                                            generateFormRef.current?.setFieldValue('knowledgeDescr', undefined);
+                                            setKnowledgeDescrDisabled(false);
+                                        } else {
+                                            generateFormRef.current?.setFieldValue('knowledgeDescr', descr);
+                                            setKnowledgeDescrDisabled(true);
+                                        }
+                                    }}
                                 />
                             </Form.Item>
                             <Form.Item
@@ -1329,6 +1542,7 @@ function QuestionManager() {
                                 <TextArea
                                     placeholder="请输入知识点描述，AI将根据此描述生成相关题目"
                                     rows={4}
+                                    disabled={knowledgeDescrDisabled}
                                 />
                             </Form.Item>
                             <Form.Item
