@@ -74,7 +74,7 @@ export interface ExamQueryDto {
   page?: number;
   size?: number;
   sortColumn?: string;
-  sortType?: 'ASC' | 'DESC';
+  sortType?: 'asc' | 'desc';
 }
 
 // 分页响应接口

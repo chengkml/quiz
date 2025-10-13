@@ -49,8 +49,8 @@ public class KnowledgeQueryDto {
     private String sortColumn = "create_date";
 
     /**
-     * 排序类型（ASC/DESC）
+     * 排序类型（asc/desc）
      */
-    private String sortType = "DESC";
+    private String sortType = "desc";
 
 }

@@ -35,7 +35,7 @@ export interface PageParams {
  */
 export interface SortParams {
   sort?: string;
-  direction?: 'ASC' | 'DESC';
+  direction?: 'asc' | 'desc';
 }
 
 /**
