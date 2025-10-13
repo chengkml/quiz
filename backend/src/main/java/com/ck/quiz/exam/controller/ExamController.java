@@ -52,8 +52,7 @@ public class ExamController {
     @Operation(summary = "分页查询试卷", description = "根据条件分页查询试卷列表")
     @GetMapping
     public ResponseEntity searchExams(
-            @Parameter(description = "试卷名称") @RequestParam(required = false) String name,
-            @Parameter(description = "试卷描述") @RequestParam(required = false) String description,
+            @Parameter(description = "试卷名称") @RequestParam(required = false) String keyWord,
             @Parameter(description = "试卷状态") @RequestParam(required = false) Exam.ExamPaperStatus status,
             @Parameter(description = "创建人") @RequestParam(required = false) String createUser,
             @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
@@ -62,8 +61,7 @@ public class ExamController {
             @Parameter(description = "排序方向") @RequestParam(defaultValue = "desc") String sortType) {
         
         ExamQueryDto queryDto = new ExamQueryDto();
-        queryDto.setName(name);
-        queryDto.setDescription(description);
+        queryDto.setKeyWord(keyWord);
         queryDto.setStatus(status);
         queryDto.setCreateUser(createUser);
         queryDto.setPageNum(pageNum);

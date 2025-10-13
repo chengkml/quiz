@@ -502,7 +502,13 @@ function ExamManager(): React.ReactElement {
                     config={filterFormConfig}
                     onSearch={searchTableData}
                     onReset={() => fetchTableData()}
-                />
+                >
+                    <Form.Item field='keyWord' label='试卷名称'>
+                        <Input
+                            placeholder='请输入试卷名称关键词'
+                        />
+                    </Form.Item>
+                </FilterForm>
 
                 {/* 操作按钮 */}
                 <div className="action-buttons">

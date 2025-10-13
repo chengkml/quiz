@@ -17,12 +17,7 @@ public class ExamQueryDto {
     /**
      * 试卷名称（模糊查询）
      */
-    private String name;
-
-    /**
-     * 试卷描述（模糊查询）
-     */
-    private String description;
+    private String keyWord;
 
     /**
      * 状态

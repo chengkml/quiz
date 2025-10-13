@@ -215,42 +215,40 @@ function QuestionManager() {
             align: 'center',
             fixed: 'right',
             render: (_, record) => (
-                <Space size="large" className="dropdown-demo table-btn-group">
-                    <Dropdown
-                        position="bl"
-                        droplist={
-                            <Menu
-                                onClickMenuItem={(key, e) => {
-                                    handleMenuClick(key, e, record);
-                                }}
-                                className="handle-dropdown-menu"
-                            >
-                                <Menu.Item key="detail">
-                                    <IconEye style={{marginRight: '5px'}}/>
-                                    详情
-                                </Menu.Item>
-                                <Menu.Item key="edit">
-                                    <IconEdit style={{marginRight: '5px'}}/>
-                                    编辑
-                                </Menu.Item>
-                                <Menu.Item key="delete">
-                                    <IconDelete style={{marginRight: '5px'}}/>
-                                    删除
-                                </Menu.Item>
-                            </Menu>
-                        }
-                    >
-                        <Button
-                            type="text"
-                            className="more-btn"
-                            onClick={e => {
-                                e.stopPropagation();
+                <Dropdown
+                    position="bl"
+                    droplist={
+                        <Menu
+                            onClickMenuItem={(key, e) => {
+                                handleMenuClick(key, e, record);
                             }}
+                            className="handle-dropdown-menu"
                         >
-                            <IconList/>
-                        </Button>
-                    </Dropdown>
-                </Space>
+                            <Menu.Item key="detail">
+                                <IconEye style={{marginRight: '5px'}}/>
+                                详情
+                            </Menu.Item>
+                            <Menu.Item key="edit">
+                                <IconEdit style={{marginRight: '5px'}}/>
+                                编辑
+                            </Menu.Item>
+                            <Menu.Item key="delete">
+                                <IconDelete style={{marginRight: '5px'}}/>
+                                删除
+                            </Menu.Item>
+                        </Menu>
+                    }
+                >
+                    <Button
+                        type="text"
+                        className="more-btn"
+                        onClick={e => {
+                            e.stopPropagation();
+                        }}
+                    >
+                        <IconList/>
+                    </Button>
+                </Dropdown>
             ),
         },
     ];

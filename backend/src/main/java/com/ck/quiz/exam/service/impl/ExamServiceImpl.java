@@ -143,10 +143,7 @@ public class ExamServiceImpl implements ExamService {
         Map<String, Object> params = new HashMap<>();
 
         // 试卷名称模糊查询
-        JdbcQueryHelper.lowerLike("name", queryDto.getName(), " AND lower(name) LIKE :name ", params, jdbcTemplate, sb, countSb);
-
-        // 试卷描述模糊查询
-        JdbcQueryHelper.lowerLike("description", queryDto.getDescription(), " AND lower(description) LIKE :description ", params, jdbcTemplate, sb, countSb);
+        JdbcQueryHelper.lowerLike("keyWord", queryDto.getKeyWord(), " AND (lower(name) LIKE :keyWord or lower(description) LIKE :keyWord) ", params, jdbcTemplate, sb, countSb);
 
         // 状态精确查询
         if (queryDto.getStatus() != null) {
