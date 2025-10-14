@@ -5,6 +5,7 @@ import Layout from '@/components/Layout';
 import RoleManagement from '@/pages/Role';
 import MenuManagement from '@/pages/Menu';
 import QuestionManagement from '@/pages/Question';
+import DatasourceManagement from '@/pages/Datasource';
 import ExamManagement from '@/pages/Exam';
 import SubjectManagement from '@/pages/Subject';
 import CategoryManagement from '@/pages/Category';
@@ -99,6 +100,7 @@ const protectedPages = [
     { path: 'category', element: <CategoryManagement />, requiredPath: 'category' },
     { path: 'knowledge', element: <KnowledgeManagement />, requiredPath: 'knowledge' },
     { path: 'question', element: <QuestionManagement />, requiredPath: 'question' },
+    { path: 'datasource', element: <DatasourceManagement />, requiredPath: 'datasource' },
     { path: 'exam', element: <ExamManagement />, requiredPath: 'exam' },
 ];
 

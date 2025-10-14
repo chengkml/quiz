@@ -517,28 +517,17 @@ function ExamManager(): React.ReactElement {
                         新建试卷
                     </Button>
                 </div>
-
-                {/* 表格 */}
-                <div className="table-container" style={{height: `calc(100vh - 200px)`}}>
-                    <Table
-                        columns={columns}
-                        data={tableData}
-                        loading={tableLoading}
-                        pagination={false}
-                        scroll={{
-                            y: tableScrollHeight,
-                        }}
-                        rowKey="id"
-                    />
-                </div>
-
-                {/* 分页 */}
-                <div className="pagination-wrapper">
-                    <Pagination
-                        {...pagination}
-                        onChange={handlePaginationChange}
-                    />
-                </div>
+                <Table
+                    columns={columns}
+                    data={tableData}
+                    loading={tableLoading}
+                    pagination={pagination}
+                    onChange={handlePaginationChange}
+                    scroll={{
+                        y: tableScrollHeight,
+                    }}
+                    rowKey="id"
+                />
 
                 {/* 添加试卷模态框 */}
                 <Modal

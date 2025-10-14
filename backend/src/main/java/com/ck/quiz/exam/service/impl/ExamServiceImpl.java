@@ -138,23 +138,41 @@ public class ExamServiceImpl implements ExamService {
     @Override
     @Transactional(readOnly = true)
     public Page<ExamDto> searchExams(ExamQueryDto queryDto) {
-        StringBuilder sb = new StringBuilder("SELECT * FROM exam WHERE 1=1 ");
-        StringBuilder countSb = new StringBuilder("SELECT count(*) FROM exam WHERE 1=1 ");
+        StringBuilder sb = new StringBuilder(
+                "SELECT e.paper_id, e.name, e.total_score, e.duration_minutes, " +
+                        "       e.description, e.status, e.create_user, e.create_date, " +
+                        "       u.user_name AS create_user_name " +
+                        "FROM exam e " +
+                        "LEFT JOIN user u ON e.create_user = u.user_id " +
+                        "WHERE 1=1 "
+        );
+
+        StringBuilder countSb = new StringBuilder("SELECT count(*) FROM exam e WHERE 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
-        // 试卷名称模糊查询
-        JdbcQueryHelper.lowerLike("keyWord", queryDto.getKeyWord(), " AND (lower(name) LIKE :keyWord or lower(description) LIKE :keyWord) ", params, jdbcTemplate, sb, countSb);
+        // 试卷名称模糊查询（name 或 description）
+        if (queryDto.getKeyWord() != null && !queryDto.getKeyWord().trim().isEmpty()) {
+            String keywordLike = "%" + queryDto.getKeyWord().trim().toLowerCase() + "%";
+            JdbcQueryHelper.lowerLike("keyWord", keywordLike,
+                    " AND (LOWER(e.name) LIKE :keyWord OR LOWER(e.description) LIKE :keyWord) ", params, jdbcTemplate, sb, countSb);
+        }
 
         // 状态精确查询
         if (queryDto.getStatus() != null) {
-            JdbcQueryHelper.equals("status", queryDto.getStatus().name(), " AND status = :status ", params, sb, countSb);
+            JdbcQueryHelper.equals("status", queryDto.getStatus().name(),
+                    " AND e.status = :status ", params, sb, countSb);
         }
 
         // 创建人精确查询
-        JdbcQueryHelper.equals("createUser", queryDto.getCreateUser(), " AND create_user = :createUser ", params, sb, countSb);
+        if (queryDto.getCreateUser() != null && !queryDto.getCreateUser().trim().isEmpty()) {
+            JdbcQueryHelper.equals("createUser", queryDto.getCreateUser(),
+                    " AND e.create_user = :createUser ", params, sb, countSb);
+        }
 
         // 排序
-        JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sb);
+        if (queryDto.getSortColumn() != null && !queryDto.getSortColumn().trim().isEmpty()) {
+            JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sb);
+        }
 
         // 分页 SQL
         String listSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sb.toString(), queryDto.getPageNum(), queryDto.getPageSize());
@@ -169,6 +187,7 @@ public class ExamServiceImpl implements ExamService {
             dto.setDescription(rs.getString("description"));
             dto.setStatus(Exam.ExamPaperStatus.valueOf(rs.getString("status")));
             dto.setCreateUser(rs.getString("create_user"));
+            dto.setCreateUserName(rs.getString("create_user_name")); // 新增：从 user 表获取姓名
             dto.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
             return dto;
         });

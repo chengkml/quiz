@@ -52,6 +52,8 @@ public class ExamDto {
      */
     private List<ExamQuestionDto> questions;
 
+    private int questionNum;
+
     /**
      * 创建时间
      */
@@ -61,6 +63,8 @@ public class ExamDto {
      * 创建人
      */
     private String createUser;
+
+    private String createUserName;
 
     /**
      * 更新时间
