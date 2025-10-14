@@ -2,6 +2,8 @@ package com.ck.quiz.exam.controller;
 
 import com.ck.quiz.exam.dto.ExamCreateDto;
 import com.ck.quiz.exam.dto.ExamQueryDto;
+import com.ck.quiz.exam.dto.ExamResultDto;
+import com.ck.quiz.exam.dto.ExamSubmitDto;
 import com.ck.quiz.exam.dto.ExamUpdateDto;
 import com.ck.quiz.exam.entity.Exam;
 import com.ck.quiz.exam.service.ExamService;
@@ -128,5 +130,13 @@ public class ExamController {
             @Parameter(description = "分值") @RequestParam(required = false) Integer score) {
         examService.updateExamQuestion(id, questionId, orderNo, score);
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "提交考试", description = "提交答案并返回评分结果")
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<ExamResultDto> submitExam(
+            @Parameter(description = "试卷ID", required = true) @PathVariable String id,
+            @Parameter(description = "提交内容", required = true) @RequestBody ExamSubmitDto submitDto) {
+        return ResponseEntity.ok(examService.submitExam(id, submitDto));
     }
 }

@@ -3,6 +3,8 @@ package com.ck.quiz.exam.service;
 import com.ck.quiz.exam.dto.ExamCreateDto;
 import com.ck.quiz.exam.dto.ExamDto;
 import com.ck.quiz.exam.dto.ExamQueryDto;
+import com.ck.quiz.exam.dto.ExamResultDto;
+import com.ck.quiz.exam.dto.ExamSubmitDto;
 import com.ck.quiz.exam.dto.ExamUpdateDto;
 import com.ck.quiz.exam.entity.Exam;
 import org.springframework.data.domain.Page;
@@ -110,4 +112,13 @@ public interface ExamService {
     void updateExamQuestion(String examId, String questionId, Integer orderNo, Integer score);
 
     void addQuestionsToExam(String examId, List<String> questionIds);
+
+    /**
+     * 提交考试并评分
+     *
+     * @param examId 试卷ID
+     * @param submitDto 提交内容（用户ID与答案列表）
+     * @return 评分后的考试结果
+     */
+    ExamResultDto submitExam(String examId, ExamSubmitDto submitDto);
 }

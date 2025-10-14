@@ -23,6 +23,9 @@ const publishExam = id => axios.post(`${base}/api/exam/${id}/publish`);
 // 归档试卷
 const archiveExam = id => axios.post(`${base}/api/exam/${id}/archive`);
 
+// 提交考试
+const submitExam = (examId, params) => axios.post(`${base}/api/exam/${examId}/submit`, params);
+
 // 添加题目到试卷
 const addQuestionToExam = (examId, params) => 
   axios.post(`${base}/api/exam/${examId}/questions`, null, {params});
@@ -43,6 +46,7 @@ export {
   deleteExam,
   publishExam,
   archiveExam,
+  submitExam,
   addQuestionToExam,
   removeQuestionFromExam,
   updateExamQuestion

@@ -5,6 +5,10 @@ import com.ck.quiz.exam.entity.Exam;
 import com.ck.quiz.exam.entity.ExamQuestion;
 import com.ck.quiz.exam.repository.ExamRepository;
 import com.ck.quiz.exam.repository.ExamQuestionRepository;
+import com.ck.quiz.exam.entity.ExamResult;
+import com.ck.quiz.exam.entity.ExamResultAnswer;
+import com.ck.quiz.exam.repository.ExamResultRepository;
+import com.ck.quiz.exam.repository.ExamResultAnswerRepository;
 import com.ck.quiz.exam.service.ExamService;
 import com.ck.quiz.question.entity.Question;
 import com.ck.quiz.question.repository.QuestionRepository;
@@ -19,6 +23,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -43,6 +49,15 @@ public class ExamServiceImpl implements ExamService {
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private ExamResultRepository examResultRepository;
+
+    @Autowired
+    private ExamResultAnswerRepository examResultAnswerRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -293,7 +308,148 @@ public class ExamServiceImpl implements ExamService {
 
     @Override
     public void addQuestionsToExam(String examId, List<String> questionIds) {
-        // TODO 分值默认给1，序号取已有题目中最大的开始累加
+        // 分值默认给1，序号取已有题目中最大的开始累加，并避免重复添加
+        Optional<Exam> optionalExam = examRepository.findById(examId);
+        if (optionalExam.isEmpty()) {
+            throw new RuntimeException("试卷不存在，ID: " + examId);
+        }
+
+        Exam exam = optionalExam.get();
+
+        // 获取已存在的题目关系，计算当前最大顺序号，并记录已存在的题目ID，避免重复
+        List<ExamQuestion> existing = examQuestionRepository.findByExamIdOrderByOrderNo(examId);
+        int maxOrder = existing.stream()
+                .map(ExamQuestion::getOrderNo)
+                .max(Comparator.naturalOrder())
+                .orElse(0);
+
+        Set<String> existingQuestionIds = existing.stream()
+                .map(eq -> eq.getQuestion().getId())
+                .collect(Collectors.toSet());
+
+        int orderCounter = maxOrder;
+        for (String qid : questionIds) {
+            // 跳过重复的题目
+            if (existingQuestionIds.contains(qid)) {
+                continue;
+            }
+
+            Optional<Question> optQuestion = questionRepository.findById(qid);
+            if (optQuestion.isEmpty()) {
+                throw new RuntimeException("题目不存在，ID: " + qid);
+            }
+
+            ExamQuestion eq = new ExamQuestion();
+            eq.setId(IdHelper.genUuid());
+            eq.setExam(exam);
+            eq.setQuestion(optQuestion.get());
+            eq.setOrderNo(++orderCounter);
+            eq.setScore(1);
+            examQuestionRepository.save(eq);
+        }
+    }
+
+    @Override
+    @Transactional
+    public ExamResultDto submitExam(String examId, ExamSubmitDto submitDto) {
+        Optional<Exam> optionalExam = examRepository.findById(examId);
+        if (optionalExam.isEmpty()) {
+            throw new RuntimeException("试卷不存在，ID: " + examId);
+        }
+        Exam exam = optionalExam.get();
+
+        List<ExamQuestion> examQuestions = examQuestionRepository.findByExamIdOrderByOrderNo(examId);
+        Map<String, List<String>> answerMap = new HashMap<>();
+        if (submitDto.getAnswerList() != null) {
+            for (ExamSubmitAnswerDto a : submitDto.getAnswerList()) {
+                answerMap.put(a.getExamQuestionId(), a.getAnswers() == null ? Collections.emptyList() : a.getAnswers());
+            }
+        }
+
+        int totalScore = 0;
+        int correctCount = 0;
+        String resultId = IdHelper.genUuid();
+        ExamResult result = new ExamResult();
+        result.setId(resultId);
+        result.setExam(exam);
+        result.setUserId(submitDto.getUserId());
+        result.setSubmitTime(LocalDateTime.now());
+
+        List<ExamResultAnswer> resultAnswers = new ArrayList<>();
+
+        for (ExamQuestion eq : examQuestions) {
+            Question q = eq.getQuestion();
+            List<String> std;
+            try {
+                std = objectMapper.readValue(q.getAnswer(), objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+            } catch (Exception e) {
+                std = Collections.emptyList();
+            }
+
+            List<String> userAns = answerMap.getOrDefault(eq.getId(), Collections.emptyList());
+            boolean correct = isCorrect(q.getType(), std, userAns);
+            int gain = correct ? Optional.ofNullable(eq.getScore()).orElse(0) : 0;
+            if (correct) {
+                correctCount++;
+                totalScore += gain;
+            }
+
+            ExamResultAnswer ra = new ExamResultAnswer();
+            ra.setId(IdHelper.genUuid());
+            ra.setExamResult(result);
+            ra.setExamQuestion(eq);
+            try {
+                ra.setUserAnswer(objectMapper.writeValueAsString(userAns));
+            } catch (Exception e) {
+                ra.setUserAnswer("[]");
+            }
+            ra.setCorrect(correct);
+            ra.setGainScore(gain);
+            resultAnswers.add(ra);
+        }
+
+        result.setCorrectCount(correctCount);
+        result.setTotalScore(totalScore);
+        result.setAnswers(resultAnswers);
+
+        examResultRepository.save(result);
+
+        ExamResultDto dto = new ExamResultDto();
+        dto.setResultId(result.getId());
+        dto.setExamId(exam.getId());
+        dto.setUserId(result.getUserId());
+        dto.setTotalScore(result.getTotalScore());
+        dto.setCorrectCount(result.getCorrectCount());
+        dto.setSubmitTime(result.getSubmitTime());
+        dto.setAnswers(resultAnswers.stream().map(ra -> {
+            ExamResultAnswerDto ad = new ExamResultAnswerDto();
+            ad.setExamQuestionId(ra.getExamQuestion().getId());
+            ad.setCorrect(Boolean.TRUE.equals(ra.getCorrect()));
+            ad.setGainScore(Optional.ofNullable(ra.getGainScore()).orElse(0));
+            return ad;
+        }).collect(Collectors.toList()));
+        return dto;
+    }
+
+    private boolean isCorrect(Question.QuestionType type, List<String> std, List<String> user) {
+        if (type == Question.QuestionType.SINGLE || type == Question.QuestionType.SHORT_ANSWER) {
+            String s = std.isEmpty() ? "" : std.get(0);
+            String u = user.isEmpty() ? "" : user.get(0);
+            return s.trim().equalsIgnoreCase(u.trim());
+        }
+        if (type == Question.QuestionType.MULTIPLE) {
+            Set<String> s1 = std.stream().map(v -> v.trim().toUpperCase()).collect(Collectors.toSet());
+            Set<String> s2 = user.stream().map(v -> v.trim().toUpperCase()).collect(Collectors.toSet());
+            return s1.equals(s2);
+        }
+        if (type == Question.QuestionType.BLANK) {
+            if (std.size() != user.size()) return false;
+            for (int i = 0; i < std.size(); i++) {
+                if (!std.get(i).trim().equals(user.get(i).trim())) return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     /**

@@ -7,6 +7,7 @@ import MenuManagement from '@/pages/Menu';
 import QuestionManagement from '@/pages/Question';
 import DatasourceManagement from '@/pages/Datasource';
 import ExamManagement from '@/pages/Exam';
+import ExamTakePage from '@/pages/Exam/Take';
 import SubjectManagement from '@/pages/Subject';
 import CategoryManagement from '@/pages/Category';
 import KnowledgeManagement from '@/pages/Knowledge';
@@ -137,6 +138,8 @@ export const router = createBrowserRouter([
                     </MenuPermissionRoute>
                 ),
             })),
+            // 非菜单页：考试作答页（需登录，但不校验菜单权限）
+            { path: 'exam/take/:id', element: <ExamTakePage /> },
             { path: 'notfound', element: <NotFound /> },
         ],
     },

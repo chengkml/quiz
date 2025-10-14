@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Button,
     Dropdown,
@@ -52,7 +53,8 @@ import {
 const {TextArea} = Input;
 const {Content} = Layout;
 
-function ExamManager(): React.ReactElement {
+ function ExamManager(): React.ReactElement {
+    const navigate = useNavigate();
     // 状态管理
     const [tableData, setTableData] = useState<ExamDto[]>([]);
     const [tableLoading, setTableLoading] = useState<boolean>(false);
@@ -249,6 +251,12 @@ function ExamManager(): React.ReactElement {
                                         归档
                                     </Menu.Item>
                                 )}
+                                {record.status === 'PUBLISHED' && (
+                                    <Menu.Item key="start">
+                                        <IconEye style={{marginRight: '5px'}}/>
+                                        开始考试
+                                    </Menu.Item>
+                                )}
                                 <Menu.Item key="delete">
                                     <IconDelete style={{marginRight: '5px'}}/>
                                     删除
@@ -277,8 +285,8 @@ function ExamManager(): React.ReactElement {
         try {
             const targetParams: ExamQueryDto = {
                 ...params,
-                page: current - 1,
-                size: pageSize,
+                pageNum: current - 1,
+                pageSize: pageSize,
             };
             const response = await getExamList(targetParams);
             if (response.data) {
@@ -298,8 +306,14 @@ function ExamManager(): React.ReactElement {
     };
 
     // 搜索表格数据
-    const searchTableData = (params: Partial<ExamQueryDto>): void => {
-        fetchTableData(params, pagination.pageSize, 1);
+    const searchTableData = (params: any): void => {
+        // 将筛选表单的 name 映射为后端的 keyWord
+        const mapped: Partial<ExamQueryDto> = {
+            ...params,
+            keyWord: params?.name,
+        };
+        delete (mapped as any).name;
+        fetchTableData(mapped, pagination.pageSize, 1);
     };
 
     // 处理菜单点击
@@ -322,6 +336,9 @@ function ExamManager(): React.ReactElement {
                 break;
             case 'archive':
                 await handleArchive(record);
+                break;
+            case 'start':
+                navigate(`/quiz/frame/exam/take/${record.id}`);
                 break;
             case 'delete':
                 setDeleteModalVisible(true);

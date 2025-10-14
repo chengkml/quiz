@@ -66,15 +66,13 @@ export interface ExamUpdateDto {
 
 // 试卷查询参数DTO
 export interface ExamQueryDto {
-  name?: string;
-  status?: ExamStatus;
-  createUser?: string;
-  startDate?: string;
-  endDate?: string;
-  page?: number;
-  size?: number;
-  sortColumn?: string;
-  sortType?: 'asc' | 'desc';
+  keyWord?: string;           // 关键字（名称/描述模糊查询）
+  status?: ExamStatus;        // 试卷状态
+  createUser?: string;        // 创建人
+  pageNum?: number;           // 页码（后端从0开始）
+  pageSize?: number;          // 每页大小
+  sortColumn?: string;        // 排序字段
+  sortType?: 'asc' | 'desc';  // 排序方向
 }
 
 // 分页响应接口
@@ -161,4 +159,33 @@ export interface StatusOption {
 // 表单引用接口
 export interface FormRef {
   current: any;
+}
+
+// 考试提交答案DTO
+export interface ExamSubmitAnswerDto {
+  examQuestionId: string;
+  answers: string[]; // 不同题型均按字符串数组提交（单选/简答为单元素）
+}
+
+// 考试提交DTO
+export interface ExamSubmitDto {
+  userId: string;
+  answers: ExamSubmitAnswerDto[];
+}
+
+// 考试结果-题目级别DTO
+export interface ExamResultAnswerDto {
+  examQuestionId: string;
+  correct: boolean;
+  score: number;
+  userAnswers: string[];
+  standardAnswers?: string[];
+}
+
+// 考试结果DTO
+export interface ExamResultDto {
+  totalScore: number;
+  correctCount: number;
+  submitTime: string;
+  answers: ExamResultAnswerDto[];
 }
