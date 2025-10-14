@@ -108,4 +108,6 @@ public interface ExamService {
      * @param score 新的分值
      */
     void updateExamQuestion(String examId, String questionId, Integer orderNo, Integer score);
+
+    void addQuestionsToExam(String examId, List<String> questionIds);
 }

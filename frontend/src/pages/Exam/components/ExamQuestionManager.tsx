@@ -8,7 +8,6 @@ import {
     Modal,
     Select,
     Space,
-    Table,
     Tag,
     Tooltip,
 } from '@arco-design/web-react';
@@ -16,9 +15,8 @@ import {
     IconDelete,
     IconEdit,
     IconPlus,
-    IconUp,
-    IconDown,
 } from '@arco-design/web-react/icon';
+import { SortableContainer, SortableElement, SortableHandle } from 'react-sortable-hoc';
 import {
     addQuestionToExam,
     removeQuestionFromExam,
@@ -42,6 +40,7 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
     const [availableQuestions, setAvailableQuestions] = useState([]);
     const [currentEditQuestion, setCurrentEditQuestion] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [orderedQuestions, setOrderedQuestions] = useState<any[]>([]);
 
     const addFormRef = useRef();
     const editFormRef = useRef();
@@ -81,6 +80,132 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
             }
         } catch (error) {
             Message.error('题目添加失败');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 拖拽排序相关
+    const DragHandle = SortableHandle(() => (
+        <span style={{ cursor: 'grab', userSelect: 'none' }}>⋮⋮</span>
+    ));
+
+    const SortableItem = SortableElement(({ item }: { item: any }) => (
+        <div
+            style={{
+                display: 'flex',
+                padding: '10px 12px',
+                borderBottom: '1px solid #f0f0f0',
+                alignItems: 'center',
+                background: '#fff',
+            }}
+        >
+            <div style={{ width: 40, textAlign: 'center' }}>
+                <DragHandle />
+            </div>
+            <div style={{ width: 90, textAlign: 'center' }}>
+                <Tag color="blue">第{item.orderNo}题</Tag>
+            </div>
+            <div style={{ width: 120 }}>
+                <Tag color="cyan">
+                    {item.question?.type === 'SINGLE'
+                        ? '单选题'
+                        : item.question?.type === 'MULTIPLE'
+                        ? '多选题'
+                        : item.question?.type === 'BLANK'
+                        ? '填空题'
+                        : '简答题'}
+                </Tag>
+            </div>
+            <div style={{ flex: 1, minWidth: 200 }}>
+                <Tooltip content={item.question?.content}>
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.question?.content}
+                    </div>
+                </Tooltip>
+            </div>
+            <div style={{ width: 100, textAlign: 'center' }}>
+                <Tag color="green">{item.score}分</Tag>
+            </div>
+            <div style={{ width: 140, textAlign: 'center' }}>
+                <Tag
+                    color={item.question?.difficultyLevel <= 2 ? 'green' : item.question?.difficultyLevel <= 4 ? 'orange' : 'red'}
+                >
+                    难度: {item.question?.difficultyLevel}级
+                </Tag>
+            </div>
+            <div style={{ width: 200, textAlign: 'center' }}>
+                <Space>
+                    <Button type="text" size="small" icon={<IconEdit />} onClick={() => openEditModal(item)}>
+                        编辑
+                    </Button>
+                    <Button
+                        type="text"
+                        size="small"
+                        status="danger"
+                        icon={<IconDelete />}
+                        onClick={() => handleDeleteQuestion(item.question.id)}
+                    >
+                        删除
+                    </Button>
+                </Space>
+            </div>
+        </div>
+    ));
+
+    const SortableList = SortableContainer(({ items }: { items: any[] }) => {
+        return (
+            <div style={{ border: '1px solid #f0f0f0', borderRadius: 4, background: '#fff' }}>
+                {/* 表头 */}
+                <div
+                    style={{
+                        display: 'flex',
+                        padding: '8px 12px',
+                        background: '#fafafa',
+                        borderBottom: '1px solid #f0f0f0',
+                        fontWeight: 500,
+                    }}
+                >
+                    <div style={{ width: 40 }} />
+                    <div style={{ width: 90, textAlign: 'center' }}>顺序</div>
+                    <div style={{ width: 120 }}>题目类型</div>
+                    <div style={{ flex: 1, minWidth: 200 }}>题目内容</div>
+                    <div style={{ width: 100, textAlign: 'center' }}>分值</div>
+                    <div style={{ width: 140, textAlign: 'center' }}>难度等级</div>
+                    <div style={{ width: 200, textAlign: 'center' }}>操作</div>
+                </div>
+                {items.map((item, idx) => (
+                    <SortableItem key={item.question?.id} index={idx} item={item} />
+                ))}
+            </div>
+        );
+    });
+
+    const arrayMoveCustom = (arr: any[], from: number, to: number) => {
+        const newArr = arr.slice();
+        const [item] = newArr.splice(from, 1);
+        newArr.splice(to, 0, item);
+        return newArr;
+    };
+
+    const handleSortEnd = async ({ oldIndex, newIndex }: { oldIndex: number; newIndex: number }) => {
+        if (oldIndex === newIndex) return;
+        const newOrder = arrayMoveCustom(orderedQuestions, oldIndex, newIndex);
+        setOrderedQuestions(newOrder);
+        try {
+            setLoading(true);
+            // 将顺序标准化为从1开始的连续值
+            for (let i = 0; i < newOrder.length; i++) {
+                const q = newOrder[i];
+                await updateExamQuestion(examId, q.question.id, {
+                    orderNo: i + 1,
+                    score: q.score,
+                });
+            }
+            Message.success('题目顺序调整成功');
+            onQuestionsChange();
+        } catch (error) {
+            Message.error('题目顺序调整失败');
         } finally {
             setLoading(false);
         }
@@ -165,112 +290,18 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
         }, 100);
     };
 
-    // 表格列配置
-    const columns = [
-        {
-            title: '顺序',
-            dataIndex: 'orderNo',
-            width: 80,
-            align: 'center',
-            render: (value) => <Tag color="blue">第{value}题</Tag>,
-        },
-        {
-            title: '题目类型',
-            dataIndex: 'question',
-            width: 100,
-            render: (question) => {
-                const typeMap = {
-                    'SINGLE': '单选题',
-                    'MULTIPLE': '多选题',
-                    'BLANK': '填空题',
-                    'SHORT_ANSWER': '简答题'
-                };
-                return <Tag color="cyan">{typeMap[question?.type] || question?.type}</Tag>;
-            },
-        },
-        {
-            title: '题目内容',
-            dataIndex: 'question',
-            minWidth: 300,
-            ellipsis: true,
-            render: (question) => (
-                <Tooltip content={question?.content}>
-                    <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                        {question?.content}
-                    </div>
-                </Tooltip>
-            ),
-        },
-        {
-            title: '分值',
-            dataIndex: 'score',
-            width: 80,
-            align: 'center',
-            render: (value) => <Tag color="green">{value}分</Tag>,
-        },
-        {
-            title: '难度等级',
-            dataIndex: 'question',
-            width: 100,
-            align: 'center',
-            render: (question) => (
-                <Tag color={question?.difficultyLevel <= 2 ? 'green' : 
-                           question?.difficultyLevel <= 4 ? 'orange' : 'red'}>
-                    难度: {question?.difficultyLevel}级
-                </Tag>
-            ),
-        },
-        {
-            title: '操作',
-            width: 200,
-            align: 'center',
-            render: (_, record, index) => (
-                <Space>
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<IconUp/>}
-                        disabled={index === 0}
-                        onClick={() => handleMoveQuestion(record, 'up')}
-                    >
-                        上移
-                    </Button>
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<IconDown/>}
-                        disabled={index === questions.length - 1}
-                        onClick={() => handleMoveQuestion(record, 'down')}
-                    >
-                        下移
-                    </Button>
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<IconEdit/>}
-                        onClick={() => openEditModal(record)}
-                    >
-                        编辑
-                    </Button>
-                    <Button
-                        type="text"
-                        size="small"
-                        status="danger"
-                        icon={<IconDelete/>}
-                        onClick={() => handleDeleteQuestion(record.question.id)}
-                    >
-                        删除
-                    </Button>
-                </Space>
-            ),
-        },
-    ];
 
     useEffect(() => {
         if (addQuestionModalVisible) {
             fetchAvailableQuestions();
         }
     }, [addQuestionModalVisible, questions]);
+
+    useEffect(() => {
+        // 根据 orderNo 排序，初始化拖拽列表
+        const sorted = [...(questions || [])].sort((a, b) => (a.orderNo || 0) - (b.orderNo || 0));
+        setOrderedQuestions(sorted);
+    }, [questions]);
 
     return (
         <div>
@@ -284,11 +315,13 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
                 </Button>
             </div>
 
-            <Table
-                columns={columns}
-                data={questions}
-                pagination={false}
-                rowKey={(record) => record.question?.id}
+            <SortableList
+                items={orderedQuestions}
+                onSortEnd={handleSortEnd}
+                useDragHandle
+                helperClass="dragging-row"
+                distance={5}
+                disabled={loading}
             />
 
             {/* 添加题目模态框 */}

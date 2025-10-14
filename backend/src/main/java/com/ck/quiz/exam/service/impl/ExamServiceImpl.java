@@ -164,6 +164,8 @@ public class ExamServiceImpl implements ExamService {
             ExamDto dto = new ExamDto();
             dto.setId(rs.getString("paper_id"));
             dto.setName(rs.getString("name"));
+            dto.setTotalScore(rs.getInt("total_score"));
+            dto.setDurationMinutes(rs.getInt("duration_minutes"));
             dto.setDescription(rs.getString("description"));
             dto.setStatus(Exam.ExamPaperStatus.valueOf(rs.getString("status")));
             dto.setCreateUser(rs.getString("create_user"));
@@ -270,22 +272,9 @@ public class ExamServiceImpl implements ExamService {
                 });
     }
 
-    /**
-     * 将数据库查询结果映射为ExamDto
-     */
-    private ExamDto mapToExamDto(Map<String, Object> row) {
-        ExamDto examDto = new ExamDto();
-        examDto.setId((String) row.get("paper_id"));
-        examDto.setName((String) row.get("name"));
-        examDto.setDescription((String) row.get("description"));
-        examDto.setTotalScore((Integer) row.get("total_score"));
-        examDto.setDurationMinutes((Integer) row.get("duration_minutes"));
-        examDto.setStatus(Exam.ExamPaperStatus.valueOf((String) row.get("status")));
-        examDto.setCreateDate((java.time.LocalDateTime) row.get("create_date"));
-        examDto.setCreateUser((String) row.get("create_user"));
-        examDto.setUpdateDate((java.time.LocalDateTime) row.get("update_date"));
-        examDto.setUpdateUser((String) row.get("update_user"));
-        return examDto;
+    @Override
+    public void addQuestionsToExam(String examId, List<String> questionIds) {
+        // TODO 分值默认给1，序号取已有题目中最大的开始累加
     }
 
     /**

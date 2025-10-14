@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "试卷管理", description = "试卷相关的API接口")
 @RestController
 @RequestMapping("/api/exam")
@@ -96,6 +98,17 @@ public class ExamController {
         examService.addQuestionToExam(id, questionId, orderNo, score);
         return ResponseEntity.ok().build();
     }
+
+    @Operation(summary = "批量添加题目到试卷", description = "为试卷批量添加多个题目")
+    @PostMapping("/{id}/questions/batch")
+    public ResponseEntity addQuestionsToExam(
+            @Parameter(description = "试卷ID", required = true) @PathVariable String id,
+            @Parameter(description = "题目ID列表", required = true)
+            @RequestBody List<String> questionIds) {
+        examService.addQuestionsToExam(id, questionIds);
+        return ResponseEntity.ok().build();
+    }
+
 
     @Operation(summary = "从试卷中移除题目", description = "从试卷中移除指定题目")
     @DeleteMapping("/{id}/questions/{questionId}")

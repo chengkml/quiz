@@ -16,6 +16,7 @@ import {
     Table,
     Tag,
     Tooltip,
+    Drawer,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
@@ -551,7 +552,7 @@ function ExamManager(): React.ReactElement {
                     autoFocus={false}
                     focusLock={true}
                 >
-                    <Form ref={addFormRef} layout="vertical">
+                    <Form ref={addFormRef} layout="vertical" initialValues={{ totalScore: 100, durationMinutes: 25 }}>
                         <Form.Item
                             label="试卷名称"
                             field="name"
@@ -738,15 +739,13 @@ function ExamManager(): React.ReactElement {
                     )}
                 </Modal>
 
-                {/* 题目管理模态框 */}
-                <Modal
+                {/* 题目管理抽屉 */}
+                <Drawer
                     title={`管理题目 - ${currentExamForQuestions?.name}`}
                     visible={questionManagerVisible}
+                    placement="right"
+                    width={900}
                     onCancel={() => setQuestionManagerVisible(false)}
-                    footer={null}
-                    width={1200}
-                    autoFocus={false}
-                    focusLock={true}
                 >
                     {currentExamForQuestions && (
                         <ExamQuestionManager
@@ -755,7 +754,7 @@ function ExamManager(): React.ReactElement {
                             onQuestionsChange={handleQuestionsChange}
                         />
                     )}
-                </Modal>
+                </Drawer>
             </Content>
         </Layout>
     );
