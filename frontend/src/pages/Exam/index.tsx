@@ -155,11 +155,11 @@ const {Content} = Layout;
         },
         {
             title: '题目数量',
-            dataIndex: 'questions',
+            dataIndex: 'questionNum',
             width: 100,
             align: 'center',
             render: (value) => (
-                <span>{value ? value.length : 0}题</span>
+                <span>{value || 0}题</span>
             ),
         },
         {

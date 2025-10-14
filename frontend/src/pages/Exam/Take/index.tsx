@@ -11,7 +11,8 @@ import {
   Input,
   Space,
   Tag,
-  Divider
+  Divider,
+  Tooltip
 } from '@arco-design/web-react';
 import { getExamById, submitExam } from '../api';
 import { ExamDto, ExamResultDto, ExamSubmitDto } from '../types';
@@ -58,6 +59,9 @@ const ExamTakePage: React.FC = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [exam, setExam] = useState<ExamDto | null>(null);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  const [markedMap, setMarkedMap] = useState<Record<string, boolean>>({});
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const questionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     const fetchExam = async () => {
@@ -78,13 +82,16 @@ const ExamTakePage: React.FC = () => {
   useEffect(() => {
     if (exam?.questions) {
       const init: Record<string, string[]> = {};
+      const initMarked: Record<string, boolean> = {};
       for (const q of exam.questions) {
         const eqId = q.id as string;
         const type = (q.question as any)?.type;
         if (type === 'MULTIPLE') init[eqId] = [];
         else init[eqId] = [''];
+        initMarked[eqId] = false;
       }
       setAnswers(init);
+      setMarkedMap(initMarked);
     }
   }, [exam?.questions]);
 
@@ -108,6 +115,34 @@ const ExamTakePage: React.FC = () => {
   const onShortAnswerChange = (eqId: string, value: string) => {
     setAnswers(prev => ({ ...prev, [eqId]: [value] }));
   };
+
+  const toggleMark = (eqId: string) => {
+    setMarkedMap(prev => ({ ...prev, [eqId]: !prev[eqId] }));
+  };
+
+  const isAnswered = (eqId: string): boolean => {
+    const a = answers[eqId];
+    if (!a) return false;
+    const q = (exam?.questions || []).find(x => String(x.id) === String(eqId)) as any;
+    const type = q?.question?.type;
+    if (type === 'MULTIPLE') return a.length > 0;
+    if (type === 'BLANK') return a.some(v => v && String(v).trim() !== '');
+    return !!(a[0] && String(a[0]).trim() !== '');
+  };
+
+  const scrollToIndex = (index: number) => {
+    const list = exam?.questions || [];
+    if (index < 0 || index >= list.length) return;
+    setCurrentIndex(index);
+    const targetId = String(list[index].id);
+    const el = questionRefs.current[targetId];
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const goPrev = () => scrollToIndex(currentIndex - 1);
+  const goNext = () => scrollToIndex(currentIndex + 1);
 
   const handleSubmit = async () => {
     if (!exam || !id) return;
@@ -158,6 +193,45 @@ const ExamTakePage: React.FC = () => {
         ) : (
           <div>
             {header}
+
+            {/* 题目导航条 */}
+            <div style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 10, padding: '8px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Space>
+                  <Tag color='arcoblue'>题目导航</Tag>
+                  <Tag>共 {exam?.questions?.length || 0} 题</Tag>
+                </Space>
+                <Space>
+                  <Button size='small' onClick={goPrev} disabled={currentIndex <= 0}>上一题</Button>
+                  <Button size='small' onClick={goNext} disabled={(exam?.questions?.length || 0) === 0 || currentIndex >= (exam?.questions?.length || 0) - 1}>下一题</Button>
+                </Space>
+              </div>
+              <Space wrap>
+                {(exam?.questions || []).map((eq, idx) => {
+                  const eqId = String(eq.id);
+                  const answered = isAnswered(eqId);
+                  const marked = !!markedMap[eqId];
+                  const type = (eq.question as any)?.type;
+                  return (
+                    <Tooltip key={eqId} content={`第${idx + 1}题（${type || '未知类型'}）${answered ? ' - 已作答' : ' - 未作答'}${marked ? ' - 已标记' : ''}`}>
+                      <Button
+                        size='mini'
+                        type={answered ? 'primary' : 'outline'}
+                        onClick={() => scrollToIndex(idx)}
+                        style={{
+                          minWidth: 32,
+                          borderColor: marked ? '#faad14' : undefined,
+                          color: marked ? '#faad14' : undefined,
+                        }}
+                      >
+                        {idx + 1}
+                      </Button>
+                    </Tooltip>
+                  );
+                })}
+              </Space>
+            </div>
+
             <Divider />
             <Form layout='vertical'>
               {(exam?.questions || []).map((eq, idx) => {
@@ -167,7 +241,19 @@ const ExamTakePage: React.FC = () => {
                 const opts = parseOptions(q?.options);
                 const blanks = parseBlanks(q?.options);
                 return (
-                  <div key={eqId} style={{ padding: 12, border: '1px solid var(--color-border-2)', borderRadius: 8, marginBottom: 16 }}>
+                  <div
+                    key={eqId}
+                    ref={(el) => { questionRefs.current[String(eqId)] = el; }}
+                    style={{
+                      padding: 12,
+                      borderRadius: 8,
+                      marginBottom: 16,
+                      border: (markedMap[String(eqId)]
+                        ? '2px solid #faad14'
+                        : (isAnswered(String(eqId)) ? '2px solid #52c41a' : '1px solid var(--color-border-2)')),
+                      transition: 'border-color 0.2s, box-shadow 0.2s'
+                    }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                       <Space>
                         <Tag color='arcoblue'>第{idx + 1}题</Tag>
@@ -175,6 +261,18 @@ const ExamTakePage: React.FC = () => {
                           {type === 'SINGLE' ? '单选题' : type === 'MULTIPLE' ? '多选题' : type === 'BLANK' ? '填空题' : '简答题'}
                         </Tag>
                         <Tag>分值：{eq.score}</Tag>
+                      </Space>
+                      <Space>
+                        <Button
+                          size='mini'
+                          type='outline'
+                          onClick={() => toggleMark(String(eqId))}
+                          style={{
+                            borderColor: markedMap[String(eqId)] ? '#faad14' : undefined,
+                          }}
+                        >
+                          {markedMap[String(eqId)] ? '取消标记' : '标记'}
+                        </Button>
                       </Space>
                     </div>
                     <div style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 12 }}>{q?.content}</div>

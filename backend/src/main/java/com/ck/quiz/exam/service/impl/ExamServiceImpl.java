@@ -13,8 +13,10 @@ import com.ck.quiz.exam.service.ExamService;
 import com.ck.quiz.question.entity.Question;
 import com.ck.quiz.question.repository.QuestionRepository;
 import com.ck.quiz.question.service.QuestionService;
+import com.ck.quiz.utils.HumpHelper;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import org.apache.commons.collections.MapUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -134,11 +136,19 @@ public class ExamServiceImpl implements ExamService {
         if (optionalExam.isEmpty()) {
             throw new RuntimeException("试卷不存在，ID: " + examId);
         }
+        List<ExamResult> resultsToDelete = examResultRepository.findAll().stream()
+                .filter(r -> r.getExam() != null && examId.equals(r.getExam().getId()))
+                .collect(Collectors.toList());
+        if (!resultsToDelete.isEmpty()) {
+            examResultRepository.deleteAll(resultsToDelete);
+        }
 
+        // 删除试卷（Exam -> ExamQuestion 已配置级联与孤儿删除，会自动清理试卷题目关系）
         ExamDto examDto = convertToDto(optionalExam.get());
         examRepository.deleteById(examId);
         return examDto;
     }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -192,10 +202,12 @@ public class ExamServiceImpl implements ExamService {
         // 分页 SQL
         String listSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sb.toString(), queryDto.getPageNum(), queryDto.getPageSize());
 
+        Map<String, ExamDto> idMap = new HashMap<>();
         // 查询数据
         List<ExamDto> exams = jdbcTemplate.query(listSql, params, (rs, rowNum) -> {
             ExamDto dto = new ExamDto();
-            dto.setId(rs.getString("paper_id"));
+            String id = rs.getString("paper_id");
+            dto.setId(id);
             dto.setName(rs.getString("name"));
             dto.setTotalScore(rs.getInt("total_score"));
             dto.setDurationMinutes(rs.getInt("duration_minutes"));
@@ -204,8 +216,19 @@ public class ExamServiceImpl implements ExamService {
             dto.setCreateUser(rs.getString("create_user"));
             dto.setCreateUserName(rs.getString("create_user_name")); // 新增：从 user 表获取姓名
             dto.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
+            idMap.put(id, dto);
             return dto;
         });
+        if(!idMap.isEmpty()) {
+            params.put("paperIds", new ArrayList<>(idMap.keySet()));
+            HumpHelper.lineToHump(jdbcTemplate.queryForList("select paper_id, count(*) num from exam_paper_question where paper_id in (:paperIds) group by paper_id", params)).forEach(map->{
+                String paperId = MapUtils.getString(map, "paperId");
+                int num = MapUtils.getIntValue(map, "num");
+                if(idMap.containsKey(paperId)) {
+                    idMap.get(paperId).setQuestionNum(num);
+                }
+            });
+        }
 
         // 封装分页对象
         return JdbcQueryHelper.toPage(jdbcTemplate, countSb.toString(), params, exams, queryDto.getPageNum(), queryDto.getPageSize());

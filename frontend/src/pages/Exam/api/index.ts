@@ -30,6 +30,10 @@ const submitExam = (examId, params) => axios.post(`${base}/api/exam/${examId}/su
 const addQuestionToExam = (examId, params) => 
   axios.post(`${base}/api/exam/${examId}/questions`, null, {params});
 
+// 批量添加题目到试卷
+const addQuestionsToExam = (examId, questionIds) => 
+  axios.post(`${base}/api/exam/${examId}/questions/batch`, questionIds);
+
 // 从试卷中移除题目
 const removeQuestionFromExam = (examId, questionId) => 
   axios.delete(`${base}/api/exam/${examId}/questions/${questionId}`);
@@ -48,6 +52,7 @@ export {
   archiveExam,
   submitExam,
   addQuestionToExam,
+  addQuestionsToExam,
   removeQuestionFromExam,
   updateExamQuestion
 };

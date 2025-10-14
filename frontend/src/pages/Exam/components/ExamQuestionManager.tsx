@@ -18,7 +18,7 @@ import {
 } from '@arco-design/web-react/icon';
 import { SortableContainer, SortableElement, SortableHandle } from 'react-sortable-hoc';
 import {
-    addQuestionToExam,
+    addQuestionsToExam,
     removeQuestionFromExam,
     updateExamQuestion,
 } from '../api';
@@ -62,24 +62,20 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
         }
     };
 
-    // 添加题目到试卷
+    // 批量添加题目到试卷
     const handleAddQuestion = async () => {
         try {
             const values = await addFormRef.current?.validate();
             if (values) {
                 setLoading(true);
-                await addQuestionToExam(examId, {
-                    questionId: values.questionId,
-                    orderNo: values.orderNo,
-                    score: values.score,
-                });
-                Message.success('题目添加成功');
+                await addQuestionsToExam(examId, values.questionIds);
+                Message.success('批量添加题目成功');
                 setAddQuestionModalVisible(false);
                 addFormRef.current?.resetFields();
                 onQuestionsChange();
             }
         } catch (error) {
-            Message.error('题目添加失败');
+            Message.error('批量添加题目失败');
         } finally {
             setLoading(false);
         }
@@ -339,12 +335,13 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
             >
                 <Form ref={addFormRef} layout="vertical">
                     <Form.Item
-                        label="选择题目"
-                        field="questionId"
-                        rules={[{required: true, message: '请选择题目'}]}
+                        label="选择题目（可多选）"
+                        field="questionIds"
+                        rules={[{required: true, message: '请选择至少一道题目'}]}
                     >
                         <Select
-                            placeholder="请选择题目"
+                            placeholder="请选择题目（可多选）"
+                            mode="multiple"
                             showSearch
                             filterOption={(inputValue, option) =>
                                 option.props.children.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
@@ -358,30 +355,6 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
                                 </Select.Option>
                             ))}
                         </Select>
-                    </Form.Item>
-                    <Form.Item
-                        label="题目顺序"
-                        field="orderNo"
-                        rules={[{required: true, message: '请输入题目顺序'}]}
-                    >
-                        <InputNumber
-                            placeholder="请输入题目顺序"
-                            min={1}
-                            max={100}
-                            style={{width: '100%'}}
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        label="分值"
-                        field="score"
-                        rules={[{required: true, message: '请输入分值'}]}
-                    >
-                        <InputNumber
-                            placeholder="请输入分值"
-                            min={1}
-                            max={100}
-                            style={{width: '100%'}}
-                        />
                     </Form.Item>
                 </Form>
             </Modal>
