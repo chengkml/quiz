@@ -25,3 +25,9 @@ export const collectSchema = (id: string, schema?: string) => axios.get(`${base}
 
 // 获取schema列表
 export const getSchemas = (id: string) => axios.get(`${base}/api/datasource/${id}/schemas`);
+
+// 导出表结构（JSON文件）
+export const exportSchema = (id: string, schema?: string) => axios.get(`${base}/api/datasource/${id}/schema/export`, { params: { schema }, responseType: 'blob' });
+
+// 导出表结构（Excel文件）
+export const exportSchemaExcel = (id: string, schema?: string) => axios.get(`${base}/api/datasource/${id}/schema/export/excel`, { params: { schema }, responseType: 'blob' });

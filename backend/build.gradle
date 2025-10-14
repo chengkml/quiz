@@ -40,6 +40,9 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.12.0'
     implementation 'org.apache.commons:commons-collections4:4.4'
 
+    // Excel 导出
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+
     // OpenAPI 3 (Spring Boot 3.x 用 2.x)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.3'
 

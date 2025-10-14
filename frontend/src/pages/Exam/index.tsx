@@ -162,7 +162,7 @@ function ExamManager(): React.ReactElement {
         },
         {
             title: '创建人',
-            dataIndex: 'createUser',
+            dataIndex: 'createUserName',
             width: 120,
             ellipsis: true,
         },
@@ -685,7 +685,7 @@ function ExamManager(): React.ReactElement {
                                 </div>
                                 <div className="detail-item">
                                     <span className="label">创建人：</span>
-                                    <span className="value">{detailRecord.createUser}</span>
+                                    <span className="value">{detailRecord.createUserName}</span>
                                 </div>
                                 <div className="detail-item">
                                     <span className="label">创建时间：</span>
