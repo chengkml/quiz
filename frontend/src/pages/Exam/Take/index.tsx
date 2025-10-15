@@ -63,6 +63,10 @@ const ExamTakePage: React.FC = () => {
   const [markedMap, setMarkedMap] = useState<Record<string, boolean>>({});
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const questionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
+  const timerRef = React.useRef<number | null>(null);
+  const warnedRef = React.useRef<boolean>(false);
+  const autoSubmittedRef = React.useRef<boolean>(false);
 
   useEffect(() => {
     const fetchExam = async () => {
@@ -79,6 +83,51 @@ const ExamTakePage: React.FC = () => {
     };
     fetchExam();
   }, [id]);
+
+  // 初始化并运行倒计时
+  useEffect(() => {
+    if (!exam?.durationMinutes) {
+      // 无时长则不启动倒计时
+      return;
+    }
+    // 重置状态
+    setRemainingSeconds(exam.durationMinutes * 60);
+    warnedRef.current = false;
+    autoSubmittedRef.current = false;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    timerRef.current = (window.setInterval(() => {
+      setRemainingSeconds(prev => {
+        const next = prev - 1;
+        if (next === 300 && !warnedRef.current) {
+          warnedRef.current = true;
+          Message.warning('考试剩余 5 分钟，请尽快提交');
+        }
+        if (next <= 0) {
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          if (!autoSubmittedRef.current && !submitting) {
+            autoSubmittedRef.current = true;
+            Message.info('考试时间到，正在自动提交');
+            // 直接自动交卷，忽略未作答提示
+            doSubmit();
+          }
+          return 0;
+        }
+        return next;
+      });
+    }, 1000) as any);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [exam?.durationMinutes]);
 
   useEffect(() => {
     if (exam?.questions) {
@@ -194,6 +243,16 @@ const ExamTakePage: React.FC = () => {
     await doSubmit();
   };
 
+  const formatTime = (sec: number): string => {
+    if (!sec || sec <= 0) return '00:00';
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const two = (n: number) => String(n).padStart(2, '0');
+    if (h > 0) return `${two(h)}:${two(m)}:${two(s)}`;
+    return `${two(m)}:${two(s)}`;
+  };
+
   const header = useMemo(() => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
       <div>
@@ -202,10 +261,14 @@ const ExamTakePage: React.FC = () => {
       </div>
       <Space>
         <Tag color='blue'>总分：{exam?.totalScore}</Tag>
-        {exam?.durationMinutes && <Tag color='orange'>时长：{exam?.durationMinutes} 分钟</Tag>}
+        {exam?.durationMinutes && (
+          <Tag color={remainingSeconds <= 300 ? 'red' : 'orange'}>
+            剩余时间：{formatTime(Math.max(0, remainingSeconds))}
+          </Tag>
+        )}
       </Space>
     </div>
-  ), [exam]);
+  ), [exam, remainingSeconds]);
 
   return (
     <Layout style={{ height: '100vh' }}>

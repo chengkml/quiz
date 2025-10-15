@@ -383,8 +383,8 @@ public class ExamServiceImpl implements ExamService {
 
         List<ExamQuestion> examQuestions = examQuestionRepository.findByExamIdOrderByOrderNo(examId);
         Map<String, List<String>> answerMap = new HashMap<>();
-        if (submitDto.getAnswerList() != null) {
-            for (ExamSubmitAnswerDto a : submitDto.getAnswerList()) {
+        if (submitDto.getAnswers() != null) {
+            for (ExamSubmitAnswerDto a : submitDto.getAnswers()) {
                 answerMap.put(a.getExamQuestionId(), a.getAnswers() == null ? Collections.emptyList() : a.getAnswers());
             }
         }
@@ -402,11 +402,9 @@ public class ExamServiceImpl implements ExamService {
 
         for (ExamQuestion eq : examQuestions) {
             Question q = eq.getQuestion();
-            List<String> std;
-            try {
-                std = objectMapper.readValue(q.getAnswer(), objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
-            } catch (Exception e) {
-                std = Collections.emptyList();
+            List<String> std = new ArrayList<>();
+            if(StringUtils.hasText(q.getAnswer())) {
+                std = Arrays.asList(q.getAnswer().split(","));
             }
 
             List<String> userAns = answerMap.getOrDefault(eq.getId(), Collections.emptyList());
