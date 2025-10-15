@@ -12,6 +12,7 @@ import {
   Space,
   Tag,
   Divider,
+  Modal,
   Tooltip
 } from '@arco-design/web-react';
 import { getExamById, submitExam } from '../api';
@@ -144,7 +145,7 @@ const ExamTakePage: React.FC = () => {
   const goPrev = () => scrollToIndex(currentIndex - 1);
   const goNext = () => scrollToIndex(currentIndex + 1);
 
-  const handleSubmit = async () => {
+  const doSubmit = async () => {
     if (!exam || !id) return;
     try {
       setSubmitting(true);
@@ -170,6 +171,29 @@ const ExamTakePage: React.FC = () => {
     }
   };
 
+  const handleSubmit = async () => {
+    if (!exam || !id) return;
+    const unanswered = (exam.questions || [])
+      .map((q, idx) => ({ idx: idx + 1, id: String(q.id) }))
+      .filter(({ id }) => !isAnswered(id))
+      .map(({ idx }) => idx);
+
+    if (unanswered.length > 0) {
+      const listText = unanswered.slice(0, 20).join('、');
+      Modal.confirm({
+        title: '还有未作答的题目',
+        content: `共有 ${unanswered.length} 题未作答：第 ${listText}${unanswered.length > 20 ? ' 等' : ''} 题。是否继续提交？`,
+        okText: '继续提交',
+        cancelText: '返回作答',
+        onOk: () => {
+          doSubmit();
+        }
+      });
+      return;
+    }
+    await doSubmit();
+  };
+
   const header = useMemo(() => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
       <div>
@@ -184,151 +208,157 @@ const ExamTakePage: React.FC = () => {
   ), [exam]);
 
   return (
-    <Layout style={{ height: '100%' }}>
-      <Content style={{ margin: 10, background: '#fff', borderRadius: 8, padding: 16 }}>
+    <Layout style={{ height: '100vh' }}>
+      <Content style={{ margin: 10, background: '#fff', borderRadius: 8, padding: 16, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 20px)' }}>
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
             <Spin />
           </div>
         ) : (
-          <div>
-            {header}
-
-            {/* 题目导航条 */}
-            <div style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 10, padding: '8px 0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Space>
-                  <Tag color='arcoblue'>题目导航</Tag>
-                  <Tag>共 {exam?.questions?.length || 0} 题</Tag>
-                </Space>
-                <Space>
-                  <Button size='small' onClick={goPrev} disabled={currentIndex <= 0}>上一题</Button>
-                  <Button size='small' onClick={goNext} disabled={(exam?.questions?.length || 0) === 0 || currentIndex >= (exam?.questions?.length || 0) - 1}>下一题</Button>
-                </Space>
-              </div>
-              <Space wrap>
-                {(exam?.questions || []).map((eq, idx) => {
-                  const eqId = String(eq.id);
-                  const answered = isAnswered(eqId);
-                  const marked = !!markedMap[eqId];
-                  const type = (eq.question as any)?.type;
-                  return (
-                    <Tooltip key={eqId} content={`第${idx + 1}题（${type || '未知类型'}）${answered ? ' - 已作答' : ' - 未作答'}${marked ? ' - 已标记' : ''}`}>
-                      <Button
-                        size='mini'
-                        type={answered ? 'primary' : 'outline'}
-                        onClick={() => scrollToIndex(idx)}
-                        style={{
-                          minWidth: 32,
-                          borderColor: marked ? '#faad14' : undefined,
-                          color: marked ? '#faad14' : undefined,
-                        }}
-                      >
-                        {idx + 1}
-                      </Button>
-                    </Tooltip>
-                  );
-                })}
-              </Space>
-            </div>
-
-            <Divider />
-            <Form layout='vertical'>
-              {(exam?.questions || []).map((eq, idx) => {
-                const q = eq.question as any;
-                const eqId = eq.id as string;
-                const type = q?.type;
-                const opts = parseOptions(q?.options);
-                const blanks = parseBlanks(q?.options);
-                return (
-                  <div
-                    key={eqId}
-                    ref={(el) => { questionRefs.current[String(eqId)] = el; }}
-                    style={{
-                      padding: 12,
-                      borderRadius: 8,
-                      marginBottom: 16,
-                      border: (markedMap[String(eqId)]
-                        ? '2px solid #faad14'
-                        : (isAnswered(String(eqId)) ? '2px solid #52c41a' : '1px solid var(--color-border-2)')),
-                      transition: 'border-color 0.2s, box-shadow 0.2s'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Space>
-                        <Tag color='arcoblue'>第{idx + 1}题</Tag>
-                        <Tag color={type === 'SINGLE' ? 'blue' : type === 'MULTIPLE' ? 'purple' : type === 'BLANK' ? 'green' : 'orange'}>
-                          {type === 'SINGLE' ? '单选题' : type === 'MULTIPLE' ? '多选题' : type === 'BLANK' ? '填空题' : '简答题'}
-                        </Tag>
-                        <Tag>分值：{eq.score}</Tag>
-                      </Space>
-                      <Space>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* 顶部固定区域：试卷信息 + 题目导航 */}
+            <div style={{ flex: '0 0 auto' }}>
+              {header}
+              <div style={{ background: '#fff', padding: '8px 0', borderBottom: '1px solid var(--color-border-2)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <Space>
+                    <Tag color='arcoblue'>题目导航</Tag>
+                    <Tag>共 {exam?.questions?.length || 0} 题</Tag>
+                  </Space>
+                  <Space>
+                    <Button size='small' onClick={goPrev} disabled={currentIndex <= 0}>上一题</Button>
+                    <Button size='small' onClick={goNext} disabled={(exam?.questions?.length || 0) === 0 || currentIndex >= (exam?.questions?.length || 0) - 1}>下一题</Button>
+                  </Space>
+                </div>
+                <Space wrap>
+                  {(exam?.questions || []).map((eq, idx) => {
+                    const eqId = String(eq.id);
+                    const answered = isAnswered(eqId);
+                    const marked = !!markedMap[eqId];
+                    const type = (eq.question as any)?.type;
+                    return (
+                      <Tooltip key={eqId} content={`第${idx + 1}题（${type || '未知类型'}）${answered ? ' - 已作答' : ' - 未作答'}${marked ? ' - 已标记' : ''}`}>
                         <Button
                           size='mini'
-                          type='outline'
-                          onClick={() => toggleMark(String(eqId))}
+                          type={answered ? 'primary' : 'outline'}
+                          onClick={() => scrollToIndex(idx)}
                           style={{
-                            borderColor: markedMap[String(eqId)] ? '#faad14' : undefined,
+                            minWidth: 32,
+                            borderColor: marked ? '#faad14' : undefined,
+                            color: marked ? '#faad14' : undefined,
                           }}
                         >
-                          {markedMap[String(eqId)] ? '取消标记' : '标记'}
+                          {idx + 1}
                         </Button>
-                      </Space>
+                      </Tooltip>
+                    );
+                  })}
+                </Space>
+              </div>
+            </div>
+
+            {/* 中间滚动区域：题目列表 */}
+            <div style={{ flex: '1 1 auto', overflowY: 'auto', paddingTop: 12 }}>
+              <Divider style={{ margin: '12px 0' }} />
+              <Form layout='vertical'>
+                {(exam?.questions || []).map((eq, idx) => {
+                  const q = eq.question as any;
+                  const eqId = eq.id as string;
+                  const type = q?.type;
+                  const opts = parseOptions(q?.options);
+                  const blanks = parseBlanks(q?.options);
+                  return (
+                    <div
+                      key={eqId}
+                      ref={(el) => { questionRefs.current[String(eqId)] = el; }}
+                      style={{
+                        padding: 12,
+                        borderRadius: 8,
+                        marginBottom: 16,
+                        border: (markedMap[String(eqId)]
+                          ? '2px solid #faad14'
+                          : (isAnswered(String(eqId)) ? '2px solid #52c41a' : '1px solid var(--color-border-2)')),
+                        transition: 'border-color 0.2s, box-shadow 0.2s'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <Space>
+                          <span style={{ fontWeight: 600 }}>{idx + 1}.</span>
+                          <Tag color={type === 'SINGLE' ? 'blue' : type === 'MULTIPLE' ? 'purple' : type === 'BLANK' ? 'green' : 'orange'}>
+                            {type === 'SINGLE' ? '单选题' : type === 'MULTIPLE' ? '多选题' : type === 'BLANK' ? '填空题' : '简答题'}
+                          </Tag>
+                          <Tag>分值：{eq.score}</Tag>
+                        </Space>
+                        <Space>
+                          <Button
+                            size='mini'
+                            type='outline'
+                            onClick={() => toggleMark(String(eqId))}
+                            style={{
+                              borderColor: markedMap[String(eqId)] ? '#faad14' : undefined,
+                            }}
+                          >
+                            {markedMap[String(eqId)] ? '取消标记' : '标记'}
+                          </Button>
+                        </Space>
+                      </div>
+                      <div style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 12 }}>{q?.content}</div>
+
+                      {type === 'SINGLE' && (
+                        <Radio.Group
+                          value={(answers[eqId] || [''])[0]}
+                          onChange={(val) => onSingleChange(eqId, String(val))}
+                        >
+                          <Space direction='vertical'>
+                            {opts.map(opt => (
+                              <Radio key={opt.key} value={opt.key}>{opt.text}</Radio>
+                            ))}
+                          </Space>
+                        </Radio.Group>
+                      )}
+
+                      {type === 'MULTIPLE' && (
+                        <Checkbox.Group
+                          value={(answers[eqId] || [])}
+                          onChange={(vals) => onMultipleChange(eqId, (vals as string[]).map(v => String(v)))}
+                        >
+                          <Space direction='vertical'>
+                            {opts.map(opt => (
+                              <Checkbox key={opt.key} value={opt.key}>{opt.text}</Checkbox>
+                            ))}
+                          </Space>
+                        </Checkbox.Group>
+                      )}
+
+                      {type === 'BLANK' && (
+                        <Space direction='vertical' style={{ width: '100%' }}>
+                          {(blanks.length > 0 ? blanks : ['']).map((placeholder, i) => (
+                            <Input
+                              key={i}
+                              placeholder={placeholder ? `填空 ${i + 1}：${placeholder}` : `填空 ${i + 1}`}
+                              value={(answers[eqId] || [''])[i] || ''}
+                              onChange={(val) => onBlankChange(eqId, i, String(val))}
+                            />
+                          ))}
+                        </Space>
+                      )}
+
+                      {type === 'SHORT_ANSWER' && (
+                        <TextArea
+                          placeholder='请输入你的答案'
+                          value={(answers[eqId] || [''])[0] || ''}
+                          onChange={(val) => onShortAnswerChange(eqId, String(val))}
+                          rows={4}
+                        />
+                      )}
                     </div>
-                    <div style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 12 }}>{q?.content}</div>
+                  );
+                })}
+              </Form>
+            </div>
 
-                    {type === 'SINGLE' && (
-                      <Radio.Group
-                        value={(answers[eqId] || [''])[0]}
-                        onChange={(val) => onSingleChange(eqId, String(val))}
-                      >
-                        <Space direction='vertical'>
-                          {opts.map(opt => (
-                            <Radio key={opt.key} value={opt.key}>{opt.key}. {opt.text}</Radio>
-                          ))}
-                        </Space>
-                      </Radio.Group>
-                    )}
-
-                    {type === 'MULTIPLE' && (
-                      <Checkbox.Group
-                        value={(answers[eqId] || [])}
-                        onChange={(vals) => onMultipleChange(eqId, (vals as string[]).map(v => String(v)))}
-                      >
-                        <Space direction='vertical'>
-                          {opts.map(opt => (
-                            <Checkbox key={opt.key} value={opt.key}>{opt.key}. {opt.text}</Checkbox>
-                          ))}
-                        </Space>
-                      </Checkbox.Group>
-                    )}
-
-                    {type === 'BLANK' && (
-                      <Space direction='vertical' style={{ width: '100%' }}>
-                        {(blanks.length > 0 ? blanks : ['']).map((placeholder, i) => (
-                          <Input
-                            key={i}
-                            placeholder={placeholder ? `填空 ${i + 1}：${placeholder}` : `填空 ${i + 1}`}
-                            value={(answers[eqId] || [''])[i] || ''}
-                            onChange={(val) => onBlankChange(eqId, i, String(val))}
-                          />
-                        ))}
-                      </Space>
-                    )}
-
-                    {type === 'SHORT_ANSWER' && (
-                      <TextArea
-                        placeholder='请输入你的答案'
-                        value={(answers[eqId] || [''])[0] || ''}
-                        onChange={(val) => onShortAnswerChange(eqId, String(val))}
-                        rows={4}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </Form>
-            <div style={{ textAlign: 'right' }}>
+            {/* 底部固定区域：提交操作 */}
+            <div style={{ flex: '0 0 auto', textAlign: 'right', borderTop: '1px solid var(--color-border-2)', paddingTop: 12 }}>
               <Space>
                 <Button onClick={() => navigate('/quiz/frame/exam')}>取消</Button>
                 <Button type='primary' loading={submitting} onClick={handleSubmit}>提交试卷</Button>

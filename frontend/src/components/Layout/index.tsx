@@ -302,7 +302,7 @@ const AppLayout: React.FC = () => {
                     )}
                 </Menu>
             </Sider>
-            <Layout>
+            <Layout style={{overflow: 'hidden'}}>
                 <Content style={{height: '100%'}}>
                     <Outlet/>
                 </Content>
