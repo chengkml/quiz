@@ -452,6 +452,71 @@ public class ExamServiceImpl implements ExamService {
         return dto;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ExamResultHistoryItemDto> listUserResults(String userId, String examId) {
+        List<ExamResult> results;
+        if (org.springframework.util.StringUtils.hasText(examId)) {
+            results = examResultRepository.findByUserIdAndExam_IdOrderBySubmitTimeDesc(userId, examId);
+        } else {
+            results = examResultRepository.findByUserIdOrderBySubmitTimeDesc(userId);
+        }
+        return results.stream().map(r -> {
+            ExamResultHistoryItemDto dto = new ExamResultHistoryItemDto();
+            dto.setResultId(r.getId());
+            dto.setExamId(r.getExam().getId());
+            dto.setExamName(r.getExam().getName());
+            dto.setTotalScore(r.getTotalScore());
+            dto.setCorrectCount(r.getCorrectCount());
+            dto.setSubmitTime(r.getSubmitTime());
+            return dto;
+        }).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ExamResultDetailDto getExamResultById(String resultId) {
+        java.util.Optional<ExamResult> optional = examResultRepository.findById(resultId);
+        if (optional.isEmpty()) {
+            throw new RuntimeException("答卷结果不存在，ID: " + resultId);
+        }
+        ExamResult r = optional.get();
+        ExamResultDetailDto dto = new ExamResultDetailDto();
+        dto.setResultId(r.getId());
+        dto.setExamId(r.getExam().getId());
+        dto.setUserId(r.getUserId());
+        dto.setTotalScore(r.getTotalScore());
+        dto.setCorrectCount(r.getCorrectCount());
+        dto.setSubmitTime(r.getSubmitTime());
+
+        java.util.List<ExamResultDetailAnswerDto> answers = new java.util.ArrayList<>();
+        for (ExamResultAnswer ra : r.getAnswers()) {
+            ExamResultDetailAnswerDto ad = new ExamResultDetailAnswerDto();
+            ad.setExamQuestionId(ra.getExamQuestion().getId());
+            ad.setCorrect(Boolean.TRUE.equals(ra.getCorrect()));
+            ad.setScore(java.util.Optional.ofNullable(ra.getGainScore()).orElse(0));
+            try {
+                java.util.List<String> userAns = objectMapper.readValue(
+                        java.util.Optional.ofNullable(ra.getUserAnswer()).orElse("[]"),
+                        objectMapper.getTypeFactory().constructCollectionType(java.util.List.class, String.class)
+                );
+                ad.setUserAnswers(userAns);
+            } catch (Exception e) {
+                ad.setUserAnswers(java.util.Collections.emptyList());
+            }
+            // 标准答案从题目中解析
+            com.ck.quiz.question.entity.Question q = ra.getExamQuestion().getQuestion();
+            java.util.List<String> std = new java.util.ArrayList<>();
+            if (org.springframework.util.StringUtils.hasText(q.getAnswer())) {
+                std = java.util.Arrays.asList(q.getAnswer().split(","));
+            }
+            ad.setStandardAnswers(std);
+            answers.add(ad);
+        }
+        dto.setAnswers(answers);
+        return dto;
+    }
+
     private boolean isCorrect(Question.QuestionType type, List<String> std, List<String> user) {
         if (type == Question.QuestionType.SINGLE || type == Question.QuestionType.SHORT_ANSWER) {
             String s = std.isEmpty() ? "" : std.get(0);

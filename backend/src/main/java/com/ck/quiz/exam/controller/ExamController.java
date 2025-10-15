@@ -3,6 +3,8 @@ package com.ck.quiz.exam.controller;
 import com.ck.quiz.exam.dto.ExamCreateDto;
 import com.ck.quiz.exam.dto.ExamQueryDto;
 import com.ck.quiz.exam.dto.ExamResultDto;
+import com.ck.quiz.exam.dto.ExamResultHistoryItemDto;
+import com.ck.quiz.exam.dto.ExamResultDetailDto;
 import com.ck.quiz.exam.dto.ExamSubmitDto;
 import com.ck.quiz.exam.dto.ExamUpdateDto;
 import com.ck.quiz.exam.entity.Exam;
@@ -138,5 +140,20 @@ public class ExamController {
             @Parameter(description = "试卷ID", required = true) @PathVariable String id,
             @Parameter(description = "提交内容", required = true) @RequestBody ExamSubmitDto submitDto) {
         return ResponseEntity.ok(examService.submitExam(id, submitDto));
+    }
+
+    @Operation(summary = "查询用户历史答卷", description = "根据用户ID（可选试卷ID）查询历史答卷列表")
+    @GetMapping("/results")
+    public ResponseEntity<List<ExamResultHistoryItemDto>> listUserResults(
+            @Parameter(description = "用户ID", required = true) @RequestParam String userId,
+            @Parameter(description = "试卷ID", required = false) @RequestParam(required = false) String examId) {
+        return ResponseEntity.ok(examService.listUserResults(userId, examId));
+    }
+
+    @Operation(summary = "获取答卷详情", description = "根据结果ID获取完整答卷详情")
+    @GetMapping("/results/{resultId}")
+    public ResponseEntity<ExamResultDetailDto> getExamResultDetail(
+            @Parameter(description = "答卷结果ID", required = true) @PathVariable String resultId) {
+        return ResponseEntity.ok(examService.getExamResultById(resultId));
     }
 }

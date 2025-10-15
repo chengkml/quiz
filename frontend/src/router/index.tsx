@@ -8,6 +8,8 @@ import QuestionManagement from '@/pages/Question';
 import DatasourceManagement from '@/pages/Datasource';
 import ExamManagement from '@/pages/Exam';
 import ExamTakePage from '@/pages/Exam/Take';
+import ExamHistoryPage from '@/pages/Exam/History';
+import ExamResultDetailPage from '@/pages/Exam/Result';
 import SubjectManagement from '@/pages/Subject';
 import CategoryManagement from '@/pages/Category';
 import KnowledgeManagement from '@/pages/Knowledge';
@@ -140,6 +142,9 @@ export const router = createBrowserRouter([
             })),
             // 非菜单页：考试作答页（需登录，但不校验菜单权限）
             { path: 'exam/take/:id', element: <ExamTakePage /> },
+            // 非菜单页：历史答卷列表与详情
+            { path: 'exam/results', element: <ExamHistoryPage /> },
+            { path: 'exam/result/:id', element: <ExamResultDetailPage /> },
             { path: 'notfound', element: <NotFound /> },
         ],
     },

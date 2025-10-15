@@ -4,6 +4,8 @@ import com.ck.quiz.exam.dto.ExamCreateDto;
 import com.ck.quiz.exam.dto.ExamDto;
 import com.ck.quiz.exam.dto.ExamQueryDto;
 import com.ck.quiz.exam.dto.ExamResultDto;
+import com.ck.quiz.exam.dto.ExamResultHistoryItemDto;
+import com.ck.quiz.exam.dto.ExamResultDetailDto;
 import com.ck.quiz.exam.dto.ExamSubmitDto;
 import com.ck.quiz.exam.dto.ExamUpdateDto;
 import com.ck.quiz.exam.entity.Exam;
@@ -121,4 +123,21 @@ public interface ExamService {
      * @return 评分后的考试结果
      */
     ExamResultDto submitExam(String examId, ExamSubmitDto submitDto);
+
+    /**
+     * 查询用户历史答卷
+     *
+     * @param userId 用户ID
+     * @param examId 试卷ID（可选）
+     * @return 历史答卷列表
+     */
+    List<ExamResultHistoryItemDto> listUserResults(String userId, String examId);
+
+    /**
+     * 根据结果ID查询答卷详情
+     *
+     * @param resultId 答卷结果ID
+     * @return 答卷详情
+     */
+    ExamResultDetailDto getExamResultById(String resultId);
 }

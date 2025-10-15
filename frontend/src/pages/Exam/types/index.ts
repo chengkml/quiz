@@ -184,8 +184,21 @@ export interface ExamResultAnswerDto {
 
 // 考试结果DTO
 export interface ExamResultDto {
+  resultId?: string;
+  examId?: string;
+  userId?: string;
   totalScore: number;
   correctCount: number;
   submitTime: string;
   answers: ExamResultAnswerDto[];
+}
+
+// 历史答卷列表项DTO
+export interface ExamHistoryItemDto {
+  resultId: string;
+  examId: string;
+  examName: string;
+  totalScore: number;
+  correctCount: number;
+  submitTime: string;
 }

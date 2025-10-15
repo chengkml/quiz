@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ExamResultRepository extends JpaRepository<ExamResult, String> {
+    java.util.List<ExamResult> findByUserIdOrderBySubmitTimeDesc(String userId);
+    java.util.List<ExamResult> findByUserIdAndExam_IdOrderBySubmitTimeDesc(String userId, String examId);
 }

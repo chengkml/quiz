@@ -26,6 +26,12 @@ const archiveExam = id => axios.post(`${base}/api/exam/${id}/archive`);
 // 提交考试
 const submitExam = (examId, params) => axios.post(`${base}/api/exam/${examId}/submit`, params);
 
+// 获取用户历史答卷列表（可按试卷筛选）
+const getExamResultsByUser = (userId, examId?) => axios.get(`${base}/api/exam/results`, { params: { userId, examId } });
+
+// 获取答卷详情
+const getExamResultDetail = (resultId) => axios.get(`${base}/api/exam/results/${resultId}`);
+
 // 添加题目到试卷
 const addQuestionToExam = (examId, params) => 
   axios.post(`${base}/api/exam/${examId}/questions`, null, {params});
@@ -55,4 +61,6 @@ export {
   addQuestionsToExam,
   removeQuestionFromExam,
   updateExamQuestion
+  , getExamResultsByUser
+  , getExamResultDetail
 };
