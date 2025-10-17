@@ -46,7 +46,7 @@ public class TodoQueryDto {
     /**
      * 排序字段
      */
-    private String sortColumn = "createDate";
+    private String sortColumn = "create_date";
 
     /**
      * 排序方式，asc 或 desc

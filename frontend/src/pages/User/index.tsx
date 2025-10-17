@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
     Button,
+    Checkbox,
+    Drawer,
     Dropdown,
     Form,
     Input,
@@ -9,41 +11,28 @@ import {
     Message,
     Modal,
     Pagination,
-    Select,
     Space,
     Spin,
     Table,
     Tag,
-    Tooltip,
-    Drawer,
-    Checkbox,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
-    searchUsers,
-    registerUser,
-    updateUser,
     deleteUser,
-    enableUser,
     disableUser,
+    enableUser,
+    getActiveRoles,
+    getUserRoles,
+    registerUser,
+    replaceUserRoles,
     resetPassword,
+    searchUsers,
+    updateUser,
 } from './api';
-import { getActiveRoles, getUserRoles, replaceUserRoles } from './api';
-import {
-    IconDelete,
-    IconEdit,
-    IconEye,
-    IconList,
-    IconPlus,
-    IconRefresh,
-    IconSearch,
-    IconUser,
-    IconMenu,
-} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconList, IconMenu, IconPlus, IconRefresh, IconUser,} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 
-const { Content } = Layout;
-const { Option } = Select;
+const {Content} = Layout;
 
 function UserManager() {
     // 状态管理
@@ -60,8 +49,11 @@ function UserManager() {
     // 分页状态
     const [pagination, setPagination] = useState({
         current: 1,
-        pageSize: 10,
+        pageSize: 20,
         total: 0,
+        showTotal: true,
+        showJumper: true,
+        showPageSize: true,
     });
 
     // 搜索条件
@@ -84,8 +76,8 @@ function UserManager() {
 
     // 用户状态选项
     const userStateOptions = [
-        { label: '启用', value: 'ENABLED' },
-        { label: '禁用', value: 'DISABLED' },
+        {label: '启用', value: 'ENABLED'},
+        {label: '禁用', value: 'DISABLED'},
     ];
 
     // 角色分配 Drawer 与数据
@@ -252,7 +244,7 @@ function UserManager() {
             };
 
             const response = await searchUsers(queryParams);
-            const { content, totalElements } = response.data;
+            const {content, totalElements} = response.data;
 
             setTableData(content || []);
             setPagination(prev => ({
@@ -270,15 +262,15 @@ function UserManager() {
     // 搜索处理
     const handleSearch = (values) => {
         setSearchParams(values);
-        setPagination(prev => ({ ...prev, current: 1 }));
+        setPagination(prev => ({...prev, current: 1}));
         fetchUsers(values);
     };
 
     // 重置搜索
     const handleReset = () => {
-        const resetParams = { userId: '', name: '', state: '' };
+        const resetParams = {userId: '', name: '', state: ''};
         setSearchParams(resetParams);
-        setPagination(prev => ({ ...prev, current: 1 }));
+        setPagination(prev => ({...prev, current: 1}));
         fetchUsers(resetParams);
     };
 
@@ -510,7 +502,7 @@ function UserManager() {
                 <div className="action-buttons">
                     <Button
                         type="primary"
-                        icon={<IconPlus />}
+                        icon={<IconPlus/>}
                         onClick={handleAdd}
                     >
                         新增用户
@@ -537,15 +529,15 @@ function UserManager() {
                     visible={assignRoleVisible}
                     onCancel={() => setAssignRoleVisible(false)}
                     onOk={handleAssignRolesSave}
-                    okButtonProps={{ loading: assignRoleLoading }}
+                    okButtonProps={{loading: assignRoleLoading}}
                 >
                     <Spin loading={assignRoleLoading} tip="加载中...">
-                        <div style={{ maxHeight: 360, overflow: 'auto', paddingRight: 8 }}>
+                        <div style={{maxHeight: 360, overflow: 'auto', paddingRight: 8}}>
                             <Checkbox.Group
                                 value={selectedRoleIds}
                                 onChange={vals => setSelectedRoleIds(vals)}
                             >
-                                <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                                <Space direction="vertical" size={12} style={{width: '100%'}}>
                                     {roleOptions && roleOptions.length > 0 ? (
                                         roleOptions.map(role => (
                                             <Checkbox key={role.id} value={role.id}>
@@ -554,12 +546,12 @@ function UserManager() {
                                                         {role.state === 'ENABLED' ? '启用' : '禁用'}
                                                     </Tag>
                                                     <span>{role.name}</span>
-                                                    <span style={{ color: 'var(--color-text-3)' }}>（{role.id}）</span>
+                                                    <span style={{color: 'var(--color-text-3)'}}>（{role.id}）</span>
                                                 </Space>
                                             </Checkbox>
                                         ))
                                     ) : (
-                                        <span style={{ color: 'var(--color-text-3)' }}>暂无启用角色</span>
+                                        <span style={{color: 'var(--color-text-3)'}}>暂无启用角色</span>
                                     )}
                                 </Space>
                             </Checkbox.Group>
@@ -570,15 +562,8 @@ function UserManager() {
                 {/* 分页 */}
                 <div className="pagination-wrapper">
                     <Pagination
-                        current={pagination.current}
-                        pageSize={pagination.pageSize}
-                        total={pagination.total}
+                        {...pagination}
                         onChange={handlePageChange}
-                        showTotal={(total, range) =>
-                            `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
-                        }
-                        showSizeChanger
-                        pageSizeOptions={['10', '20', '50', '100']}
                     />
                 </div>
             </Content>
@@ -597,60 +582,60 @@ function UserManager() {
                         label="用户ID"
                         field="userId"
                         rules={[
-                            { required: true, message: '请输入用户ID' },
-                            { max: 32, message: '用户ID长度不能超过32个字符' },
+                            {required: true, message: '请输入用户ID'},
+                            {max: 32, message: '用户ID长度不能超过32个字符'},
                         ]}
                     >
-                        <Input placeholder="请输入用户ID" />
+                        <Input placeholder="请输入用户ID"/>
                     </Form.Item>
                     <Form.Item
                         label="用户姓名"
                         field="userName"
                         rules={[
-                            { required: true, message: '请输入用户姓名' },
-                            { max: 128, message: '用户姓名长度不能超过128个字符' },
+                            {required: true, message: '请输入用户姓名'},
+                            {max: 128, message: '用户姓名长度不能超过128个字符'},
                         ]}
                     >
-                        <Input placeholder="请输入用户姓名" />
+                        <Input placeholder="请输入用户姓名"/>
                     </Form.Item>
                     <Form.Item
                         label="密码"
                         field="password"
                         rules={[
-                            { required: true, message: '请输入密码' },
-                            { minLength: 6, message: '密码长度至少6个字符' },
-                            { maxLength: 20, message: '密码长度不能超过20个字符' },
+                            {required: true, message: '请输入密码'},
+                            {minLength: 6, message: '密码长度至少6个字符'},
+                            {maxLength: 20, message: '密码长度不能超过20个字符'},
                         ]}
                     >
-                        <Input.Password placeholder="请输入密码" />
+                        <Input.Password placeholder="请输入密码"/>
                     </Form.Item>
                     <Form.Item
                         label="邮箱"
                         field="email"
                         rules={[
-                            { type: 'email', message: '请输入正确的邮箱格式' },
-                            { max: 64, message: '邮箱长度不能超过64个字符' },
+                            {type: 'email', message: '请输入正确的邮箱格式'},
+                            {max: 64, message: '邮箱长度不能超过64个字符'},
                         ]}
                     >
-                        <Input placeholder="请输入邮箱" />
+                        <Input placeholder="请输入邮箱"/>
                     </Form.Item>
                     <Form.Item
                         label="手机号"
                         field="phone"
                         rules={[
-                            { max: 16, message: '手机号长度不能超过16个字符' },
+                            {max: 16, message: '手机号长度不能超过16个字符'},
                         ]}
                     >
-                        <Input placeholder="请输入手机号" />
+                        <Input placeholder="请输入手机号"/>
                     </Form.Item>
                     <Form.Item
                         label="头像URL"
                         field="logo"
                         rules={[
-                            { max: 256, message: '头像URL长度不能超过256个字符' },
+                            {max: 256, message: '头像URL长度不能超过256个字符'},
                         ]}
                     >
-                        <Input placeholder="请输入头像URL" />
+                        <Input placeholder="请输入头像URL"/>
                     </Form.Item>
                 </Form>
             </Modal>
@@ -669,44 +654,44 @@ function UserManager() {
                         label="用户ID"
                         field="userId"
                     >
-                        <Input disabled />
+                        <Input disabled/>
                     </Form.Item>
                     <Form.Item
                         label="用户姓名"
                         field="userName"
                         rules={[
-                            { max: 128, message: '用户姓名长度不能超过128个字符' },
+                            {max: 128, message: '用户姓名长度不能超过128个字符'},
                         ]}
                     >
-                        <Input placeholder="请输入用户姓名" />
+                        <Input placeholder="请输入用户姓名"/>
                     </Form.Item>
                     <Form.Item
                         label="邮箱"
                         field="email"
                         rules={[
-                            { type: 'email', message: '请输入正确的邮箱格式' },
-                            { max: 64, message: '邮箱长度不能超过64个字符' },
+                            {type: 'email', message: '请输入正确的邮箱格式'},
+                            {max: 64, message: '邮箱长度不能超过64个字符'},
                         ]}
                     >
-                        <Input placeholder="请输入邮箱" />
+                        <Input placeholder="请输入邮箱"/>
                     </Form.Item>
                     <Form.Item
                         label="手机号"
                         field="phone"
                         rules={[
-                            { max: 16, message: '手机号长度不能超过16个字符' },
+                            {max: 16, message: '手机号长度不能超过16个字符'},
                         ]}
                     >
-                        <Input placeholder="请输入手机号" />
+                        <Input placeholder="请输入手机号"/>
                     </Form.Item>
                     <Form.Item
                         label="头像URL"
                         field="logo"
                         rules={[
-                            { max: 256, message: '头像URL长度不能超过256个字符' },
+                            {max: 256, message: '头像URL长度不能超过256个字符'},
                         ]}
                     >
-                        <Input placeholder="请输入头像URL" />
+                        <Input placeholder="请输入头像URL"/>
                     </Form.Item>
                 </Form>
             </Modal>
@@ -737,15 +722,15 @@ function UserManager() {
                         label="新密码"
                         field="newPassword"
                         rules={[
-                            { required: true, message: '请输入新密码' },
-                            { minLength: 6, message: '密码长度至少6个字符' },
-                            { maxLength: 20, message: '密码长度不能超过20个字符' },
+                            {required: true, message: '请输入新密码'},
+                            {minLength: 6, message: '密码长度至少6个字符'},
+                            {maxLength: 20, message: '密码长度不能超过20个字符'},
                         ]}
                     >
-                        <Input.Password placeholder="请输入新密码" />
+                        <Input.Password placeholder="请输入新密码"/>
                     </Form.Item>
                 </Form>
-                <p style={{ color: '#666', fontSize: '12px' }}>
+                <p style={{color: '#666', fontSize: '12px'}}>
                     为用户 "{currentUser?.userName}" 重置密码
                 </p>
             </Modal>

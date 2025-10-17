@@ -32,9 +32,9 @@ import {IconDelete, IconEdit, IconList, IconMenu, IconPlus, IconUser,} from '@ar
 import {getMenuTree} from '@/pages/Menu/api';
 import FilterForm from '@/components/FilterForm';
 
-const { Content } = Layout;
-const { Option } = Select;
-const { TextArea } = Input;
+const {Content} = Layout;
+const {Option} = Select;
+const {TextArea} = Input;
 
 function RoleManager() {
     // 状态管理
@@ -50,8 +50,11 @@ function RoleManager() {
     // 分页状态
     const [pagination, setPagination] = useState({
         current: 1,
-        pageSize: 10,
+        pageSize: 20,
         total: 0,
+        showTotal: true,
+        showJumper: true,
+        showPageSize: true,
     });
 
     // 搜索条件
@@ -78,8 +81,8 @@ function RoleManager() {
 
     // 角色状态选项
     const roleStateOptions = [
-        { label: '启用', value: 'ENABLED' },
-        { label: '禁用', value: 'DISABLED' },
+        {label: '启用', value: 'ENABLED'},
+        {label: '禁用', value: 'DISABLED'},
     ];
 
     // 表格列定义
@@ -359,7 +362,7 @@ function RoleManager() {
             };
 
             const response = await getRoles(queryParams);
-            const { content, totalElements } = response.data;
+            const {content, totalElements} = response.data;
 
             setTableData(content || []);
             setPagination(prev => ({
@@ -377,15 +380,15 @@ function RoleManager() {
     // 搜索处理
     const handleSearch = (values) => {
         setSearchParams(values);
-        setPagination(prev => ({ ...prev, current: 1 }));
+        setPagination(prev => ({...prev, current: 1}));
         fetchRoles(values);
     };
 
     // 重置搜索
     const handleReset = () => {
-        const resetParams = { roleName: '', state: '' };
+        const resetParams = {roleName: '', state: ''};
         setSearchParams(resetParams);
-        setPagination(prev => ({ ...prev, current: 1 }));
+        setPagination(prev => ({...prev, current: 1}));
         fetchRoles(resetParams);
     };
 
@@ -434,16 +437,16 @@ function RoleManager() {
         if (!value) {
             return callback();
         }
-        
+
         try {
             // 检查角色ID是否已存在（通过查询角色列表）
-            const response = await getRoles({ 
-                roleName: '', 
-                state: '', 
-                pageNum: 0, 
-                pageSize: 1000 
+            const response = await getRoles({
+                roleName: '',
+                state: '',
+                pageNum: 0,
+                pageSize: 1000
             });
-            
+
             const existingRole = response.data.content.find(role => role.id === value);
             if (existingRole) {
                 callback('角色ID已存在');
@@ -461,7 +464,7 @@ function RoleManager() {
         if (!value) {
             return callback();
         }
-        
+
         try {
             const excludeRoleId = currentRole?.id || null;
             const response = await checkRoleName(value, excludeRoleId);
@@ -571,7 +574,7 @@ function RoleManager() {
                     initialValues={searchParams}
                 >
                     <Form.Item field="roleName" label="角色名称">
-                        <Input placeholder="请输入角色名称" />
+                        <Input placeholder="请输入角色名称"/>
                     </Form.Item>
                     <Form.Item field="state" label="状态">
                         <Select placeholder="请选择状态" allowClear>
@@ -588,7 +591,7 @@ function RoleManager() {
                 <div className="action-buttons">
                     <Button
                         type="primary"
-                        icon={<IconPlus />}
+                        icon={<IconPlus/>}
                         onClick={handleAdd}
                     >
                         新增角色
@@ -612,15 +615,8 @@ function RoleManager() {
                 {/* 分页 */}
                 <div className="pagination-wrapper">
                     <Pagination
-                        current={pagination.current}
-                        pageSize={pagination.pageSize}
-                        total={pagination.total}
+                        {...pagination}
                         onChange={handlePageChange}
-                        showTotal={(total, range) =>
-                            `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
-                        }
-                        showSizeChanger
-                        pageSizeOptions={['10', '20', '50', '100']}
                     />
                 </div>
 
@@ -638,7 +634,7 @@ function RoleManager() {
                         </Space>
                     }
                 >
-                    <div style={{ maxHeight: 420, overflow: 'auto' }}>
+                    <div style={{maxHeight: 420, overflow: 'auto'}}>
                         <Tree
                             checkable
                             treeData={menuTreeData}
@@ -663,37 +659,37 @@ function RoleManager() {
                         label="角色ID"
                         field="id"
                         rules={[
-                            { required: true, message: '请输入角色ID' },
-                            { max: 32, message: '角色ID长度不能超过32个字符' },
-                            { 
-                                pattern: /^[a-zA-Z0-9_-]+$/, 
-                                message: '角色ID只能包含字母、数字、下划线和连字符' 
+                            {required: true, message: '请输入角色ID'},
+                            {max: 32, message: '角色ID长度不能超过32个字符'},
+                            {
+                                pattern: /^[a-zA-Z0-9_-]+$/,
+                                message: '角色ID只能包含字母、数字、下划线和连字符'
                             },
-                            { validator: validateRoleId },
+                            {validator: validateRoleId},
                         ]}
                     >
-                        <Input placeholder="请输入角色ID（如：admin、user等）" />
+                        <Input placeholder="请输入角色ID（如：admin、user等）"/>
                     </Form.Item>
                     <Form.Item
                         label="角色名称"
                         field="name"
                         rules={[
-                            { required: true, message: '请输入角色名称' },
-                            { max: 64, message: '角色名称长度不能超过64个字符' },
-                            { validator: validateRoleName },
+                            {required: true, message: '请输入角色名称'},
+                            {max: 64, message: '角色名称长度不能超过64个字符'},
+                            {validator: validateRoleName},
                         ]}
                     >
-                        <Input placeholder="请输入角色名称" />
+                        <Input placeholder="请输入角色名称"/>
                     </Form.Item>
                     <Form.Item
                         label="角色描述"
                         field="descr"
                         rules={[
-                            { max: 128, message: '角色描述长度不能超过128个字符' },
+                            {max: 128, message: '角色描述长度不能超过128个字符'},
                         ]}
                     >
-                        <TextArea 
-                            placeholder="请输入角色描述" 
+                        <TextArea
+                            placeholder="请输入角色描述"
                             rows={3}
                             maxLength={128}
                             showWordLimit
@@ -716,28 +712,28 @@ function RoleManager() {
                         label="角色ID"
                         field="id"
                     >
-                        <Input disabled />
+                        <Input disabled/>
                     </Form.Item>
                     <Form.Item
                         label="角色名称"
                         field="name"
                         rules={[
-                            { required: true, message: '请输入角色名称' },
-                            { max: 64, message: '角色名称长度不能超过64个字符' },
-                            { validator: validateRoleName },
+                            {required: true, message: '请输入角色名称'},
+                            {max: 64, message: '角色名称长度不能超过64个字符'},
+                            {validator: validateRoleName},
                         ]}
                     >
-                        <Input placeholder="请输入角色名称" />
+                        <Input placeholder="请输入角色名称"/>
                     </Form.Item>
                     <Form.Item
                         label="角色描述"
                         field="descr"
                         rules={[
-                            { max: 128, message: '角色描述长度不能超过128个字符' },
+                            {max: 128, message: '角色描述长度不能超过128个字符'},
                         ]}
                     >
-                        <TextArea 
-                            placeholder="请输入角色描述" 
+                        <TextArea
+                            placeholder="请输入角色描述"
                             rows={3}
                             maxLength={128}
                             showWordLimit

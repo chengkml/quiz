@@ -1,15 +1,27 @@
 .todo-manager {
-  .arco-layout-content {
-    padding: 16px 16px 0 16px;
-    background: #f7f8fa;
-    min-height: calc(100vh - 64px);
+
+  box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+  overflow: hidden;
+  background: var(--background-color-base);
+  height: 100%;
+
+  .arco-layout {
+    margin: 10px;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: calc(100% - 20px);
+    width: calc(100% - 20px);
   }
 
+  // 操作按钮样式
   .action-buttons {
     display: flex;
-    justify-content: flex-start;
-    margin: 8px 0 12px;
     gap: 8px;
+    align-items: center;
+    background: var(--color-white);
+    margin-bottom: 16px;
   }
 
   .table-btn-group {
