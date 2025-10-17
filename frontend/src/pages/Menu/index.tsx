@@ -9,7 +9,7 @@ import {
     Layout,
     Menu,
     Message,
-    Modal,
+    Modal, Pagination,
     Select,
     Space,
     Table,
@@ -138,7 +138,7 @@ function MenuManager() {
     // 分页状态
     const [pagination, setPagination] = useState({
         current: 1,
-        pageSize: 20,
+        pageSize: 5,
         total: 0,
         showTotal: true,
         showJumper: true,
@@ -479,9 +479,9 @@ function MenuManager() {
         try {
             const queryParams = {
                 ...searchParams,
-                ...params,
                 pageNum: pagination.current - 1,
                 pageSize: pagination.pageSize,
+                ...params,
             };
 
             const response = await getMenuList(queryParams);
@@ -504,7 +504,7 @@ function MenuManager() {
     const handleSearch = (values) => {
         setSearchParams(values);
         setPagination(prev => ({...prev, current: 1}));
-        fetchMenuList(values);
+        fetchMenuList({ ...values, pageNum: 0, pageSize: pagination.pageSize });
     };
 
     // 处理重置
@@ -518,13 +518,13 @@ function MenuManager() {
         };
         setSearchParams(resetParams);
         setPagination(prev => ({...prev, current: 1}));
-        fetchMenuList(resetParams);
+        fetchMenuList({ ...resetParams, pageNum: 0, pageSize: pagination.pageSize });
     };
 
     // 处理分页变化
     const handleTableChange = (pagination) => {
         setPagination(prev => ({...prev, ...pagination}));
-        fetchMenuList();
+        fetchMenuList({ pageNum: (pagination.current ?? 1) - 1, pageSize: pagination.pageSize });
     };
 
     // 处理新增
@@ -745,11 +745,19 @@ function MenuManager() {
                         columns={columns}
                         data={tableData}
                         loading={tableLoading}
-                        pagination={pagination}
-                        onChange={handleTableChange}
+                        pagination={false}
                         scroll={{y: tableScrollHeight}}
                         rowKey="menuId"
                     />
+                    {/* 分页 */}
+                    <div className="pagination-wrapper">
+                        <Pagination
+                            {...pagination}
+                            onChange={(current, pageSize) => {
+                                handleTableChange({pageSize: pageSize, current: current});
+                            }}
+                        />
+                    </div>
                 </Content>
             </Layout>
 

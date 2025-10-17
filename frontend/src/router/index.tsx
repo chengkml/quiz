@@ -14,6 +14,7 @@ import SubjectManagement from '@/pages/Subject';
 import CategoryManagement from '@/pages/Category';
 import KnowledgeManagement from '@/pages/Knowledge';
 import UserManagement from '@/pages/User';
+import TodoManagement from '@/pages/Todo';
 import NotFound from '@/pages/NotFound';
 import { UserProvider } from '@/contexts/UserContext';
 import { MenuTreeDto, MenuType } from '@/types/menu';
@@ -105,6 +106,7 @@ const protectedPages = [
     { path: 'question', element: <QuestionManagement />, requiredPath: 'question' },
     { path: 'datasource', element: <DatasourceManagement />, requiredPath: 'datasource' },
     { path: 'exam', element: <ExamManagement />, requiredPath: 'exam' },
+    { path: 'todo', element: <TodoManagement />, requiredPath: 'todo' },
 ];
 
 /**

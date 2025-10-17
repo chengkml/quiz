@@ -1,0 +1,61 @@
+.todo-manager {
+  .arco-layout-content {
+    padding: 16px 16px 0 16px;
+    background: #f7f8fa;
+    min-height: calc(100vh - 64px);
+  }
+
+  .action-buttons {
+    display: flex;
+    justify-content: flex-start;
+    margin: 8px 0 12px;
+    gap: 8px;
+  }
+
+  .table-btn-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .pagination-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin: 12px 0 16px;
+  }
+
+  .handle-dropdown-menu {
+    min-width: 120px;
+  }
+
+  .more-btn {
+    color: var(--color-text-2);
+  }
+
+  .arco-modal .arco-modal-title {
+    font-weight: 500;
+  }
+
+  .modal-form {
+    .arco-form-item-label {
+      font-weight: 400;
+    }
+  }
+
+  .delete-modal {
+    color: #e33b3b;
+  }
+
+  .todo-detail {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    grid-row-gap: 8px;
+    grid-column-gap: 12px;
+    .detail-item {
+      display: contents;
+      label {
+        color: var(--color-text-2);
+      }
+    }
+  }
+}
