@@ -138,7 +138,7 @@ function MenuManager() {
     // 分页状态
     const [pagination, setPagination] = useState({
         current: 1,
-        pageSize: 5,
+        pageSize: 20,
         total: 0,
         showTotal: true,
         showJumper: true,
