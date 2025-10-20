@@ -48,6 +48,9 @@ const removeQuestionFromExam = (examId, questionId) =>
 const updateExamQuestion = (examId, questionId, params) => 
   axios.put(`${base}/api/exam/${examId}/questions/${questionId}`, null, {params});
 
+// 一键智能生成试卷
+const autoGenerateExam = (params) => axios.post(`${base}/api/exam/auto-generate`, params);
+
 export {
   getExamList,
   getExamById,
@@ -63,4 +66,5 @@ export {
   updateExamQuestion
   , getExamResultsByUser
   , getExamResultDetail
+  , autoGenerateExam
 };

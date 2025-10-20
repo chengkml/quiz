@@ -190,11 +190,6 @@ function QuestionManager() {
             dataIndex: 'content',
             minWidth: 300,
             ellipsis: true,
-            render: (value) => (
-                <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                    {value}
-                </div>
-            ),
         },
 
         {

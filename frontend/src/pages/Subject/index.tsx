@@ -9,7 +9,6 @@ import {
     Message,
     Modal,
     Pagination,
-    Space,
     Table,
     Tag,
 } from '@arco-design/web-react';
@@ -62,7 +61,7 @@ function SubjectManager() {
             ellipsis: true,
             render: (value) => (
                 <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                    <Tag color="blue">{value}</Tag>
+                    <Tag color="blue" bordered>{value}</Tag>
                 </div>
             ),
         },

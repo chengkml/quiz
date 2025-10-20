@@ -87,22 +87,12 @@ function KnowledgeManager() {
             dataIndex: 'name',
             width: 200,
             ellipsis: true,
-            render: (value) => (
-                <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                    {value}
-                </div>
-            ),
         },
         {
             title: '描述',
             dataIndex: 'description',
-            minWidth: 300,
+            width: 300,
             ellipsis: true,
-            render: (value) => (
-                <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                    {value || '--'}
-                </div>
-            ),
         },
         {
             title: '所属分类',

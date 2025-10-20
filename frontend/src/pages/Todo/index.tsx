@@ -263,7 +263,7 @@ function TodoManager() {
                     COMPLETED: {color: 'green', text: '已完成'},
                 };
                 const it = map[status] || {color: 'arcoblue', text: status};
-                return <Tag color={it.color}>{it.text}</Tag>;
+                return <Tag color={it.color} bordered>{it.text}</Tag>;
             },
         },
         {
@@ -277,7 +277,7 @@ function TodoManager() {
                     HIGH: {color: 'red', text: '高'},
                 };
                 const it = map[priority] || {color: 'arcoblue', text: priority};
-                return <Tag color={it.color}>{it.text}</Tag>;
+                return <Tag color={it.color} bordered>{it.text}</Tag>;
             },
         },
         {

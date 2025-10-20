@@ -17,6 +17,7 @@ import {
     Table,
     Tag,
     Tooltip,
+    Switch,
     Drawer,
 } from '@arco-design/web-react';
 import './style/index.less';
@@ -28,6 +29,7 @@ import {
     updateExam,
     publishExam,
     archiveExam,
+    autoGenerateExam,
 } from './api';
 import {
     IconDelete,
@@ -41,6 +43,8 @@ import {
 } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import ExamQuestionManager from './components/ExamQuestionManager';
+import { getAllSubjects } from '../Subject/api';
+import { getCategoriesBySubjectId } from '../Category/api';
 import {
     ExamDto,
     ExamStatus,
@@ -74,6 +78,13 @@ const {Content} = Layout;
     const [questionManagerVisible, setQuestionManagerVisible] = useState<boolean>(false);
     const [currentExamForQuestions, setCurrentExamForQuestions] = useState<ExamDto | null>(null);
 
+    // 智能生成相关状态
+    const [smartGenerateModalVisible, setSmartGenerateModalVisible] = useState<boolean>(false);
+    const smartGenerateFormRef = useRef<FormRef['current']>();
+    const [subjects, setSubjects] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
+    const [smartGenerating, setSmartGenerating] = useState<boolean>(false);
+
     // 表单引用
     const filterFormRef = useRef<FormRef['current']>();
     const addFormRef = useRef<FormRef['current']>();
@@ -103,22 +114,12 @@ const {Content} = Layout;
             dataIndex: 'name',
             width: 200,
             ellipsis: true,
-            render: (value) => (
-                <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                    {value}
-                </div>
-            ),
         },
         {
             title: '试卷描述',
             dataIndex: 'description',
             minWidth: 300,
             ellipsis: true,
-            render: (value) => (
-                <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                    {value || '--'}
-                </div>
-            ),
         },
         {
             title: '总分',
@@ -447,6 +448,62 @@ const {Content} = Layout;
         }
     };
 
+    // 打开智能生成试卷弹窗
+    const openSmartGenerateModal = async (): Promise<void> => {
+        setSmartGenerateModalVisible(true);
+        try {
+            const res = await getAllSubjects();
+            setSubjects(res?.data || []);
+        } catch (e) {
+            Message.error('获取学科列表失败');
+        }
+    };
+
+    // 学科变更时加载分类
+    const handleSubjectChange = async (subjectId: number): Promise<void> => {
+        try {
+            const res = await getCategoriesBySubjectId(subjectId);
+            setCategories(res?.data || []);
+            smartGenerateFormRef.current?.setFieldValue('categoryId', undefined);
+        } catch (e) {
+            Message.error('获取分类列表失败');
+        }
+    };
+
+    // 执行智能生成试卷
+    const handleSmartGenerate = async (): Promise<void> => {
+        try {
+            const values = await smartGenerateFormRef.current?.validate();
+            setSmartGenerating(true);
+            const payload = {
+                name: values?.name,
+                description: values?.description,
+                questionCount: values?.questionCount,
+                totalScore: values?.totalScore,
+                subjectId: values?.subjectId,
+                categoryId: values?.categoryId,
+                durationMinutes: values?.durationMinutes,
+                publishImmediately: values?.publishImmediately ?? false,
+            };
+            const res = await autoGenerateExam(payload);
+            setSmartGenerating(false);
+            if (res?.code === 0 || res?.success) {
+                Message.success('智能生成试卷成功');
+                setSmartGenerateModalVisible(false);
+                smartGenerateFormRef.current?.resetFields();
+                fetchTableData();
+            } else {
+                Message.error(res?.message || '智能生成失败');
+            }
+        } catch (e: any) {
+            setSmartGenerating(false);
+            if (e?.errors) {
+                return;
+            }
+            Message.error(e?.message || '智能生成失败');
+        }
+    };
+
     // 确认编辑
     const handleEditConfirm = async (): Promise<void> => {
         try {
@@ -533,6 +590,9 @@ const {Content} = Layout;
                     <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
                         新建试卷
                     </Button>
+                    <Button onClick={openSmartGenerateModal}>
+                        智能生成试卷
+                    </Button>
                 </div>
                 <Table
                     columns={columns}
@@ -591,6 +651,57 @@ const {Content} = Layout;
                                 max={600}
                                 style={{width: '100%'}}
                             />
+                        </Form.Item>
+                    </Form>
+                </Modal>
+
+                {/* 智能生成试卷模态框 */}
+                <Modal
+                    title="智能生成试卷"
+                    visible={smartGenerateModalVisible}
+                    onOk={handleSmartGenerate}
+                    onCancel={() => setSmartGenerateModalVisible(false)}
+                    okButtonProps={{ loading: smartGenerating }}
+                    autoFocus={false}
+                    focusLock={true}
+                    maskClosable={false}
+                >
+                    <Form
+                        ref={smartGenerateFormRef}
+                        layout="vertical"
+                        initialValues={{ questionCount: 10, totalScore: 100, durationMinutes: 60, publishImmediately: true }}
+                    >
+                        <Form.Item label="试卷名称" field="name">
+                            <Input placeholder="留空则自动生成名称" allowClear />
+                        </Form.Item>
+                        <Form.Item label="试卷描述" field="description">
+                            <TextArea placeholder="可选" maxLength={200} />
+                        </Form.Item>
+                        <Form.Item label="学科" field="subjectId" rules={[{ required: true, message: '请选择学科' }]}>
+                            <Select placeholder="请选择学科" onChange={handleSubjectChange} allowClear>
+                                {subjects.map((s: any) => (
+                                    <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                        <Form.Item label="分类" field="categoryId" rules={[{ required: true, message: '请选择分类' }]}>
+                            <Select placeholder="请选择分类" allowClear>
+                                {categories.map((c: any) => (
+                                    <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                        <Form.Item label="题目数量" field="questionCount" rules={[{ required: true, type: 'number', min: 1, message: '请输入题目数量' }]}> 
+                            <InputNumber min={1} placeholder="题目数量" style={{ width: '100%' }} />
+                        </Form.Item>
+                        <Form.Item label="总分" field="totalScore" rules={[{ required: true, type: 'number', min: 1, message: '请输入总分' }]}> 
+                            <InputNumber min={1} placeholder="总分" style={{ width: '100%' }} />
+                        </Form.Item>
+                        <Form.Item label="时长（分钟）" field="durationMinutes" rules={[{ type: 'number', min: 1, message: '请输入有效时长' }]}> 
+                            <InputNumber min={1} placeholder="可选" style={{ width: '100%' }} />
+                        </Form.Item>
+                        <Form.Item label="生成后立即发布" field="publishImmediately" triggerPropName="checked">
+                            <Switch />
                         </Form.Item>
                     </Form>
                 </Modal>
