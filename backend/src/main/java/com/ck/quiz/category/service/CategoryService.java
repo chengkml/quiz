@@ -112,4 +112,8 @@ public interface CategoryService {
     CategoryDto convertToDto(Category category);
 
     List<SubjectDto> getSubjectCategoryTree();
+
+    void initCategoryQuestions(String categoryId, int questionNum);
+
+    void initCategoryQuestionsAsync(String categoryId, int questionNum);
 }

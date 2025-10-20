@@ -94,4 +94,13 @@ public class SubjectController {
             @Parameter(description = "排除的学科ID") @RequestParam(required = false) String excludeSubjectId) {
         return ResponseEntity.ok(subjectService.isSubjectNameExists(subjectName, excludeSubjectId));
     }
+
+    @Operation(summary = "学科知识问题初始化", description = "生成学科知识和问题")
+    @GetMapping("/init/questions")
+    public ResponseEntity initSubjectQuestions(
+            @Parameter(description = "学科ID", required = true) @RequestParam String subjectId,
+            @Parameter(description = "问题数", required = true) @RequestParam int questionNum) {
+        subjectService.initSubjectQuestions(subjectId, questionNum);
+        return ResponseEntity.ok().build();
+    }
 }

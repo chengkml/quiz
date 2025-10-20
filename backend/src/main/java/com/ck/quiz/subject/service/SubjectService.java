@@ -92,4 +92,6 @@ public interface SubjectService {
     SubjectDto convertToDto(Subject subject);
 
     List<SubjectDto> getAllUserSubjects(String name);
+
+    void initSubjectQuestions(String subjectId, int questionNum);
 }

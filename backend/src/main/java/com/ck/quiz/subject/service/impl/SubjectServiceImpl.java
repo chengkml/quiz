@@ -1,5 +1,8 @@
 package com.ck.quiz.subject.service.impl;
 
+import com.ck.quiz.category.entity.Category;
+import com.ck.quiz.category.repository.CategoryRepository;
+import com.ck.quiz.category.service.CategoryService;
 import com.ck.quiz.subject.dto.SubjectCreateDto;
 import com.ck.quiz.subject.dto.SubjectDto;
 import com.ck.quiz.subject.dto.SubjectQueryDto;
@@ -8,10 +11,12 @@ import com.ck.quiz.subject.entity.Subject;
 import com.ck.quiz.subject.exception.SubjectException;
 import com.ck.quiz.subject.repository.SubjectRepository;
 import com.ck.quiz.subject.service.SubjectService;
+import com.ck.quiz.thpool.CommonPool;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
@@ -34,6 +39,13 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Lazy
+    @Autowired
+    private CategoryService categoryService;
 
     @Override
     @Transactional
@@ -183,5 +195,16 @@ public class SubjectServiceImpl implements SubjectService {
     public List<SubjectDto> getAllUserSubjects(String userId) {
         List<Subject> subjects = subjectRepository.findByCreateUser(userId);
         return subjects.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+    public void initSubjectQuestions(String subjectId, int questionNum) {
+        subjectRepository.findById(subjectId)
+                .orElseThrow(() -> new SubjectException("SUBJECT_NOT_FOUND", "学科不存在: " + subjectId));
+        List<Category> categories = categoryRepository.findBySubjectId(subjectId);
+        CommonPool.cachedPool.execute(()->{
+            categories.forEach(category -> {
+                categoryService.initCategoryQuestions(category.getId(), questionNum);
+            });
+        });
     }
 }

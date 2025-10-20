@@ -8,11 +8,15 @@ import com.ck.quiz.knowledge.entity.Knowledge;
 import com.ck.quiz.knowledge.exception.KnowledgeException;
 import com.ck.quiz.knowledge.repository.KnowledgeRepository;
 import com.ck.quiz.knowledge.service.KnowledgeService;
+import com.ck.quiz.question.dto.QuestionDto;
 import com.ck.quiz.question.repository.QuestionKnowledgeRepository;
 import com.ck.quiz.question.service.QuestionService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -45,6 +49,9 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Lazy
     @Autowired
     private QuestionService questionService;
+
+    @Autowired
+    private ChatClient.Builder chatBuilder;
 
     @Override
     public KnowledgeDto createKnowledge(KnowledgeCreateDto createDto) {
@@ -253,11 +260,55 @@ public class KnowledgeServiceImpl implements KnowledgeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<com.ck.quiz.question.dto.QuestionDto> getKnowledgeQuestions(String knowledgeId) {
+    public List<QuestionDto> getKnowledgeQuestions(String knowledgeId) {
         List<com.ck.quiz.question.entity.Question> questions = questionKnowledgeRepository.findQuestionsByKnowledgeId(knowledgeId);
         return questions.stream()
                 .map(questionService::convertToDto)
                 .toList();
+    }
+
+    @Override
+    public List<String> generateKnowledges(String topic) {
+        ChatClient chat = chatBuilder.build();
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        int maxRetries = 3;          // 最大重试次数
+        long retryDelayMs = 1000L;   // 重试间隔 1 秒
+        int attempt = 0;
+
+        while (true) {
+            try {
+                attempt++;
+                String content = chat.prompt(buildPrompt(topic)).call().content();
+                return objectMapper.readValue(content, new TypeReference<>() {
+                });
+            } catch (Exception e) {
+                if (attempt >= maxRetries) {
+                    throw new RuntimeException("生成知识点失败，重试次数已达上限", e);
+                }
+                try {
+                    Thread.sleep(retryDelayMs);  // 等待后再重试
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("重试被中断", ie);
+                }
+            }
+        }
+    }
+
+    private String buildPrompt(String city) {
+        return "请根据可靠资料整理【"+city+"】的知识点，内容涵盖历史、地理、民俗、文化、旅游、美食、经济等方面。  \n" +
+                "要求：\n" +
+                "1. 所有信息必须真实可靠，不允许编造或虚构。  \n" +
+                "2. 输出格式必须为一个数组，每个数组项记录一个独立知识点。  \n" +
+                "3. 每个知识点尽量简洁明了，不超过一两句话。  \n" +
+                "4. 输出示例格式如下：\n" +
+                "[\n" +
+                "  \"知识点1\",\n" +
+                "  \"知识点2\",\n" +
+                "  \"知识点3\"\n" +
+                "]\n" +
+                "请严格按照该格式输出。\n";
     }
 
 }

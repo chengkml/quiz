@@ -5,6 +5,7 @@ import com.ck.quiz.knowledge.dto.KnowledgeDto;
 import com.ck.quiz.knowledge.dto.KnowledgeQueryDto;
 import com.ck.quiz.knowledge.dto.KnowledgeUpdateDto;
 import com.ck.quiz.knowledge.entity.Knowledge;
+import com.ck.quiz.question.dto.QuestionDto;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -85,6 +86,8 @@ public interface KnowledgeService {
      * @param knowledgeId 知识点ID
      * @return 问题列表
      */
-    List<com.ck.quiz.question.dto.QuestionDto> getKnowledgeQuestions(String knowledgeId);
+    List<QuestionDto> getKnowledgeQuestions(String knowledgeId);
+
+    List<String> generateKnowledges(String topic);
 
 }

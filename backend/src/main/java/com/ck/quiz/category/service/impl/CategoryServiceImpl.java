@@ -8,13 +8,19 @@ import com.ck.quiz.category.entity.Category;
 import com.ck.quiz.category.exception.CategoryException;
 import com.ck.quiz.category.repository.CategoryRepository;
 import com.ck.quiz.category.service.CategoryService;
+import com.ck.quiz.knowledge.service.KnowledgeService;
+import com.ck.quiz.question.dto.QuestionCreateDto;
+import com.ck.quiz.question.service.QuestionService;
 import com.ck.quiz.subject.dto.SubjectDto;
 import com.ck.quiz.subject.service.SubjectService;
+import com.ck.quiz.thpool.CommonPool;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
@@ -23,11 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * 分类服务实现类
@@ -45,6 +47,14 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Autowired
     private SubjectService subjectService;
+
+    @Lazy
+    @Autowired
+    private KnowledgeService knowledgeService;
+
+    @Lazy
+    @Autowired
+    private QuestionService questionService;
 
     @Override
     @Transactional
@@ -296,25 +306,25 @@ public class CategoryServiceImpl implements CategoryService {
 
         // 1. 获取所有学科
         List<SubjectDto> subjects = subjectService.getUserSubjects(authentication.getName());
-        
+
         // 2. 为每个学科构建分类树
         for (SubjectDto subject : subjects) {
             // 获取该学科下的所有分类
             List<CategoryDto> categories = getCategoriesBySubjectId(subject.getId());
-            
+
             // 构建树形结构
             List<CategoryDto> categoryTree = buildCategoryTree(categories);
-            
+
             // 设置到学科对象中
             subject.setCategories(categoryTree);
         }
-        
+
         return subjects;
     }
-    
+
     /**
      * 构建分类树形结构
-     * 
+     *
      * @param categories 分类列表
      * @return 树形结构的分类列表
      */
@@ -322,14 +332,14 @@ public class CategoryServiceImpl implements CategoryService {
         if (categories == null || categories.isEmpty()) {
             return List.of();
         }
-        
+
         // 创建ID到分类的映射
         Map<String, CategoryDto> categoryMap = new HashMap<>();
         for (CategoryDto category : categories) {
             categoryMap.put(category.getId(), category);
             category.setChildren(new ArrayList<>());
         }
-        
+
         // 构建树形结构
         List<CategoryDto> rootCategories = new ArrayList<>();
         for (CategoryDto category : categories) {
@@ -344,8 +354,36 @@ public class CategoryServiceImpl implements CategoryService {
                 }
             }
         }
-        
+
         return rootCategories;
+    }
+
+    public void initCategoryQuestions(String categoryId, int questionNum) {
+        try{
+            Optional<Category> op = categoryRepository.findById(categoryId);
+            List<String> knowledges = knowledgeService.generateKnowledges(op.get().getName());
+            knowledges.forEach(knowledge -> {
+                try {
+                    List<QuestionCreateDto> questions = questionService.generateQuestions(knowledge, questionNum);
+                    questions.forEach(question->{
+                        question.setSubjectId(op.get().getSubjectId());
+                        question.setCategoryId(categoryId);
+                        question.setKnowledge(knowledge);
+                    });
+                    questionService.createQuestions(questions);
+                }catch (Exception e) {
+                    log.error("生成知识点【{}】的问题异常：{}", knowledge, ExceptionUtils.getStackTrace(e));
+                }
+            });
+        }catch (Exception e){
+            log.error("生成分类【{}】的问题异常：{}", categoryId, ExceptionUtils.getStackTrace(e));
+        }
+    }
+
+    public void initCategoryQuestionsAsync(String categoryId, int questionNum) {
+        CommonPool.cachedPool.execute(()->{
+            initCategoryQuestions(categoryId, questionNum);
+        });
     }
 
 }
