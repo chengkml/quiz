@@ -36,7 +36,7 @@ spring:
       api-key: sk-wiljwnkqhwubaiajzfsfjdlcaqewstqaifvpgccbquemimpe
       chat:
         options:
-          model: deepseek-ai/DeepSeek-V3.2-Exp
+          model: Pro/deepseek-ai/DeepSeek-R1
 
 # 日志配置
 logging:
