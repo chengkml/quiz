@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "学科管理", description = "学科相关的API接口")
@@ -76,6 +78,13 @@ public class SubjectController {
     @GetMapping("/list/all")
     public ResponseEntity getAllSubjects() {
         return ResponseEntity.ok(subjectService.getAllSubjects());
+    }
+
+    @Operation(summary = "获取指定用户的所有学科列表", description = "获取指定用户的所有学科的简单列表")
+    @GetMapping("/list/user/all")
+    public ResponseEntity getAllUserSubjects() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(subjectService.getAllUserSubjects(authentication.getName()));
     }
 
     @Operation(summary = "检查学科名称", description = "检查学科名称是否已存在")

@@ -25,11 +25,6 @@ public class ExamQueryDto {
     private Exam.ExamPaperStatus status;
 
     /**
-     * 创建人
-     */
-    private String createUser;
-
-    /**
      * 页码（从0开始）
      */
     private int pageNum = 0;

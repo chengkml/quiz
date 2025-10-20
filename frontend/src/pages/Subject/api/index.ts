@@ -21,7 +21,7 @@ const updateSubject = params => axios.put(`${base}/api/subject/update`, params);
 const deleteSubject = id => axios.delete(`${base}/api/subject/delete/${id}`);
 
 // 获取所有学科列表
-const getAllSubjects = () => axios.get(`${base}/api/subject/list/all`);
+const getAllSubjects = () => axios.get(`${base}/api/subject/list/user/all`);
 
 // 检查学科名称是否存在
 const checkSubjectName = params => axios.get(`${base}/api/subject/check/name`, {params});

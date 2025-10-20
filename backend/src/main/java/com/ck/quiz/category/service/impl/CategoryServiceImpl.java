@@ -17,6 +17,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -135,26 +137,32 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional(readOnly = true)
     public Page<CategoryDto> searchCategories(CategoryQueryDto queryDto) {
         StringBuilder sql = new StringBuilder("select c.*, u.user_name create_user_name, s.name subject_name from category c left join user u on u.user_id = c.create_user left join subject s on s.subject_id = c.subject_id where 1=1 ");
-        StringBuilder countSql = new StringBuilder("select count(1) from category where 1=1 ");
+        StringBuilder countSql = new StringBuilder("select count(1) from category c where 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
         // 分类名称模糊查询
         JdbcQueryHelper.lowerLike("categoryName", queryDto.getName(),
-                " and lower(name) like :categoryName ", params, namedParameterJdbcTemplate, sql, countSql);
+                " and lower(c.name) like :categoryName ", params, namedParameterJdbcTemplate, sql, countSql);
 
         // 父分类 ID
         JdbcQueryHelper.equals("parentId", queryDto.getParentId(),
-                " and parent_id = :parentId ", params, sql, countSql);
+                " and c.parent_id = :parentId ", params, sql, countSql);
 
         // 学科 ID
         JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(),
-                " and subject_id = :subjectId ", params, sql, countSql);
+                " and c.subject_id = :subjectId ", params, sql, countSql);
 
         // 分类层级
         if (queryDto.getLevel() != null) {
-            sql.append(" and level = :level ");
-            countSql.append(" and level = :level ");
+            sql.append(" and c.level = :level ");
+            countSql.append(" and c.level = :level ");
             params.put("level", queryDto.getLevel());
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            JdbcQueryHelper.equals("createUser", authentication.getName(),
+                    " AND c.create_user = :createUser ", params, sql, countSql);
         }
 
         // 排序
@@ -283,9 +291,11 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<SubjectDto> getSubjectCategoryTree() {
         log.info("获取学科分类树");
-        
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
         // 1. 获取所有学科
-        List<SubjectDto> subjects = subjectService.getAllSubjects();
+        List<SubjectDto> subjects = subjectService.getUserSubjects(authentication.getName());
         
         // 2. 为每个学科构建分类树
         for (SubjectDto subject : subjects) {

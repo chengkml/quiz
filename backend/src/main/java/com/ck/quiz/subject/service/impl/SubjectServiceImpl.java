@@ -14,6 +14,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -95,12 +97,18 @@ public class SubjectServiceImpl implements SubjectService {
     @Transactional(readOnly = true)
     public Page<SubjectDto> searchSubjects(SubjectQueryDto queryDto) {
         StringBuilder sql = new StringBuilder("select s.*, u.user_name create_user_name from subject s left join user u on s.create_user = u.user_id where 1=1 ");
-        StringBuilder countSql = new StringBuilder("select count(1) from subject where 1=1 ");
+        StringBuilder countSql = new StringBuilder("select count(1) from subject s where 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
         // 按名称模糊查询
         JdbcQueryHelper.lowerLike("subjectName", queryDto.getName(),
-                " and lower(name) like :subjectName ", params, jdbcTemplate, sql, countSql);
+                " and lower(s.name) like :subjectName ", params, jdbcTemplate, sql, countSql);
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            JdbcQueryHelper.equals("createUser", authentication.getName(),
+                    " AND s.create_user = :createUser ", params, sql, countSql);
+        }
 
         // 排序
         JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
@@ -149,6 +157,12 @@ public class SubjectServiceImpl implements SubjectService {
     }
 
     @Override
+    public List<SubjectDto> getUserSubjects(String userId) {
+        List<Subject> subjects = subjectRepository.findByCreateUser(userId);
+        return subjects.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public boolean isSubjectNameExists(String subjectName, String excludeSubjectId) {
         if (StringUtils.hasText(excludeSubjectId)) {
@@ -163,5 +177,11 @@ public class SubjectServiceImpl implements SubjectService {
         SubjectDto dto = new SubjectDto();
         BeanUtils.copyProperties(subject, dto);
         return dto;
+    }
+
+    @Override
+    public List<SubjectDto> getAllUserSubjects(String userId) {
+        List<Subject> subjects = subjectRepository.findByCreateUser(userId);
+        return subjects.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 }

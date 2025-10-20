@@ -60,7 +60,6 @@ public class ExamController {
     public ResponseEntity searchExams(
             @Parameter(description = "试卷名称") @RequestParam(required = false) String keyWord,
             @Parameter(description = "试卷状态") @RequestParam(required = false) Exam.ExamPaperStatus status,
-            @Parameter(description = "创建人") @RequestParam(required = false) String createUser,
             @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") int pageSize,
             @Parameter(description = "排序字段") @RequestParam(defaultValue = "create_date") String sortColumn,
@@ -69,7 +68,6 @@ public class ExamController {
         ExamQueryDto queryDto = new ExamQueryDto();
         queryDto.setKeyWord(keyWord);
         queryDto.setStatus(status);
-        queryDto.setCreateUser(createUser);
         queryDto.setPageNum(pageNum);
         queryDto.setPageSize(pageSize);
         queryDto.setSortColumn(sortColumn);

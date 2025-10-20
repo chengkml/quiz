@@ -66,7 +66,6 @@ public class QuestionController {
             @Parameter(description = "题目类型") @RequestParam(required = false) Question.QuestionType type,
             @Parameter(description = "题干内容") @RequestParam(required = false) String content,
             @Parameter(description = "难度等级") @RequestParam(required = false) Integer difficultyLevel,
-            @Parameter(description = "创建人") @RequestParam(required = false) String createUser,
             @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") int pageSize,
             @Parameter(description = "排序字段") @RequestParam(defaultValue = "create_date") String sortColumn,
@@ -75,7 +74,6 @@ public class QuestionController {
         queryDto.setType(type);
         queryDto.setContent(content);
         queryDto.setDifficultyLevel(difficultyLevel);
-        queryDto.setCreateUser(createUser);
         queryDto.setPageNum(pageNum);
         queryDto.setPageSize(pageSize);
         queryDto.setSortColumn(sortColumn);

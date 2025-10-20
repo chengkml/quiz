@@ -13,6 +13,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -125,7 +127,10 @@ public class TodoServiceImpl implements TodoService {
             JdbcQueryHelper.equals("priority", queryDto.getPriority().name(), " AND t.priority = :priority ", params, sql, countSql);
         }
 
-        JdbcQueryHelper.equals("createUser", queryDto.getCreateUser(), " AND t.create_user = :createUser ", params, sql, countSql);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            JdbcQueryHelper.equals("createUser", authentication.getName(), " AND t.create_user = :createUser ", params, sql, countSql);
+        }
 
         // 排序
         JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);

@@ -23,6 +23,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -203,7 +205,11 @@ public class QuestionServiceImpl implements QuestionService {
             JdbcQueryHelper.equals("difficultyLevel", String.valueOf(queryDto.getDifficultyLevel()), " AND q.difficulty_level = :difficultyLevel ", params, sql, countSql);
         }
 
-        JdbcQueryHelper.equals("createUser", queryDto.getCreateUser(), " AND q.create_user = :createUser ", params, sql, countSql);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            JdbcQueryHelper.equals("createUser", authentication.getName(), " AND q.create_user = :createUser ", params, sql, countSql);
+        }
+
 
         // 添加排序
         JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
@@ -232,17 +238,17 @@ public class QuestionServiceImpl implements QuestionService {
 
             // 查询题目关联的知识点、分类、学科
             String relaSql = """
-        SELECT r.question_id,
-               k.category_id,
-               c.name category_name,
-               k.subject_id,
-               s.name subject_name
-        FROM question_knowledge_rela r
-        INNER JOIN knowledge k ON r.knowledge_id = k.knowledge_id
-        INNER JOIN category c ON k.category_id = c.category_id
-        INNER JOIN subject s ON c.subject_id = s.subject_id
-        WHERE r.question_id IN (:questionIds)
-        """;
+                    SELECT r.question_id,
+                           k.category_id,
+                           c.name category_name,
+                           k.subject_id,
+                           s.name subject_name
+                    FROM question_knowledge_rela r
+                    INNER JOIN knowledge k ON r.knowledge_id = k.knowledge_id
+                    INNER JOIN category c ON k.category_id = c.category_id
+                    INNER JOIN subject s ON c.subject_id = s.subject_id
+                    WHERE r.question_id IN (:questionIds)
+                    """;
 
             Map<String, Object> relaParams = new HashMap<>();
             relaParams.put("questionIds", questionIds);

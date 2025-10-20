@@ -4,6 +4,7 @@ import com.ck.quiz.subject.entity.Subject;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -28,4 +29,6 @@ public interface SubjectRepository extends JpaRepository<Subject, String> {
      * @return 是否存在
      */
     boolean existsByNameAndIdNot(String name, String subjectId);
+
+    List<Subject> findByCreateUser(String userId);
 }

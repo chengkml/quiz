@@ -72,6 +72,8 @@ public interface SubjectService {
      */
     List<SubjectDto> getAllSubjects();
 
+    List<SubjectDto> getUserSubjects(String userId);
+
     /**
      * 检查学科名称是否已存在
      *
@@ -88,4 +90,6 @@ public interface SubjectService {
      * @return 学科DTO对象
      */
     SubjectDto convertToDto(Subject subject);
+
+    List<SubjectDto> getAllUserSubjects(String name);
 }

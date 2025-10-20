@@ -30,11 +30,6 @@ public class QuestionQueryDto {
     private Integer difficultyLevel;
 
     /**
-     * 创建人
-     */
-    private String createUser;
-
-    /**
      * 当前页码，从0开始
      */
     private Integer pageNum = 0;

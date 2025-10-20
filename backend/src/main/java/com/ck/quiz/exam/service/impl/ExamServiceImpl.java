@@ -22,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -188,9 +190,9 @@ public class ExamServiceImpl implements ExamService {
                     " AND e.status = :status ", params, sb, countSb);
         }
 
-        // 创建人精确查询
-        if (queryDto.getCreateUser() != null && !queryDto.getCreateUser().trim().isEmpty()) {
-            JdbcQueryHelper.equals("createUser", queryDto.getCreateUser(),
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            JdbcQueryHelper.equals("createUser", authentication.getName(),
                     " AND e.create_user = :createUser ", params, sb, countSb);
         }
 

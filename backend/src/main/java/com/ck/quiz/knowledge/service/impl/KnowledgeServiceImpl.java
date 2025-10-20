@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -158,6 +160,12 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             sql.append(" and k.difficulty_level = :difficultyLevel ");
             countSql.append(" and k.difficulty_level = :difficultyLevel ");
             params.put("difficultyLevel", queryDto.getDifficultyLevel());
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            JdbcQueryHelper.equals("createUser", authentication.getName(),
+                    " AND k.create_user = :createUser ", params, sql, countSql);
         }
 
         // 排序
