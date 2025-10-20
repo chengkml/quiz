@@ -577,67 +577,69 @@ function UserManager() {
                 okText="确定"
                 cancelText="取消"
             >
-                <Form form={addForm} layout="vertical">
-                    <Form.Item
-                        label="用户ID"
-                        field="userId"
-                        rules={[
-                            {required: true, message: '请输入用户ID'},
-                            {max: 32, message: '用户ID长度不能超过32个字符'},
-                        ]}
-                    >
-                        <Input placeholder="请输入用户ID"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="用户姓名"
-                        field="userName"
-                        rules={[
-                            {required: true, message: '请输入用户姓名'},
-                            {max: 128, message: '用户姓名长度不能超过128个字符'},
-                        ]}
-                    >
-                        <Input placeholder="请输入用户姓名"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="密码"
-                        field="password"
-                        rules={[
-                            {required: true, message: '请输入密码'},
-                            {minLength: 6, message: '密码长度至少6个字符'},
-                            {maxLength: 20, message: '密码长度不能超过20个字符'},
-                        ]}
-                    >
-                        <Input.Password placeholder="请输入密码"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="邮箱"
-                        field="email"
-                        rules={[
-                            {type: 'email', message: '请输入正确的邮箱格式'},
-                            {max: 64, message: '邮箱长度不能超过64个字符'},
-                        ]}
-                    >
-                        <Input placeholder="请输入邮箱"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="手机号"
-                        field="phone"
-                        rules={[
-                            {max: 16, message: '手机号长度不能超过16个字符'},
-                        ]}
-                    >
-                        <Input placeholder="请输入手机号"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="头像URL"
-                        field="logo"
-                        rules={[
-                            {max: 256, message: '头像URL长度不能超过256个字符'},
-                        ]}
-                    >
-                        <Input placeholder="请输入头像URL"/>
-                    </Form.Item>
-                </Form>
+                <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                    <Form form={addForm} layout="vertical">
+                        <Form.Item
+                            label="用户ID"
+                            field="userId"
+                            rules={[
+                                {required: true, message: '请输入用户ID'},
+                                {max: 32, message: '用户ID长度不能超过32个字符'},
+                            ]}
+                        >
+                            <Input placeholder="请输入用户ID"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="用户姓名"
+                            field="userName"
+                            rules={[
+                                {required: true, message: '请输入用户姓名'},
+                                {max: 128, message: '用户姓名长度不能超过128个字符'},
+                            ]}
+                        >
+                            <Input placeholder="请输入用户姓名"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="密码"
+                            field="password"
+                            rules={[
+                                {required: true, message: '请输入密码'},
+                                {minLength: 6, message: '密码长度至少6个字符'},
+                                {maxLength: 20, message: '密码长度不能超过20个字符'},
+                            ]}
+                        >
+                            <Input.Password placeholder="请输入密码"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="邮箱"
+                            field="email"
+                            rules={[
+                                {type: 'email', message: '请输入正确的邮箱格式'},
+                                {max: 64, message: '邮箱长度不能超过64个字符'},
+                            ]}
+                        >
+                            <Input placeholder="请输入邮箱"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="手机号"
+                            field="phone"
+                            rules={[
+                                {max: 16, message: '手机号长度不能超过16个字符'},
+                            ]}
+                        >
+                            <Input placeholder="请输入手机号"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="头像URL"
+                            field="logo"
+                            rules={[
+                                {max: 256, message: '头像URL长度不能超过256个字符'},
+                            ]}
+                        >
+                            <Input placeholder="请输入头像URL"/>
+                        </Form.Item>
+                    </Form>
+                </div>
             </Modal>
 
             {/* 编辑用户对话框 */}
@@ -649,51 +651,53 @@ function UserManager() {
                 okText="确定"
                 cancelText="取消"
             >
-                <Form form={editForm} layout="vertical">
-                    <Form.Item
-                        label="用户ID"
-                        field="userId"
-                    >
-                        <Input disabled/>
-                    </Form.Item>
-                    <Form.Item
-                        label="用户姓名"
-                        field="userName"
-                        rules={[
-                            {max: 128, message: '用户姓名长度不能超过128个字符'},
-                        ]}
-                    >
-                        <Input placeholder="请输入用户姓名"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="邮箱"
-                        field="email"
-                        rules={[
-                            {type: 'email', message: '请输入正确的邮箱格式'},
-                            {max: 64, message: '邮箱长度不能超过64个字符'},
-                        ]}
-                    >
-                        <Input placeholder="请输入邮箱"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="手机号"
-                        field="phone"
-                        rules={[
-                            {max: 16, message: '手机号长度不能超过16个字符'},
-                        ]}
-                    >
-                        <Input placeholder="请输入手机号"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="头像URL"
-                        field="logo"
-                        rules={[
-                            {max: 256, message: '头像URL长度不能超过256个字符'},
-                        ]}
-                    >
-                        <Input placeholder="请输入头像URL"/>
-                    </Form.Item>
-                </Form>
+                <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                    <Form form={editForm} layout="vertical">
+                        <Form.Item
+                            label="用户ID"
+                            field="userId"
+                        >
+                            <Input disabled/>
+                        </Form.Item>
+                        <Form.Item
+                            label="用户姓名"
+                            field="userName"
+                            rules={[
+                                {max: 128, message: '用户姓名长度不能超过128个字符'},
+                            ]}
+                        >
+                            <Input placeholder="请输入用户姓名"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="邮箱"
+                            field="email"
+                            rules={[
+                                {type: 'email', message: '请输入正确的邮箱格式'},
+                                {max: 64, message: '邮箱长度不能超过64个字符'},
+                            ]}
+                        >
+                            <Input placeholder="请输入邮箱"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="手机号"
+                            field="phone"
+                            rules={[
+                                {max: 16, message: '手机号长度不能超过16个字符'},
+                            ]}
+                        >
+                            <Input placeholder="请输入手机号"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="头像URL"
+                            field="logo"
+                            rules={[
+                                {max: 256, message: '头像URL长度不能超过256个字符'},
+                            ]}
+                        >
+                            <Input placeholder="请输入头像URL"/>
+                        </Form.Item>
+                    </Form>
+                </div>
             </Modal>
 
             {/* 删除确认对话框 */}

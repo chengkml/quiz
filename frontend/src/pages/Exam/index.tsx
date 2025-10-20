@@ -618,41 +618,43 @@ const {Content} = Layout;
                     autoFocus={false}
                     focusLock={true}
                 >
-                    <Form ref={addFormRef} layout="vertical" initialValues={{ totalScore: 100, durationMinutes: 25 }}>
-                        <Form.Item
-                            label="试卷名称"
-                            field="name"
-                            rules={[{required: true, message: '请输入试卷名称'}]}
-                        >
-                            <Input placeholder="请输入试卷名称"/>
-                        </Form.Item>
-                        <Form.Item label="试卷描述" field="description">
-                            <TextArea
-                                placeholder="请输入试卷描述"
-                                autoSize={{minRows: 3, maxRows: 6}}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="总分"
-                            field="totalScore"
-                            rules={[{required: true, message: '请输入总分'}]}
-                        >
-                            <InputNumber
-                                placeholder="请输入总分"
-                                min={1}
-                                max={1000}
-                                style={{width: '100%'}}
-                            />
-                        </Form.Item>
-                        <Form.Item label="考试时长（分钟）" field="durationMinutes">
-                            <InputNumber
-                                placeholder="请输入考试时长"
-                                min={1}
-                                max={600}
-                                style={{width: '100%'}}
-                            />
-                        </Form.Item>
-                    </Form>
+                    <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                        <Form ref={addFormRef} layout="vertical" initialValues={{ totalScore: 100, durationMinutes: 25 }}>
+                            <Form.Item
+                                label="试卷名称"
+                                field="name"
+                                rules={[{required: true, message: '请输入试卷名称'}]}
+                            >
+                                <Input placeholder="请输入试卷名称"/>
+                            </Form.Item>
+                            <Form.Item label="试卷描述" field="description">
+                                <TextArea
+                                    placeholder="请输入试卷描述"
+                                    autoSize={{minRows: 3, maxRows: 6}}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="总分"
+                                field="totalScore"
+                                rules={[{required: true, message: '请输入总分'}]}
+                            >
+                                <InputNumber
+                                    placeholder="请输入总分"
+                                    min={1}
+                                    max={1000}
+                                    style={{width: '100%'}}
+                                />
+                            </Form.Item>
+                            <Form.Item label="考试时长（分钟）" field="durationMinutes">
+                                <InputNumber
+                                    placeholder="请输入考试时长"
+                                    min={1}
+                                    max={600}
+                                    style={{width: '100%'}}
+                                />
+                            </Form.Item>
+                        </Form>
+                    </div>
                 </Modal>
 
                 {/* 智能生成试卷模态框 */}
@@ -666,44 +668,46 @@ const {Content} = Layout;
                     focusLock={true}
                     maskClosable={false}
                 >
-                    <Form
-                        ref={smartGenerateFormRef}
-                        layout="vertical"
-                        initialValues={{ questionCount: 10, totalScore: 100, durationMinutes: 60, publishImmediately: true }}
-                    >
-                        <Form.Item label="试卷名称" field="name">
-                            <Input placeholder="留空则自动生成名称" allowClear />
-                        </Form.Item>
-                        <Form.Item label="试卷描述" field="description">
-                            <TextArea placeholder="可选" maxLength={200} />
-                        </Form.Item>
-                        <Form.Item label="学科" field="subjectId" rules={[{ required: true, message: '请选择学科' }]}>
-                            <Select placeholder="请选择学科" onChange={handleSubjectChange} allowClear>
-                                {subjects.map((s: any) => (
-                                    <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
-                                ))}
-                            </Select>
-                        </Form.Item>
-                        <Form.Item label="分类" field="categoryId" rules={[{ required: true, message: '请选择分类' }]}>
-                            <Select placeholder="请选择分类" allowClear>
-                                {categories.map((c: any) => (
-                                    <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
-                                ))}
-                            </Select>
-                        </Form.Item>
-                        <Form.Item label="题目数量" field="questionCount" rules={[{ required: true, type: 'number', min: 1, message: '请输入题目数量' }]}> 
-                            <InputNumber min={1} placeholder="题目数量" style={{ width: '100%' }} />
-                        </Form.Item>
-                        <Form.Item label="总分" field="totalScore" rules={[{ required: true, type: 'number', min: 1, message: '请输入总分' }]}> 
-                            <InputNumber min={1} placeholder="总分" style={{ width: '100%' }} />
-                        </Form.Item>
-                        <Form.Item label="时长（分钟）" field="durationMinutes" rules={[{ type: 'number', min: 1, message: '请输入有效时长' }]}> 
-                            <InputNumber min={1} placeholder="可选" style={{ width: '100%' }} />
-                        </Form.Item>
-                        <Form.Item label="生成后立即发布" field="publishImmediately" triggerPropName="checked">
-                            <Switch />
-                        </Form.Item>
-                    </Form>
+                    <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                        <Form
+                            ref={smartGenerateFormRef}
+                            layout="vertical"
+                            initialValues={{ questionCount: 10, totalScore: 100, durationMinutes: 60, publishImmediately: true }}
+                        >
+                            <Form.Item label="试卷名称" field="name">
+                                <Input placeholder="留空则自动生成名称" allowClear />
+                            </Form.Item>
+                            <Form.Item label="试卷描述" field="description">
+                                <TextArea placeholder="可选" maxLength={200} />
+                            </Form.Item>
+                            <Form.Item label="学科" field="subjectId" rules={[{ required: true, message: '请选择学科' }]}>
+                                <Select placeholder="请选择学科" onChange={handleSubjectChange} allowClear>
+                                    {subjects.map((s: any) => (
+                                        <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                            <Form.Item label="分类" field="categoryId" rules={[{ required: true, message: '请选择分类' }]}>
+                                <Select placeholder="请选择分类" allowClear>
+                                    {categories.map((c: any) => (
+                                        <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                            <Form.Item label="题目数量" field="questionCount" rules={[{ required: true, type: 'number', min: 1, message: '请输入题目数量' }]}>
+                                <InputNumber min={1} placeholder="题目数量" style={{ width: '100%' }} />
+                            </Form.Item>
+                            <Form.Item label="总分" field="totalScore" rules={[{ required: true, type: 'number', min: 1, message: '请输入总分' }]}>
+                                <InputNumber min={1} placeholder="总分" style={{ width: '100%' }} />
+                            </Form.Item>
+                            <Form.Item label="时长（分钟）" field="durationMinutes" rules={[{ type: 'number', min: 1, message: '请输入有效时长' }]}>
+                                <InputNumber min={1} placeholder="可选" style={{ width: '100%' }} />
+                            </Form.Item>
+                            <Form.Item label="生成后立即发布" field="publishImmediately" triggerPropName="checked">
+                                <Switch />
+                            </Form.Item>
+                        </Form>
+                    </div>
                 </Modal>
 
                 {/* 编辑试卷模态框 */}
@@ -718,41 +722,43 @@ const {Content} = Layout;
                     autoFocus={false}
                     focusLock={true}
                 >
-                    <Form ref={editFormRef} layout="vertical">
-                        <Form.Item
-                            label="试卷名称"
-                            field="name"
-                            rules={[{required: true, message: '请输入试卷名称'}]}
-                        >
-                            <Input placeholder="请输入试卷名称"/>
-                        </Form.Item>
-                        <Form.Item label="试卷描述" field="description">
-                            <TextArea
-                                placeholder="请输入试卷描述"
-                                autoSize={{minRows: 3, maxRows: 6}}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="总分"
-                            field="totalScore"
-                            rules={[{required: true, message: '请输入总分'}]}
-                        >
-                            <InputNumber
-                                placeholder="请输入总分"
-                                min={1}
-                                max={1000}
-                                style={{width: '100%'}}
-                            />
-                        </Form.Item>
-                        <Form.Item label="考试时长（分钟）" field="durationMinutes">
-                            <InputNumber
-                                placeholder="请输入考试时长"
-                                min={1}
-                                max={600}
-                                style={{width: '100%'}}
-                            />
-                        </Form.Item>
-                    </Form>
+                    <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                        <Form ref={editFormRef} layout="vertical">
+                            <Form.Item
+                                label="试卷名称"
+                                field="name"
+                                rules={[{required: true, message: '请输入试卷名称'}]}
+                            >
+                                <Input placeholder="请输入试卷名称"/>
+                            </Form.Item>
+                            <Form.Item label="试卷描述" field="description">
+                                <TextArea
+                                    placeholder="请输入试卷描述"
+                                    autoSize={{minRows: 3, maxRows: 6}}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="总分"
+                                field="totalScore"
+                                rules={[{required: true, message: '请输入总分'}]}
+                            >
+                                <InputNumber
+                                    placeholder="请输入总分"
+                                    min={1}
+                                    max={1000}
+                                    style={{width: '100%'}}
+                                />
+                            </Form.Item>
+                            <Form.Item label="考试时长（分钟）" field="durationMinutes">
+                                <InputNumber
+                                    placeholder="请输入考试时长"
+                                    min={1}
+                                    max={600}
+                                    style={{width: '100%'}}
+                                />
+                            </Form.Item>
+                        </Form>
+                    </div>
                 </Modal>
 
                 {/* 删除确认模态框 */}

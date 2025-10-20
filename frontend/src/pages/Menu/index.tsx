@@ -804,72 +804,73 @@ function MenuManager() {
                 visible={addModalVisible}
                 onCancel={() => setAddModalVisible(false)}
                 onOk={() => addForm.submit()}
-                width={600}
             >
-                <Form
-                    form={addForm}
-                    layout="vertical"
-                    onSubmit={handleAddSubmit}
-                >
-                    <Form.Item
-                        label="菜单编码"
-                        field="menuName"
-                        rules={[{required: true, message: '请输入菜单编码'}]}
+                <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                    <Form
+                        form={addForm}
+                        layout="vertical"
+                        onSubmit={handleAddSubmit}
                     >
-                        <Input placeholder="请输入菜单编码"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="菜单名称"
-                        field="menuLabel"
-                        rules={[{required: true, message: '请输入菜单名称'}]}
-                    >
-                        <Input placeholder="请输入菜单名称"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="菜单类型"
-                        field="menuType"
-                        rules={[{required: true, message: '请选择菜单类型'}]}
-                    >
-                        <Select placeholder="请选择菜单类型">
-                            {menuTypeOptions.map(option => (
-                                <Select.Option key={option.value} value={option.value}>
-                                    {option.label}
-                                </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                    <Form.Item label="父菜单" field="parentId">
-                        <Cascader
-                            placeholder="请选择父菜单（可选）"
-                            options={convertMenuTreeToCascaderData(menuTree)}
-                            allowClear
-                            changeOnSelect
-                        />
-                    </Form.Item>
-                    <Form.Item label="路由地址" field="url">
-                        <Input placeholder="请输入路由地址"/>
-                    </Form.Item>
-                    <Form.Item label="菜单图标" field="menuIcon">
-                        <Select placeholder="请选择菜单图标" allowClear showSearch filterOption={(inputValue, option) =>
-                            option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
-                        }>
-                            {menuIconOptions.map(option => (
-                                <Select.Option key={option.value} value={option.value}>
-                                    <Space>
-                                        {option.icon}
+                        <Form.Item
+                            label="菜单编码"
+                            field="menuName"
+                            rules={[{required: true, message: '请输入菜单编码'}]}
+                        >
+                            <Input placeholder="请输入菜单编码"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="菜单名称"
+                            field="menuLabel"
+                            rules={[{required: true, message: '请输入菜单名称'}]}
+                        >
+                            <Input placeholder="请输入菜单名称"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="菜单类型"
+                            field="menuType"
+                            rules={[{required: true, message: '请选择菜单类型'}]}
+                        >
+                            <Select placeholder="请选择菜单类型">
+                                {menuTypeOptions.map(option => (
+                                    <Select.Option key={option.value} value={option.value}>
                                         {option.label}
-                                    </Space>
-                                </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                    <Form.Item label="排序号" field="seq">
-                        <InputNumber placeholder="请输入排序号" min={0} style={{width: '100%'}}/>
-                    </Form.Item>
-                    <Form.Item label="菜单描述" field="menuDescr">
-                        <TextArea placeholder="请输入菜单描述" rows={3}/>
-                    </Form.Item>
-                </Form>
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                        <Form.Item label="父菜单" field="parentId">
+                            <Cascader
+                                placeholder="请选择父菜单（可选）"
+                                options={convertMenuTreeToCascaderData(menuTree)}
+                                allowClear
+                                changeOnSelect
+                            />
+                        </Form.Item>
+                        <Form.Item label="路由地址" field="url">
+                            <Input placeholder="请输入路由地址"/>
+                        </Form.Item>
+                        <Form.Item label="菜单图标" field="menuIcon">
+                            <Select placeholder="请选择菜单图标" allowClear showSearch filterOption={(inputValue, option) =>
+                                option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
+                            }>
+                                {menuIconOptions.map(option => (
+                                    <Select.Option key={option.value} value={option.value}>
+                                        <Space>
+                                            {option.icon}
+                                            {option.label}
+                                        </Space>
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                        <Form.Item label="排序号" field="seq">
+                            <InputNumber placeholder="请输入排序号" min={0} style={{width: '100%'}}/>
+                        </Form.Item>
+                        <Form.Item label="菜单描述" field="menuDescr">
+                            <TextArea placeholder="请输入菜单描述" rows={3}/>
+                        </Form.Item>
+                    </Form>
+                </div>
             </Modal>
 
             {/* 编辑菜单对话框 */}
@@ -878,70 +879,71 @@ function MenuManager() {
                 visible={editModalVisible}
                 onCancel={() => setEditModalVisible(false)}
                 onOk={() => editForm.submit()}
-                width={600}
             >
-                <Form
-                    form={editForm}
-                    layout="vertical"
-                    onSubmit={handleEditSubmit}
-                >
-                    <Form.Item
-                        label="菜单编码"
-                        field="menuName"
-                        rules={[{required: true, message: '请输入菜单编码'}]}
+                <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                    <Form
+                        form={editForm}
+                        layout="vertical"
+                        onSubmit={handleEditSubmit}
                     >
-                        <Input placeholder="请输入菜单编码"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="菜单名称"
-                        field="menuLabel"
-                        rules={[{required: true, message: '请输入菜单名称'}]}
-                    >
-                        <Input placeholder="请输入菜单名称"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="菜单类型"
-                        field="menuType"
-                        rules={[{required: true, message: '请选择菜单类型'}]}
-                    >
-                        <Select placeholder="请选择菜单类型">
-                            {menuTypeOptions.map(option => (
-                                <Select.Option key={option.value} value={option.value}>
-                                    {option.label}
-                                </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                    <Form.Item label="父菜单" field="parentId">
-                        <Cascader
-                            placeholder="请选择父菜单（可选）"
-                            options={convertMenuTreeToCascaderData(menuTree)}
-                            allowClear
-                            changeOnSelect
-                        />
-                    </Form.Item>
-                    <Form.Item label="路由地址" field="url">
-                        <Input placeholder="请输入路由地址"/>
-                    </Form.Item>
-                    <Form.Item label="菜单图标" field="menuIcon">
-                        <Select placeholder="请选择菜单图标" allowClear>
-                            {menuIconOptions.map(option => (
-                                <Select.Option key={option.value} value={option.value}>
-                                    <Space>
-                                        {option.icon}
+                        <Form.Item
+                            label="菜单编码"
+                            field="menuName"
+                            rules={[{required: true, message: '请输入菜单编码'}]}
+                        >
+                            <Input placeholder="请输入菜单编码"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="菜单名称"
+                            field="menuLabel"
+                            rules={[{required: true, message: '请输入菜单名称'}]}
+                        >
+                            <Input placeholder="请输入菜单名称"/>
+                        </Form.Item>
+                        <Form.Item
+                            label="菜单类型"
+                            field="menuType"
+                            rules={[{required: true, message: '请选择菜单类型'}]}
+                        >
+                            <Select placeholder="请选择菜单类型">
+                                {menuTypeOptions.map(option => (
+                                    <Select.Option key={option.value} value={option.value}>
                                         {option.label}
-                                    </Space>
-                                </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                    <Form.Item label="排序号" field="seq">
-                        <InputNumber placeholder="请输入排序号" min={0} style={{width: '100%'}}/>
-                    </Form.Item>
-                    <Form.Item label="菜单描述" field="menuDescr">
-                        <TextArea placeholder="请输入菜单描述" rows={3}/>
-                    </Form.Item>
-                </Form>
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                        <Form.Item label="父菜单" field="parentId">
+                            <Cascader
+                                placeholder="请选择父菜单（可选）"
+                                options={convertMenuTreeToCascaderData(menuTree)}
+                                allowClear
+                                changeOnSelect
+                            />
+                        </Form.Item>
+                        <Form.Item label="路由地址" field="url">
+                            <Input placeholder="请输入路由地址"/>
+                        </Form.Item>
+                        <Form.Item label="菜单图标" field="menuIcon">
+                            <Select placeholder="请选择菜单图标" allowClear>
+                                {menuIconOptions.map(option => (
+                                    <Select.Option key={option.value} value={option.value}>
+                                        <Space>
+                                            {option.icon}
+                                            {option.label}
+                                        </Space>
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                        <Form.Item label="排序号" field="seq">
+                            <InputNumber placeholder="请输入排序号" min={0} style={{width: '100%'}}/>
+                        </Form.Item>
+                        <Form.Item label="菜单描述" field="menuDescr">
+                            <TextArea placeholder="请输入菜单描述" rows={3}/>
+                        </Form.Item>
+                    </Form>
+                </div>
             </Modal>
 
             {/* 查看菜单详情对话框 */}
@@ -950,7 +952,6 @@ function MenuManager() {
                 visible={viewModalVisible}
                 onCancel={() => setViewModalVisible(false)}
                 footer={null}
-                width={600}
             >
                 {currentMenu && (
                     <div className="menu-detail">

@@ -1451,109 +1451,111 @@ function QuestionManager() {
                     }
                 >
                     <Spin loading={generateLoading} style={{width: '100%'}}>
-                        <Form
-                            ref={generateFormRef}
-                            layout="vertical"
-                            onSubmit={handleGenerateSubmit}
-                            className="modal-form"
-                        >
-                            <Form.Item
-                                label="学科"
-                                field="subjectId"
-                                rules={[{required: true, message: '请选择学科'}]}
+                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                            <Form
+                                ref={generateFormRef}
+                                layout="vertical"
+                                onSubmit={handleGenerateSubmit}
+                                className="modal-form"
                             >
-                                <Select
-                                    options={subjects}
-                                    placeholder="请选择学科"
-                                    loading={subjectsLoading}
-                                    onChange={(value) => {
-                                        // 清空分类选择
-                                        generateFormRef.current?.setFieldValue('categoryId', undefined);
-                                        setCategories([]);
-                                        // 清空知识点选择
-                                        generateFormRef.current?.setFieldValue('knowledgeId', undefined);
-                                        generateFormRef.current?.setFieldValue('knowledgeDescr', undefined);
-                                        setKnowledgeDescrDisabled(false);
-                                        setKnowledgeOptions([]);
-                                        setKnowledgeOptionsRaw([]);
-                                        // 获取该学科下的分类
-                                        fetchCategoriesBySubject(value);
-                                    }}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="分类"
-                                field="categoryId"
-                                rules={[{required: true, message: '请选择分类'}]}
-                            >
-                                <Select
-                                    options={categories}
-                                    placeholder="请先选择学科"
-                                    loading={categoriesLoading}
-                                    disabled={categories.length === 0}
-                                    onChange={(value) => {
-                                        // 当分类选择变化时，清空并按学科/分类加载知识点
-                                        generateFormRef.current?.setFieldValue('knowledgeId', undefined);
-                                        generateFormRef.current?.setFieldValue('knowledgeDescr', undefined);
-                                        setKnowledgeDescrDisabled(false);
-                                        const sid = generateFormRef.current?.getFieldValue('subjectId');
-                                        if (sid && value) {
-                                            fetchKnowledgeBySubjectCategory(sid, value);
-                                        } else {
-                                            setKnowledgeOptions([]);
-                                            setKnowledgeOptionsRaw([]);
-                                        }
-                                    }}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="知识点选择"
-                                field="knowledgeId"
-                            >
-                                <Select
-                                    placeholder="请选择知识点（将自动填充下方描述）"
-                                    options={knowledgeOptions}
-                                    loading={knowledgeLoading}
-                                    allowClear
-                                    disabled={!generateFormRef.current?.getFieldValue('subjectId') || !generateFormRef.current?.getFieldValue('categoryId')}
-                                    onChange={(value) => {
-                                        const selected = knowledgeOptionsRaw.find(k => k.id === value);
-                                        const descr = selected?.name || selected?.description || '';
-                                        if (value === undefined) {
+                                <Form.Item
+                                    label="学科"
+                                    field="subjectId"
+                                    rules={[{required: true, message: '请选择学科'}]}
+                                >
+                                    <Select
+                                        options={subjects}
+                                        placeholder="请选择学科"
+                                        loading={subjectsLoading}
+                                        onChange={(value) => {
+                                            // 清空分类选择
+                                            generateFormRef.current?.setFieldValue('categoryId', undefined);
+                                            setCategories([]);
+                                            // 清空知识点选择
+                                            generateFormRef.current?.setFieldValue('knowledgeId', undefined);
                                             generateFormRef.current?.setFieldValue('knowledgeDescr', undefined);
                                             setKnowledgeDescrDisabled(false);
-                                        } else {
-                                            generateFormRef.current?.setFieldValue('knowledgeDescr', descr);
-                                            setKnowledgeDescrDisabled(true);
-                                        }
-                                    }}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="知识点"
-                                field="knowledgeDescr"
-                                rules={[{required: true, message: '请输入知识点'}]}
-                            >
-                                <TextArea
-                                    placeholder="请输入知识点描述，AI将根据此描述生成相关题目"
-                                    rows={4}
-                                    disabled={knowledgeDescrDisabled}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="生成数量"
-                                field="num"
-                                initialValue={3}
-                                rules={[{required: true, message: '请输入生成数量'}]}
-                            >
-                                <InputNumber
-                                    min={1}
-                                    max={10}
-                                    placeholder="请输入生成题目数量（1-10）"
-                                    style={{width: '100%'}}
-                                />
-                            </Form.Item>
-                        </Form>
+                                            setKnowledgeOptions([]);
+                                            setKnowledgeOptionsRaw([]);
+                                            // 获取该学科下的分类
+                                            fetchCategoriesBySubject(value);
+                                        }}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="分类"
+                                    field="categoryId"
+                                    rules={[{required: true, message: '请选择分类'}]}
+                                >
+                                    <Select
+                                        options={categories}
+                                        placeholder="请先选择学科"
+                                        loading={categoriesLoading}
+                                        disabled={categories.length === 0}
+                                        onChange={(value) => {
+                                            // 当分类选择变化时，清空并按学科/分类加载知识点
+                                            generateFormRef.current?.setFieldValue('knowledgeId', undefined);
+                                            generateFormRef.current?.setFieldValue('knowledgeDescr', undefined);
+                                            setKnowledgeDescrDisabled(false);
+                                            const sid = generateFormRef.current?.getFieldValue('subjectId');
+                                            if (sid && value) {
+                                                fetchKnowledgeBySubjectCategory(sid, value);
+                                            } else {
+                                                setKnowledgeOptions([]);
+                                                setKnowledgeOptionsRaw([]);
+                                            }
+                                        }}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="知识点选择"
+                                    field="knowledgeId"
+                                >
+                                    <Select
+                                        placeholder="请选择知识点（将自动填充下方描述）"
+                                        options={knowledgeOptions}
+                                        loading={knowledgeLoading}
+                                        allowClear
+                                        disabled={!generateFormRef.current?.getFieldValue('subjectId') || !generateFormRef.current?.getFieldValue('categoryId')}
+                                        onChange={(value) => {
+                                            const selected = knowledgeOptionsRaw.find(k => k.id === value);
+                                            const descr = selected?.name || selected?.description || '';
+                                            if (value === undefined) {
+                                                generateFormRef.current?.setFieldValue('knowledgeDescr', undefined);
+                                                setKnowledgeDescrDisabled(false);
+                                            } else {
+                                                generateFormRef.current?.setFieldValue('knowledgeDescr', descr);
+                                                setKnowledgeDescrDisabled(true);
+                                            }
+                                        }}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="知识点"
+                                    field="knowledgeDescr"
+                                    rules={[{required: true, message: '请输入知识点'}]}
+                                >
+                                    <TextArea
+                                        placeholder="请输入知识点描述，AI将根据此描述生成相关题目"
+                                        rows={4}
+                                        disabled={knowledgeDescrDisabled}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="生成数量"
+                                    field="num"
+                                    initialValue={3}
+                                    rules={[{required: true, message: '请输入生成数量'}]}
+                                >
+                                    <InputNumber
+                                        min={1}
+                                        max={10}
+                                        placeholder="请输入生成题目数量（1-10）"
+                                        style={{width: '100%'}}
+                                    />
+                                </Form.Item>
+                            </Form>
+                        </div>
                     </Spin>
                 </Modal>
 

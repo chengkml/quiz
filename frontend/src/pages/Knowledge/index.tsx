@@ -528,84 +528,85 @@ function KnowledgeManager() {
                             addFormRef.current?.resetFields();
                         }}
                         footer={null}
-                        width={600}
                     >
-                        <Form ref={addFormRef} className="modal-form" layout="vertical">
-                            <Form.Item
-                                label="知识点名称"
-                                field="name"
-                                rules={[
-                                    {required: true, message: '请输入知识点名称'},
-                                    {maxLength: 64, message: '知识点名称不能超过64个字符'},
-                                ]}
-                            >
-                                <Input placeholder="请输入知识点名称"/>
-                            </Form.Item>
-                            <Form.Item
-                                label="描述"
-                                field="description"
-                                rules={[
-                                    {maxLength: 255, message: '描述不能超过255个字符'},
-                                ]}
-                            >
-                                <TextArea
-                                    placeholder="请输入知识点描述"
-                                    rows={4}
-                                    maxLength={255}
-                                    showWordLimit
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="所属学科"
-                                field="subjectId"
-                                rules={[{required: true, message: '请选择所属学科'}]}
-                            >
-                                <Select
-                                    placeholder="请选择所属学科"
-                                    options={subjects}
-                                    loading={subjectsLoading}
-                                    allowClear
-                                    onChange={(value) => {
-                                        // 当学科改变时，清空分类选择并重新加载分类列表
-                                        addFormRef.current?.setFieldValue('categoryId', undefined);
-                                        fetchCategoriesBySubject(value);
-                                    }}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="所属分类"
-                                field="categoryId"
-                                rules={[{required: true, message: '请选择所属分类'}]}
-                            >
-                                <Select
-                                    placeholder="请选择所属分类"
-                                    options={categories}
-                                    loading={categoriesLoading}
-                                    allowClear
-                                    disabled={!addFormRef.current?.getFieldValue('subjectId')}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="难度等级"
-                                field="difficultyLevel"
-                                rules={[{required: true, message: '请选择难度等级'}]}
-                            >
-                                <Select placeholder="请选择难度等级" options={difficultyOptions}/>
-                            </Form.Item>
-                            <div className="form-actions">
-                                <Button
-                                    onClick={() => {
-                                        setAddModalVisible(false);
-                                        addFormRef.current?.resetFields();
-                                    }}
+                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                            <Form ref={addFormRef} className="modal-form" layout="vertical">
+                                <Form.Item
+                                    label="知识点名称"
+                                    field="name"
+                                    rules={[
+                                        {required: true, message: '请输入知识点名称'},
+                                        {maxLength: 64, message: '知识点名称不能超过64个字符'},
+                                    ]}
                                 >
-                                    取消
-                                </Button>
-                                <Button type="primary" loading={loading} onClick={confirmAdd}>
-                                    确定
-                                </Button>
-                            </div>
-                        </Form>
+                                    <Input placeholder="请输入知识点名称"/>
+                                </Form.Item>
+                                <Form.Item
+                                    label="描述"
+                                    field="description"
+                                    rules={[
+                                        {maxLength: 255, message: '描述不能超过255个字符'},
+                                    ]}
+                                >
+                                    <TextArea
+                                        placeholder="请输入知识点描述"
+                                        rows={4}
+                                        maxLength={255}
+                                        showWordLimit
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="所属学科"
+                                    field="subjectId"
+                                    rules={[{required: true, message: '请选择所属学科'}]}
+                                >
+                                    <Select
+                                        placeholder="请选择所属学科"
+                                        options={subjects}
+                                        loading={subjectsLoading}
+                                        allowClear
+                                        onChange={(value) => {
+                                            // 当学科改变时，清空分类选择并重新加载分类列表
+                                            addFormRef.current?.setFieldValue('categoryId', undefined);
+                                            fetchCategoriesBySubject(value);
+                                        }}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="所属分类"
+                                    field="categoryId"
+                                    rules={[{required: true, message: '请选择所属分类'}]}
+                                >
+                                    <Select
+                                        placeholder="请选择所属分类"
+                                        options={categories}
+                                        loading={categoriesLoading}
+                                        allowClear
+                                        disabled={!addFormRef.current?.getFieldValue('subjectId')}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="难度等级"
+                                    field="difficultyLevel"
+                                    rules={[{required: true, message: '请选择难度等级'}]}
+                                >
+                                    <Select placeholder="请选择难度等级" options={difficultyOptions}/>
+                                </Form.Item>
+                                <div className="form-actions">
+                                    <Button
+                                        onClick={() => {
+                                            setAddModalVisible(false);
+                                            addFormRef.current?.resetFields();
+                                        }}
+                                    >
+                                        取消
+                                    </Button>
+                                    <Button type="primary" loading={loading} onClick={confirmAdd}>
+                                        确定
+                                    </Button>
+                                </div>
+                            </Form>
+                        </div>
                     </Modal>
 
                     {/* 编辑对话框 */}
@@ -617,7 +618,6 @@ function KnowledgeManager() {
                             editFormRef.current?.resetFields();
                         }}
                         footer={null}
-                        width={600}
                         afterOpen={() => {
                             if (currentRecord) {
                                 editFormRef.current?.setFieldsValue({
@@ -634,82 +634,84 @@ function KnowledgeManager() {
                             }
                         }}
                     >
-                        <Form ref={editFormRef} className="modal-form" layout="vertical">
-                            <Form.Item
-                                label="知识点名称"
-                                field="name"
-                                rules={[
-                                    {required: true, message: '请输入知识点名称'},
-                                    {maxLength: 64, message: '知识点名称不能超过64个字符'},
-                                ]}
-                            >
-                                <Input placeholder="请输入知识点名称"/>
-                            </Form.Item>
-                            <Form.Item
-                                label="描述"
-                                field="description"
-                                rules={[
-                                    {maxLength: 255, message: '描述不能超过255个字符'},
-                                ]}
-                            >
-                                <TextArea
-                                    placeholder="请输入知识点描述"
-                                    rows={4}
-                                    maxLength={255}
-                                    showWordLimit
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="所属学科"
-                                field="subjectId"
-                                rules={[{required: true, message: '请选择所属学科'}]}
-                            >
-                                <Select
-                                    placeholder="请选择所属学科"
-                                    options={subjects}
-                                    loading={subjectsLoading}
-                                    allowClear
-                                    onChange={(value) => {
-                                        // 当学科改变时，清空分类选择并重新加载分类列表
-                                        editFormRef.current?.setFieldValue('categoryId', undefined);
-                                        fetchCategoriesBySubject(value);
-                                    }}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="所属分类"
-                                field="categoryId"
-                                rules={[{required: true, message: '请选择所属分类'}]}
-                            >
-                                <Select
-                                    placeholder="请选择所属分类"
-                                    options={categories}
-                                    loading={categoriesLoading}
-                                    allowClear
-                                    disabled={!editFormRef.current?.getFieldValue('subjectId')}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="难度等级"
-                                field="difficultyLevel"
-                                rules={[{required: true, message: '请选择难度等级'}]}
-                            >
-                                <Select placeholder="请选择难度等级" options={difficultyOptions}/>
-                            </Form.Item>
-                            <div className="form-actions">
-                                <Button
-                                    onClick={() => {
-                                        setEditModalVisible(false);
-                                        editFormRef.current?.resetFields();
-                                    }}
+                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                            <Form ref={editFormRef} className="modal-form" layout="vertical">
+                                <Form.Item
+                                    label="知识点名称"
+                                    field="name"
+                                    rules={[
+                                        {required: true, message: '请输入知识点名称'},
+                                        {maxLength: 64, message: '知识点名称不能超过64个字符'},
+                                    ]}
                                 >
-                                    取消
-                                </Button>
-                                <Button type="primary" loading={loading} onClick={confirmEdit}>
-                                    确定
-                                </Button>
-                            </div>
-                        </Form>
+                                    <Input placeholder="请输入知识点名称"/>
+                                </Form.Item>
+                                <Form.Item
+                                    label="描述"
+                                    field="description"
+                                    rules={[
+                                        {maxLength: 255, message: '描述不能超过255个字符'},
+                                    ]}
+                                >
+                                    <TextArea
+                                        placeholder="请输入知识点描述"
+                                        rows={4}
+                                        maxLength={255}
+                                        showWordLimit
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="所属学科"
+                                    field="subjectId"
+                                    rules={[{required: true, message: '请选择所属学科'}]}
+                                >
+                                    <Select
+                                        placeholder="请选择所属学科"
+                                        options={subjects}
+                                        loading={subjectsLoading}
+                                        allowClear
+                                        onChange={(value) => {
+                                            // 当学科改变时，清空分类选择并重新加载分类列表
+                                            editFormRef.current?.setFieldValue('categoryId', undefined);
+                                            fetchCategoriesBySubject(value);
+                                        }}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="所属分类"
+                                    field="categoryId"
+                                    rules={[{required: true, message: '请选择所属分类'}]}
+                                >
+                                    <Select
+                                        placeholder="请选择所属分类"
+                                        options={categories}
+                                        loading={categoriesLoading}
+                                        allowClear
+                                        disabled={!editFormRef.current?.getFieldValue('subjectId')}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="难度等级"
+                                    field="difficultyLevel"
+                                    rules={[{required: true, message: '请选择难度等级'}]}
+                                >
+                                    <Select placeholder="请选择难度等级" options={difficultyOptions}/>
+                                </Form.Item>
+                                <div className="form-actions">
+                                    <Button
+                                        onClick={() => {
+                                            setEditModalVisible(false);
+                                            editFormRef.current?.resetFields();
+                                        }}
+                                    >
+                                        取消
+                                    </Button>
+                                    <Button type="primary" loading={loading} onClick={confirmEdit}>
+                                        确定
+                                    </Button>
+                                </div>
+                            </Form>
+                        </div>
                     </Modal>
 
                     {/* 删除确认对话框 */}

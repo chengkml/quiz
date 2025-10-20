@@ -426,31 +426,33 @@ function TodoManager() {
                         onOk={handleAddConfirm}
                         onCancel={() => setAddModalVisible(false)}
                     >
-                        <Form ref={addFormRef} layout="vertical" className="modal-form">
-                            <Form.Item label="标题" field="title" rules={[{required: true, message: '请输入标题'}]}>
-                                <Input placeholder="请输入标题"/>
-                            </Form.Item>
-                            <Form.Item label="详细描述" field="description">
-                                <TextArea placeholder="请输入详细描述" autoSize={{minRows: 3, maxRows: 6}}/>
-                            </Form.Item>
-                            <Form.Item label="状态" field="status">
-                                <Select placeholder="请选择状态" allowClear>
-                                    {statusOptions.map(opt => (
-                                        <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                            <Form.Item label="优先级" field="priority">
-                                <Select placeholder="请选择优先级" allowClear>
-                                    {priorityOptions.map(opt => (
-                                        <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                            <Form.Item label="截止时间" field="dueDate">
-                                <DatePicker showTime style={{width: '100%'}}/>
-                            </Form.Item>
-                        </Form>
+                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                            <Form ref={addFormRef} layout="vertical" className="modal-form">
+                                <Form.Item label="标题" field="title" rules={[{required: true, message: '请输入标题'}]}>
+                                    <Input placeholder="请输入标题"/>
+                                </Form.Item>
+                                <Form.Item label="详细描述" field="description">
+                                    <TextArea placeholder="请输入详细描述" autoSize={{minRows: 3, maxRows: 6}}/>
+                                </Form.Item>
+                                <Form.Item label="状态" field="status">
+                                    <Select placeholder="请选择状态" allowClear>
+                                        {statusOptions.map(opt => (
+                                            <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                                <Form.Item label="优先级" field="priority">
+                                    <Select placeholder="请选择优先级" allowClear>
+                                        {priorityOptions.map(opt => (
+                                            <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                                <Form.Item label="截止时间" field="dueDate">
+                                    <DatePicker showTime style={{width: '100%'}}/>
+                                </Form.Item>
+                            </Form>
+                        </div>
                     </Modal>
 
                     {/* 编辑对话框 */}
@@ -460,31 +462,33 @@ function TodoManager() {
                         onOk={handleEditConfirm}
                         onCancel={() => setEditModalVisible(false)}
                     >
-                        <Form ref={editFormRef} layout="vertical" className="modal-form">
-                            <Form.Item label="标题" field="title" rules={[{required: true, message: '请输入标题'}]}>
-                                <Input placeholder="请输入标题"/>
-                            </Form.Item>
-                            <Form.Item label="详细描述" field="description">
-                                <TextArea placeholder="请输入详细描述" autoSize={{minRows: 3, maxRows: 6}}/>
-                            </Form.Item>
-                            <Form.Item label="状态" field="status">
-                                <Select placeholder="请选择状态" allowClear>
-                                    {statusOptions.map(opt => (
-                                        <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                            <Form.Item label="优先级" field="priority">
-                                <Select placeholder="请选择优先级" allowClear>
-                                    {priorityOptions.map(opt => (
-                                        <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                            <Form.Item label="截止时间" field="dueDate">
-                                <DatePicker showTime style={{width: '100%'}}/>
-                            </Form.Item>
-                        </Form>
+                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                            <Form ref={editFormRef} layout="vertical" className="modal-form">
+                                <Form.Item label="标题" field="title" rules={[{required: true, message: '请输入标题'}]}>
+                                    <Input placeholder="请输入标题"/>
+                                </Form.Item>
+                                <Form.Item label="详细描述" field="description">
+                                    <TextArea placeholder="请输入详细描述" autoSize={{minRows: 3, maxRows: 6}}/>
+                                </Form.Item>
+                                <Form.Item label="状态" field="status">
+                                    <Select placeholder="请选择状态" allowClear>
+                                        {statusOptions.map(opt => (
+                                            <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                                <Form.Item label="优先级" field="priority">
+                                    <Select placeholder="请选择优先级" allowClear>
+                                        {priorityOptions.map(opt => (
+                                            <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                                <Form.Item label="截止时间" field="dueDate">
+                                    <DatePicker showTime style={{width: '100%'}}/>
+                                </Form.Item>
+                            </Form>
+                        </div>
                     </Modal>
 
                     {/* 删除确认 */}
