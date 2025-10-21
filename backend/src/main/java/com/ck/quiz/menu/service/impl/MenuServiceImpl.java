@@ -291,12 +291,35 @@ public class MenuServiceImpl implements MenuService {
             return new ArrayList<>();
         }
 
-        // 转换为TreeDto
-        List<MenuDto> treeDtos = menus.stream()
+        // 1️⃣ 先建立已加载菜单的索引
+        Map<String, Menu> allMenuMap = menus.stream()
+                .collect(Collectors.toMap(Menu::getMenuId, m -> m, (a, b) -> a));
+
+        // 2️⃣ 递归查询缺失的父菜单
+        Set<String> missingParentIds = new HashSet<>();
+        for (Menu menu : menus) {
+            String parentId = menu.getParentId();
+            while (parentId != null && !parentId.trim().isEmpty() && !allMenuMap.containsKey(parentId)) {
+                missingParentIds.add(parentId);
+                // 继续向上查找父级
+                Optional<Menu> parentOpt = menuRepository.findById(parentId);
+                if (parentOpt.isPresent()) {
+                    Menu parent = parentOpt.get();
+                    allMenuMap.put(parent.getMenuId(), parent);
+                    parentId = parent.getParentId();
+                } else {
+                    // 如果查不到父级，停止
+                    break;
+                }
+            }
+        }
+
+        // 3️⃣ 用完整的菜单集合重新构建树
+        List<MenuDto> treeDtos = allMenuMap.values().stream()
                 .map(this::convertToMenuDto)
                 .collect(Collectors.toList());
 
-        // 构建父子关系映射
+        // 构建父子映射
         Map<String, List<MenuDto>> parentChildMap = new HashMap<>();
         List<MenuDto> rootNodes = new ArrayList<>();
 
@@ -311,8 +334,8 @@ public class MenuServiceImpl implements MenuService {
         // 递归设置子节点
         setChildren(rootNodes, parentChildMap);
 
-        // 按序号排序
-        rootNodes.sort(Comparator.comparingInt(MenuDto::getSeq));
+        // 排序根节点
+        rootNodes.sort(Comparator.comparingInt(dto -> dto.getSeq() != null ? dto.getSeq() : 0));
 
         return rootNodes;
     }

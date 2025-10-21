@@ -25,6 +25,11 @@ public class ExamQueryDto {
     private Exam.ExamPaperStatus status;
 
     /**
+     * 学科ID
+     */
+    private String subjectId;
+
+    /**
      * 页码（从0开始）
      */
     private int pageNum = 0;

@@ -35,6 +35,8 @@ export interface ExamDto {
   description?: string;
   totalScore: number;
   durationMinutes?: number;
+  subjectId?: number;
+  subjectName?: string;
   status: ExamStatus;
   questions?: ExamQuestionDto[];
   createDate?: string;
@@ -49,6 +51,7 @@ export interface ExamCreateDto {
   description?: string;
   totalScore: number;
   durationMinutes?: number;
+  subjectId: number;
   status?: ExamStatus;
   questions?: ExamQuestionCreateDto[];
 }
@@ -60,6 +63,7 @@ export interface ExamUpdateDto {
   description?: string;
   totalScore?: number;
   durationMinutes?: number;
+  subjectId?: number;
   status?: ExamStatus;
   questions?: ExamQuestionCreateDto[];
 }
@@ -69,6 +73,7 @@ export interface ExamQueryDto {
   keyWord?: string;           // 关键字（名称/描述模糊查询）
   status?: ExamStatus;        // 试卷状态
   createUser?: string;        // 创建人
+  subjectId?: number;         // 学科ID
   pageNum?: number;           // 页码（后端从0开始）
   pageSize?: number;          // 每页大小
   sortColumn?: string;        // 排序字段

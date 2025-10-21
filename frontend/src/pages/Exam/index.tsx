@@ -106,6 +106,12 @@ const {Content} = Layout;
             ellipsis: true,
         },
         {
+            title: '所属学科',
+            dataIndex: 'subjectName',
+            width: 150,
+            ellipsis: true,
+        },
+        {
             title: '试卷描述',
             dataIndex: 'description',
             minWidth: 300,
@@ -389,6 +395,7 @@ const {Content} = Layout;
             editFormRef.current?.setFieldsValue({
                 name: record.name,
                 description: record.description,
+                subjectId: record.subjectId,
                 totalScore: record.totalScore,
                 durationMinutes: record.durationMinutes,
             });
@@ -533,7 +540,19 @@ const {Content} = Layout;
     // 初始化数据
     useEffect(() => {
         fetchTableData();
+        // 加载学科列表
+        loadSubjects();
     }, []);
+    
+    // 加载学科列表
+    const loadSubjects = async (): Promise<void> => {
+        try {
+            const res = await getAllSubjects();
+            setSubjects(res?.data || []);
+        } catch (e) {
+            Message.error('获取学科列表失败');
+        }
+    };
 
     // 筛选表单配置
     const filterFormConfig = [
@@ -549,6 +568,13 @@ const {Content} = Layout;
             label: '试卷状态',
             placeholder: '请选择试卷状态',
             options: statusOptions,
+        },
+        {
+            type: 'select',
+            name: 'subjectId',
+            label: '学科',
+            placeholder: '请选择学科',
+            options: subjects.map(s => ({ label: s.name, value: s.id })),
         },
         {
             type: 'input',
@@ -622,6 +648,17 @@ const {Content} = Layout;
                                     placeholder="请输入试卷描述"
                                     autoSize={{minRows: 3, maxRows: 6}}
                                 />
+                            </Form.Item>
+                            <Form.Item
+                                label="学科"
+                                field="subjectId"
+                                rules={[{required: true, message: '请选择学科'}]}
+                            >
+                                <Select placeholder="请选择学科">
+                                    {subjects.map((s: any) => (
+                                        <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
+                                    ))}
+                                </Select>
                             </Form.Item>
                             <Form.Item
                                 label="总分"
@@ -728,6 +765,17 @@ const {Content} = Layout;
                                 />
                             </Form.Item>
                             <Form.Item
+                                label="学科"
+                                field="subjectId"
+                                rules={[{required: true, message: '请选择学科'}]}
+                            >
+                                <Select placeholder="请选择学科">
+                                    {subjects.map((s: any) => (
+                                        <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                            <Form.Item
                                 label="总分"
                                 field="totalScore"
                                 rules={[{required: true, message: '请输入总分'}]}
@@ -784,6 +832,10 @@ const {Content} = Layout;
                                 <div className="detail-item">
                                     <span className="label">试卷描述：</span>
                                     <span className="value">{detailRecord.description || '--'}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <span className="label">所属学科：</span>
+                                    <span className="value">{detailRecord.subjectName || '--'}</span>
                                 </div>
                                 <div className="detail-item">
                                     <span className="label">总分：</span>

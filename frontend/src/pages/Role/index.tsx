@@ -291,7 +291,7 @@ function RoleManager() {
     };
 
     // 提取树中的所有key
-    const extractKeys = (nodes = []) => {
+    const extractKeys = (allTree, nodes = []) => {
         const keys = [];
         const walk = (list) => {
             (list || []).forEach(n => {
@@ -317,7 +317,8 @@ function RoleManager() {
             ]);
             const allTree = convertToTreeNodes(allResp.data || []);
             const assignedTree = assignedResp.data || [];
-            const assignedKeys = extractKeys(assignedTree);
+            let assignedKeys = extractKeys(allTree, assignedTree);
+            assignedKeys = removeCheckParents(allTree, assignedKeys);
             setMenuTreeData(allTree);
             setCheckedMenuKeys(assignedKeys);
         } catch (e) {
@@ -327,6 +328,36 @@ function RoleManager() {
             setAssignLoading(false);
         }
     };
+
+    const removeCheckParents = (allTree, assignedKeys) => {
+        // 创建一个 Set 便于快速查找
+        const assignedSet = new Set(assignedKeys);
+
+        // 判断一个节点是否所有子节点都被选中
+        const isAllChildrenChecked = (node) => {
+            if (!node.children || node.children.length === 0) return true;
+            return node.children.every(child =>
+                assignedSet.has(child.key) && isAllChildrenChecked(child)
+            );
+        };
+
+        // 遍历树，移除不满足条件的父节点
+        const filterKeys = (node) => {
+            if (node.children && node.children.length) {
+                node.children.forEach(filterKeys); // 先处理子节点
+            }
+
+            // 如果当前节点有子节点，且不是所有子节点都选中，则移除自己
+            if (node.children && node.children.length && !isAllChildrenChecked(node)) {
+                assignedSet.delete(node.key);
+            }
+        };
+
+        allTree.forEach(filterKeys);
+
+        return Array.from(assignedSet);
+    };
+
 
     const handleAssignCancel = () => {
         setAssignVisible(false);

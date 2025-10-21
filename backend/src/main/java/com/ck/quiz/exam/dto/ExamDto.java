@@ -41,6 +41,16 @@ public class ExamDto {
      * 考试时长（分钟）
      */
     private Integer durationMinutes;
+    
+    /**
+     * 归属学科ID
+     */
+    private Long subjectId;
+    
+    /**
+     * 归属学科名称
+     */
+    private String subjectName;
 
     /**
      * 状态：DRAFT, PUBLISHED, ARCHIVED

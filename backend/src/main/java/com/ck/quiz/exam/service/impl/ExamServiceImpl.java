@@ -72,6 +72,7 @@ public class ExamServiceImpl implements ExamService {
         exam.setDescription(examCreateDto.getDescription());
         exam.setTotalScore(examCreateDto.getTotalScore());
         exam.setDurationMinutes(examCreateDto.getDurationMinutes());
+        exam.setSubjectId(examCreateDto.getSubjectId());
         exam.setStatus(examCreateDto.getStatus());
 
         Exam savedExam = examRepository.save(exam);
@@ -109,6 +110,9 @@ public class ExamServiceImpl implements ExamService {
         }
         if (examUpdateDto.getDurationMinutes() != null) {
             exam.setDurationMinutes(examUpdateDto.getDurationMinutes());
+        }
+        if (examUpdateDto.getSubjectId() != null) {
+            exam.setSubjectId(examUpdateDto.getSubjectId());
         }
         if (examUpdateDto.getStatus() != null) {
             exam.setStatus(examUpdateDto.getStatus());
@@ -168,7 +172,7 @@ public class ExamServiceImpl implements ExamService {
         StringBuilder sb = new StringBuilder(
                 "SELECT e.paper_id, e.name, e.total_score, e.duration_minutes, " +
                         "       e.description, e.status, e.create_user, e.create_date, " +
-                        "       u.user_name AS create_user_name " +
+                        "       e.subject_id, u.user_name AS create_user_name " +
                         "FROM exam e " +
                         "LEFT JOIN user u ON e.create_user = u.user_id " +
                         "WHERE 1=1 "
@@ -188,6 +192,12 @@ public class ExamServiceImpl implements ExamService {
         if (queryDto.getStatus() != null) {
             JdbcQueryHelper.equals("status", queryDto.getStatus().name(),
                     " AND e.status = :status ", params, sb, countSb);
+        }
+        
+        // 学科ID精确查询
+        if (queryDto.getSubjectId() != null) {
+            JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(),
+                    " AND e.subject_id = :subjectId ", params, sb, countSb);
         }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -218,6 +228,7 @@ public class ExamServiceImpl implements ExamService {
             dto.setCreateUser(rs.getString("create_user"));
             dto.setCreateUserName(rs.getString("create_user_name")); // 新增：从 user 表获取姓名
             dto.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
+            dto.setSubjectId(rs.getLong("subject_id")); // 设置学科ID
             idMap.put(id, dto);
             return dto;
         });
@@ -241,6 +252,9 @@ public class ExamServiceImpl implements ExamService {
     public ExamDto convertToDto(Exam exam) {
         ExamDto examDto = new ExamDto();
         BeanUtils.copyProperties(exam, examDto);
+        
+        // 设置学科ID
+        examDto.setSubjectId(exam.getSubjectId());
 
         // 转换题目列表
         List<ExamQuestion> examQuestions = examQuestionRepository.findByExamIdOrderByOrderNo(exam.getId());
@@ -248,6 +262,9 @@ public class ExamServiceImpl implements ExamService {
                 .map(this::convertExamQuestionToDto)
                 .collect(Collectors.toList());
         examDto.setQuestions(questionDtos);
+        
+        // 设置题目数量
+        examDto.setQuestionNum(questionDtos.size());
 
         return examDto;
     }

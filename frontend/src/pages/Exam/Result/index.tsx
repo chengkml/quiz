@@ -1,12 +1,12 @@
 import React, {useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
-import {Button, Card, Grid, Layout, Message, Space, Statistic, Tag, Typography} from '@arco-design/web-react';
+import {Button, Card, Grid, Layout, Message, Space, Tag, Typography} from '@arco-design/web-react';
 import {IconCheckCircle, IconCloseCircle} from '@arco-design/web-react/icon';
 import {getExamById, getExamResultDetail} from '@/pages/Exam/api';
 import {ExamQuestionDto, ExamResultDto} from '@/pages/Exam/types';
 import '../style/index.less';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 const {Row, Col} = Grid;
 const {Content} = Layout;
 

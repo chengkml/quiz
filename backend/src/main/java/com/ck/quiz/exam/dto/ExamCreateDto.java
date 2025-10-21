@@ -46,6 +46,12 @@ public class ExamCreateDto {
      */
     @Positive(message = "考试时长必须为正数")
     private Integer durationMinutes;
+    
+    /**
+     * 归属学科ID
+     */
+    @NotNull(message = "学科不能为空")
+    private Long subjectId;
 
     /**
      * 状态

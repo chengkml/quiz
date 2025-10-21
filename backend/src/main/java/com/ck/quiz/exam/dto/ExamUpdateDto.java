@@ -49,6 +49,11 @@ public class ExamUpdateDto {
      */
     @Positive(message = "考试时长必须为正数")
     private Integer durationMinutes;
+    
+    /**
+     * 归属学科ID
+     */
+    private Long subjectId;
 
     /**
      * 状态

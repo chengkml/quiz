@@ -55,6 +55,12 @@ public class Exam {
      */
     @Column(name = "duration_minutes")
     private Integer durationMinutes;
+    
+    /**
+     * 归属学科ID
+     */
+    @Column(name = "subject_id")
+    private Long subjectId;
 
     /**
      * 状态
