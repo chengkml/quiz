@@ -15,6 +15,7 @@ import CategoryManagement from '@/pages/Category';
 import KnowledgeManagement from '@/pages/Knowledge';
 import UserManagement from '@/pages/User';
 import TodoManagement from '@/pages/Todo';
+import Home from '@/pages/Home';
 import NotFound from '@/pages/NotFound';
 import { UserProvider } from '@/contexts/UserContext';
 import { MenuTreeDto, MenuType } from '@/types/menu';
@@ -97,6 +98,7 @@ const MenuPermissionRoute: React.FC<{
  * 需要登录访问的页面（不带Layout）
  */
 const protectedPages = [
+    { path: 'home', element: <Home />, requiredPath: 'home' },
     { path: 'user', element: <UserManagement />, requiredPath: 'user' },
     { path: 'role', element: <RoleManagement />, requiredPath: 'role' },
     { path: 'menu', element: <MenuManagement />, requiredPath: 'menu' },
@@ -142,6 +144,8 @@ export const router = createBrowserRouter([
                     </MenuPermissionRoute>
                 ),
             })),
+            // 默认重定向到home页面
+            { path: '', element: <Navigate to="home" replace /> },
             // 非菜单页：考试作答页（需登录，但不校验菜单权限）
             { path: 'exam/take/:id', element: <ExamTakePage /> },
             // 非菜单页：历史答卷列表与详情
