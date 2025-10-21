@@ -11,6 +11,7 @@ import {
     Message,
     Modal,
     Pagination,
+    Select,
     Space,
     Spin,
     Table,
@@ -124,6 +125,26 @@ function UserManager() {
                     {state === 'ENABLED' ? '启用' : '禁用'}
                 </Tag>
             ),
+        },
+        {
+            title: '角色',
+            dataIndex: 'roles',
+            key: 'roles',
+            width: 200,
+            render: (roles) => {
+                if (!roles || roles.length === 0) {
+                    return <span style={{color: 'var(--color-text-3)'}}>未分配角色</span>;
+                }
+                return (
+                    <Space direction="vertical" size={4}>
+                        {roles.map((role) => (
+                            <Tag key={role.id} color="blue">
+                                {role.name}
+                            </Tag>
+                        ))}
+                    </Space>
+                );
+            },
         },
         {
             title: '创建时间',
@@ -245,8 +266,31 @@ function UserManager() {
 
             const response = await searchUsers(queryParams);
             const {content, totalElements} = response.data;
-
-            setTableData(content || []);
+            
+            // 为每个用户获取角色信息
+            if (content && content.length > 0) {
+                const usersWithRoles = await Promise.all(
+                    content.map(async (user) => {
+                        try {
+                            const rolesResp = await getUserRoles(user.userId);
+                            return {
+                                ...user,
+                                roles: rolesResp.data || []
+                            };
+                        } catch (error) {
+                            console.error(`获取用户 ${user.userId} 的角色信息失败:`, error);
+                            return {
+                                ...user,
+                                roles: []
+                            };
+                        }
+                    })
+                );
+                setTableData(usersWithRoles);
+            } else {
+                setTableData([]);
+            }
+            
             setPagination(prev => ({
                 ...prev,
                 total: totalElements || 0,
@@ -353,6 +397,8 @@ function UserManager() {
             await replaceUserRoles(currentUser.userId, selectedRoleIds);
             Message.success('角色分配已保存');
             setAssignRoleVisible(false);
+            // 重新获取用户列表，更新角色信息
+            fetchUsers();
         } catch (error) {
             if (error.response?.data?.message) {
                 Message.error(error.response.data.message);
@@ -523,41 +569,51 @@ function UserManager() {
                     size="small"
                 />
 
-                {/* 分配角色抽屉 */}
-                <Drawer
+                {/* 分配角色对话框 */}
+                <Modal
                     title={`分配角色${currentUser ? ` - ${currentUser.userName || currentUser.userId}` : ''}`}
                     visible={assignRoleVisible}
                     onCancel={() => setAssignRoleVisible(false)}
                     onOk={handleAssignRolesSave}
                     okButtonProps={{loading: assignRoleLoading}}
+                    okText="确定"
+                    cancelText="取消"
                 >
-                    <Spin loading={assignRoleLoading} tip="加载中...">
-                        <div style={{maxHeight: 360, overflow: 'auto', paddingRight: 8}}>
-                            <Checkbox.Group
-                                value={selectedRoleIds}
-                                onChange={vals => setSelectedRoleIds(vals)}
-                            >
-                                <Space direction="vertical" size={12} style={{width: '100%'}}>
-                                    {roleOptions && roleOptions.length > 0 ? (
-                                        roleOptions.map(role => (
-                                            <Checkbox key={role.id} value={role.id}>
-                                                <Space>
-                                                    <Tag color={role.state === 'ENABLED' ? 'green' : 'red'}>
-                                                        {role.state === 'ENABLED' ? '启用' : '禁用'}
-                                                    </Tag>
-                                                    <span>{role.name}</span>
-                                                    <span style={{color: 'var(--color-text-3)'}}>（{role.id}）</span>
-                                                </Space>
-                                            </Checkbox>
-                                        ))
-                                    ) : (
-                                        <span style={{color: 'var(--color-text-3)'}}>暂无启用角色</span>
-                                    )}
-                                </Space>
-                            </Checkbox.Group>
+                    <Spin loading={assignRoleLoading} tip="加载中..." style={{width:'100%'}}>
+                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                            <Form layout="vertical">
+                                <Form.Item
+                                    label="选择角色"
+                                    field="roles"
+                                    rules={[
+                                        {required: true, message: '请选择至少一个角色'},
+                                    ]}
+                                >
+                                    <Select
+                                        mode="multiple"
+                                        value={selectedRoleIds}
+                                        onChange={vals => setSelectedRoleIds(vals)}
+                                        placeholder="请选择要分配的角色"
+                                        style={{width: '100%'}}
+                                    >
+                                        {roleOptions && roleOptions.length > 0 ? (
+                                            roleOptions.map(role => (
+                                                <Select.Option key={role.id} value={role.id}>
+                                                    <Space>
+                                                        <span>{role.name}</span>
+                                                        <span style={{color: 'var(--color-text-3)'}}>（{role.id}）</span>
+                                                    </Space>
+                                                </Select.Option>
+                                            ))
+                                        ) : (
+                                            <Select.Option disabled value="">暂无启用角色</Select.Option>
+                                        )}
+                                    </Select>
+                                </Form.Item>
+                            </Form>
                         </div>
                     </Spin>
-                </Drawer>
+                </Modal>
 
                 {/* 分页 */}
                 <div className="pagination-wrapper">
