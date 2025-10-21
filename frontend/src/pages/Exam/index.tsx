@@ -1,7 +1,8 @@
 import React, {useEffect, useRef, useState} from 'react';
-import { useNavigate } from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import {
     Button,
+    Drawer,
     Dropdown,
     Form,
     Input,
@@ -10,49 +11,38 @@ import {
     Menu,
     Message,
     Modal,
-    Pagination,
     Select,
     Space,
-    Spin,
+    Switch,
     Table,
     Tag,
-    Tooltip,
-    Switch,
-    Drawer,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
+    archiveExam,
+    autoGenerateExam,
     createExam,
     deleteExam,
     getExamById,
     getExamList,
-    updateExam,
     publishExam,
-    archiveExam,
-    autoGenerateExam,
+    updateExam,
 } from './api';
 import {
+    IconArchive,
     IconDelete,
     IconEdit,
     IconEye,
     IconList,
     IconPlus,
     IconPublic,
-    IconArchive,
     IconSettings,
 } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import ExamQuestionManager from './components/ExamQuestionManager';
-import { getAllSubjects } from '../Subject/api';
-import { getCategoriesBySubjectId } from '../Category/api';
-import {
-    ExamDto,
-    ExamStatus,
-    PaginationConfig,
-    StatusOption,
-    FormRef,
-    ExamQueryDto
-} from './types';
+import {getAllSubjects} from '../Subject/api';
+import {getCategoriesBySubjectId} from '../Category/api';
+import {ExamDto, ExamQueryDto, ExamStatus, FormRef, PaginationConfig, StatusOption} from './types';
 
 const {TextArea} = Input;
 const {Content} = Layout;

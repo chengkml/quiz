@@ -201,9 +201,10 @@ public class SubjectServiceImpl implements SubjectService {
         subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new SubjectException("SUBJECT_NOT_FOUND", "学科不存在: " + subjectId));
         List<Category> categories = categoryRepository.findBySubjectId(subjectId);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         CommonPool.cachedPool.execute(()->{
             categories.forEach(category -> {
-                categoryService.initCategoryQuestions(category.getId(), questionNum);
+                categoryService.initCategoryQuestions(authentication.getName(), category.getId(), questionNum);
             });
         });
     }

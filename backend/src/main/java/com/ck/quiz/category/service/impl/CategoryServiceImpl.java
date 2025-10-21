@@ -358,7 +358,7 @@ public class CategoryServiceImpl implements CategoryService {
         return rootCategories;
     }
 
-    public void initCategoryQuestions(String categoryId, int questionNum) {
+    public void initCategoryQuestions(String userId, String categoryId, int questionNum) {
         try{
             Optional<Category> op = categoryRepository.findById(categoryId);
             List<String> knowledges = knowledgeService.generateKnowledges(op.get().getName());
@@ -381,8 +381,9 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     public void initCategoryQuestionsAsync(String categoryId, int questionNum) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         CommonPool.cachedPool.execute(()->{
-            initCategoryQuestions(categoryId, questionNum);
+            initCategoryQuestions(authentication.getName(), categoryId, questionNum);
         });
     }
 

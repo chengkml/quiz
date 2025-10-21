@@ -7,6 +7,8 @@ import com.ck.quiz.category.dto.CategoryUpdateDto;
 import com.ck.quiz.category.entity.Category;
 import com.ck.quiz.subject.dto.SubjectDto;
 import org.springframework.data.domain.Page;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 
@@ -113,7 +115,12 @@ public interface CategoryService {
 
     List<SubjectDto> getSubjectCategoryTree();
 
-    void initCategoryQuestions(String categoryId, int questionNum);
+    void initCategoryQuestions(String userId, String categoryId, int questionNum);
+
+    default void initCategoryQuestions(String categoryId, int questionNum) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        initCategoryQuestions(authentication.getName(), categoryId, questionNum);
+    }
 
     void initCategoryQuestionsAsync(String categoryId, int questionNum);
 }

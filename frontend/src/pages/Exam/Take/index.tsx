@@ -212,7 +212,8 @@ const ExamTakePage: React.FC = () => {
       const resp = await submitExam(id, submitBody);
       const result: ExamResultDto = resp.data;
       Message.success(`提交成功，得分：${result.totalScore}`);
-      navigate('/quiz/frame/exam');
+      // 跳转到结果详情页，而不是考试列表页
+      navigate(`/quiz/frame/exam/result/${result.resultId}`);
     } catch (e) {
       Message.error('提交考试失败');
     } finally {
