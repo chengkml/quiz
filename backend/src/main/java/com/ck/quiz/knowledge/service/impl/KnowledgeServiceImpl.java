@@ -178,12 +178,10 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         // 排序
         JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
 
-        // 分页（pageNum 从1开始，转成从0开始）
-        int pageNum = Math.max(0, queryDto.getPageNum() - 1);
         String limitSql = JdbcQueryHelper.getLimitSql(
                 namedParameterJdbcTemplate,
                 sql.toString(),
-                pageNum,
+                queryDto.getPageNum(),
                 queryDto.getPageSize()
         );
 
@@ -216,7 +214,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 countSql.toString(),
                 params,
                 knowledgeList,
-                pageNum,
+                queryDto.getPageNum(),
                 queryDto.getPageSize()
         );
     }

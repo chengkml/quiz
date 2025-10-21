@@ -5,7 +5,6 @@ import { LoginUserInfo } from '@/types/user';
 import AppLogin from './index';
 
 const LoginWrapper: React.FC = () => {
-  const navigate = useNavigate();
   const { login } = useUser();
 
   const handleLoginSuccess = (username: string) => {

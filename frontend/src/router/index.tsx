@@ -76,7 +76,7 @@ const MenuPermissionRoute: React.FC<{
   const menuInfoStr = localStorage.getItem('menuInfo');
   if (!menuInfoStr) {
     // 如果没有菜单信息，跳转到NotFound页面
-    return <Navigate to="/quiz/frame/notfound" replace />;
+    return <Navigate to="/quiz/frame" replace />;
   }
 
   try {

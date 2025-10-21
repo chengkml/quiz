@@ -7,7 +7,7 @@ import {
     Layout,
     Menu,
     Message,
-    Modal,
+    Modal, Pagination,
     Select,
     Space,
     Table,
@@ -367,8 +367,7 @@ function KnowledgeManager() {
     };
 
     // 分页变化处理
-    const handlePageChange = (current, pageSize) => {
-        const filterParams = filterFormRef.current?.getFieldsValue() || {};
+    const handlePageChange = (filterParams, pageSize, current) => {
         fetchTableData(filterParams, pageSize, current);
     };
 
@@ -511,13 +510,18 @@ function KnowledgeManager() {
                         columns={columns}
                         data={tableData}
                         loading={tableLoading}
-                        pagination={{
-                            ...pagination,
-                            onChange: handlePageChange,
-                        }}
+                        pagination={false}
                         scroll={{y: tableScrollHeight}}
                         rowKey="id"
                     />
+                    <div className="pagination-wrapper">
+                        <Pagination
+                            {...pagination}
+                            onChange={(current, pageSize) => {
+                                handlePageChange({}, pageSize, current);
+                            }}
+                        />
+                    </div>
 
                     {/* 新增对话框 */}
                     <Modal
