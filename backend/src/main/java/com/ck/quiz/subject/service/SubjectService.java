@@ -5,9 +5,12 @@ import com.ck.quiz.subject.dto.SubjectDto;
 import com.ck.quiz.subject.dto.SubjectQueryDto;
 import com.ck.quiz.subject.dto.SubjectUpdateDto;
 import com.ck.quiz.subject.entity.Subject;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.data.domain.Page;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 学科管理服务接口
@@ -94,4 +97,19 @@ public interface SubjectService {
     List<SubjectDto> getAllUserSubjects(String name);
 
     void initSubjectQuestions(String subjectId, int questionNum);
+
+    /**
+     * 导出学科列表为Excel文件
+     *
+     * @param response HTTP响应对象
+     */
+    void exportSubjects(HttpServletResponse response);
+
+    /**
+     * 从Excel文件导入学科列表
+     *
+     * @param file Excel文件
+     * @return 导入结果信息
+     */
+    Map<String, Object> importSubjects(MultipartFile file);
 }

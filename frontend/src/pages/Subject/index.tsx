@@ -11,10 +11,11 @@ import {
     Pagination,
     Table,
     Tag,
+    Upload,
 } from '@arco-design/web-react';
 import './style/index.less';
-import {checkSubjectName, createSubject, deleteSubject, getSubjectList, updateSubject,} from './api';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus} from '@arco-design/web-react/icon';
+import {checkSubjectName, createSubject, deleteSubject, getSubjectList, updateSubject, exportSubjects, importSubjects, downloadTemplate} from './api';
+import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconDownload, IconUpload} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 
 const {TextArea} = Input;
@@ -31,6 +32,9 @@ function SubjectManager() {
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [importModalVisible, setImportModalVisible] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [currentRecord, setCurrentRecord] = useState(null);
 
     // 查看详情相关状态
@@ -200,10 +204,46 @@ function SubjectManager() {
         fetchTableData(params, pagination.pageSize, 1);
     };
 
+    // 处理下拉菜单点击
+    const handleMenuClick = (key, e, record) => {
+        e.stopPropagation();
+        switch (key) {
+            case 'detail':
+                handleDetail(record);
+                break;
+            case 'edit':
+                handleEdit(record);
+                break;
+            case 'delete':
+                handleDelete(record);
+                break;
+            default:
+                break;
+        }
+    };
+
     // 处理新增
     const handleAdd = () => {
-        setCurrentRecord(null);
         setAddModalVisible(true);
+        addFormRef.current?.resetFields();
+    };
+
+    // 处理新增确认
+    const handleAddConfirm = async () => {
+        try {
+            const formData = addFormRef.current?.getFieldsValue();
+            setLoading(true);
+            const response = await createSubject(formData);
+            if (response.data) {
+                Message.success('新增学科成功');
+                setAddModalVisible(false);
+                fetchTableData();
+            }
+        } catch (error) {
+            Message.error('新增学科失败');
+        } finally {
+            setLoading(false);
+        }
     };
 
     // 处理编辑
@@ -212,139 +252,123 @@ function SubjectManager() {
         setEditModalVisible(true);
     };
 
+    // 处理编辑确认
+    const handleEditConfirm = async () => {
+        try {
+            const formData = editFormRef.current?.getFieldsValue();
+            setLoading(true);
+            const response = await updateSubject({...formData, id: currentRecord.id});
+            if (response.data) {
+                Message.success('编辑学科成功');
+                setEditModalVisible(false);
+                fetchTableData();
+            }
+        } catch (error) {
+            Message.error('编辑学科失败');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // 处理删除
     const handleDelete = (record) => {
         setCurrentRecord(record);
         setDeleteModalVisible(true);
     };
 
-    // 处理查看详情
+    // 处理删除确认
+    const handleDeleteConfirm = async () => {
+        try {
+            setLoading(true);
+            const response = await deleteSubject(currentRecord.id);
+            if (response.data) {
+                Message.success('删除学科成功');
+                setDeleteModalVisible(false);
+                fetchTableData();
+            }
+        } catch (error) {
+            Message.error('删除学科失败');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 处理详情
     const handleDetail = (record) => {
         setDetailRecord(record);
         setDetailModalVisible(true);
     };
 
-    // 处理菜单点击
-    const handleMenuClick = (key, event, record) => {
-        event.stopPropagation();
-        if (key === 'edit') {
-            handleEdit(record);
-        } else if (key === 'delete') {
-            handleDelete(record);
-        } else if (key === 'detail') {
-            handleDetail(record);
-        }
-    };
-
-    // 确认新增
-    const handleAddConfirm = async () => {
+    // 处理导出
+    const handleExport = () => {
         try {
-            const values = await addFormRef.current.validate();
-            setLoading(true);
-
-            // 检查学科名称是否已存在
-            const checkResponse = await checkSubjectName({subjectName: values.name});
-            if (checkResponse.data === true) {
-                Message.error('学科名称已存在，请使用其他名称');
-                return;
-            }
-
-            await createSubject(values);
-            Message.success('学科创建成功');
-            setAddModalVisible(false);
-            addFormRef.current.resetFields();
-            fetchTableData();
+            exportSubjects();
+            Message.success('导出成功');
         } catch (error) {
-            if (error.fields) {
-                // 表单验证错误
-                return;
-            }
-            Message.error('学科创建失败');
-        } finally {
-            setLoading(false);
+            Message.error('导出失败，请稍后重试');
         }
     };
 
-    // 确认编辑
-    const handleEditConfirm = async () => {
-        try {
-            const values = await editFormRef.current.validate();
-            setLoading(true);
+    // 打开导入模态框
+    const handleImportModal = () => {
+        setImportModalVisible(true);
+        setSelectedFile(null);
+    };
 
-            // 检查学科名称是否已存在（排除当前记录）
-            if (values.name !== currentRecord.name) {
-                const checkResponse = await checkSubjectName({
-                    subjectName: values.name,
-                    excludeSubjectId: currentRecord.id
-                });
-                if (checkResponse.data === true) {
-                    Message.error('学科名称已存在，请使用其他名称');
-                    return;
+    // 处理导入确认
+    const handleImportConfirm = async () => {
+        if (!selectedFile) {
+            Message.warning('请先选择文件');
+            return;
+        }
+
+        try {
+            setUploading(true);
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            const response = await importSubjects(formData);
+            if (response.data) {
+                const { successCount, errorCount, errorMessages, message } = response.data;
+                
+                if (errorCount > 0) {
+                    // 显示导入结果详情
+                    Modal.info({
+                        title: '导入结果',
+                        content: (
+                            <div>
+                                <p style={{ marginBottom: '12px' }}>{message}</p>
+                                {errorMessages && errorMessages.length > 0 && (
+                                    <div>
+                                        <p style={{ color: '#ff4d4f', marginBottom: '8px' }}>失败详情：</p>
+                                        <ul style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                            {errorMessages.map((msg: string, index: number) => (
+                                                <li key={index} style={{ color: '#ff4d4f', fontSize: '14px', marginBottom: '4px' }}>
+                                                    {msg}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        ),
+                        onOk: () => {
+                            fetchTableData();
+                            setImportModalVisible(false);
+                        }
+                    });
+                } else {
+                    Message.success(message);
+                    fetchTableData();
+                    setImportModalVisible(false);
                 }
             }
-
-            await updateSubject({...values, id: currentRecord.id});
-            Message.success('学科更新成功');
-            setEditModalVisible(false);
-            editFormRef.current.resetFields();
-            fetchTableData();
-        } catch (error) {
-            if (error.fields) {
-                // 表单验证错误
-                return;
-            }
-            Message.error('学科更新失败');
+        } catch (error: any) {
+            Message.error(error.message || '导入失败，请稍后重试');
         } finally {
-            setLoading(false);
+            setUploading(false);
         }
     };
-
-    // 确认删除
-    const handleDeleteConfirm = async () => {
-        try {
-            setLoading(true);
-            await deleteSubject(currentRecord.id);
-            Message.success('学科删除成功');
-            setDeleteModalVisible(false);
-            fetchTableData();
-        } catch (error) {
-            Message.error('学科删除失败');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // 监听窗口大小变化，动态调整表格高度
-    useEffect(() => {
-        const calculateTableHeight = () => {
-            const windowHeight = window.innerHeight;
-            // 减去页面其他元素的高度，如头部、筛选区域、分页等
-            // 这里可以根据实际页面布局调整计算逻辑
-            const otherElementsHeight = 235; // 预估其他元素占用的高度
-            const newHeight = Math.max(200, windowHeight - otherElementsHeight);
-            setTableScrollHeight(newHeight);
-        };
-
-        // 初始计算
-        calculateTableHeight();
-
-        // 监听窗口大小变化
-        const handleResize = () => {
-            calculateTableHeight();
-        };
-
-        window.addEventListener('resize', handleResize);
-
-        // 清理事件监听器
-        return () => {
-            window.removeEventListener('resize', handleResize);
-        };
-    }, []);
-
-    // 初始化数据
-    useEffect(() => {
-        fetchTableData();
-    }, []);
 
     // 筛选表单配置
     const filterFormConfig = [
@@ -356,6 +380,10 @@ function SubjectManager() {
             span: 6,
         },
     ];
+
+    useEffect(() => {
+        fetchTableData();
+    }, []);
 
     return (
         <Layout className="subject-manager">
@@ -377,6 +405,12 @@ function SubjectManager() {
                 <div className="action-buttons">
                     <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
                         新增学科
+                    </Button>
+                    <Button type="default" icon={<IconUpload/>} onClick={handleImportModal} style={{marginLeft: '12px'}}>
+                        导入学科
+                    </Button>
+                    <Button type="default" icon={<IconDownload/>} onClick={handleExport} style={{marginLeft: '12px'}}>
+                        导出学科
                     </Button>
                 </div>
                 <Table
@@ -528,6 +562,44 @@ function SubjectManager() {
                             </div>
                         </div>
                     )}
+                </Modal>
+
+                {/* 导入模态框 */}
+                <Modal
+                    title="导入学科"
+                    visible={importModalVisible}
+                    onOk={handleImportConfirm}
+                    onCancel={() => {
+                        setImportModalVisible(false);
+                        setSelectedFile(null);
+                    }}
+                    okText="确认导入"
+                    cancelText="取消"
+                    okLoading={uploading}
+                >
+                    <div style={{marginBottom: '20px'}}>
+                        <Upload
+                            accept=".xlsx"
+                            multiple={false}
+                            beforeUpload={(file) => {
+                                setSelectedFile(file as File);
+                                return false; // 阻止自动上传
+                            }}
+                            fileList={selectedFile ? [{ uid: '1', name: selectedFile.name, status: 'done' }] : []}
+                        >
+                            <Button type="default">选择文件</Button>
+                        </Upload>
+                    </div>
+                    
+                    <div style={{marginTop: '16px'}}>
+                        <Button 
+                            type="default" 
+                            icon={<IconDownload />} 
+                            onClick={downloadTemplate}
+                        >
+                            下载导入模板
+                        </Button>
+                    </div>
                 </Modal>
             </Content>
         </Layout>

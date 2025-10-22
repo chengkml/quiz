@@ -6,6 +6,27 @@ import {getExamById, getExamResultDetail} from '@/pages/Exam/api';
 import {ExamQuestionDto, ExamResultDto} from '@/pages/Exam/types';
 import '../style/index.less';
 
+function parseOptions(options: any): Array<{ key: string; text: string }> {
+  if (!options) return [];
+  try {
+    const obj = typeof options === 'string' ? JSON.parse(options) : options;
+    if (Array.isArray(obj?.options)) {
+      return obj.options.map((o: any) => ({ key: String(o.key ?? o.value ?? o.option ?? ''), text: String(o.text ?? o.label ?? '') }));
+    }
+    if (typeof obj === 'object' && obj !== null) {
+      return Object.entries(obj)
+        .filter(([k]) => k !== 'blanks' && k !== 'requirements')
+        .map(([key, value]) => ({ key: String(key), text: String((value as any)?.text ?? value) }));
+    }
+  } catch (e) {
+    if (typeof options === 'string') {
+      const parts = options.split(';').map((s: string) => s.trim()).filter(Boolean);
+      return parts.map((p, idx) => ({ key: String.fromCharCode(65 + idx), text: p }));
+    }
+  }
+  return [];
+}
+
 const { Text, Paragraph } = Typography;
 const {Row, Col} = Grid;
 const {Content} = Layout;
@@ -20,6 +41,33 @@ const ExamResultDetailPage: React.FC = () => {
   const [examName, setExamName] = useState<string>('');
   const [examTotalScore, setExamTotalScore] = useState<number>(0);
   const [showExplanations, setShowExplanations] = useState(true); // 默认显示答案解析
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [showOnlyWrong, setShowOnlyWrong] = useState(false); // 控制是否只显示错题
+  const questionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  
+  // 获取要显示的题目列表（根据是否只看错题进行过滤）
+  const getDisplayAnswers = () => {
+    const list = detail?.answers || [];
+    if (showOnlyWrong) {
+      return list.filter(answer => !answer.correct);
+    }
+    return list;
+  };
+
+  // 滚动到指定题目
+  const scrollToIndex = (index: number) => {
+    const list = getDisplayAnswers();
+    if (index < 0 || index >= list.length) return;
+    setCurrentIndex(index);
+    const targetId = list[index].examQuestionId;
+    const el = questionRefs.current[targetId];
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const goPrev = () => scrollToIndex(currentIndex - 1);
+  const goNext = () => scrollToIndex(currentIndex + 1);
 
   // 格式化时间显示
   const formatTime = (time: string): string => {
@@ -75,7 +123,7 @@ const ExamResultDetailPage: React.FC = () => {
           setExamTotalScore(exam?.totalScore || 0);
           const map: Record<string, ExamQuestionDto> = {};
           (exam?.questions || []).forEach((q: ExamQuestionDto) => {
-            if (q.questionId) map[q.questionId] = q;
+            if (q.id) map[q.id] = q.question;
           });
           setQuestionMap(map);
         } catch (e) {
@@ -142,20 +190,96 @@ const ExamResultDetailPage: React.FC = () => {
             </Col>
           </Row>
         </Card>
-        <Card title="答题详情与解析" style={{ marginBottom: 20 }}>
+        <Card 
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>答题详情与解析</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Button
+                  type={showOnlyWrong ? 'primary' : 'default'}
+                  size="small"
+                  onClick={() => {
+                    setShowOnlyWrong(!showOnlyWrong);
+                    setCurrentIndex(0); // 切换时重置到第一题
+                  }}
+                >
+                  {showOnlyWrong ? '显示全部题目' : '只看错题'}
+                </Button>
+              </div>
+            </div>
+          } 
+          style={{ marginBottom: 20 }}
+        >
           {loading ? (
               <div style={{ textAlign: 'center', padding: 40 }}>
                 <Text>正在加载答案解析...</Text>
               </div>
           ) : detail?.answers && detail.answers.length > 0 ? (
-              <div style={{height:resultHeight, overflow: 'auto'}}>
-                {detail.answers.map((answer, index) => {
+              <>
+                {/* 题目导航 */}
+                <div style={{ 
+                  marginBottom: 20, 
+                  padding: 12, 
+                  backgroundColor: '#fafafa', 
+                  borderRadius: 4,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  maxHeight: 150,
+                  overflow: 'auto'
+                }}>
+                  <Button 
+                    type={currentIndex > 0 ? 'default' : 'text'} 
+                    disabled={currentIndex === 0}
+                    onClick={goPrev}
+                    style={{ marginRight: 8 }}
+                  >
+                    上一题
+                  </Button>
+                  {getDisplayAnswers().map((answer, index) => {
+                    // 找到在原始列表中的索引，用于显示正确的题目编号
+                    const originalIndex = detail?.answers.findIndex(a => a.examQuestionId === answer.examQuestionId) || 0;
+                    return (
+                      <Button
+                        key={answer.examQuestionId}
+                        size="small"
+                        type={currentIndex === index ? 'primary' : 'default'}
+                        onClick={() => scrollToIndex(index)}
+                        style={{
+                          minWidth: 32,
+                          padding: '0 8px',
+                          backgroundColor: !answer.correct ? 
+                            (currentIndex === index ? '#1677ff' : '#fff2f0') : 
+                            (currentIndex === index ? '#1677ff' : '#f6ffed')
+                        }}
+                      >
+                        {originalIndex + 1}
+                      </Button>
+                    );
+                  })}
+                  <Button 
+                    type={currentIndex < (getDisplayAnswers().length - 1) ? 'default' : 'text'} 
+                    disabled={currentIndex === getDisplayAnswers().length - 1}
+                    onClick={goNext}
+                    style={{ marginLeft: 8 }}
+                  >
+                    下一题
+                  </Button>
+                </div>
+                <div style={{height: resultHeight - 170, overflow: 'auto'}}>
+                  {getDisplayAnswers().map((answer, index) => {
+                    // 找到在原始列表中的索引，用于显示正确的题目编号
+                    const originalIndex = detail?.answers.findIndex(a => a.examQuestionId === answer.examQuestionId) || 0;
                   const isCorrect = answer.correct;
                   const q = questionMap[answer.examQuestionId];
                   return (
-                      <div key={answer.examQuestionId} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid #f0f0f0' }}>
+                      <div 
+                        key={answer.examQuestionId} 
+                        ref={el => questionRefs.current[answer.examQuestionId] = el}
+                        style={{ marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid #f0f0f0' }}
+                      >
                         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-                          <span style={{ fontSize: 16, fontWeight: 600, marginRight: 12 }}>第 {index + 1} 题</span>
+                          <span style={{ fontSize: 16, fontWeight: 600, marginRight: 12 }}>第 {originalIndex + 1} 题</span>
                           {isCorrect ? (
                               <Tag color="green" icon={<IconCheckCircle />}>正确</Tag>
                           ) : (
@@ -164,7 +288,42 @@ const ExamResultDetailPage: React.FC = () => {
                           <span style={{ marginLeft: 12 }}>得分：{answer.score}</span>
                         </div>
 
-                        <Paragraph style={{ marginBottom: 12 }}>{q?.questionContent || '题目内容缺失'}</Paragraph>
+                        <Paragraph style={{ marginBottom: 12 }}>{q?.content || '题目内容缺失'}</Paragraph>
+
+                        {/* 显示题目选项 */}
+                        {q?.type === 'SINGLE' || q?.type === 'MULTIPLE' ? (
+                          <div style={{ marginBottom: 12, padding: 12, backgroundColor: '#fafafa', borderRadius: 4 }}>
+                            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>选项：</Text>
+                            <Space direction="vertical">
+                              {parseOptions(q?.options).map(opt => {
+                                const isUserAnswer = Array.isArray(answer.userAnswers) && answer.userAnswers.includes(opt.key);
+                                const isCorrectAnswer = Array.isArray(answer.standardAnswers) && answer.standardAnswers.includes(opt.key);
+                                
+                                return (
+                                  <div 
+                                    key={opt.key} 
+                                    style={{
+                                      padding: 8,
+                                      borderRadius: 4,
+                                      backgroundColor: isUserAnswer && isCorrectAnswer ? '#f6ffed' : 
+                                                       isUserAnswer && !isCorrectAnswer ? '#fff2f0' : 
+                                                       isCorrectAnswer ? '#e6f7ff' : 'transparent',
+                                      border: `1px solid ${isUserAnswer && isCorrectAnswer ? '#b7eb8f' : 
+                                                        isUserAnswer && !isCorrectAnswer ? '#ffccc7' : 
+                                                        isCorrectAnswer ? '#91d5ff' : 'transparent'}`
+                                    }}
+                                  >
+                                    <span style={{ fontWeight: 600, marginRight: 8 }}>{opt.key}.</span>
+                                    <span>{opt.text}</span>
+                                    {isUserAnswer && isCorrectAnswer && <Tag color="green" style={{ marginLeft: 8 }}>正确</Tag>}
+                                    {isUserAnswer && !isCorrectAnswer && <Tag color="red" style={{ marginLeft: 8 }}>错误</Tag>}
+                                    {!isUserAnswer && isCorrectAnswer && <Tag color="blue" style={{ marginLeft: 8 }}>标准答案</Tag>}
+                                  </div>
+                                );
+                              })}
+                            </Space>
+                          </div>
+                        ) : null}
 
                         <div style={{ marginBottom: 8 }}>
                           <Text type="secondary">你的答案：</Text>
@@ -187,6 +346,7 @@ const ExamResultDetailPage: React.FC = () => {
                   );
                 })}
               </div>
+              </>
           ) : (
               <Text style={{ textAlign: 'center', display: 'block', padding: 40 }}>暂无答案解析数据</Text>
           )}
@@ -194,12 +354,14 @@ const ExamResultDetailPage: React.FC = () => {
         <div style={{ marginTop: 20, textAlign: 'center' }}>
           <Space>
             <Button onClick={() => navigate('/quiz/frame/exam')}>返回考试列表</Button>
-            <Button type="primary" onClick={() => navigate('/quiz/frame/exam/results')}>查看历史记录</Button>
+            <Button type="primary" onClick={() => navigate(`/quiz/frame/exam/take/${detail?.examId}`)}>重新测试</Button>
+            <Button onClick={() => navigate('/quiz/frame/exam/results')}>查看历史记录</Button>
           </Space>
         </div>
       </Content>
     </Layout>
   );
 };
+
 
 export default ExamResultDetailPage;

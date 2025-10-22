@@ -7,12 +7,14 @@ import com.ck.quiz.subject.service.SubjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "学科管理", description = "学科相关的API接口")
 @RestController
@@ -93,6 +95,18 @@ public class SubjectController {
             @Parameter(description = "学科名称", required = true) @RequestParam String subjectName,
             @Parameter(description = "排除的学科ID") @RequestParam(required = false) String excludeSubjectId) {
         return ResponseEntity.ok(subjectService.isSubjectNameExists(subjectName, excludeSubjectId));
+    }
+
+    @Operation(summary = "导出学科列表", description = "导出学科列表为Excel文件")
+    @GetMapping("/export")
+    public void exportSubjects(HttpServletResponse response) {
+        subjectService.exportSubjects(response);
+    }
+
+    @Operation(summary = "导入学科列表", description = "从Excel文件导入学科列表")
+    @PostMapping("/import")
+    public ResponseEntity importSubjects(@Parameter(description = "Excel文件") @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(subjectService.importSubjects(file));
     }
 
     @Operation(summary = "学科知识问题初始化", description = "生成学科知识和问题")
