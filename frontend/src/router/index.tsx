@@ -15,6 +15,7 @@ import CategoryManagement from '@/pages/Category';
 import KnowledgeManagement from '@/pages/Knowledge';
 import UserManagement from '@/pages/User';
 import TodoManagement from '@/pages/Todo';
+import ExamHistoryManager from "@/pages/Exam/History";
 import Home from '@/pages/Home';
 import NotFound from '@/pages/NotFound';
 import { UserProvider } from '@/contexts/UserContext';
@@ -109,6 +110,7 @@ const protectedPages = [
     { path: 'datasource', element: <DatasourceManagement />, requiredPath: 'datasource' },
     { path: 'exam', element: <ExamManagement />, requiredPath: 'exam' },
     { path: 'todo', element: <TodoManagement />, requiredPath: 'todo' },
+    { path: 'history', element: <ExamHistoryManager />, requiredPath: 'history' },
 ];
 
 /**

@@ -408,7 +408,6 @@ function TodoManager() {
                         pagination={false}
                         scroll={{y: tableScrollHeight}}
                         rowKey="id"
-                        size="small"
                     />
 
                     {/* 分页 */}

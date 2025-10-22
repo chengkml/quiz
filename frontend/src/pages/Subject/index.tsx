@@ -382,7 +382,17 @@ function SubjectManager() {
     ];
 
     useEffect(() => {
+        const calculateTableHeight = () => {
+            const windowHeight = window.innerHeight;
+            const otherElementsHeight = 235;
+            const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+            setTableScrollHeight(newHeight);
+        };
+        calculateTableHeight();
         fetchTableData();
+        const handleResize = () => calculateTableHeight();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     return (
