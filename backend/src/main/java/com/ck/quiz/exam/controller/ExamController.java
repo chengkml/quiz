@@ -14,7 +14,10 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -150,10 +153,11 @@ public class ExamController {
 
     @Operation(summary = "查询用户历史答卷", description = "根据用户ID（可选试卷ID）查询历史答卷列表")
     @GetMapping("/results")
-    public ResponseEntity<List<ExamResultHistoryItemDto>> listUserResults(
-            @Parameter(description = "用户ID", required = true) @RequestParam String userId,
-            @Parameter(description = "试卷ID", required = false) @RequestParam(required = false) String examId) {
-        return ResponseEntity.ok(examService.listUserResults(userId, examId));
+    public ResponseEntity<Page<ExamResultHistoryItemDto>> listUserResults(
+            @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
+            @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") int pageSize) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(examService.listUserResults(authentication.getName(), pageNum, pageSize));
     }
 
     @Operation(summary = "获取答卷详情", description = "根据结果ID获取完整答卷详情")

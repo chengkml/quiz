@@ -124,14 +124,7 @@ public interface ExamService {
      */
     ExamResultDto submitExam(String examId, ExamSubmitDto submitDto);
 
-    /**
-     * 查询用户历史答卷
-     *
-     * @param userId 用户ID
-     * @param examId 试卷ID（可选）
-     * @return 历史答卷列表
-     */
-    List<ExamResultHistoryItemDto> listUserResults(String userId, String examId);
+    Page<ExamResultHistoryItemDto> listUserResults(String userId, int pageNum, int pageSize);
 
     /**
      * 根据结果ID查询答卷详情

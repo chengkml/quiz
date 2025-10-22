@@ -28,6 +28,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import java.util.*;
@@ -473,24 +475,64 @@ public class ExamServiceImpl implements ExamService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ExamResultHistoryItemDto> listUserResults(String userId, String examId) {
-        List<ExamResult> results;
-        if (org.springframework.util.StringUtils.hasText(examId)) {
-            results = examResultRepository.findByUserIdAndExam_IdOrderBySubmitTimeDesc(userId, examId);
-        } else {
-            results = examResultRepository.findByUserIdOrderBySubmitTimeDesc(userId);
+    public Page<ExamResultHistoryItemDto> listUserResults(String userId, int pageNum, int pageSize) {
+        if (!StringUtils.hasText(userId)) {
+            return Page.empty();
         }
-        return results.stream().map(r -> {
+
+        // === 构造主查询SQL ===
+        StringBuilder sb = new StringBuilder("""
+        SELECT r.result_id,
+               e.paper_id AS exam_id,
+               e.name AS exam_name,
+               e.total_score,
+               r.correct_count AS correct_count,
+               r.submit_time AS submit_time
+          FROM exam_result r
+          LEFT JOIN exam e ON r.paper_id = e.paper_id
+         WHERE 1=1
+    """);
+
+        // === 构造总数SQL ===
+        StringBuilder countSb = new StringBuilder("""
+        SELECT COUNT(*)
+          FROM exam_result r
+          LEFT JOIN exam e ON r.paper_id = e.paper_id
+         WHERE 1=1
+    """);
+
+        Map<String, Object> params = new HashMap<>();
+
+        // === 按 userId 精确查询 ===
+        if (StringUtils.hasText(userId)) {
+            JdbcQueryHelper.equals("userId", userId, " AND r.user_id = :userId ", params, sb, countSb);
+        }
+
+        // === 排序（默认按提交时间倒序） ===
+        sb.append(" ORDER BY r.submit_time DESC ");
+
+        // === 构造分页SQL ===
+        String listSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sb.toString(), pageNum, pageSize);
+
+        // === 执行查询 ===
+        List<ExamResultHistoryItemDto> results = jdbcTemplate.query(listSql, params, (rs, rowNum) -> {
             ExamResultHistoryItemDto dto = new ExamResultHistoryItemDto();
-            dto.setResultId(r.getId());
-            dto.setExamId(r.getExam().getId());
-            dto.setExamName(r.getExam().getName());
-            dto.setTotalScore(r.getTotalScore());
-            dto.setCorrectCount(r.getCorrectCount());
-            dto.setSubmitTime(r.getSubmitTime());
+            dto.setResultId(rs.getString("result_id"));
+            dto.setExamId(rs.getString("exam_id"));
+            dto.setExamName(rs.getString("exam_name"));
+            dto.setTotalScore(rs.getInt("total_score"));
+            dto.setCorrectCount(rs.getInt("correct_count"));
+            Timestamp ts = rs.getTimestamp("submit_time");
+            if (ts != null) {
+                dto.setSubmitTime(ts.toLocalDateTime());
+            }
             return dto;
-        }).collect(java.util.stream.Collectors.toList());
+        });
+
+        // === 返回分页对象 ===
+        return JdbcQueryHelper.toPage(jdbcTemplate, countSb.toString(), params, results, pageNum, pageSize);
     }
+
 
     @Override
     @Transactional(readOnly = true)

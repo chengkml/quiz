@@ -22,6 +22,7 @@ import {
 } from './api';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
+import FilterForm from '@/components/FilterForm';
 
 const {Content} = Layout;
 const {Option} = Select;
@@ -67,13 +68,6 @@ function ExamHistoryManager() {
             ellipsis: true,
         },
         {
-            title: '考生姓名',
-            dataIndex: 'userName',
-            key: 'userName',
-            width: 120,
-            ellipsis: true,
-        },
-        {
             title: '总分',
             dataIndex: 'totalScore',
             key: 'totalScore',
@@ -86,6 +80,7 @@ function ExamHistoryManager() {
             title: '正确题数',
             dataIndex: 'correctCount',
             key: 'correctCount',
+            align: 'center',
             width: 120,
         },
         {
@@ -184,8 +179,8 @@ function ExamHistoryManager() {
         try {
             const targetParams = {
                 ...params,
-                page: current - 1,
-                size: pageSize,
+                pageNum: current - 1,
+                pageSize: pageSize,
             };
             const response = await getExamHistoryList(targetParams);
             if (response.data) {
@@ -269,48 +264,50 @@ function ExamHistoryManager() {
     };
 
     // 筛选表单配置
+    const filterFormConfig = [
+        {
+            type: 'input',
+            field: 'examName',
+            label: '试卷名称',
+            placeholder: '请输入试卷名称',
+            span: 6,
+        }
+    ];
 
     useEffect(() => {
+        const calculateTableHeight = () => {
+            const windowHeight = window.innerHeight;
+            const otherElementsHeight = 225;
+            const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+            setTableScrollHeight(newHeight);
+        };
+        calculateTableHeight();
         fetchTableData();
+        const handleResize = () => calculateTableHeight();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     return (
         <Layout className="exam-history-manager">
             <Content>
                 {/* 筛选表单 */}
-                <div className="filter-form-wrapper">
-                    <Form
-                        ref={filterFormRef}
-                        layout="inline"
-                        style={{ marginBottom: 16 }}
-                    >
-                        <Form.Item field='examName' label='试卷名称'>
-                            <Input
-                                placeholder='请输入试卷名称'
-                            />
-                        </Form.Item>
-                        <Form.Item field='userName' label='考生姓名'>
-                            <Input
-                                placeholder='请输入考生姓名'
-                            />
-                        </Form.Item>
-                    </Form>
-                </div>
+                <FilterForm
+                    ref={filterFormRef}
+                    config={filterFormConfig}
+                    onSearch={searchTableData}
+                    onReset={() => fetchTableData()}
+                >
+                    <Form.Item field='examName' label='试卷名称'>
+                        <Input
+                            placeholder='请输入试卷名称'
+                        />
+                    </Form.Item>
+                </FilterForm>
 
                 <div className="action-buttons">
                     <Space>
-                        <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                            const formData = filterFormRef.current?.getFieldsValue();
-                            searchTableData(formData);
-                        }}>
-                            搜索
-                        </Button>
-                        <Button icon={<IconPlus/>} onClick={() => {
-                            filterFormRef.current?.resetFields();
-                            fetchTableData();
-                        }}>
-                            重置
-                        </Button>
+                        {/* 搜索和重置按钮已在 FilterForm 组件中包含 */}
                     </Space>
                 </div>
                 <Table
@@ -347,10 +344,6 @@ function ExamHistoryManager() {
                             <div className="detail-item">
                                 <label>试卷名称：</label>
                                 <span>{detailRecord.examName}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>考生姓名：</label>
-                                <span>{detailRecord.userName}</span>
                             </div>
                             <div className="detail-item">
                                 <label>总分：</label>
