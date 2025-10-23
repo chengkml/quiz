@@ -268,7 +268,7 @@ function ExamHistoryManager() {
             const lastSubmittedResultId = sessionStorage.getItem('lastSubmittedResultId');
             if (lastSubmittedResultId) {
                 // 跳转到详情页
-                navigate(`/quiz/frame/exam/result/${lastSubmittedResultId}`);
+                navigate(`/quiz/frame/history/result/${lastSubmittedResultId}`);
                 // 清除sessionStorage中的记录，避免下次进入时再次自动打开
                 sessionStorage.removeItem('lastSubmittedResultId');
             }
