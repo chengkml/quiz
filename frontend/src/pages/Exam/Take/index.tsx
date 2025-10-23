@@ -303,7 +303,7 @@ const ExamTakePage: React.FC = () => {
                             {/* 中间滚动区域：题目列表 */}
                             <div style={{flex: '1 1 auto', overflowY: 'auto'}}></div>
                             <Divider style={{margin: '12px 0'}}/>
-                            <Form layout='vertical'>
+                            <Form layout='vertical' style={{height: 'calca(100% - 200px)', overflow: 'auto'}}>
                                 {(exam?.questions || []).map((eq, idx) => {
                                     const q = eq.question as any;
                                     const eqId = eq.id as string;
@@ -431,7 +431,7 @@ const ExamTakePage: React.FC = () => {
                                     </Space>
                                 </div>
                                 
-                                <div style={{maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', marginBottom: 16}}>
+                                <div style={{maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', marginBottom: 16}}>
                                     <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px'}}>
                                         {(exam?.questions || []).map((eq, idx) => {
                                             const eqId = String(eq.id);
