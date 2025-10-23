@@ -278,6 +278,20 @@ const ExamDetailPage: React.FC = () => {
                                                     }}
                                                 />
                                             )}
+                                            
+                                            {/* 题目解析 */}
+                                            {(q?.explanation || '').trim() && (
+                                                <div style={{
+                                                    marginTop: 16,
+                                                    padding: 12,
+                                                    backgroundColor: '#f6ffed',
+                                                    border: '1px solid #b7eb8f',
+                                                    borderRadius: 4
+                                                }}>
+                                                    <div style={{fontWeight: 600, color: '#389e0d', marginBottom: 4}}>解析：</div>
+                                                    <div style={{color: '#333', lineHeight: 1.6}}>{q.explanation}</div>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
