@@ -216,8 +216,10 @@ const ExamTakePage: React.FC = () => {
             const resp = await submitExam(id, submitBody);
             const result: ExamResultDto = resp.data;
             Message.success(`提交成功，得分：${result.totalScore}`);
-            // 跳转到结果详情页，而不是考试列表页
-            navigate(`/quiz/frame/exam/result/${result.resultId}`);
+            // 保存resultId到sessionStorage，以便历史记录页面自动打开详情
+            sessionStorage.setItem('lastSubmittedResultId', result.resultId);
+            // 跳转到历史记录页
+            navigate(`/quiz/frame/history`);
         } catch (e) {
             Message.error('提交考试失败');
         } finally {

@@ -62,7 +62,7 @@ interface ExamResultDetailPageProps {
     onBackToHistory?: () => void;
 }
 
-const ExamResultDetailPage: React.FC<ExamResultDetailPageProps> = ({ resultId, onBackToHistory }) => {
+const ExamResultDetailPage: React.FC<ExamResultDetailPageProps> = ({resultId, onBackToHistory}) => {
     const {id: urlId} = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
@@ -76,7 +76,7 @@ const ExamResultDetailPage: React.FC<ExamResultDetailPageProps> = ({ resultId, o
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [showOnlyWrong, setShowOnlyWrong] = useState(false); // 控制是否只显示错题
     const questionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
-    
+
     // 使用传入的resultId或URL中的id
     const currentResultId = resultId || urlId;
 
@@ -175,7 +175,7 @@ const ExamResultDetailPage: React.FC<ExamResultDetailPageProps> = ({ resultId, o
 
     useEffect(() => {
         if (currentResultId) fetchDetail(currentResultId);
-        setResultHeight(window.innerHeight - 300);
+        setResultHeight(window.innerHeight - 360);
     }, [currentResultId]);
 
     // 计算得分百分比
@@ -194,215 +194,213 @@ const ExamResultDetailPage: React.FC<ExamResultDetailPageProps> = ({ resultId, o
     const evaluation = getScoreEvaluation(scorePercentage);
 
     return (
-        <Layout className="exam-manager">
-            <Content>
-                <Card style={{marginBottom: 20}}>
-                    <Row style={{marginBottom: 16}}>
-                        <Col span={24}>
-                            <div style={{fontSize: 18, fontWeight: 600}}>{examName || '试卷'}</div>
-                        </Col>
-                    </Row>
+        <div style={{height: '100%'}}>
+            <Card style={{marginBottom: 20}}>
+                <Row style={{marginBottom: 16}}>
+                    <Col span={24}>
+                        <div style={{fontSize: 18, fontWeight: 600}}>{examName || '试卷'}</div>
+                    </Col>
+                </Row>
 
-                    {/* 考试详情信息 */}
-                    <Row style={{marginTop: 16}}>
-                        <Col span={24}>
-                            <Space size={24}>
-                                <Text>
-                                    得分：<Text strong style={{color: '#52c41a'}}>{detail?.totalScore || 0}</Text>
-                                </Text>
-                                <Text>
-                                    正确题数：<Text strong style={{color: '#52c41a'}}>{detail?.correctCount || 0}</Text>
-                                </Text>
-                                <Text>
-                                    错误题数：<Text strong style={{color: '#ff4d4f'}}>
-                                    {detail?.answers?.length ? detail.answers.length - (detail.correctCount || 0) : 0}
-                                </Text>
-                                </Text>
-                                <Text>
-                                    提交时间：<Text>{detail?.submitTime ? formatTime(detail.submitTime) : '-'}</Text>
-                                </Text>
-                            </Space>
-                        </Col>
-                    </Row>
-                </Card>
-                <Card
-                    title={
-                        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                            <span>答题详情与解析</span>
-                            <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-                                <Button
-                                    type={showOnlyWrong ? 'primary' : 'default'}
-                                    size="small"
-                                    onClick={() => {
-                                        setShowOnlyWrong(!showOnlyWrong);
-                                        setCurrentIndex(0); // 切换时重置到第一题
-                                    }}
-                                >
-                                    {showOnlyWrong ? '显示全部题目' : '只看错题'}
-                                </Button>
-                            </div>
+                {/* 考试详情信息 */}
+                <Row style={{marginTop: 16}}>
+                    <Col span={24}>
+                        <Space size={24}>
+                            <Text>
+                                得分：<Text strong style={{color: '#52c41a'}}>{detail?.totalScore || 0}</Text>
+                            </Text>
+                            <Text>
+                                正确题数：<Text strong style={{color: '#52c41a'}}>{detail?.correctCount || 0}</Text>
+                            </Text>
+                            <Text>
+                                错误题数：<Text strong style={{color: '#ff4d4f'}}>
+                                {detail?.answers?.length ? detail.answers.length - (detail.correctCount || 0) : 0}
+                            </Text>
+                            </Text>
+                            <Text>
+                                提交时间：<Text>{detail?.submitTime ? formatTime(detail.submitTime) : '-'}</Text>
+                            </Text>
+                        </Space>
+                    </Col>
+                </Row>
+            </Card>
+            <Card
+                title={
+                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                        <span>答题详情与解析</span>
+                        <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                            <Button
+                                type={showOnlyWrong ? 'primary' : 'default'}
+                                size="small"
+                                onClick={() => {
+                                    setShowOnlyWrong(!showOnlyWrong);
+                                    setCurrentIndex(0); // 切换时重置到第一题
+                                }}
+                            >
+                                {showOnlyWrong ? '显示全部题目' : '只看错题'}
+                            </Button>
                         </div>
-                    }
-                    style={{marginBottom: 20}}
-                >
-                    {loading ? (
-                        <div style={{textAlign: 'center', padding: 40}}>
-                            <Text>正在加载答案解析...</Text>
+                    </div>
+                }
+                style={{marginBottom: 20}}
+            >
+                {loading ? (
+                    <div style={{textAlign: 'center', padding: 40}}>
+                        <Text>正在加载答案解析...</Text>
+                    </div>
+                ) : detail?.answers && detail.answers.length > 0 ? (
+                    <>
+                        {/* 题目导航 */}
+                        <div style={{
+                            marginBottom: 20,
+                            padding: 12,
+                            backgroundColor: '#fafafa',
+                            borderRadius: 4,
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 8,
+                            maxHeight: 150,
+                            overflow: 'auto'
+                        }}>
+                            <Button
+                                type={currentIndex > 0 ? 'default' : 'text'}
+                                disabled={currentIndex === 0}
+                                onClick={goPrev}
+                                style={{marginRight: 8}}
+                            >
+                                上一题
+                            </Button>
+                            {getDisplayAnswers().map((answer, index) => {
+                                // 找到在原始列表中的索引，用于显示正确的题目编号
+                                const originalIndex = detail?.answers.findIndex(a => a.examQuestionId === answer.examQuestionId) || 0;
+                                return (
+                                    <Button
+                                        key={answer.examQuestionId}
+                                        size="small"
+                                        type={currentIndex === index ? 'primary' : 'default'}
+                                        onClick={() => scrollToIndex(index)}
+                                        style={{
+                                            minWidth: 32,
+                                            padding: '0 8px',
+                                            backgroundColor: !answer.correct ?
+                                                (currentIndex === index ? '#1677ff' : '#fff2f0') :
+                                                (currentIndex === index ? '#1677ff' : '#f6ffed')
+                                        }}
+                                    >
+                                        {originalIndex + 1}
+                                    </Button>
+                                );
+                            })}
+                            <Button
+                                type={currentIndex < (getDisplayAnswers().length - 1) ? 'default' : 'text'}
+                                disabled={currentIndex === getDisplayAnswers().length - 1}
+                                onClick={goNext}
+                                style={{marginLeft: 8}}
+                            >
+                                下一题
+                            </Button>
                         </div>
-                    ) : detail?.answers && detail.answers.length > 0 ? (
-                        <>
-                            {/* 题目导航 */}
-                            <div style={{
-                                marginBottom: 20,
-                                padding: 12,
-                                backgroundColor: '#fafafa',
-                                borderRadius: 4,
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                gap: 8,
-                                maxHeight: 150,
-                                overflow: 'auto'
-                            }}>
-                                <Button
-                                    type={currentIndex > 0 ? 'default' : 'text'}
-                                    disabled={currentIndex === 0}
-                                    onClick={goPrev}
-                                    style={{marginRight: 8}}
-                                >
-                                    上一题
-                                </Button>
-                                {getDisplayAnswers().map((answer, index) => {
-                                    // 找到在原始列表中的索引，用于显示正确的题目编号
-                                    const originalIndex = detail?.answers.findIndex(a => a.examQuestionId === answer.examQuestionId) || 0;
-                                    return (
-                                        <Button
-                                            key={answer.examQuestionId}
-                                            size="small"
-                                            type={currentIndex === index ? 'primary' : 'default'}
-                                            onClick={() => scrollToIndex(index)}
-                                            style={{
-                                                minWidth: 32,
-                                                padding: '0 8px',
-                                                backgroundColor: !answer.correct ?
-                                                    (currentIndex === index ? '#1677ff' : '#fff2f0') :
-                                                    (currentIndex === index ? '#1677ff' : '#f6ffed')
-                                            }}
-                                        >
-                                            {originalIndex + 1}
-                                        </Button>
-                                    );
-                                })}
-                                <Button
-                                    type={currentIndex < (getDisplayAnswers().length - 1) ? 'default' : 'text'}
-                                    disabled={currentIndex === getDisplayAnswers().length - 1}
-                                    onClick={goNext}
-                                    style={{marginLeft: 8}}
-                                >
-                                    下一题
-                                </Button>
-                            </div>
-                            <div style={{height: resultHeight - 170, overflow: 'auto'}}>
-                                {getDisplayAnswers().map((answer, idx) => {
-                                    const originalIndex = detail?.answers.findIndex(a => a.examQuestionId === answer.examQuestionId) || 0;
-                                    const isCorrect = answer.correct;
-                                    const q = questionMap[answer.examQuestionId];
-                                    const eqId = q.id as string;
-                                    const type = q?.type;
-                                    const opts = parseOptions(q?.options);
-                                    const blanks = parseBlanks(q?.options);
-                                    return (
-                                        <div
-                                            key={eqId}
-                                            ref={(el) => {
-                                                questionRefs.current[String(eqId)] = el;
-                                            }}
-                                            style={{
-                                                padding: 12,
-                                                borderRadius: 8,
-                                                marginBottom: 16,
-                                                transition: 'border-color 0.2s, box-shadow 0.2s'
-                                            }}
-                                        >
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                marginBottom: 8
-                                            }}>
-                                                <Space>
-                                                    <span style={{fontWeight: 600}}>{idx + 1}.</span>
-                                                    <Tag
-                                                        color={type === 'SINGLE' ? 'blue' : type === 'MULTIPLE' ? 'purple' : type === 'BLANK' ? 'green' : 'orange'}>
-                                                        {type === 'SINGLE' ? '单选题' : type === 'MULTIPLE' ? '多选题' : type === 'BLANK' ? '填空题' : '简答题'}
-                                                    </Tag>
-                                                </Space>
-                                            </div>
-                                            <div style={{
-                                                fontSize: 14,
-                                                lineHeight: 1.6,
-                                                marginBottom: 12
-                                            }}>{q?.content}</div>
+                        <div style={{height: resultHeight, overflow: 'auto'}}>
+                            {getDisplayAnswers().map((answer, idx) => {
+                                const originalIndex = detail?.answers.findIndex(a => a.examQuestionId === answer.examQuestionId) || 0;
+                                const isCorrect = answer.correct;
+                                const q = questionMap[answer.examQuestionId];
+                                const eqId = q.id as string;
+                                const type = q?.type;
+                                const opts = parseOptions(q?.options);
+                                const blanks = parseBlanks(q?.options);
+                                return (
+                                    <div
+                                        key={eqId}
+                                        ref={(el) => {
+                                            questionRefs.current[String(eqId)] = el;
+                                        }}
+                                        style={{
+                                            padding: 12,
+                                            borderRadius: 8,
+                                            marginBottom: 16,
+                                            transition: 'border-color 0.2s, box-shadow 0.2s'
+                                        }}
+                                    >
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            marginBottom: 8
+                                        }}>
+                                            <Space>
+                                                <span style={{fontWeight: 600}}>{idx + 1}.</span>
+                                                <Tag
+                                                    color={type === 'SINGLE' ? 'blue' : type === 'MULTIPLE' ? 'purple' : type === 'BLANK' ? 'green' : 'orange'}>
+                                                    {type === 'SINGLE' ? '单选题' : type === 'MULTIPLE' ? '多选题' : type === 'BLANK' ? '填空题' : '简答题'}
+                                                </Tag>
+                                            </Space>
+                                        </div>
+                                        <div style={{
+                                            fontSize: 14,
+                                            lineHeight: 1.6,
+                                            marginBottom: 12
+                                        }}>{q?.content}</div>
 
-                                            {type === 'SINGLE' && (
-                                                <Radio.Group
-                                                    value={(answers[eqId] || [''])[0]}
-                                                >
-                                                    <Space direction='vertical'>
-                                                        {opts.map(opt => (
-                                                            <Radio key={opt.key} value={opt.key}>{opt.text}</Radio>
-                                                        ))}
-                                                    </Space>
-                                                </Radio.Group>
-                                            )}
-
-                                            {type === 'MULTIPLE' && (
-                                                <Checkbox.Group
-                                                    value={(answers[eqId] || [])}
-                                                >
-                                                    <Space direction='vertical'>
-                                                        {opts.map(opt => (
-                                                            <Checkbox key={opt.key}
-                                                                      value={opt.key}>{opt.text}</Checkbox>
-                                                        ))}
-                                                    </Space>
-                                                </Checkbox.Group>
-                                            )}
-
-                                            {type === 'BLANK' && (
-                                                <Space direction='vertical' style={{width: '100%'}}>
-                                                    {(blanks.length > 0 ? blanks : ['']).map((placeholder, i) => (
-                                                        <Input
-                                                            key={i}
-                                                            placeholder={placeholder ? `填空 ${i + 1}：${placeholder}` : `填空 ${i + 1}`}
-                                                            value={(answers[eqId] || [''])[i] || ''}
-                                                        />
+                                        {type === 'SINGLE' && (
+                                            <Radio.Group
+                                                value={(answers[eqId] || [''])[0]}
+                                            >
+                                                <Space direction='vertical'>
+                                                    {opts.map(opt => (
+                                                        <Radio key={opt.key} value={opt.key}>{opt.text}</Radio>
                                                     ))}
                                                 </Space>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </>
-                    ) : (
-                        <Text style={{textAlign: 'center', display: 'block', padding: 40}}>暂无答案解析数据</Text>
-                    )}
-                </Card>
-                <div style={{marginTop: 20, textAlign: 'center'}}>
-                    <Space>
-                        <Button onClick={() => navigate('/quiz/frame/exam')}>返回考试列表</Button>
-                        <Button type="primary"
-                                onClick={() => navigate(`/quiz/frame/exam/take/${detail?.examId}`)}>重新测试</Button>
-                        <Button onClick={() => {
-                            if (onBackToHistory) {
-                                onBackToHistory();
-                            } else {
-                                navigate('/quiz/frame/history');
-                            }
-                        }}>查看历史记录</Button>
-                    </Space>
-                </div>
-            </Content>
-        </Layout>
+                                            </Radio.Group>
+                                        )}
+
+                                        {type === 'MULTIPLE' && (
+                                            <Checkbox.Group
+                                                value={(answers[eqId] || [])}
+                                            >
+                                                <Space direction='vertical'>
+                                                    {opts.map(opt => (
+                                                        <Checkbox key={opt.key}
+                                                                  value={opt.key}>{opt.text}</Checkbox>
+                                                    ))}
+                                                </Space>
+                                            </Checkbox.Group>
+                                        )}
+
+                                        {type === 'BLANK' && (
+                                            <Space direction='vertical' style={{width: '100%'}}>
+                                                {(blanks.length > 0 ? blanks : ['']).map((placeholder, i) => (
+                                                    <Input
+                                                        key={i}
+                                                        placeholder={placeholder ? `填空 ${i + 1}：${placeholder}` : `填空 ${i + 1}`}
+                                                        value={(answers[eqId] || [''])[i] || ''}
+                                                    />
+                                                ))}
+                                            </Space>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </>
+                ) : (
+                    <Text style={{textAlign: 'center', display: 'block', padding: 40}}>暂无答案解析数据</Text>
+                )}
+            </Card>
+            <div style={{marginTop: 20, textAlign: 'center'}}>
+                <Space>
+                    <Button onClick={() => navigate('/quiz/frame/exam')}>返回考试列表</Button>
+                    <Button type="primary"
+                            onClick={() => navigate(`/quiz/frame/exam/take/${detail?.examId}`)}>重新测试</Button>
+                    <Button onClick={() => {
+                        if (onBackToHistory) {
+                            onBackToHistory();
+                        } else {
+                            navigate('/quiz/frame/history');
+                        }
+                    }}>查看历史记录</Button>
+                </Space>
+            </div>
+        </div>
     );
 };
 

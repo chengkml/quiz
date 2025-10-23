@@ -43,6 +43,7 @@ function ExamHistoryManager() {
     const [showDetailPage, setShowDetailPage] = useState(false);
     const [currentResultId, setCurrentResultId] = useState<string | null>(null);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [hasCheckedLastResult, setHasCheckedLastResult] = useState(false);
 
     // 分页配置
     const [pagination, setPagination] = useState({
@@ -272,6 +273,22 @@ function ExamHistoryManager() {
             setLoading(false);
         }
     };
+    
+    // 检查是否有最近提交的考试结果需要自动打开详情
+    useEffect(() => {
+        // 只检查一次，避免页面刷新时重复打开
+        if (!hasCheckedLastResult) {
+            const lastSubmittedResultId = sessionStorage.getItem('lastSubmittedResultId');
+            if (lastSubmittedResultId) {
+                // 设置当前resultId并打开详情页
+                setCurrentResultId(lastSubmittedResultId);
+                setShowDetailPage(true);
+                // 清除sessionStorage中的记录，避免下次进入时再次自动打开
+                sessionStorage.removeItem('lastSubmittedResultId');
+            }
+            setHasCheckedLastResult(true);
+        }
+    }, [hasCheckedLastResult]);
 
 
 
@@ -304,9 +321,7 @@ function ExamHistoryManager() {
         <Layout className="exam-history-manager">
             <Content>
                 {showDetailPage && currentResultId ? (
-                    <div className="exam-result-detail-container">
-                        <ExamResultDetailPage resultId={currentResultId} onBackToHistory={handleBackToList} />
-                    </div>
+                    <ExamResultDetailPage resultId={currentResultId} onBackToHistory={handleBackToList} />
                 ) : (
                     <>
                         {/* 筛选表单 */}
