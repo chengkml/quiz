@@ -43,6 +43,46 @@ function parseBlanks(options: any): string[] {
     return [];
 }
 
+// 格式化时间函数，与列表页面保持一致
+const formatSubmitTime = (value) => {
+  if (!value) return '--';
+
+  const now = new Date();
+  const date = new Date(value);
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  // 今天
+  if (diffDays === 0) {
+    if (diffSeconds < 60) {
+      return `${diffSeconds}秒前`;
+    } else if (diffMinutes < 60) {
+      return `${diffMinutes}分钟前`;
+    } else {
+      return `${diffHours}小时前`;
+    }
+  }
+  // 昨天
+  else if (diffDays === 1) {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `昨天 ${hours}:${minutes}`;
+  }
+  // 昨天之前
+  else {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }
+};
+
 const ExamHistoryDetailPage: React.FC = () => {
     const {id} = useParams();
     const navigate = useNavigate();
@@ -68,10 +108,10 @@ const ExamHistoryDetailPage: React.FC = () => {
     }, [id]);
 
     const scrollToIndex = (index: number) => {
-        const list = result?.questions || [];
+        const list = result?.answers || [];
         if (index < 0 || index >= list.length) return;
         setCurrentIndex(index);
-        const targetId = String(list[index].id);
+        const targetId = String(list[index].question.id);
         const el = questionRefs.current[targetId];
         if (el && typeof el.scrollIntoView === 'function') {
             el.scrollIntoView({behavior: 'smooth', block: 'start'});
@@ -85,33 +125,32 @@ const ExamHistoryDetailPage: React.FC = () => {
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <div>
                 <div style={{fontSize: 18, fontWeight: 600}}>{result?.examName}</div>
-                <div style={{color: '#666', marginTop: 4}}>提交时间：{result?.submitTime}</div>
+                <div style={{color: '#666', marginTop: 4}}>提交时间：{formatSubmitTime(result?.submitTime)}</div>
             </div>
             <Space>
-                <Tag color='blue' bordered>总分：{result?.totalScore}</Tag>
-                <Tag color={result?.isPass ? 'green' : 'red'} bordered>
-                    得分：{result?.userScore}
+                <Tag bordered color='green'>
+                    得分：{result?.totalScore}
                 </Tag>
                 <Tag color='orange' bordered>
-                    正确题数：{result?.correctCount}/{result?.totalCount}
+                    正确题数：{result?.correctCount}/{result?.answers.length}
                 </Tag>
             </Space>
         </div>
     ), [result]);
 
     const isCorrect = (questionId: string): boolean => {
-        const q = result?.questions?.find(x => String(x.id) === String(questionId));
-        return q?.isCorrect || false;
+        const q = result?.answers?.find(x => String(x.question.id) === String(questionId));
+        return q?.correct || false;
     };
 
     const getUserAnswers = (questionId: string): string[] => {
-        const q = result?.questions?.find(x => String(x.id) === String(questionId));
+        const q = result?.answers?.find(x => String(x.question.id) === String(questionId));
         return q?.userAnswers || [];
     };
 
     const getCorrectAnswers = (questionId: string): string[] => {
-        const q = result?.questions?.find(x => String(x.id) === String(questionId));
-        return q?.correctAnswers || [];
+        const q = result?.answers?.find(x => String(x.question.id) === String(questionId));
+        return q?.question.answer.split(',');
     };
 
     return (
@@ -192,164 +231,69 @@ const ExamHistoryDetailPage: React.FC = () => {
                                             }}>{q.content}</div>
 
                                             {type === 'SINGLE' && (
-                                                <Radio.Group
-                                                    value={userAnswers[0] || ''}
-                                                >
-                                                    <Space direction='vertical'>
-                                                        {opts.map(opt => {
-                                                            const isUserAnswer = userAnswers.includes(opt.key);
-                                                            const isCorrectAnswer = correctAnswers.includes(opt.key);
-                                                            let textStyle: React.CSSProperties = {};
-
-                                                            if (isCorrectAnswer) {
-                                                                textStyle = {
-                                                                    color: '#52c41a',
-                                                                    fontWeight: 600
-                                                                };
-                                                            } else if (isUserAnswer && !isCorrectAnswer) {
-                                                                textStyle = {
-                                                                    color: '#f5222d',
-                                                                    fontWeight: 600
-                                                                };
-                                                            }
-
-                                                            return (
-                                                                <Radio key={opt.key} value={opt.key}>
-                                                                    <span style={textStyle}>
-                                                                        {opt.text}
-                                                                    </span>
-                                                                    {isCorrectAnswer && (
-                                                                        <Tag color='success'
-                                                                             style={{marginLeft: 8}}>正确答案</Tag>
-                                                                    )}
-                                                                    {isUserAnswer && !isCorrectAnswer && (
-                                                                        <Tag color='error'
-                                                                             style={{marginLeft: 8}}>你的答案</Tag>
-                                                                    )}
-                                                                </Radio>
-                                                            );
-                                                        })}
-                                                    </Space>
-                                                </Radio.Group>
-                                            )}
-
-                                            {type === 'MULTIPLE' && (
-                                                <Checkbox.Group
-                                                    value={userAnswers}
-                                                >
-                                                    <Space direction='vertical'>
-                                                        {opts.map(opt => {
-                                                            const isUserAnswer = userAnswers.includes(opt.key);
-                                                            const isCorrectAnswer = correctAnswers.includes(opt.key);
-                                                            let textStyle: React.CSSProperties = {};
-
-                                                            if (isCorrectAnswer) {
-                                                                textStyle = {
-                                                                    color: '#52c41a',
-                                                                    fontWeight: 600
-                                                                };
-                                                            } else if (isUserAnswer && !isCorrectAnswer) {
-                                                                textStyle = {
-                                                                    color: '#f5222d',
-                                                                    fontWeight: 600
-                                                                };
-                                                            }
-
-                                                            return (
-                                                                <Checkbox key={opt.key} value={opt.key}>
-                                                                    <span style={textStyle}>
-                                                                        {opt.text}
-                                                                    </span>
-                                                                    {isCorrectAnswer && (
-                                                                        <Tag color='success'
-                                                                             style={{marginLeft: 8}}>正确答案</Tag>
-                                                                    )}
-                                                                    {isUserAnswer && !isCorrectAnswer && (
-                                                                        <Tag color='error'
-                                                                             style={{marginLeft: 8}}>你的答案</Tag>
-                                                                    )}
-                                                                </Checkbox>
-                                                            );
-                                                        })}
-                                                    </Space>
-                                                </Checkbox.Group>
-                                            )}
-
-                                            {type === 'BLANK' && (
-                                                <Space direction='vertical' style={{width: '100%'}}>
-                                                    {(userAnswers.length > 0 ? userAnswers : ['']).map((answer, i) => {
-                                                        const correctAnswer = correctAnswers[i] || '';
-                                                        const isBlankCorrect = answer === correctAnswer;
-
-                                                        return (
-                                                            <div key={i} style={{marginBottom: 8}}>
-                                                                <div style={{
-                                                                    marginBottom: 4,
-                                                                    fontSize: 12,
-                                                                    color: '#666'
-                                                                }}>填空 {i + 1}：
-                                                                </div>
-                                                                <Input
-                                                                    value={answer}
-                                                                    disabled
-                                                                    style={{
-                                                                        backgroundColor: isBlankCorrect ? '#f0f9ff' : '#fff1f0',
-                                                                        borderColor: isBlankCorrect ? '#52c41a' : '#f5222d'
-                                                                    }}
-                                                                />
-                                                                {!isBlankCorrect && correctAnswer && (
-                                                                    <div style={{marginTop: 4, fontSize: 12}}>
-                                                                        <Tag color='success'
-                                                                             style={{marginRight: 8}}>正确答案：</Tag>
-                                                                        <span style={{
-                                                                            color: '#52c41a',
-                                                                            fontWeight: 600
-                                                                        }}>{correctAnswer}</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </Space>
-                                            )}
-
-                                            {type === 'SHORT_ANSWER' && (
                                                 <>
-                                                    <div
-                                                        style={{marginBottom: 8, fontSize: 12, color: '#666'}}>你的答案：
-                                                    </div>
-                                                    <TextArea
+                                                    <Radio.Group
                                                         value={userAnswers[0] || ''}
-                                                        disabled
-                                                        rows={4}
-                                                        style={{
-                                                            backgroundColor: correct ? '#f0f9ff' : '#fff1f0',
-                                                            borderColor: correct ? '#52c41a' : '#f5222d'
-                                                        }}
-                                                    />
-                                                    {!correct && correctAnswers[0] && (
-                                                        <div style={{marginTop: 8}}>
-                                                            <div style={{
-                                                                marginBottom: 4,
-                                                                fontSize: 12, color: '#666'
-                                                            }}>正确答案：
-                                                            </div>
-                                                            <TextArea
-                                                                value={correctAnswers[0]}
-                                                                disabled
-                                                                rows={4}
-                                                                style={{
-                                                                    backgroundColor: '#f0f9ff',
-                                                                    borderColor: '#52c41a'
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    )}
+                                                    >
+                                                        <Space direction='vertical'>
+                                                            {opts.map(opt => {
+                                                                const isUserAnswer = userAnswers.includes(opt.key);
+                                                                const isCorrectAnswer = correctAnswers.includes(opt.key);
+                                                                let textStyle: React.CSSProperties = {};
+
+                                                                if (isUserAnswer && !isCorrectAnswer) {
+                                                                    textStyle = {
+                                                                        color: '#f5222d',
+                                                                        fontWeight: 600
+                                                                    };
+                                                                }
+
+                                                                return (
+                                                                    <Radio key={opt.key} value={opt.key}>
+                                                                        <span style={textStyle}>
+                                                                            {opt.text}
+                                                                        </span>
+                                                                    </Radio>
+                                                                );
+                                                            })}
+                                                        </Space>
+                                                    </Radio.Group>
                                                 </>
                                             )}
 
-                                            {/* 题目解析 */}
-                                            {(q?.explanation || '').trim() && (
+                                            {type === 'MULTIPLE' && (
+                                                <>
+                                                    <Checkbox.Group
+                                                        value={userAnswers}
+                                                    >
+                                                        <Space direction='vertical'>
+                                                            {opts.map(opt => {
+                                                                const isUserAnswer = userAnswers.includes(opt.key);
+                                                                const isCorrectAnswer = correctAnswers.includes(opt.key);
+                                                                let textStyle: React.CSSProperties = {};
+
+                                                                if (isUserAnswer && !isCorrectAnswer) {
+                                                                    textStyle = {
+                                                                        color: '#f5222d',
+                                                                        fontWeight: 600
+                                                                    };
+                                                                }
+
+                                                                return (
+                                                                    <Checkbox key={opt.key} value={opt.key}>
+                                                                        <span style={textStyle}>
+                                                                            {opt.text}
+                                                                        </span>
+                                                                    </Checkbox>
+                                                                );
+                                                            })}
+                                                        </Space>
+                                                    </Checkbox.Group>
+                                                </>
+                                            )}
+
+                                            {/* 题目解析和正确答案 */}
+                                            {((q?.explanation || '').trim() || correctAnswers.length > 0) && (
                                                 <div style={{
                                                     marginTop: 16,
                                                     padding: 12,
@@ -357,10 +301,24 @@ const ExamHistoryDetailPage: React.FC = () => {
                                                     border: '1px solid #b7eb8f',
                                                     borderRadius: 4
                                                 }}>
-                                                    <div
-                                                        style={{fontWeight: 600, color: '#389e0d', marginBottom: 4}}>解析：
+                                                    {/* 正确答案 */}
+                                                    <div>
+                                                        <div style={{fontWeight: 600, color: '#389e0d', marginBottom: 4}}>正确答案：</div>
+                                                        <div style={{color: '#333', lineHeight: 1.6, marginBottom: 8}}>
+                                                            {correctAnswers.map(ans => {
+                                                                const correctOpt = opts.find(opt => opt.key === ans);
+                                                                return correctOpt ? correctOpt.text : ans;
+                                                            }).join(', ')}
+                                                        </div>
                                                     </div>
-                                                    <div style={{color: '#333', lineHeight: 1.6}}>{q.explanation}</div>
+                                                    
+                                                    {/* 解析 */}
+                                                    {(q?.explanation || '').trim() && (
+                                                        <div>
+                                                            <div style={{fontWeight: 600, color: '#389e0d', marginBottom: 4}}>解析：</div>
+                                                            <div style={{color: '#333', lineHeight: 1.6}}>{q.explanation}</div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -383,7 +341,7 @@ const ExamHistoryDetailPage: React.FC = () => {
                                 }}>
                                     <Space>
                                         <Tag color='arcoblue' bordered>题目导航</Tag>
-                                        <Tag bordered>共 {result?.questions?.length || 0} 题</Tag>
+                                        <Tag bordered>共 {result?.answers?.length || 0} 题</Tag>
                                     </Space>
                                 </div>
 
