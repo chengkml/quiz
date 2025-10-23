@@ -267,9 +267,9 @@ const ExamTakePage: React.FC = () => {
                 <div style={{color: '#666', marginTop: 4}}>{exam?.description}</div>
             </div>
             <Space>
-                <Tag color='blue'>总分：{exam?.totalScore}</Tag>
+                <Tag color='blue' bordered>总分：{exam?.totalScore}</Tag>
                 {exam?.durationMinutes && (
-                    <Tag color={remainingSeconds <= 300 ? 'red' : 'orange'}>
+                    <Tag color={remainingSeconds <= 300 ? 'red' : 'orange'} bordered>
                         剩余时间：{formatTime(Math.max(0, remainingSeconds))}
                     </Tag>
                 )}
@@ -333,11 +333,11 @@ const ExamTakePage: React.FC = () => {
                                             }}>
                                                 <Space>
                                                     <span style={{fontWeight: 600}}>{idx + 1}.</span>
-                                                    <Tag
+                                                    <Tag bordered
                                                         color={type === 'SINGLE' ? 'blue' : type === 'MULTIPLE' ? 'purple' : type === 'BLANK' ? 'green' : 'orange'}>
                                                         {type === 'SINGLE' ? '单选题' : type === 'MULTIPLE' ? '多选题' : type === 'BLANK' ? '填空题' : '简答题'}
                                                     </Tag>
-                                                    <Tag>分值：{eq.score}</Tag>
+                                                    <Tag  bordered>分值：{eq.score}</Tag>
                                                 </Space>
                                                 <Space>
                                                     <Button
@@ -426,8 +426,8 @@ const ExamTakePage: React.FC = () => {
                                     borderBottom: '1px solid var(--color-border-2)'
                                 }}>
                                     <Space>
-                                        <Tag color='arcoblue'>题目导航</Tag>
-                                        <Tag>共 {exam?.questions?.length || 0} 题</Tag>
+                                        <Tag color='arcoblue' bordered>题目导航</Tag>
+                                        <Tag bordered>共 {exam?.questions?.length || 0} 题</Tag>
                                     </Space>
                                 </div>
                                 
