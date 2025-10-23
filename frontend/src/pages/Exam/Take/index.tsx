@@ -285,70 +285,23 @@ const ExamTakePage: React.FC = () => {
                 borderRadius: 8,
                 padding: 16,
                 display: 'flex',
-                flexDirection: 'column',
                 height: 'calc(100vh - 20px)'
             }}>
                 {loading ? (
-                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh'}}>
+                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%'}}>
                         <Spin/>
                     </div>
                 ) : (
-                    <div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
-                        {/* 顶部固定区域：试卷信息 + 题目导航 */}
-                        <div style={{flex: '0 0 auto'}}>
-                            {header}
-                            <div style={{
-                                background: '#fff',
-                                padding: '8px 0',
-                                borderBottom: '1px solid var(--color-border-2)'
-                            }}>
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    marginBottom: 8
-                                }}>
-                                    <Space>
-                                        <Tag color='arcoblue'>题目导航</Tag>
-                                        <Tag>共 {exam?.questions?.length || 0} 题</Tag>
-                                    </Space>
-                                    <Space>
-                                        <Button size='small' onClick={goPrev}
-                                                disabled={currentIndex <= 0}>上一题</Button>
-                                        <Button size='small' onClick={goNext}
-                                                disabled={(exam?.questions?.length || 0) === 0 || currentIndex >= (exam?.questions?.length || 0) - 1}>下一题</Button>
-                                    </Space>
-                                </div>
-                                <Space wrap>
-                                    {(exam?.questions || []).map((eq, idx) => {
-                                        const eqId = String(eq.id);
-                                        const answered = isAnswered(eqId);
-                                        const marked = !!markedMap[eqId];
-                                        const type = (eq.question as any)?.type;
-                                        return (
-                                            <Tooltip key={eqId}
-                                                     content={`第${idx + 1}题（${type || '未知类型'}）${answered ? ' - 已作答' : ' - 未作答'}${marked ? ' - 已标记' : ''}`}>
-                                                <Button
-                                                    size='mini'
-                                                    type={answered ? 'primary' : 'outline'}
-                                                    onClick={() => scrollToIndex(idx)}
-                                                    style={{
-                                                        minWidth: 32,
-                                                        borderColor: marked ? '#faad14' : undefined,
-                                                        color: marked ? '#faad14' : undefined,
-                                                    }}
-                                                >
-                                                    {idx + 1}
-                                                </Button>
-                                            </Tooltip>
-                                        );
-                                    })}
-                                </Space>
+                    <>
+                        {/* 左侧区域：试卷信息和题目内容 */}
+                        <div style={{flex: 1, display: 'flex', flexDirection: 'column', marginRight: 16, overflow: 'hidden'}}>
+                            {/* 顶部固定区域：试卷信息 */}
+                            <div style={{flex: '0 0 auto', marginBottom: 16}}>
+                                {header}
                             </div>
-                        </div>
 
-                        {/* 中间滚动区域：题目列表 */}
-                        <div style={{flex: '1 1 auto', overflowY: 'auto', paddingTop: 12}}>
+                            {/* 中间滚动区域：题目列表 */}
+                            <div style={{flex: '1 1 auto', overflowY: 'auto'}}></div>
                             <Divider style={{margin: '12px 0'}}/>
                             <Form layout='vertical'>
                                 {(exam?.questions || []).map((eq, idx) => {
@@ -459,19 +412,71 @@ const ExamTakePage: React.FC = () => {
                             </Form>
                         </div>
 
-                        {/* 底部固定区域：提交操作 */}
-                        <div style={{
-                            flex: '0 0 auto',
-                            textAlign: 'right',
-                            borderTop: '1px solid var(--color-border-2)',
-                            paddingTop: 12
-                        }}>
-                            <Space>
-                                <Button onClick={() => navigate('/quiz/frame/exam')}>取消</Button>
-                                <Button type='primary' loading={submitting} onClick={handleSubmit}>提交试卷</Button>
-                            </Space>
+
+
+                        {/* 右侧区域：题目导航（固定位置） */}
+                        <div style={{flex: '0 0 240px', borderLeft: '1px solid var(--color-border-2)', paddingLeft: 16}}>
+                            <div style={{position: 'sticky', top: 16}}>
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: 16,
+                                    paddingBottom: 8,
+                                    borderBottom: '1px solid var(--color-border-2)'
+                                }}>
+                                    <Space>
+                                        <Tag color='arcoblue'>题目导航</Tag>
+                                        <Tag>共 {exam?.questions?.length || 0} 题</Tag>
+                                    </Space>
+                                </div>
+                                
+                                <div style={{maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', marginBottom: 16}}>
+                                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px'}}>
+                                        {(exam?.questions || []).map((eq, idx) => {
+                                            const eqId = String(eq.id);
+                                            const answered = isAnswered(eqId);
+                                            const marked = !!markedMap[eqId];
+                                            const type = (eq.question as any)?.type;
+                                            return (
+                                                <Tooltip key={eqId}
+                                                         content={`第${idx + 1}题（${type || '未知类型'}）${answered ? ' - 已作答' : ' - 未作答'}${marked ? ' - 已标记' : ''}`}>
+                                                    <Button
+                                                        size='mini'
+                                                        type={answered ? 'primary' : 'outline'}
+                                                        onClick={() => scrollToIndex(idx)}
+                                                        style={{
+                                                            minWidth: '24px',
+                                                            width: '100%',
+                                                            height: '24px',
+                                                            padding: '0',
+                                                            fontSize: '12px',
+                                                            borderColor: marked ? '#faad14' : undefined,
+                                                            color: marked ? '#faad14' : undefined
+                                                        }}
+                                                    >
+                                                        {idx + 1}
+                                                    </Button>
+                                                </Tooltip>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                
+                                {/* 底部固定按钮：取消和提交试卷 */}
+                                <div style={{
+                                    borderTop: '1px solid var(--color-border-2)',
+                                    paddingTop: 12,
+                                    marginTop: 8
+                                }}>
+                                    <Space direction='vertical' style={{width: '100%'}}>
+                                        <Button onClick={() => navigate('/quiz/frame/exam')} style={{width: '100%'}}>取消</Button>
+                                        <Button type='primary' loading={submitting} onClick={handleSubmit} style={{width: '100%'}}>提交试卷</Button>
+                                    </Space>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </>
                 )}
             </Content>
         </Layout>
