@@ -102,7 +102,7 @@ const {Content} = Layout;
         {
             title: '试卷名称',
             dataIndex: 'name',
-            width: 200,
+            width: 300,
             ellipsis: true,
         },
         {
@@ -112,18 +112,12 @@ const {Content} = Layout;
             ellipsis: true,
         },
         {
-            title: '试卷描述',
-            dataIndex: 'description',
-            minWidth: 300,
-            ellipsis: true,
-        },
-        {
             title: '总分',
             dataIndex: 'totalScore',
             width: 100,
             align: 'center',
             render: (value) => (
-                <Tag color="blue">{value}分</Tag>
+                <Tag bordered color="blue">{value}分</Tag>
             ),
         },
         {
@@ -147,7 +141,7 @@ const {Content} = Layout;
                     'ARCHIVED': {text: '已归档', color: 'orange'}
                 };
                 const status = statusMap[value] || {text: value, color: 'gray'};
-                return <Tag color={status.color}>{status.text}</Tag>;
+                return <Tag bordered color={status.color}>{status.text}</Tag>;
             },
         },
         {
@@ -473,7 +467,7 @@ const {Content} = Layout;
             };
             const res = await autoGenerateExam(payload);
             setSmartGenerating(false);
-            if (res?.code === 0 || res?.success) {
+            if (res?.data) {
                 Message.success('智能生成试卷成功');
                 setSmartGenerateModalVisible(false);
                 smartGenerateFormRef.current?.resetFields();
@@ -832,7 +826,7 @@ const {Content} = Layout;
                                 <div className="detail-item">
                                     <span className="label">状态：</span>
                                     <span className="value">
-                                        <Tag color={
+                                        <Tag bordered color={
                                             detailRecord.status === 'DRAFT' ? 'gray' :
                                                 detailRecord.status === 'PUBLISHED' ? 'green' : 'orange'
                                         }>
@@ -861,9 +855,9 @@ const {Content} = Layout;
                                             <div key={question.id} className="question-item">
                                                 <div className="question-header">
                                                     <div className="question-info">
-                                                        <Tag color="blue">第{question.orderNo}题</Tag>
-                                                        <Tag color="green">{question.score}分</Tag>
-                                                        <Tag color="orange">
+                                                        <Tag bordered color="blue">第{question.orderNo}题</Tag>
+                                                        <Tag bordered color="green">{question.score}分</Tag>
+                                                        <Tag bordered color="orange">
                                                             {question.question?.type === 'SINGLE' ? '单选题' :
                                                                 question.question?.type === 'MULTIPLE' ? '多选题' :
                                                                     question.question?.type === 'BLANK' ? '填空题' : '简答题'}

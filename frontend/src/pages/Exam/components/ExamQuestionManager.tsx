@@ -22,7 +22,7 @@ import {
     removeQuestionFromExam,
     updateExamQuestion,
 } from '../api';
-import {getQuestionList} from '../../Question/api';
+import {getQuestionList, getAllSubjects, getCategoriesBySubjectId} from '../../Question/api';
 
 interface ExamQuestionManagerProps {
     examId: string;
@@ -41,14 +41,70 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
     const [currentEditQuestion, setCurrentEditQuestion] = useState(null);
     const [loading, setLoading] = useState(false);
     const [orderedQuestions, setOrderedQuestions] = useState<any[]>([]);
+    const [subjects, setSubjects] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [subjectsLoading, setSubjectsLoading] = useState(false);
+    const [categoriesLoading, setCategoriesLoading] = useState(false);
 
     const addFormRef = useRef();
     const editFormRef = useRef();
 
-    // 获取可用题目列表
-    const fetchAvailableQuestions = async () => {
+    // 获取学科列表
+    const fetchSubjects = async () => {
         try {
-            const response = await getQuestionList({pageNum: 0, pageSize: 1000});
+            setSubjectsLoading(true);
+            const response = await getAllSubjects();
+            if (response.data) {
+                setSubjects(response.data.map(item => ({
+                    label: item.name,
+                    value: item.id
+                })));
+            }
+        } catch (error) {
+            console.error('获取学科列表失败:', error);
+            Message.error('获取学科列表失败');
+        } finally {
+            setSubjectsLoading(false);
+        }
+    };
+
+    // 根据学科ID获取分类列表
+    const fetchCategoriesBySubject = async (subjectId) => {
+        if (!subjectId) {
+            setCategories([]);
+            return;
+        }
+        try {
+            setCategoriesLoading(true);
+            const response = await getCategoriesBySubjectId(subjectId);
+            if (response.data) {
+                setCategories(response.data.map(item => ({
+                    label: item.name,
+                    value: item.id
+                })));
+            }
+        } catch (error) {
+            console.error('获取分类列表失败:', error);
+            Message.error('获取分类列表失败');
+            setCategories([]);
+        } finally {
+            setCategoriesLoading(false);
+        }
+    };
+
+    // 获取可用题目列表（支持按学科和分类过滤）
+    const fetchAvailableQuestions = async (subjectId = '', categoryId = '') => {
+        try {
+            // 构建查询参数
+            const params = {
+                pageNum: 0,
+                pageSize: 1000
+            };
+            
+            if (subjectId) params.subjectId = subjectId;
+            if (categoryId) params.categoryId = categoryId;
+            
+            const response = await getQuestionList(params);
             if (response.data) {
                 // 过滤掉已经在试卷中的题目
                 const existingQuestionIds = questions.map(q => q.question?.id);
@@ -289,6 +345,8 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
 
     useEffect(() => {
         if (addQuestionModalVisible) {
+            fetchSubjects();
+            // 默认获取所有可用题目
             fetchAvailableQuestions();
         }
     }, [addQuestionModalVisible, questions]);
@@ -328,12 +386,60 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
                 onCancel={() => {
                     setAddQuestionModalVisible(false);
                     addFormRef.current?.resetFields();
+                    // 清空过滤条件
+                    setAvailableQuestions([]);
+                    setCategories([]);
                 }}
                 confirmLoading={loading}
                 autoFocus={false}
                 focusLock={true}
             >
                 <Form ref={addFormRef} layout="vertical">
+                    <Form.Item
+                        label="选择学科"
+                        field="subjectId"
+                        rules={[{required: true, message: '请选择学科'}]}
+                    >
+                        <Select
+                            placeholder="请选择学科"
+                            loading={subjectsLoading}
+                            onChange={(value) => {
+                                // 选择学科后清空分类选择并加载对应分类
+                                addFormRef.current?.setFieldValue('categoryId', undefined);
+                                fetchCategoriesBySubject(value);
+                                // 根据学科过滤题目
+                                fetchAvailableQuestions(value);
+                            }}
+                        >
+                            {subjects.map(subject => (
+                                <Select.Option key={subject.value} value={subject.value}>
+                                    {subject.label}
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                    
+                    <Form.Item
+                        label="选择分类（可选）"
+                        field="categoryId"
+                    >
+                        <Select
+                            placeholder="请选择分类"
+                            loading={categoriesLoading}
+                            onChange={(value) => {
+                                // 根据学科和分类过滤题目
+                                const subjectId = addFormRef.current?.getFieldValue('subjectId');
+                                fetchAvailableQuestions(subjectId, value);
+                            }}
+                        >
+                            {categories.map(category => (
+                                <Select.Option key={category.value} value={category.value}>
+                                    {category.label}
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                    
                     <Form.Item
                         label="选择题目（可多选）"
                         field="questionIds"
@@ -347,13 +453,19 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
                                 option.props.children.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
                             }
                         >
-                            {availableQuestions.map(question => (
-                                <Select.Option key={question.id} value={question.id}>
-                                    [{question.type === 'SINGLE' ? '单选' : 
-                                      question.type === 'MULTIPLE' ? '多选' :
-                                      question.type === 'BLANK' ? '填空' : '简答'}] {question.content}
+                            {availableQuestions.length > 0 ? (
+                                availableQuestions.map(question => (
+                                    <Select.Option key={question.id} value={question.id}>
+                                        [{question.type === 'SINGLE' ? '单选' : 
+                                          question.type === 'MULTIPLE' ? '多选' :
+                                          question.type === 'BLANK' ? '填空' : '简答'}] {question.content}
+                                    </Select.Option>
+                                ))
+                            ) : (
+                                <Select.Option disabled value="">
+                                    暂无可用题目
                                 </Select.Option>
-                            ))}
+                            )}
                         </Select>
                     </Form.Item>
                 </Form>

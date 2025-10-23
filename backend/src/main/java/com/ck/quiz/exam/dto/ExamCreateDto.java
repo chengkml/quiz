@@ -51,7 +51,7 @@ public class ExamCreateDto {
      * 归属学科ID
      */
     @NotNull(message = "学科不能为空")
-    private Long subjectId;
+    private String subjectId;
 
     /**
      * 状态

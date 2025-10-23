@@ -60,7 +60,7 @@ public class Exam {
      * 归属学科ID
      */
     @Column(name = "subject_id")
-    private Long subjectId;
+    private String subjectId;
 
     /**
      * 状态

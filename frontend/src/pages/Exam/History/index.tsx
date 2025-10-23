@@ -74,6 +74,9 @@ function ExamHistoryManager() {
             key: 'totalScore',
             align: 'center',
             width: 100,
+            render: (value) => (
+                <Tag color="blue" bordered>{value}分</Tag>
+            ),
         },
         {
             title: '得分',
@@ -81,6 +84,19 @@ function ExamHistoryManager() {
             key: 'userScore',
             align: 'center',
             width: 100,
+            render: (value, record) => {
+                // 根据得分比例显示不同颜色的标签
+                const scoreRatio = value / record.totalScore;
+                let color = 'red';
+                if (scoreRatio >= 0.9) {
+                    color = 'green';
+                } else if (scoreRatio >= 0.6) {
+                    color = 'blue';
+                } else if (scoreRatio >= 0.3) {
+                    color = 'orange';
+                }
+                return <Tag color={color} bordered>{value}分</Tag>;
+            },
         },
         {
             title: '正确题数',
@@ -88,6 +104,9 @@ function ExamHistoryManager() {
             key: 'correctCount',
             align: 'center',
             width: 120,
+            render: (value) => (
+                <span>{value}题</span>
+            ),
         },
         {
             title: '提交时间',

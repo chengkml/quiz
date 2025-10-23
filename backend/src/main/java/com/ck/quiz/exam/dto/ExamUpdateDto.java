@@ -53,7 +53,7 @@ public class ExamUpdateDto {
     /**
      * 归属学科ID
      */
-    private Long subjectId;
+    private String subjectId;
 
     /**
      * 状态
