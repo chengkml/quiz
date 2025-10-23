@@ -396,7 +396,7 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<com.ck.quiz.knowledge.dto.KnowledgeDto> getQuestionKnowledge(String questionId) {
+    public List<KnowledgeDto> getQuestionKnowledge(String questionId) {
         List<Knowledge> knowledgeList = questionKnowledgeRepository.findKnowledgeByQuestionId(questionId);
         return knowledgeList.stream()
                 .map(knowledgeService::convertToDto)

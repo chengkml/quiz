@@ -593,12 +593,13 @@ public class ExamServiceImpl implements ExamService {
                 ad.setUserAnswers(java.util.Collections.emptyList());
             }
             // 标准答案从题目中解析
-            com.ck.quiz.question.entity.Question q = ra.getExamQuestion().getQuestion();
+            Question q = ra.getExamQuestion().getQuestion();
             java.util.List<String> std = new java.util.ArrayList<>();
             if (org.springframework.util.StringUtils.hasText(q.getAnswer())) {
                 std = java.util.Arrays.asList(q.getAnswer().split(","));
             }
             ad.setStandardAnswers(std);
+            ad.setQuestion(questionService.convertToDto(q));
             answers.add(ad);
         }
         dto.setAnswers(answers);

@@ -9,30 +9,22 @@ import {
     Message,
     Modal,
     Pagination,
-    Select,
     Space,
     Table,
     Tag,
 } from '@arco-design/web-react';
 import './style/index.less';
-import {
-    getExamHistoryList,
-    getExamHistoryDetail,
-    deleteExamHistory
-} from './api';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
+import {deleteExamHistory, getExamHistoryList} from './api';
+import {IconDelete, IconEye, IconList} from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
 import FilterForm from '@/components/FilterForm';
-import ExamResultDetailPage from '@/pages/Exam/Result';
 
 const {Content} = Layout;
-const {Option} = Select;
-const {TextArea} = Input;
 
 function ExamHistoryManager() {
     // 导航
     const navigate = useNavigate();
-    
+
     // 状态管理
     const [tableData, setTableData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -163,20 +155,20 @@ function ExamHistoryManager() {
                     position="bl"
                     droplist={
                         <Menu
-                            onClickMenuItem={(key, e) => {
-                                handleMenuClick(key, e, record);
-                            }}
-                            className="handle-dropdown-menu"
-                        >
-                            <Menu.Item key="detail">
-                                <IconEye style={{marginRight: '5px'}}/>
-                                查看详情
-                            </Menu.Item>
-                            <Menu.Item key="delete">
-                                <IconDelete style={{marginRight: '5px'}}/>
-                                删除
-                            </Menu.Item>
-                        </Menu>
+                                    onClickMenuItem={(key, e) => {
+                                        handleMenuClick(key, e, record);
+                                    }}
+                                    className="handle-dropdown-menu"
+                                >
+                                    <Menu.Item key="detail">
+                                        <IconEye style={{marginRight: '5px'}}/>
+                                        查看详情
+                                    </Menu.Item>
+                                    <Menu.Item key="delete">
+                                        <IconDelete style={{marginRight: '5px'}}/>
+                                        删除
+                                    </Menu.Item>
+                                </Menu>
                     }
                 >
                     <Button
@@ -229,7 +221,7 @@ function ExamHistoryManager() {
         e.stopPropagation();
         switch (key) {
             case 'detail':
-                handleDetail(record);
+                navigate(`/quiz/frame/history/result/${record.resultId}`);
                 break;
             case 'delete':
                 handleDelete(record);
@@ -239,12 +231,7 @@ function ExamHistoryManager() {
         }
     };
 
-    // 处理详情
-    const handleDetail = (record) => {
-        setCurrentResultId(record.resultId);
-        setShowDetailPage(true);
-    };
-    
+
     // 返回历史列表
     const handleBackToList = () => {
         setShowDetailPage(false);
@@ -273,23 +260,21 @@ function ExamHistoryManager() {
             setLoading(false);
         }
     };
-    
+
     // 检查是否有最近提交的考试结果需要自动打开详情
     useEffect(() => {
         // 只检查一次，避免页面刷新时重复打开
         if (!hasCheckedLastResult) {
             const lastSubmittedResultId = sessionStorage.getItem('lastSubmittedResultId');
             if (lastSubmittedResultId) {
-                // 设置当前resultId并打开详情页
-                setCurrentResultId(lastSubmittedResultId);
-                setShowDetailPage(true);
+                // 跳转到详情页
+                navigate(`/quiz/frame/exam/result/${lastSubmittedResultId}`);
                 // 清除sessionStorage中的记录，避免下次进入时再次自动打开
                 sessionStorage.removeItem('lastSubmittedResultId');
             }
             setHasCheckedLastResult(true);
         }
     }, [hasCheckedLastResult]);
-
 
 
     // 筛选表单配置
@@ -321,7 +306,7 @@ function ExamHistoryManager() {
         <Layout className="exam-history-manager">
             <Content>
                 {showDetailPage && currentResultId ? (
-                    <ExamResultDetailPage resultId={currentResultId} onBackToHistory={handleBackToList} />
+                    <></>
                 ) : (
                     <>
                         {/* 筛选表单 */}

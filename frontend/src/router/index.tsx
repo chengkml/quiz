@@ -10,7 +10,7 @@ import ExamManagement from '@/pages/Exam';
 import ExamTakePage from '@/pages/Exam/Take';
 import ExamDetailPage from '@/pages/Exam/Detail';
 import ExamHistoryPage from '@/pages/Exam/History';
-import ExamResultDetailPage from '@/pages/Exam/Result';
+import ExamResultDetailPage from '@/pages/Exam/History/Detail';
 import SubjectManagement from '@/pages/Subject';
 import CategoryManagement from '@/pages/Category';
 import KnowledgeManagement from '@/pages/Knowledge';
@@ -152,9 +152,9 @@ export const router = createBrowserRouter([
             // 非菜单页：考试作答页和详情页（需登录，但不校验菜单权限）
             { path: 'exam/take/:id', element: <ExamTakePage /> },
             { path: 'exam/detail/:id', element: <ExamDetailPage /> },
+            { path: 'history/result/:id', element: <ExamResultDetailPage /> },
             // 非菜单页：历史答卷列表与详情
-            { path: 'exam/results', element: <ExamHistoryPage /> },
-            { path: 'exam/result/:id', element: <ExamResultDetailPage /> },
+            { path: 'history', element: <ExamHistoryPage /> },
             { path: 'notfound', element: <NotFound /> },
         ],
     },
