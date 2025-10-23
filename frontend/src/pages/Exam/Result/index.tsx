@@ -57,8 +57,13 @@ const {Text, Paragraph} = Typography;
 const {Row, Col} = Grid;
 const {Content} = Layout;
 
-const ExamResultDetailPage: React.FC = () => {
-    const {id} = useParams();
+interface ExamResultDetailPageProps {
+    resultId?: string | null;
+    onBackToHistory?: () => void;
+}
+
+const ExamResultDetailPage: React.FC<ExamResultDetailPageProps> = ({ resultId, onBackToHistory }) => {
+    const {id: urlId} = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [answers, setAnswers] = useState<Record<string, string[]>>({});
@@ -71,6 +76,9 @@ const ExamResultDetailPage: React.FC = () => {
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [showOnlyWrong, setShowOnlyWrong] = useState(false); // 控制是否只显示错题
     const questionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+    
+    // 使用传入的resultId或URL中的id
+    const currentResultId = resultId || urlId;
 
     // 获取要显示的题目列表（根据是否只看错题进行过滤）
     const getDisplayAnswers = () => {
@@ -136,10 +144,10 @@ const ExamResultDetailPage: React.FC = () => {
         }
     }
 
-    const fetchDetail = async (resultId: string) => {
+    const fetchDetail = async (targetResultId: string) => {
         setLoading(true);
         try {
-            const res = await getExamResultDetail(resultId);
+            const res = await getExamResultDetail(targetResultId);
             const d: ExamResultDto = res.data;
             setDetail(d);
             if (d?.examId) {
@@ -166,9 +174,9 @@ const ExamResultDetailPage: React.FC = () => {
     };
 
     useEffect(() => {
-        if (id) fetchDetail(id);
+        if (currentResultId) fetchDetail(currentResultId);
         setResultHeight(window.innerHeight - 300);
-    }, [id]);
+    }, [currentResultId]);
 
     // 计算得分百分比
     const scorePercentage = detail && examTotalScore > 0
@@ -384,7 +392,13 @@ const ExamResultDetailPage: React.FC = () => {
                         <Button onClick={() => navigate('/quiz/frame/exam')}>返回考试列表</Button>
                         <Button type="primary"
                                 onClick={() => navigate(`/quiz/frame/exam/take/${detail?.examId}`)}>重新测试</Button>
-                        <Button onClick={() => navigate('/quiz/frame/exam/results')}>查看历史记录</Button>
+                        <Button onClick={() => {
+                            if (onBackToHistory) {
+                                onBackToHistory();
+                            } else {
+                                navigate('/quiz/frame/history');
+                            }
+                        }}>查看历史记录</Button>
                     </Space>
                 </div>
             </Content>

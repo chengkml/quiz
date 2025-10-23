@@ -23,6 +23,7 @@ import {
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
 import FilterForm from '@/components/FilterForm';
+import ExamResultDetailPage from '@/pages/Exam/Result';
 
 const {Content} = Layout;
 const {Option} = Select;
@@ -39,7 +40,8 @@ function ExamHistoryManager() {
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
 
     // 对话框状态
-    const [detailModalVisible, setDetailModalVisible] = useState(false);
+    const [showDetailPage, setShowDetailPage] = useState(false);
+    const [currentResultId, setCurrentResultId] = useState<string | null>(null);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
     // 分页配置
@@ -54,7 +56,6 @@ function ExamHistoryManager() {
 
     // 当前操作的记录
     const [currentRecord, setCurrentRecord] = useState(null);
-    const [detailRecord, setDetailRecord] = useState(null);
 
     // 表单引用
     const filterFormRef = useRef();
@@ -71,22 +72,21 @@ function ExamHistoryManager() {
             title: '总分',
             dataIndex: 'totalScore',
             key: 'totalScore',
+            align: 'center',
             width: 100,
-            render: (value) => (
-                <Tag color="blue" className="score-tag">{value}</Tag>
-            ),
+        },
+        {
+            title: '得分',
+            dataIndex: 'userScore',
+            key: 'userScore',
+            align: 'center',
+            width: 100,
         },
         {
             title: '正确题数',
             dataIndex: 'correctCount',
             key: 'correctCount',
             align: 'center',
-            width: 120,
-        },
-        {
-            title: '错误题数',
-            dataIndex: 'wrongCount',
-            key: 'wrongCount',
             width: 120,
         },
         {
@@ -220,19 +220,15 @@ function ExamHistoryManager() {
     };
 
     // 处理详情
-    const handleDetail = async (record) => {
-        try {
-            setLoading(true);
-            const response = await getExamHistoryDetail(record.resultId);
-            if (response.data) {
-                setDetailRecord(response.data);
-                setDetailModalVisible(true);
-            }
-        } catch (error) {
-            Message.error('获取答卷详情失败');
-        } finally {
-            setLoading(false);
-        }
+    const handleDetail = (record) => {
+        setCurrentResultId(record.resultId);
+        setShowDetailPage(true);
+    };
+    
+    // 返回历史列表
+    const handleBackToList = () => {
+        setShowDetailPage(false);
+        setCurrentResultId(null);
     };
 
     // 处理删除
@@ -258,10 +254,7 @@ function ExamHistoryManager() {
         }
     };
 
-    // 跳转到完整的答卷结果页面
-    const handleViewFullResult = (record) => {
-        navigate(`/quiz/frame/exam/result/${record.resultId}`);
-    };
+
 
     // 筛选表单配置
     const filterFormConfig = [
@@ -291,95 +284,53 @@ function ExamHistoryManager() {
     return (
         <Layout className="exam-history-manager">
             <Content>
-                {/* 筛选表单 */}
-                <FilterForm
-                    ref={filterFormRef}
-                    config={filterFormConfig}
-                    onSearch={searchTableData}
-                    onReset={() => fetchTableData()}
-                >
-                    <Form.Item field='examName' label='试卷名称'>
-                        <Input
-                            placeholder='请输入试卷名称'
-                        />
-                    </Form.Item>
-                </FilterForm>
+                {showDetailPage && currentResultId ? (
+                    <div className="exam-result-detail-container">
+                        <ExamResultDetailPage resultId={currentResultId} onBackToHistory={handleBackToList} />
+                    </div>
+                ) : (
+                    <>
+                        {/* 筛选表单 */}
+                        <FilterForm
+                            ref={filterFormRef}
+                            config={filterFormConfig}
+                            onSearch={searchTableData}
+                            onReset={() => fetchTableData()}
+                        >
+                            <Form.Item field='examName' label='试卷名称'>
+                                <Input
+                                    placeholder='请输入试卷名称'
+                                />
+                            </Form.Item>
+                        </FilterForm>
 
-                <div className="action-buttons">
-                    <Space>
-                        {/* 搜索和重置按钮已在 FilterForm 组件中包含 */}
-                    </Space>
-                </div>
-                <Table
-                    columns={columns}
-                    data={tableData}
-                    loading={tableLoading}
-                    pagination={false}
-                    scroll={{
-                        y: tableScrollHeight,
-                    }}
-                    rowKey="resultId"
-                />
-
-                {/* 分页 */}
-                <div className="pagination-wrapper">
-                    <Pagination
-                        {...pagination}
-                        onChange={(current, pageSize) => {
-                            fetchTableData({}, pageSize, current);
-                        }}
-                    />
-                </div>
-
-                {/* 详情对话框 */}
-                <Modal
-                    title="答卷详情"
-                    visible={detailModalVisible}
-                    onCancel={() => setDetailModalVisible(false)}
-                    footer={null}
-                    width={700}
-                >
-                    {detailRecord && (
-                        <div className="exam-detail">
-                            <div className="detail-item">
-                                <label>试卷名称：</label>
-                                <span>{detailRecord.examName}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>总分：</label>
-                                <span>{detailRecord.totalScore}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>正确题数：</label>
-                                <span>{detailRecord.correctCount}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>错误题数：</label>
-                                <span>{detailRecord.wrongCount}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>提交时间：</label>
-                                <span>{detailRecord.submitTime || '--'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>用时：</label>
-                                <span>{detailRecord.duration ? `${detailRecord.duration}分钟` : '--'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>答题情况：</label>
-                                <div>
-                                    <Tag color="green">正确: {detailRecord.correctCount}题</Tag>
-                                    <Tag color="red" style={{marginLeft: '8px'}}>错误: {detailRecord.wrongCount}题</Tag>
-                                </div>
-                            </div>
-                            <div style={{marginTop: '20px', textAlign: 'center'}}>
-                                <Button type="primary" onClick={() => handleViewFullResult(detailRecord)}>
-                                    查看完整答卷
-                                </Button>
-                            </div>
+                        <div className="action-buttons">
+                            <Space>
+                                {/* 搜索和重置按钮已在 FilterForm 组件中包含 */}
+                            </Space>
                         </div>
-                    )}
-                </Modal>
+                        <Table
+                            columns={columns}
+                            data={tableData}
+                            loading={tableLoading}
+                            pagination={false}
+                            scroll={{
+                                y: tableScrollHeight,
+                            }}
+                            rowKey="resultId"
+                        />
+
+                        {/* 分页 */}
+                        <div className="pagination-wrapper">
+                            <Pagination
+                                {...pagination}
+                                onChange={(current, pageSize) => {
+                                    fetchTableData({}, pageSize, current);
+                                }}
+                            />
+                        </div>
+                    </>
+                )}
 
                 {/* 删除确认对话框 */}
                 <Modal

@@ -133,6 +133,14 @@ public interface ExamService {
      * @return 答卷详情
      */
     ExamResultDetailDto getExamResultById(String resultId);
+    
+    /**
+     * 删除历史答卷
+     *
+     * @param resultId 答卷结果ID
+     * @param userId 用户ID，用于验证权限
+     */
+    void deleteExamResult(String resultId, String userId);
 
     /**
      * 一键智能生成试卷

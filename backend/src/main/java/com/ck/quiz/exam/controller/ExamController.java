@@ -166,4 +166,13 @@ public class ExamController {
             @Parameter(description = "答卷结果ID", required = true) @PathVariable String resultId) {
         return ResponseEntity.ok(examService.getExamResultById(resultId));
     }
+    
+    @Operation(summary = "删除历史答卷", description = "删除指定ID的历史答卷，只能删除自己的答卷")
+    @DeleteMapping("/results/{resultId}")
+    public ResponseEntity deleteExamResult(
+            @Parameter(description = "答卷结果ID", required = true) @PathVariable String resultId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        examService.deleteExamResult(resultId, authentication.getName());
+        return ResponseEntity.ok(resultId);
+    }
 }

@@ -456,17 +456,6 @@ const {Content} = Layout;
         }
     };
 
-    // 学科变更时加载分类
-    const handleSubjectChange = async (subjectId: number): Promise<void> => {
-        try {
-            const res = await getCategoriesBySubjectId(subjectId);
-            setCategories(res?.data || []);
-            smartGenerateFormRef.current?.setFieldValue('categoryId', undefined);
-        } catch (e) {
-            Message.error('获取分类列表失败');
-        }
-    };
-
     // 执行智能生成试卷
     const handleSmartGenerate = async (): Promise<void> => {
         try {
@@ -708,16 +697,9 @@ const {Content} = Layout;
                                 <TextArea placeholder="可选" maxLength={200} />
                             </Form.Item>
                             <Form.Item label="学科" field="subjectId" rules={[{ required: true, message: '请选择学科' }]}>
-                                <Select placeholder="请选择学科" onChange={handleSubjectChange} allowClear>
+                                <Select placeholder="请选择学科" allowClear>
                                     {subjects.map((s: any) => (
                                         <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                            <Form.Item label="分类" field="categoryId" rules={[{ required: true, message: '请选择分类' }]}>
-                                <Select placeholder="请选择分类" allowClear>
-                                    {categories.map((c: any) => (
-                                        <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
                                     ))}
                                 </Select>
                             </Form.Item>

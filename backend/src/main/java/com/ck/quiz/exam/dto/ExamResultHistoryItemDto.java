@@ -10,6 +10,7 @@ public class ExamResultHistoryItemDto {
     private String examId;
     private String examName;
     private Integer totalScore;
+    private Integer userScore;
     private Integer correctCount;
     private LocalDateTime submitTime;
 }
