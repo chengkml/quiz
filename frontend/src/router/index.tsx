@@ -8,6 +8,7 @@ import QuestionManagement from '@/pages/Question';
 import DatasourceManagement from '@/pages/Datasource';
 import ExamManagement from '@/pages/Exam';
 import ExamTakePage from '@/pages/Exam/Take';
+import ExamDetailPage from '@/pages/Exam/Detail';
 import ExamHistoryPage from '@/pages/Exam/History';
 import ExamResultDetailPage from '@/pages/Exam/Result';
 import SubjectManagement from '@/pages/Subject';
@@ -148,8 +149,9 @@ export const router = createBrowserRouter([
             })),
             // 默认重定向到home页面
             { path: '', element: <Navigate to="home" replace /> },
-            // 非菜单页：考试作答页（需登录，但不校验菜单权限）
+            // 非菜单页：考试作答页和详情页（需登录，但不校验菜单权限）
             { path: 'exam/take/:id', element: <ExamTakePage /> },
+            { path: 'exam/detail/:id', element: <ExamDetailPage /> },
             // 非菜单页：历史答卷列表与详情
             { path: 'exam/results', element: <ExamHistoryPage /> },
             { path: 'exam/result/:id', element: <ExamResultDetailPage /> },

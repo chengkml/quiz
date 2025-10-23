@@ -218,6 +218,12 @@ const {Content} = Layout;
                                 }}
                                 className="handle-dropdown-menu"
                             >
+                                {record.status === 'PUBLISHED' && (
+                                    <Menu.Item key="start">
+                                        <IconEye style={{marginRight: '5px'}}/>
+                                        开始考试
+                                    </Menu.Item>
+                                )}
                                 <Menu.Item key="detail">
                                     <IconEye style={{marginRight: '5px'}}/>
                                     查看详情
@@ -240,12 +246,6 @@ const {Content} = Layout;
                                     <Menu.Item key="archive">
                                         <IconArchive style={{marginRight: '5px'}}/>
                                         归档
-                                    </Menu.Item>
-                                )}
-                                {record.status === 'PUBLISHED' && (
-                                    <Menu.Item key="start">
-                                        <IconEye style={{marginRight: '5px'}}/>
-                                        开始考试
                                     </Menu.Item>
                                 )}
                                 <Menu.Item key="delete">
@@ -314,7 +314,7 @@ const {Content} = Layout;
 
         switch (key) {
             case 'detail':
-                await handleViewDetail(record);
+                navigate(`/quiz/frame/exam/detail/${record.id}`);
                 break;
             case 'edit':
                 handleEdit(record);
@@ -339,18 +339,6 @@ const {Content} = Layout;
         }
     };
 
-    // 查看详情
-    const handleViewDetail = async (record: ExamDto): Promise<void> => {
-        try {
-            const response = await getExamById(record.id);
-            if (response.data) {
-                setDetailRecord(response.data);
-                setDetailModalVisible(true);
-            }
-        } catch (error) {
-            Message.error('获取试卷详情失败');
-        }
-    };
 
     // 管理题目
     const handleManageQuestions = async (record: ExamDto): Promise<void> => {
@@ -785,99 +773,6 @@ const {Content} = Layout;
                     focusLock={true}
                 >
                     <p>确定要删除试卷 "{currentRecord?.name}" 吗？此操作不可恢复。</p>
-                </Modal>
-
-                {/* 试卷详情模态框 */}
-                <Modal
-                    title="试卷详情"
-                    visible={detailModalVisible}
-                    onCancel={() => setDetailModalVisible(false)}
-                    footer={null}
-                    width={800}
-                    autoFocus={false}
-                    focusLock={true}
-                >
-                    {detailRecord && (
-                        <div className="exam-detail">
-                            <div className="detail-section">
-                                <div className="section-title">基本信息</div>
-                                <div className="detail-item">
-                                    <span className="label">试卷名称：</span>
-                                    <span className="value">{detailRecord.name}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="label">试卷描述：</span>
-                                    <span className="value">{detailRecord.description || '--'}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="label">所属学科：</span>
-                                    <span className="value">{detailRecord.subjectName || '--'}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="label">总分：</span>
-                                    <span className="value">{detailRecord.totalScore}分</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="label">考试时长：</span>
-                                    <span className="value">
-                                        {detailRecord.durationMinutes ? `${detailRecord.durationMinutes}分钟` : '--'}
-                                    </span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="label">状态：</span>
-                                    <span className="value">
-                                        <Tag bordered color={
-                                            detailRecord.status === 'DRAFT' ? 'gray' :
-                                                detailRecord.status === 'PUBLISHED' ? 'green' : 'orange'
-                                        }>
-                                            {detailRecord.status === 'DRAFT' ? '草稿' :
-                                                detailRecord.status === 'PUBLISHED' ? '已发布' : '已归档'}
-                                        </Tag>
-                                    </span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="label">创建人：</span>
-                                    <span className="value">{detailRecord.createUserName}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span className="label">创建时间：</span>
-                                    <span className="value">{detailRecord.createDate}</span>
-                                </div>
-                            </div>
-
-                            <div className="detail-section">
-                                <div className="section-title">
-                                    题目列表 ({detailRecord.questions ? detailRecord.questions.length : 0}题)
-                                </div>
-                                {detailRecord.questions && detailRecord.questions.length > 0 ? (
-                                    <div className="question-list">
-                                        {detailRecord.questions.map((question, index) => (
-                                            <div key={question.id} className="question-item">
-                                                <div className="question-header">
-                                                    <div className="question-info">
-                                                        <Tag bordered color="blue">第{question.orderNo}题</Tag>
-                                                        <Tag bordered color="green">{question.score}分</Tag>
-                                                        <Tag bordered color="orange">
-                                                            {question.question?.type === 'SINGLE' ? '单选题' :
-                                                                question.question?.type === 'MULTIPLE' ? '多选题' :
-                                                                    question.question?.type === 'BLANK' ? '填空题' : '简答题'}
-                                                        </Tag>
-                                                    </div>
-                                                </div>
-                                                <div className="question-content">
-                                                    {question.question?.content}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div style={{textAlign: 'center', color: '#999', padding: '20px'}}>
-                                        暂无题目
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
                 </Modal>
 
                 {/* 题目管理抽屉 */}
