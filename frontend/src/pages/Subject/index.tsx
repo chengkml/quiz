@@ -14,8 +14,16 @@ import {
     Upload,
 } from '@arco-design/web-react';
 import './style/index.less';
-import {checkSubjectName, createSubject, deleteSubject, getSubjectList, updateSubject, exportSubjects, importSubjects, downloadTemplate} from './api';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconDownload, IconUpload} from '@arco-design/web-react/icon';
+import {
+    createSubject,
+    deleteSubject,
+    downloadTemplate,
+    exportSubjects,
+    getSubjectList,
+    importSubjects,
+    updateSubject
+} from './api';
+import {IconDelete, IconDownload, IconEdit, IconEye, IconList, IconPlus, IconUpload} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 
 const {TextArea} = Input;
@@ -454,7 +462,6 @@ function SubjectManager() {
                         addFormRef.current?.resetFields();
                     }}
                     confirmLoading={loading}
-                    width={600}
                 >
                     <Form ref={addFormRef} layout="vertical">
                         <Form.Item

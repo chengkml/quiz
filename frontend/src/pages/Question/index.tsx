@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
-    Button, Checkbox,
+    Button,
+    Checkbox,
     Collapse,
     Dropdown,
     Form,
@@ -12,7 +13,6 @@ import {
     Modal,
     Pagination,
     Select,
-    Space,
     Spin,
     Table,
     Tag,
@@ -21,22 +21,22 @@ import {
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
+    associateKnowledge,
     batchCreateQuestion,
     createQuestion,
     deleteQuestion,
     generateQuestions,
-    getQuestionList,
-    updateQuestion,
-    associateKnowledge,
     getAllSubjects,
     getCategoriesBySubjectId,
+    getQuestionList,
     getSubjectCategoryTree,
+    updateQuestion,
 } from './api';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot,} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import DynamicQuestionForm from '@/components/DynamicQuestionForm';
 import Sider from '@arco-design/web-react/es/Layout/sider';
-import { getKnowledgeList, createKnowledge } from '../Knowledge/api';
+import {createKnowledge, getKnowledgeList} from '../Knowledge/api';
 
 const {TextArea} = Input;
 const {Content} = Layout;

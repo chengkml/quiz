@@ -19,8 +19,11 @@ import TodoManagement from '@/pages/Todo';
 import ExamHistoryManager from "@/pages/Exam/History";
 import Home from '@/pages/Home';
 import NotFound from '@/pages/NotFound';
+import MindMapPage from '@/pages/MindMap';
+import MindMapEditPage from '@/pages/MindMap/Edit';
 import { UserProvider } from '@/contexts/UserContext';
 import { MenuTreeDto, MenuType } from '@/types/menu';
+import Model from "@/pages/Model";
 
 /**
  * 检查用户是否有访问指定路径的权限
@@ -112,6 +115,8 @@ const protectedPages = [
     { path: 'exam', element: <ExamManagement />, requiredPath: 'exam' },
     { path: 'todo', element: <TodoManagement />, requiredPath: 'todo' },
     { path: 'history', element: <ExamHistoryManager />, requiredPath: 'history' },
+    { path: 'llmmodel', element: <Model />, requiredPath: 'llmmodel' },
+    { path: 'mindmap', element: <MindMapPage />, requiredPath: 'mindmap' },
 ];
 
 /**
@@ -155,6 +160,9 @@ export const router = createBrowserRouter([
             { path: 'history/result/:id', element: <ExamResultDetailPage /> },
             // 非菜单页：历史答卷列表与详情
             { path: 'history', element: <ExamHistoryPage /> },
+            // 非菜单页：思维导图编辑页
+            { path: 'mindmap/edit', element: <MindMapEditPage /> },
+            { path: 'mindmap/edit/:id', element: <MindMapEditPage /> },
             { path: 'notfound', element: <NotFound /> },
         ],
     },

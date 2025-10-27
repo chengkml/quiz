@@ -195,9 +195,6 @@ const ExamTakePage: React.FC = () => {
         }
     };
 
-    const goPrev = () => scrollToIndex(currentIndex - 1);
-    const goNext = () => scrollToIndex(currentIndex + 1);
-
     const doSubmit = async () => {
         if (!exam || !id) return;
         try {

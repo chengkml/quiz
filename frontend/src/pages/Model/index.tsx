@@ -8,24 +8,14 @@ import {
     Pagination,
     Select,
     Space,
-    Spin,
+    Switch,
     Table,
     Tag,
-    Tooltip,
-    Switch
+    Tooltip
 } from '@arco-design/web-react';
 import './index.less';
-import {
-    createModel,
-    deleteModel,
-    getActiveModels,
-    getDefaultModel,
-    getModelById,
-    getModelList,
-    setDefaultModel,
-    updateModel
-} from './api';
-import {IconDelete, IconEdit, IconEye, IconPlus, IconSetDefault} from '@arco-design/web-react/icon';
+import {createModel, deleteModel, getModelById, getModelList, setDefaultModel, updateModel} from './api';
+import {IconDelete, IconEdit, IconEye, IconPlus, IconSettings} from '@arco-design/web-react/icon';
 import Message from '@arco-design/web-react/es/Message';
 
 const {TextArea} = Input;
@@ -321,7 +311,7 @@ function ModelManager() {
                         <Tooltip title="设为默认">
                             <Button
                                 size="small"
-                                icon={<IconSetDefault />}
+                                icon={<IconSettings />}
                                 onClick={() => handleSetDefault(record.id)}
                             />
                         </Tooltip>

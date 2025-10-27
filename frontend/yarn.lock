@@ -4029,6 +4029,11 @@
   "resolved" "https://registry.npmmirror.com/mimic-fn/-/mimic-fn-2.1.0.tgz"
   "version" "2.1.0"
 
+"mind-elixir@^5.3.4":
+  "integrity" "sha512-HVZZLNC+QBdYvsg3dvhw4+ZLR06Az3lilXewhwfRmzyeAZiI6HB/amsUTAVHaZTby3aXAR+iOIpMXIUXpQckPQ=="
+  "resolved" "https://registry.npmmirror.com/mind-elixir/-/mind-elixir-5.3.4.tgz"
+  "version" "5.3.4"
+
 "mini-css-extract-plugin@^2.7.5":
   "integrity" "sha512-ZWYT7ln73Hptxqxk2DxPU9MmapXRhxkJD6tkSR04dnQxm8BGu2hzgKLugK5yySD97u/8yy7Ma7E76k9ZdvtjkQ=="
   "resolved" "https://registry.npmmirror.com/mini-css-extract-plugin/-/mini-css-extract-plugin-2.9.4.tgz"

@@ -1,0 +1,131 @@
+.mindmap-list-page {
+  box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+  overflow: hidden;
+  background: var(--background-color-base);
+  height: 100%;
+
+  .arco-layout-content {
+    margin: 10px;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: calc(100% - 20px);
+    width: calc(100% - 20px);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: var(--color-white);
+    margin-bottom: 16px;
+  }
+
+  .pagination-wrapper {
+    padding: 12px 16px;
+    background: var(--color-white);
+    display: flex;
+    justify-content: flex-end;
+    z-index: 10;
+  }
+
+  .mindmap-list-table {
+    background-color: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    :global {
+      .arco-table-header {
+        background-color: #fafafa;
+      }
+
+      .arco-table-row-hover {
+        background-color: #f5f5f5;
+      }
+
+      .arco-table-cell {
+        height: 48px;
+        font-size: 14px;
+      }
+
+      .arco-table-td-fixed-left {
+        box-shadow: 1px 0 0 #f0f0f0;
+      }
+
+      .arco-table-td-fixed-right {
+        box-shadow: -1px 0 0 #f0f0f0;
+      }
+    }
+  }
+
+  /* 响应式设计 */
+  @media (max-width: 768px) {
+    .mindmap-list-content {
+      padding: 16px;
+    }
+
+    .mindmap-list-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+
+      h1 {
+        font-size: 20px;
+      }
+    }
+
+    .mindmap-list-filter {
+      padding: 16px;
+
+      .filter-options {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+    }
+  }
+
+  /* 加载状态 */
+  :global {
+    .arco-spin {
+      padding: 40px 0;
+    }
+  }
+
+  /* 操作按钮样式优化 */
+  :global {
+    .arco-btn-size-small {
+      padding: 0 12px;
+      min-width: 64px;
+    }
+
+    .arco-btn-icon-only {
+      width: 32px;
+      min-width: 32px;
+      padding: 0;
+    }
+  }
+
+  /* 标签样式优化 */
+  :global {
+    .arco-tag {
+      font-size: 12px;
+      padding: 2px 8px;
+      height: 22px;
+      border-radius: 11px;
+    }
+  }
+
+  /* 表单样式优化 */
+  :global {
+    .arco-form-item {
+      margin-bottom: 0;
+    }
+
+    .arco-form-item-label {
+      padding-right: 12px;
+    }
+  }
+}
