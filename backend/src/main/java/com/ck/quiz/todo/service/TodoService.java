@@ -1,5 +1,6 @@
 package com.ck.quiz.todo.service;
 
+import com.ck.quiz.mindmap.dto.MindMapDto;
 import com.ck.quiz.todo.dto.TodoCreateDto;
 import com.ck.quiz.todo.dto.TodoDto;
 import com.ck.quiz.todo.dto.TodoQueryDto;
@@ -41,4 +42,6 @@ public interface TodoService {
      * 实体转DTO
      */
     TodoDto convertToDto(Todo todo);
+
+    MindMapDto initMindMap(String todoId);
 }

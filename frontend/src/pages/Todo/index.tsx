@@ -15,10 +15,11 @@ import {
     Table,
     Tag,
 } from '@arco-design/web-react';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus,} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconList, IconMindMapping, IconPlus} from '@arco-design/web-react/icon';
+import {useNavigate} from 'react-router-dom';
 import './style/index.less';
 import FilterForm from '@/components/FilterForm';
-import {createTodo, deleteTodo, getTodoById, getTodoList, updateTodo} from './api';
+import {createTodo, deleteTodo, getTodoById, getTodoList, initMindMap, updateTodo} from './api';
 import dayjs from 'dayjs';
 
 const {Content} = Layout;
@@ -26,6 +27,8 @@ const {TextArea} = Input;
 const {Option} = Select;
 
 function TodoManager() {
+    const navigate = useNavigate();
+    
     // 表格数据与状态
     const [tableData, setTableData] = useState<any[]>([]);
     const [tableLoading, setTableLoading] = useState(false);
@@ -38,14 +41,13 @@ function TodoManager() {
         showPageSize: true,
     });
     const [tableScrollHeight, setTableScrollHeight] = useState(420);
+    const [analyzeLoading, setAnalyzeLoading] = useState(false);
 
     // 当前记录与弹窗
     const [currentRecord, setCurrentRecord] = useState<any | null>(null);
-    const [detailRecord, setDetailRecord] = useState<any | null>(null);
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-    const [detailModalVisible, setDetailModalVisible] = useState(false);
 
     // 表单引用
     const addFormRef = useRef<any>(null);
@@ -220,28 +222,34 @@ function TodoManager() {
         }
     };
 
-    // 查看详情
-    const handleDetail = async (record: any) => {
+
+
+    // 分析待办，生成思维导图
+    const handleAnalyze = async (record: any) => {
+        setAnalyzeLoading(true);
         try {
-            const resp = await getTodoById(record.id);
-            if (resp.data) {
-                setDetailRecord(resp.data);
-                setDetailModalVisible(true);
+            const response = await initMindMap(record.id);
+            if (response.data) {
+                const mindMap = response.data;
+                // 导航到思维导图编辑页面
+                navigate(`/quiz/frame/mindmap/edit/${mindMap.id}`);
             }
         } catch (error) {
-            Message.error('获取待办详情失败');
+            Message.error('思维导图初始化失败');
+        } finally {
+            setAnalyzeLoading(false);
         }
     };
 
     // 菜单点击
     const handleMenuClick = (key: string, e: React.MouseEvent, record: any) => {
         e.stopPropagation();
-        if (key === 'detail') {
-            handleDetail(record);
-        } else if (key === 'edit') {
+        if (key === 'edit') {
             handleEdit(record);
         } else if (key === 'delete') {
             handleDelete(record);
+        } else if (key === 'analyze') {
+            handleAnalyze(record);
         }
     };
 
@@ -310,9 +318,9 @@ function TodoManager() {
                         droplist={
                             <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}
                                   className="handle-dropdown-menu">
-                                <Menu.Item key="detail">
-                                    <IconEye style={{marginRight: 5}}/>
-                                    查看详情
+                                <Menu.Item key="analyze">
+                                    <IconMindMapping style={{marginRight: 5}}/>
+                                    分析
                                 </Menu.Item>
                                 <Menu.Item key="edit">
                                     <IconEdit style={{marginRight: 5}}/>
@@ -500,38 +508,7 @@ function TodoManager() {
                         <div className="delete-modal">确定要删除该待办吗？此操作不可恢复。</div>
                     </Modal>
 
-                    {/* 详情对话框 */}
-                    <Modal
-                        title="待办详情"
-                        visible={detailModalVisible}
-                        onOk={() => setDetailModalVisible(false)}
-                        onCancel={() => setDetailModalVisible(false)}
-                        footer={null}
-                    >
-                        {detailRecord ? (
-                            <div className="todo-detail">
-                                <div className="detail-item">
-                                    <label>标题：</label><span>{detailRecord.title || '-'}</span></div>
-                                <div className="detail-item">
-                                    <label>状态：</label><span>{detailRecord.status || '-'}</span></div>
-                                <div className="detail-item">
-                                    <label>优先级：</label><span>{detailRecord.priority || '-'}</span></div>
-                                <div className="detail-item">
-                                    <label>截止时间：</label><span>{formatDateTime(detailRecord.dueDate)}</span></div>
-                                <div className="detail-item">
-                                    <label>创建人：</label><span>{detailRecord.createUserName || detailRecord.createUser || '-'}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <label>创建时间：</label><span>{formatDateTime(detailRecord.createDate)}</span></div>
-                                <div className="detail-item">
-                                    <label>更新时间：</label><span>{formatDateTime(detailRecord.updateDate)}</span></div>
-                                <div className="detail-item"><label>详细描述：</label><span
-                                    style={{whiteSpace: 'pre-wrap'}}>{detailRecord.description || '-'}</span></div>
-                            </div>
-                        ) : (
-                            <div style={{color: '#86909c'}}>暂无详情</div>
-                        )}
-                    </Modal>
+
                 </Content>
             </Layout>
         </div>

@@ -207,7 +207,8 @@ const MindMapEditPage: React.FC = () => {
             // 获取当前思维导图的标题作为mapName（根据后端接口要求，这是必填字段）
             const mapName = mindData.nodeData?.topic || '未命名思维导图';
 
-            if (id && mindMap) {
+            // 当有ID时，始终调用更新接口
+            if (id) {
                 // 根据MindMapUpdateDto的要求，更新时需要提供id、mapName和mapData
                 await updateMindMap({ 
                     id, 
@@ -216,11 +217,13 @@ const MindMapEditPage: React.FC = () => {
                 });
                 Message.success('思维导图更新成功');
                 // 更新本地状态中的mapName
-                setMindMap({ ...mindMap, mapName });
+                if (mindMap) {
+                    setMindMap({ ...mindMap, mapName });
+                }
             } else {
+                // 没有ID时才创建新的思维导图
                 await createMindMap({ mapName, mapData: formattedData });
                 Message.success('思维导图创建成功');
-                navigate('/mindmap');
             }
         } catch (error) {
             console.error('保存失败:', error);

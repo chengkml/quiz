@@ -1,5 +1,9 @@
 package com.ck.quiz.todo.service.impl;
 
+import com.ck.quiz.mindmap.dto.MindMapDto;
+import com.ck.quiz.mindmap.entity.MindMap;
+import com.ck.quiz.mindmap.repository.MindMapRepository;
+import com.ck.quiz.mindmap.service.MindMapService;
 import com.ck.quiz.todo.dto.TodoCreateDto;
 import com.ck.quiz.todo.dto.TodoDto;
 import com.ck.quiz.todo.dto.TodoQueryDto;
@@ -11,15 +15,26 @@ import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * 待办管理服务实现类
@@ -32,6 +47,14 @@ public class TodoServiceImpl implements TodoService {
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
+
+    @Lazy
+    @Autowired
+    private MindMapService mindMapService;
+
+    @Lazy
+    @Autowired
+    private MindMapRepository mindMapRepository;
 
     @Override
     @Transactional
@@ -162,5 +185,50 @@ public class TodoServiceImpl implements TodoService {
         TodoDto dto = new TodoDto();
         BeanUtils.copyProperties(todo, dto);
         return dto;
+    }
+
+    @Override
+    public MindMapDto initMindMap(String todoId) {
+        Optional<MindMap> op = mindMapRepository.findById(todoId);
+        if (op.isPresent()) {
+            return mindMapService.getMindMapById(todoId);
+        }
+        Optional<Todo> optionalTodo = todoRepository.findById(todoId);
+        if (optionalTodo.isEmpty()) {
+            throw new RuntimeException("待办不存在，ID: " + todoId);
+        }
+        Todo todo = optionalTodo.get();
+        MindMap mindMap = new MindMap();
+        mindMap.setId(todoId);
+        mindMap.setMapName(todo.getTitle());
+        mindMap.setDescription(todo.getDescription());
+        mindMap.setMapData(loadTemplate(todo.getTitle(), "templates/mind_map_init.tpl"));
+
+        // 设置创建人和拥有者信息
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            String currentUsername = authentication.getName();
+            mindMap.setCreateUser(currentUsername);
+        }
+
+        mindMap.setCreateDate(LocalDateTime.now());
+        mindMap.setUpdateDate(LocalDateTime.now());
+
+        MindMap updatedMindMap = mindMapRepository.save(mindMap);
+        return mindMapService.convertToDto(updatedMindMap);
+    }
+
+    private String loadTemplate(String title, String path) {
+        try {
+            ClassPathResource resource = new ClassPathResource(path);
+            try (Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
+                String jsonStr = FileCopyUtils.copyToString(reader);
+                return jsonStr.replace("{{title}}", title);
+            }catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("读取模板文件失败: " + path, e);
+        }
     }
 }
