@@ -1,3 +1,86 @@
+/* 思维导图容器样式 */
 .mind-elixir-container {
   height: 100% !important;
+}
+
+/* 主容器布局 */
+.mindmap-editor-container {
+  flex: 1;
+  height: 100%;
+  border-right: 1px solid #e8e8e8;
+  overflow: auto;
+}
+
+/* JSON展示区域样式 */
+.mindmap-json-container {
+  width: 400px;
+  padding: 10px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #fafafa;
+  border-radius: 4px;
+  position: relative;
+}
+
+.mindmap-json-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* 自动更新复选框样式 */
+.mindmap-auto-update-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.mindmap-auto-update-checkbox input {
+  margin-right: 6px;
+}
+
+/* 按钮组样式 - 定位在右下角 */
+.mindmap-json-container .button-group {
+  justify-content: flex-end;
+  display: flex;
+  gap: 10px;
+  background: #fff;
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+/* JSON内容区域样式 */
+.mindmap-json-content {
+  flex: 1;
+  overflow: auto;
+}
+
+/* JSON代码展示样式 */
+.mindmap-json-pre {
+  margin: 0;
+  padding: 12px;
+  background-color: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #333;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 100%;
+  overflow: auto;
+}
+
+/* 加载遮罩样式 */
+.mindmap-loading-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
 }

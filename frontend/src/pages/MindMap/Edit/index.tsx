@@ -1,9 +1,9 @@
-import React, {useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo} from 'react';
+import React, {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import MindElixir from 'mind-elixir';
 import 'mind-elixir/style';
 import './style/index.less';
-import {Layout, Message, Spin} from '@arco-design/web-react';
+import {Button, Layout, Message, Spin} from '@arco-design/web-react';
 import {
     createMindMap,
     formatMindMapData,
@@ -25,31 +25,7 @@ const MindMapEditPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [saveLoading, setSaveLoading] = useState<boolean>(false);
     const [mindMap, setMindMap] = useState<MindMapDto | null>(null);
-
-    // 使用简单的防抖实现 - 使用 useRef 而不是 useState 来避免不必要的重渲染
-    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-    /** 自动保存思维导图 */
-    const autoSaveMindMap = useCallback(async () => {
-        if (!mindElixirRef.current || !id || !mindMap || saveLoading) return;
-
-        try {
-            setSaveLoading(true);
-            const mindData = mindElixirRef.current.getAllData();
-            const formattedData = formatMindMapData(mindData);
-            await updateMindMap({ id, mapData: formattedData });
-            console.log('思维导图自动保存成功');
-        } catch (error) {
-            console.error('自动保存失败:', error);
-        } finally {
-            // 短暂显示保存状态后再隐藏
-            setTimeout(() => {
-                if (mountedRef.current) {
-                    setSaveLoading(false);
-                }
-            }, 500);
-        }
-    }, [id, mindMap, saveLoading]);
+    const [jsonData, setJsonData] = useState<string>('');
 
     // 移除handleUserEdit函数，直接在初始化时定义事件处理逻辑
 
@@ -60,7 +36,7 @@ const MindMapEditPage: React.FC = () => {
         // 先清理旧的实例
         if (mindElixirRef.current) {
             try {
-                mindElixirRef.current.removeAllListeners();
+                // 根据v5.3.4版本API，使用正确的清理方法
                 if (typeof mindElixirRef.current.unmount === 'function') {
                     mindElixirRef.current.unmount();
                 }
@@ -105,22 +81,39 @@ const MindMapEditPage: React.FC = () => {
 
         mindElixirRef.current.init(mindData);
 
-        // 初始化完成后添加事件监听器 - 使用防抖定时器引用而不是函数本身
+        // 更新JSON数据显示
         if (mountedRef.current) {
-            const handleNodeUpdate = () => {
-                if (debounceTimerRef.current) {
-                    clearTimeout(debounceTimerRef.current);
-                }
-                debounceTimerRef.current = setTimeout(() => {
-                    if (mountedRef.current && mindElixirRef.current) {
-                        autoSaveMindMap();
+            // 使用正确的方式获取数据，根据v5.3.4版本API
+            const currentData = mindElixirRef.current.getData();
+            setJsonData(JSON.stringify(currentData, null, 2));
+        }
+
+        // 添加事件监听器来更新JSON数据
+        // 在mind-elixir v5.3.4中，使用on方法而不是addListener
+        try {
+            const updateJsonDisplay = () => {
+                if (mountedRef.current && mindElixirRef.current) {
+                    try {
+                        const data = mindElixirRef.current.getData();
+                        setJsonData(JSON.stringify(data, null, 2));
+                    } catch (error) {
+                        console.error('更新JSON数据失败:', error);
                     }
-                }, 2000);
+                }
             };
-            
-            mindElixirRef.current.addListener('updateNodeData', handleNodeUpdate);
-            mindElixirRef.current.addListener('addNode', handleNodeUpdate);
-            mindElixirRef.current.addListener('deleteNode', handleNodeUpdate);
+
+            // 绑定多个事件以确保自动更新功能正常工作
+            if (mindElixirRef.current.on) {
+                mindElixirRef.current.on('operation', updateJsonDisplay);
+                mindElixirRef.current.on('insertNode', updateJsonDisplay);
+                mindElixirRef.current.on('updateNode', updateJsonDisplay);
+                mindElixirRef.current.on('deleteNode', updateJsonDisplay);
+                mindElixirRef.current.on('moveNode', updateJsonDisplay);
+            } else {
+                console.warn('MindElixir实例不支持on方法，无法设置自动更新');
+            }
+        } catch (error) {
+            console.error('设置事件监听失败:', error);
         }
 
         setIsLoading(false);
@@ -183,16 +176,10 @@ const MindMapEditPage: React.FC = () => {
         return () => {
             mountedRef.current = false;
 
-            // 清除防抖定时器
-            if (debounceTimerRef.current) {
-                clearTimeout(debounceTimerRef.current);
-                debounceTimerRef.current = null;
-            }
-
             // 移除所有监听器并清理实例
             if (mindElixirRef.current) {
                 try {
-                    mindElixirRef.current.removeAllListeners();
+                    // 根据v5.3.4版本API，使用正确的清理方法
                     if (typeof mindElixirRef.current.unmount === 'function') {
                         mindElixirRef.current.unmount();
                     }
@@ -213,14 +200,25 @@ const MindMapEditPage: React.FC = () => {
 
         try {
             setSaveLoading(true);
-            const mindData = mindElixirRef.current.getAllData();
+            // 使用正确的API方法获取数据
+            const mindData = mindElixirRef.current.getData();
             const formattedData = formatMindMapData(mindData);
+            
+            // 获取当前思维导图的标题作为mapName（根据后端接口要求，这是必填字段）
+            const mapName = mindData.nodeData?.topic || '未命名思维导图';
 
             if (id && mindMap) {
-                await updateMindMap({ id, mapData: formattedData });
+                // 根据MindMapUpdateDto的要求，更新时需要提供id、mapName和mapData
+                await updateMindMap({ 
+                    id, 
+                    mapName, 
+                    mapData: formattedData 
+                });
                 Message.success('思维导图更新成功');
+                // 更新本地状态中的mapName
+                setMindMap({ ...mindMap, mapName });
             } else {
-                await createMindMap({ mapName: '新思维导图', mapData: formattedData });
+                await createMindMap({ mapName, mapData: formattedData });
                 Message.success('思维导图创建成功');
                 navigate('/mindmap');
             }
@@ -232,7 +230,21 @@ const MindMapEditPage: React.FC = () => {
         }
     };
 
-    const handleBack = () => navigate('/mindmap');
+    const handleBack = () => navigate('/quiz/frame/mindmap');
+
+    // 手动刷新JSON数据
+    const refreshJsonData = () => {
+        if (mindElixirRef.current) {
+            try {
+                // 使用正确的API方法获取数据
+                const data = mindElixirRef.current.getData();
+                setJsonData(JSON.stringify(data, null, 2));
+            } catch (error) {
+                console.error('获取思维导图数据失败:', error);
+                Message.error('获取数据失败，请检查思维导图实例');
+            }
+        }
+    };
 
     return (
         <Layout style={{height: '100vh'}}>
@@ -245,21 +257,34 @@ const MindMapEditPage: React.FC = () => {
                 height: 'calc(100vh - 30px)'
             }}>
                 {isLoading && <Spin tip="加载中..." className="mindmap-loading-overlay" />}
-                <div ref={mindMapRef} style={{height: '100%', width: '100%'}} />
-                {saveLoading && (
-                    <div style={{
-                        position: 'fixed',
-                        bottom: 20,
-                        right: 20,
-                        background: 'rgba(0, 0, 0, 0.7)',
-                        color: 'white',
-                        padding: '8px 16px',
-                        borderRadius: 4,
-                        fontSize: 14
-                    }}>
-                        自动保存中...
+                <div className="mindmap-editor-container">
+                    <div ref={mindMapRef} style={{height: '100%', width: '100%'}} />
+                </div>
+                <div className="mindmap-json-container">
+                    <div className="mindmap-json-content">
+                        <pre className="mindmap-json-pre">{jsonData}</pre>
                     </div>
-                )}
+                    <div className="button-group">
+                        <Button
+                            onClick={handleBack}
+                        >
+                            返回
+                        </Button>
+                        <Button
+                            type="primary"
+                            onClick={refreshJsonData}
+                        >
+                            刷新
+                        </Button>
+                        <Button
+                            status="success"
+                            onClick={handleSave}
+                            disabled={saveLoading}
+                        >
+                            {saveLoading ? '保存中...' : '保存'}
+                        </Button>
+                    </div>
+                </div>
             </Content>
         </Layout>
     );
