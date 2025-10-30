@@ -24,6 +24,7 @@ import MindMapEditPage from '@/pages/MindMap/Edit';
 import { UserProvider } from '@/contexts/UserContext';
 import { MenuTreeDto, MenuType } from '@/types/menu';
 import Model from "@/pages/Model";
+import DocInfoManager from '@/pages/DocInfo';
 
 /**
  * 检查用户是否有访问指定路径的权限
@@ -117,6 +118,7 @@ const protectedPages = [
     { path: 'history', element: <ExamHistoryManager />, requiredPath: 'history' },
     { path: 'llmmodel', element: <Model />, requiredPath: 'llmmodel' },
     { path: 'mindmap', element: <MindMapPage />, requiredPath: 'mindmap' },
+    { path: 'docinfo', element: <DocInfoManager />, requiredPath: 'docinfo' },
 ];
 
 /**
