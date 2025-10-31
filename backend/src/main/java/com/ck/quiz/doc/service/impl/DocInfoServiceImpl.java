@@ -4,10 +4,12 @@ import com.ck.quiz.doc.dto.*;
 import com.ck.quiz.doc.entity.DocHeading;
 import com.ck.quiz.doc.entity.DocInfo;
 import com.ck.quiz.doc.entity.DocProcessNode;
+import com.ck.quiz.doc.entity.FunctionPoint;
 import com.ck.quiz.doc.exception.DocInfoException;
 import com.ck.quiz.doc.repository.DocHeadingRepository;
 import com.ck.quiz.doc.repository.DocInfoRepository;
 import com.ck.quiz.doc.repository.DocProcessNodeRepository;
+import com.ck.quiz.doc.repository.FunctionPointRepository;
 import com.ck.quiz.doc.service.DocInfoService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
@@ -32,10 +34,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,6 +59,9 @@ public class DocInfoServiceImpl implements DocInfoService {
 
     @Autowired
     private DocProcessNodeRepository nodeRepository;
+
+    @Autowired
+    private FunctionPointRepository functionPointRepository;
 
     @Override
     @Transactional
@@ -118,6 +120,8 @@ public class DocInfoServiceImpl implements DocInfoService {
         } else {
             log.warn("文档记录中无文件路径，跳过物理文件删除");
         }
+
+        functionPointRepository.deleteByDocId(id);
 
         // 4️⃣ 删除文档主记录
         docInfoRepository.delete(docInfo);
@@ -200,6 +204,8 @@ public class DocInfoServiceImpl implements DocInfoService {
 
             // 解析流程节点
             extractProcessNodesWithHeading(docInfo.getId(), filePath);
+            // 解析功能点
+            extractFunctionPoints(docInfo.getId());
 
             // 转换为DTO返回
             return convertToDto(docInfo);
@@ -211,6 +217,99 @@ public class DocInfoServiceImpl implements DocInfoService {
             throw new RuntimeException("计算文件MD5失败: " + e.getMessage(), e);
         }
     }
+
+    /**
+     *
+     * @param docId
+     */
+    private void extractFunctionPoints(String docId) {
+        log.info("提取功能点，文档ID: {}", docId);
+
+        // 1️⃣ 删除旧功能点
+        functionPointRepository.deleteByDocId(docId);
+
+        // 2️⃣ 查询3、4、5级标题
+        List<DocHeading> headings = docHeadingRepository.findByDocIdAndHeadingLevelIn(
+                docId,
+                Arrays.asList(3, 4, 5)
+        );
+
+        if (headings.isEmpty()) {
+            log.info("文档 [{}] 未发现 3~5 级标题，无需提取功能点", docId);
+            return;
+        }
+
+        // 3️⃣ 构建 parentId -> 子标题列表映射
+        Map<String, List<DocHeading>> childrenMap = new HashMap<>();
+        for (DocHeading h : headings) {
+            if (h.getParentId() != null) {
+                childrenMap.computeIfAbsent(h.getParentId(), k -> new ArrayList<>()).add(h);
+            }
+        }
+
+        AtomicInteger orderCounter = new AtomicInteger(1);
+
+        // 4️⃣ 获取所有三级标题（一级功能点）
+        List<DocHeading> level3List = headings.stream()
+                .filter(h -> h.getHeadingLevel() == 3)
+                .sorted(Comparator.comparingInt(DocHeading::getOrderNo))
+                .toList();
+
+        for (DocHeading level3 : level3List) {
+
+            // 一级功能点
+            FunctionPoint fp1 = new FunctionPoint();
+            fp1.setId(IdHelper.genUuid());
+            fp1.setDocId(docId);
+            fp1.setParentId(null);
+            fp1.setName(level3.getHeadingText());
+            fp1.setLevel(1);
+            fp1.setType("模块");
+            fp1.setOrderNum(orderCounter.getAndIncrement());
+            functionPointRepository.save(fp1);
+
+            // 5️⃣ 获取四级标题（作为二级功能点）
+            List<DocHeading> level4List = childrenMap.getOrDefault(level3.getId(), Collections.emptyList())
+                    .stream()
+                    .filter(h -> h.getHeadingLevel() == 4)
+                    .sorted(Comparator.comparingInt(DocHeading::getOrderNo))
+                    .toList();
+
+            for (DocHeading level4 : level4List) {
+                FunctionPoint fp2 = new FunctionPoint();
+                fp2.setId(IdHelper.genUuid());
+                fp2.setDocId(docId);
+                fp2.setParentId(fp1.getId());
+                fp2.setName(level4.getHeadingText());
+                fp2.setLevel(2);
+                fp2.setType("子模块");
+                fp2.setOrderNum(orderCounter.getAndIncrement());
+                functionPointRepository.save(fp2);
+
+                // 6️⃣ 获取五级标题（作为三级功能点）
+                List<DocHeading> level5List = childrenMap.getOrDefault(level4.getId(), Collections.emptyList())
+                        .stream()
+                        .filter(h -> h.getHeadingLevel() == 5)
+                        .sorted(Comparator.comparingInt(DocHeading::getOrderNo))
+                        .toList();
+
+                for (DocHeading level5 : level5List) {
+                    FunctionPoint fp3 = new FunctionPoint();
+                    fp3.setId(IdHelper.genUuid());
+                    fp3.setDocId(docId);
+                    fp3.setParentId(fp2.getId());
+                    fp3.setName(level5.getHeadingText());
+                    fp3.setLevel(3);
+                    fp3.setType("功能");
+                    fp3.setOrderNum(orderCounter.getAndIncrement());
+                    functionPointRepository.save(fp3);
+                }
+            }
+        }
+
+        log.info("文档 [{}] 功能点提取完成，共生成 {} 条功能点记录", docId, orderCounter.get() - 1);
+    }
+
 
 
     public void extractAndSaveHeadings(String docId, String filePath) {
@@ -670,6 +769,57 @@ public class DocInfoServiceImpl implements DocInfoService {
                 pageSize
         );
     }
-
+    
+    @Override
+    public List<FunctionPointTreeDto> getFunctionPointTree(String docId) {
+        log.info("获取功能点树，文档ID: {}", docId);
+        
+        // 验证文档是否存在
+        docInfoRepository.findById(docId)
+                .orElseThrow(() -> new DocInfoException("DOC_NOT_FOUND", "文档不存在: " + docId));
+        
+        // 按order_num正序获取文档功能点列表
+        List<FunctionPoint> functionPoints = functionPointRepository.findByDocIdOrderByOrderNumAsc(docId);
+        
+        // 构建功能点树
+        return buildFunctionPointTree(functionPoints);
+    }
+    
+    /**
+     * 构建功能点树
+     *
+     * @param functionPoints 功能点列表
+     * @return 功能点树列表
+     */
+    private List<FunctionPointTreeDto> buildFunctionPointTree(List<FunctionPoint> functionPoints) {
+        Map<String, FunctionPointTreeDto> nodeMap = new HashMap<>();
+        List<FunctionPointTreeDto> rootNodes = new ArrayList<>();
+        
+        // 首先将所有功能点转换为DTO并放入Map
+        for (FunctionPoint functionPoint : functionPoints) {
+            FunctionPointTreeDto dto = new FunctionPointTreeDto();
+            BeanUtils.copyProperties(functionPoint, dto);
+            nodeMap.put(functionPoint.getId(), dto);
+        }
+        
+        // 构建树结构
+        for (FunctionPoint functionPoint : functionPoints) {
+            FunctionPointTreeDto currentNode = nodeMap.get(functionPoint.getId());
+            String parentId = functionPoint.getParentId();
+            
+            if (parentId == null) {
+                // 顶级功能点
+                rootNodes.add(currentNode);
+            } else {
+                // 非顶级功能点，添加到父功能点的子节点中
+                FunctionPointTreeDto parentNode = nodeMap.get(parentId);
+                if (parentNode != null) {
+                    parentNode.getChildren().add(currentNode);
+                }
+            }
+        }
+        
+        return rootNodes;
+    }
 
 }

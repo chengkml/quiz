@@ -246,6 +246,10 @@ function DocInfoManager() {
                                     <IconFile style={{marginRight: 8}}/>
                                     查看详情
                                 </Menu.Item>
+                                <Menu.Item key="features" onClick={() => navigate(`/quiz/frame/docinfo/features/${record.id}`)}>
+                                    <IconSearch style={{marginRight: 8}}/>
+                                    查看功能点
+                                </Menu.Item>
                                 <Menu.Item key="headingTree" onClick={() => handleViewHeadingTree(record)}>
                                     <IconList style={{marginRight: 8}}/>
                                     标题树

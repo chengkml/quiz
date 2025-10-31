@@ -1,4 +1,4 @@
-.subject-manager {
+.prompt-template-manager {
   box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
   overflow: hidden;
   background: var(--background-color-base);
@@ -12,6 +12,8 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     height: calc(100% - 20px);
     width: calc(100% - 20px);
+    display: flex;
+    flex-direction: column;
   }
 
   .title {
@@ -44,6 +46,15 @@
     align-items: center;
     background: var(--color-white);
     margin-bottom: 16px;
+    padding: 12px 0;
+  }
+
+  // 搜索区域样式
+  .search-container {
+    background: var(--color-white);
+    padding: 12px 0;
+    border-bottom: 1px solid var(--color-border-2);
+    margin-bottom: 16px;
   }
 
   // 分页组件固定在底部的样式
@@ -53,13 +64,16 @@
     display: flex;
     justify-content: flex-end;
     z-index: 10;
+    margin-top: auto;
   }
 
-  // 表格容器样式
+  // 表格样式
   .table-container {
-    padding: 16px;
+    flex: 1;
+    padding: 0;
     border-radius: 6px;
     background: var(--color-white);
+    overflow: auto;
 
     .arco-table-th {
       background-color: var(--color-fill-1);
@@ -75,95 +89,38 @@
       padding: 2px 8px;
       border-radius: 4px;
     }
-
   }
 
-  // 表格操作按钮样式
-  .table-btn-group {
-    .more-btn {
-      color: var(--color-text-2);
+  // 详情页样式
+  .detail-content {
+    padding: 16px;
 
-      &:hover {
-        color: var(--color-primary-6);
-        background-color: var(--color-primary-light-1);
-      }
-    }
-  }
-
-  // 下拉菜单样式
-  .handle-dropdown-menu {
-    .arco-menu-item {
-      padding: 8px 12px;
-
-      &:hover {
-        background-color: var(--color-primary-1);
-        color: var(--color-primary-6);
-      }
-    }
-  }
-
-  // 学科详情样式
-  .subject-detail {
     .detail-item {
       display: flex;
       margin-bottom: 16px;
+      line-height: 2;
 
       label {
         width: 100px;
         font-weight: 600;
-        color: var(--color-text-1);
+        color: var(--gray-8);
         flex-shrink: 0;
       }
 
       span {
-        color: var(--color-text-2);
-        word-break: break-all;
+        color: var(--gray-7);
+        flex: 1;
       }
-    }
-  }
 
-  // 表单样式优化
-  .arco-form-item-label {
-    font-weight: 600;
-  }
-
-  // 模态框样式
-  .arco-modal {
-    .arco-modal-header {
-      border-bottom: 1px solid var(--color-border-2);
-    }
-
-    .arco-modal-footer {
-      border-top: 1px solid var(--color-border-2);
-    }
-  }
-
-  // 标签样式
-  .arco-tag {
-    border-radius: 4px;
-    font-weight: 500;
-  }
-
-  // 响应式设计
-  @media (max-width: 768px) {
-    .action-buttons {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 12px;
-    }
-
-    .pagination-wrapper {
-      padding: 12px;
-    }
-
-    .subject-detail {
-      .detail-item {
-        flex-direction: column;
-
-        label {
-          width: auto;
-          margin-bottom: 4px;
-        }
+      .content-display {
+        color: var(--gray-7);
+        flex: 1;
+        white-space: pre-wrap;
+        word-break: break-word;
+        background-color: var(--color-fill-1);
+        padding: 8px 12px;
+        border-radius: 4px;
+        min-height: 60px;
       }
     }
   }

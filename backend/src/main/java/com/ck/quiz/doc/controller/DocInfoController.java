@@ -6,6 +6,7 @@ import com.ck.quiz.doc.dto.DocInfoDto;
 import com.ck.quiz.doc.dto.DocInfoQueryDto;
 import com.ck.quiz.doc.dto.DocProcessNodeDto;
 import com.ck.quiz.doc.dto.DocProcessNodeQueryDto;
+import com.ck.quiz.doc.dto.FunctionPointTreeDto;
 // 移除对实体类的引用，使用DTO
 import com.ck.quiz.doc.service.DocInfoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -136,5 +137,19 @@ public class DocInfoController {
             @Parameter(description = "文档ID") @PathVariable String id) {
         List<DocHeadingTreeDto> headingTree = docInfoService.getDocHeadingTree(id);
         return ResponseEntity.ok(headingTree);
+    }
+    
+    /**
+     * 根据文档ID获取功能点树
+     *
+     * @param id 文档ID
+     * @return 功能点树列表
+     */
+    @GetMapping("/{id}/function-point-tree")
+    @Operation(summary = "获取功能点树", description = "根据文档ID获取功能点的层级结构")
+    public ResponseEntity<List<FunctionPointTreeDto>> getFunctionPointTree(
+            @Parameter(description = "文档ID") @PathVariable String id) {
+        List<FunctionPointTreeDto> functionPointTree = docInfoService.getFunctionPointTree(id);
+        return ResponseEntity.ok(functionPointTree);
     }
 }

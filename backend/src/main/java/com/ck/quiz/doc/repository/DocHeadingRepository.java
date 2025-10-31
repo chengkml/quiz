@@ -19,4 +19,6 @@ public interface DocHeadingRepository extends JpaRepository<DocHeading, String> 
     int deleteByDocId(@Param("docId") String docId);
 
     List<DocHeading> findByDocIdAndHeadingText(String docId, String text);
+
+    List<DocHeading> findByDocIdAndHeadingLevelIn(String docId, List<Integer> headingLevels);
 }

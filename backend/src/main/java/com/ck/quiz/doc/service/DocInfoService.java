@@ -6,6 +6,7 @@ import com.ck.quiz.doc.dto.DocInfoDto;
 import com.ck.quiz.doc.dto.DocInfoQueryDto;
 import com.ck.quiz.doc.dto.DocProcessNodeDto;
 import com.ck.quiz.doc.dto.DocProcessNodeQueryDto;
+import com.ck.quiz.doc.dto.FunctionPointTreeDto;
 import com.ck.quiz.doc.entity.DocProcessNode;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
@@ -72,5 +73,13 @@ public interface DocInfoService {
      * @return 流程节点分页结果
      */
     Page<DocProcessNodeDto> pageDocProcessNode(DocProcessNodeQueryDto queryDto);
+    
+    /**
+     * 根据文档ID获取功能点树
+     *
+     * @param docId 文档ID
+     * @return 功能点树列表
+     */
+    List<FunctionPointTreeDto> getFunctionPointTree(String docId);
 
 }
