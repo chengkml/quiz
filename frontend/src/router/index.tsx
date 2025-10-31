@@ -25,6 +25,7 @@ import { UserProvider } from '@/contexts/UserContext';
 import { MenuTreeDto, MenuType } from '@/types/menu';
 import Model from "@/pages/Model";
 import DocInfoManager from '@/pages/DocInfo';
+import DocInfoDetail from '@/pages/DocInfo/Detail';
 
 /**
  * 检查用户是否有访问指定路径的权限
@@ -165,6 +166,8 @@ export const router = createBrowserRouter([
             // 非菜单页：思维导图编辑页
             { path: 'mindmap/edit', element: <MindMapEditPage /> },
             { path: 'mindmap/edit/:id', element: <MindMapEditPage /> },
+            // 非菜单页：文档详情页
+            { path: 'docinfo/detail/:id', element: <DocInfoDetail /> },
             { path: 'notfound', element: <NotFound /> },
         ],
     },

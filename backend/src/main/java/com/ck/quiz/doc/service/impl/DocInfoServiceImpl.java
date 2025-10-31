@@ -1,14 +1,13 @@
 package com.ck.quiz.doc.service.impl;
 
-import com.ck.quiz.doc.dto.DocHeadingTreeDto;
-import com.ck.quiz.doc.dto.DocInfoCreateDto;
-import com.ck.quiz.doc.dto.DocInfoDto;
-import com.ck.quiz.doc.dto.DocInfoQueryDto;
+import com.ck.quiz.doc.dto.*;
 import com.ck.quiz.doc.entity.DocHeading;
 import com.ck.quiz.doc.entity.DocInfo;
+import com.ck.quiz.doc.entity.DocProcessNode;
 import com.ck.quiz.doc.exception.DocInfoException;
 import com.ck.quiz.doc.repository.DocHeadingRepository;
 import com.ck.quiz.doc.repository.DocInfoRepository;
+import com.ck.quiz.doc.repository.DocProcessNodeRepository;
 import com.ck.quiz.doc.service.DocInfoService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
@@ -59,6 +58,9 @@ public class DocInfoServiceImpl implements DocInfoService {
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private DocProcessNodeRepository nodeRepository;
+
     @Override
     @Transactional
     public DocInfoDto createDocInfo(DocInfoCreateDto createDto) {
@@ -91,11 +93,15 @@ public class DocInfoServiceImpl implements DocInfoService {
         DocInfo docInfo = docInfoRepository.findById(id)
                 .orElseThrow(() -> new DocInfoException("DOC_NOT_FOUND", "文档不存在: " + id));
 
-        // 1️⃣ 删除关联标题记录
+        // 1️⃣ 删除流程节点记录
+        int deletedNodes = nodeRepository.deleteByDocId(id);
+        log.info("已删除文档 [{}] 关联的流程节点记录 {} 条", id, deletedNodes);
+
+        // 2️⃣ 删除关联标题记录
         int deletedHeadings = docHeadingRepository.deleteByDocId(id);
         log.info("已删除文档 [{}] 关联的标题记录 {} 条", id, deletedHeadings);
 
-        // 2️⃣ 删除原始文件
+        // 3️⃣ 删除原始文件
         String filePath = docInfo.getFilePath();
         if (filePath != null && !filePath.isBlank()) {
             File file = new File(filePath);
@@ -113,7 +119,7 @@ public class DocInfoServiceImpl implements DocInfoService {
             log.warn("文档记录中无文件路径，跳过物理文件删除");
         }
 
-        // 3️⃣ 删除文档主记录
+        // 4️⃣ 删除文档主记录
         docInfoRepository.delete(docInfo);
         log.info("文档记录删除成功，ID: {}", id);
     }
@@ -191,6 +197,9 @@ public class DocInfoServiceImpl implements DocInfoService {
 
             // 🔹 解析文档标题及层级关系
             extractAndSaveHeadings(docInfo.getId(), filePath);
+
+            // 解析流程节点
+            extractProcessNodesWithHeading(docInfo.getId(), filePath);
 
             // 转换为DTO返回
             return convertToDto(docInfo);
@@ -505,4 +514,162 @@ public class DocInfoServiceImpl implements DocInfoService {
         
         return rootNodes;
     }
+
+    public void extractProcessNodesWithHeading(String docId, String filePath) {
+        try (FileInputStream fis = new FileInputStream(filePath);
+             XWPFDocument document = new XWPFDocument(fis)) {
+
+            // 删除旧记录
+            nodeRepository.deleteByDocId(docId);
+
+            List<XWPFParagraph> paragraphs = document.getParagraphs();
+            AtomicInteger seqNo = new AtomicInteger(1);
+
+            boolean inProcessSection = false;
+            String currentHeadingId = null;
+
+            for (XWPFParagraph para : paragraphs) {
+                String text = para.getText().trim();
+                if (text.isEmpty()) continue;
+
+                // 检测5级标题（Heading 5 或“标题 5”）
+                String style = para.getStyle();
+                int level = extractHeadingLevelCompat(document, para, style);
+                if (level == 5) {
+                    // 获取标题在数据库中的 ID
+                    List<DocHeading> headings = docHeadingRepository.findByDocIdAndHeadingText(docId, text);
+                    if (!headings.isEmpty()) {
+                        currentHeadingId = headings.get(0).getId();
+                    } else {
+                        currentHeadingId = null;
+                    }
+                    continue; // 标题本身不存储
+                }
+
+                // 检测开始/结束标记
+                if (text.startsWith("流程节点说明")) {
+                    inProcessSection = true;
+                    continue;
+                }
+                if (text.startsWith("【功能描述】")) {
+                    inProcessSection = false;
+                    continue;
+                }
+
+                if (inProcessSection && currentHeadingId != null) {
+                    // 按序号开头的流程节点拆分（保持序号在内容中）
+                    String[] lines = text.split("(?<=^|\\n)(?=\\d+、)");
+                    for (String line : lines) {
+                        line = line.trim();
+                        if (line.isEmpty()) continue;
+
+                        DocProcessNode node = new DocProcessNode();
+                        node.setId(IdHelper.genUuid());
+                        node.setDocId(docId);
+                        node.setHeadingId(currentHeadingId);
+                        node.setSequenceNo(seqNo.getAndIncrement());
+                        node.setContent(line);
+
+                        nodeRepository.save(node);
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("提取流程节点失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 分页查询文档流程节点
+     *
+     * @param queryDto 查询条件
+     * @return 流程节点分页结果
+     */
+    @Override
+    public Page<DocProcessNodeDto> pageDocProcessNode(DocProcessNodeQueryDto queryDto) {
+        log.info("分页查询文档流程节点，查询条件: {}", queryDto);
+        
+        String docId = queryDto.getDocId();
+        Integer pageNum = queryDto.getPageNum();
+        Integer pageSize = queryDto.getPageSize();
+        String keyWord = queryDto.getKeyWord();
+        String headingId = queryDto.getHeadingId();
+        
+        // 验证文档是否存在
+        docInfoRepository.findById(docId)
+                .orElseThrow(() -> new DocInfoException("DOC_NOT_FOUND", "文档不存在: " + docId));
+        
+        StringBuilder sql = new StringBuilder(
+                "SELECT n.node_id, n.doc_id, n.heading_id, n.sequence_no, n.content, n.create_date, h.heading_text " +
+                "FROM doc_process_node n LEFT JOIN doc_heading h ON n.heading_id = h.heading_id " +
+                "WHERE n.doc_id = :docId "
+        );
+        
+        StringBuilder countSql = new StringBuilder(
+                "SELECT COUNT(1) FROM doc_process_node n WHERE n.doc_id = :docId "
+        );
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("docId", docId);
+        
+        // 添加标题ID筛选条件
+        if (headingId != null && !headingId.isEmpty()) {
+            sql.append("AND n.heading_id = :headingId ");
+            countSql.append("AND n.heading_id = :headingId ");
+            params.put("headingId", headingId);
+        }
+        
+        // 添加关键词搜索条件
+        if (keyWord != null && !keyWord.isEmpty()) {
+            String searchPattern = "%" + keyWord + "%";
+            sql.append("AND (n.content LIKE :keyWord OR h.heading_text LIKE :keyWord) ");
+            countSql.append("AND (n.content LIKE :keyWord OR (SELECT h.heading_text FROM doc_heading h WHERE h.heading_id = n.heading_id) LIKE :keyWord) ");
+            params.put("keyWord", searchPattern);
+        }
+        
+        // 排序（按序号正序）
+        JdbcQueryHelper.order(
+                "n.sequence_no",
+                "ASC",
+                sql
+        );
+        
+        // 分页SQL
+        String limitSql = JdbcQueryHelper.getLimitSql(
+                jdbcTemplate,
+                sql.toString(),
+                pageNum,
+                pageSize
+        );
+        
+        // 查询数据，返回DTO对象
+        List<DocProcessNodeDto> nodeDtos = jdbcTemplate.query(
+                limitSql,
+                params,
+                (rs, rowNum) -> {
+                    DocProcessNodeDto dto = new DocProcessNodeDto();
+                    dto.setId(rs.getString("node_id"));
+                    dto.setDocId(rs.getString("doc_id"));
+                    dto.setHeadingId(rs.getString("heading_id"));
+                    dto.setSequenceNo(rs.getInt("sequence_no"));
+                    dto.setContent(rs.getString("content"));
+                    dto.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
+                    dto.setHeadingText(rs.getString("heading_text")); // 添加标题文本
+                    return dto;
+                }
+        );
+        
+        // 组装分页对象
+        return JdbcQueryHelper.toPage(
+                jdbcTemplate,
+                countSql.toString(),
+                params,
+                nodeDtos,
+                pageNum,
+                pageSize
+        );
+    }
+
+
 }

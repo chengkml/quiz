@@ -4,6 +4,9 @@ import com.ck.quiz.doc.dto.DocHeadingTreeDto;
 import com.ck.quiz.doc.dto.DocInfoCreateDto;
 import com.ck.quiz.doc.dto.DocInfoDto;
 import com.ck.quiz.doc.dto.DocInfoQueryDto;
+import com.ck.quiz.doc.dto.DocProcessNodeDto;
+import com.ck.quiz.doc.dto.DocProcessNodeQueryDto;
+// 移除对实体类的引用，使用DTO
 import com.ck.quiz.doc.service.DocInfoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -86,6 +89,24 @@ public class DocInfoController {
             @Valid DocInfoQueryDto queryDto) {
         Page<DocInfoDto> docInfoPage = docInfoService.pageDocInfo(queryDto);
         return ResponseEntity.ok(docInfoPage);
+    }
+    
+    /**
+     * 分页查询文档流程节点
+     *
+     * @param docId 文档ID
+     * @param queryDto 查询条件
+     * @return 流程节点分页结果
+     */
+    @GetMapping("/{docId}/process-nodes/page")
+    @Operation(summary = "分页查询文档流程节点", description = "分页查询指定文档的流程节点，支持关键词搜索和标题筛选")
+    public ResponseEntity<Page<DocProcessNodeDto>> pageDocProcessNode(
+            @Parameter(description = "文档ID") @PathVariable String docId,
+            @Valid DocProcessNodeQueryDto queryDto) {
+        // 设置文档ID
+        queryDto.setDocId(docId);
+        Page<DocProcessNodeDto> processNodePage = docInfoService.pageDocProcessNode(queryDto);
+        return ResponseEntity.ok(processNodePage);
     }
 
     /**

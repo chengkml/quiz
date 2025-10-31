@@ -40,6 +40,13 @@ const uploadDocFile = async (file: File) => {
 // 获取文档标题树
 const getDocHeadingTree = id => axios.get(`${base}/api/documents/${id}/heading-tree`);
 
+// 获取文档流程节点（分页查询）
+const getDocProcessNodes = (docId, pageNum = 1, pageSize = 20, keyWord = '', headingId = '') => {
+  return axios.get(`${base}/api/documents/${docId}/process-nodes/page`, {
+    params: { pageNum, pageSize, keyWord, headingId }
+  });
+};
+
 export {
   getDocInfoList,
   getDocInfoById,
@@ -47,5 +54,6 @@ export {
   updateDocInfo,
   deleteDocInfo,
   uploadDocFile,
-  getDocHeadingTree
+  getDocHeadingTree,
+  getDocProcessNodes
 };

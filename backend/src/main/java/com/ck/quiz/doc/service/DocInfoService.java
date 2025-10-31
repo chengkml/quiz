@@ -4,6 +4,9 @@ import com.ck.quiz.doc.dto.DocHeadingTreeDto;
 import com.ck.quiz.doc.dto.DocInfoCreateDto;
 import com.ck.quiz.doc.dto.DocInfoDto;
 import com.ck.quiz.doc.dto.DocInfoQueryDto;
+import com.ck.quiz.doc.dto.DocProcessNodeDto;
+import com.ck.quiz.doc.dto.DocProcessNodeQueryDto;
+import com.ck.quiz.doc.entity.DocProcessNode;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -61,5 +64,13 @@ public interface DocInfoService {
      * @return 文档标题树列表
      */
     List<DocHeadingTreeDto> getDocHeadingTree(String docId);
+    
+    /**
+     * 分页查询文档流程节点
+     *
+     * @param queryDto 查询条件
+     * @return 流程节点分页结果
+     */
+    Page<DocProcessNodeDto> pageDocProcessNode(DocProcessNodeQueryDto queryDto);
 
 }

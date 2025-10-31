@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import { useNavigate } from 'react-router-dom';
 import {Button, DatePicker, Dropdown, Form, Input, Layout, Menu, Message, Modal, Space, Table, Tree} from '@arco-design/web-react';
 import {IconDelete, IconEdit, IconFile, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
@@ -12,6 +13,8 @@ import './index.less';
 const {Content} = Layout;
 
 function DocInfoManager() {
+    const navigate = useNavigate();
+    
     // 表格数据状态
     const [tableData, setTableData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -143,14 +146,20 @@ function DocInfoManager() {
 
     // 处理删除
     const handleDelete = async (record: any) => {
-        try {
-            await deleteDocInfo(record.id);
-            Message.success('文档删除成功');
-            fetchDocInfoList();
-        } catch (error) {
-            console.error('文档删除失败:', error);
-            Message.error('文档删除失败');
-        }
+        Modal.confirm({
+            title: '确认删除',
+            content: `确定要删除文档「${record.fileName}」吗？此操作不可恢复。`,
+            async onOk() {
+                try {
+                    await deleteDocInfo(record.id);
+                    Message.success('文档删除成功');
+                    fetchDocInfoList();
+                } catch (error) {
+                    console.error('文档删除失败:', error);
+                    Message.error('文档删除失败');
+                }
+            }
+        });
     };
 
     // 刷新列表
@@ -233,6 +242,10 @@ function DocInfoManager() {
                 <Dropdown
                     droplist={
                         <Menu>
+                                <Menu.Item key="detail" onClick={() => navigate(`/quiz/frame/docinfo/detail/${record.id}`)}>
+                                    <IconFile style={{marginRight: 8}}/>
+                                    查看详情
+                                </Menu.Item>
                                 <Menu.Item key="headingTree" onClick={() => handleViewHeadingTree(record)}>
                                     <IconList style={{marginRight: 8}}/>
                                     标题树

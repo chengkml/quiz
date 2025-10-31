@@ -17,4 +17,6 @@ public interface DocHeadingRepository extends JpaRepository<DocHeading, String> 
     @Modifying
     @Query("delete from DocHeading h where h.docId = :docId")
     int deleteByDocId(@Param("docId") String docId);
+
+    List<DocHeading> findByDocIdAndHeadingText(String docId, String text);
 }
