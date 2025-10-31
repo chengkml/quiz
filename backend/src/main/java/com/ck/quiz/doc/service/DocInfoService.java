@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 文档服务接口
@@ -83,5 +84,9 @@ public interface DocInfoService {
      * @return 分页功能点列表
      */
     Page<FunctionPointTreeDto> getThreeLevelFunctionPointsPage(FunctionPointQueryDto queryDto);
+
+    Map<String, Object> generateByProcess(String functionId);
+
+    void batchGenerateProcessDescription();
 
 }

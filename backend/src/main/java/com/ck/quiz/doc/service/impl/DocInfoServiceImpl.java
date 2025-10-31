@@ -11,9 +11,12 @@ import com.ck.quiz.doc.repository.DocInfoRepository;
 import com.ck.quiz.doc.repository.DocProcessNodeRepository;
 import com.ck.quiz.doc.repository.FunctionPointRepository;
 import com.ck.quiz.doc.service.DocInfoService;
+import com.ck.quiz.thpool.CommonPool;
 import com.ck.quiz.utils.HumpHelper;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -21,6 +24,7 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFStyle;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -48,7 +52,6 @@ import java.util.regex.Pattern;
  */
 @Service
 @Slf4j
-@Transactional(readOnly = true)
 public class DocInfoServiceImpl implements DocInfoService {
 
     @Autowired
@@ -65,6 +68,9 @@ public class DocInfoServiceImpl implements DocInfoService {
 
     @Autowired
     private FunctionPointRepository functionPointRepository;
+
+    @Autowired
+    private ChatClient.Builder chatBuilder;
 
     @Override
     @Transactional
@@ -222,7 +228,6 @@ public class DocInfoServiceImpl implements DocInfoService {
     }
 
     /**
-     *
      * @param docId
      */
     private void extractFunctionPoints(String docId) {
@@ -314,7 +319,6 @@ public class DocInfoServiceImpl implements DocInfoService {
     }
 
 
-
     public void extractAndSaveHeadings(String docId, String filePath) {
         try (FileInputStream fis = new FileInputStream(filePath);
              XWPFDocument document = new XWPFDocument(fis)) {
@@ -373,9 +377,9 @@ public class DocInfoServiceImpl implements DocInfoService {
     /**
      * 智能识别标题层级
      * 支持：
-     *  - Heading 1 / 标题 1 / heading1
-     *  - 手动加粗 + 大字号（伪标题）
-     *  - 自定义样式引用
+     * - Heading 1 / 标题 1 / heading1
+     * - 手动加粗 + 大字号（伪标题）
+     * - 自定义样式引用
      */
     private int extractHeadingLevelCompat(XWPFDocument doc, XWPFParagraph para, String style) {
         // ✅ 1. 优先识别标准样式
@@ -405,7 +409,8 @@ public class DocInfoServiceImpl implements DocInfoService {
                     }
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // ✅ 3. 通过“伪标题”特征判断（加粗 + 大字体 + 特殊间距）
 //        if (isPseudoHeading(para)) {
@@ -564,22 +569,22 @@ public class DocInfoServiceImpl implements DocInfoService {
         BeanUtils.copyProperties(docInfo, docInfoDto);
         return docInfoDto;
     }
-    
+
     @Override
     public List<DocHeadingTreeDto> getDocHeadingTree(String docId) {
         log.info("获取文档标题树，文档ID: {}", docId);
-        
+
         // 验证文档是否存在
         docInfoRepository.findById(docId)
                 .orElseThrow(() -> new DocInfoException("DOC_NOT_FOUND", "文档不存在: " + docId));
-        
+
         // 按order_no正序获取文档标题列表
         List<DocHeading> headings = docHeadingRepository.findByDocIdOrderByOrderNoAsc(docId);
-        
+
         // 构建标题树
         return buildHeadingTree(headings);
     }
-    
+
     /**
      * 构建文档标题树
      *
@@ -589,19 +594,19 @@ public class DocInfoServiceImpl implements DocInfoService {
     private List<DocHeadingTreeDto> buildHeadingTree(List<DocHeading> headings) {
         Map<String, DocHeadingTreeDto> nodeMap = new HashMap<>();
         List<DocHeadingTreeDto> rootNodes = new ArrayList<>();
-        
+
         // 首先将所有标题转换为DTO并放入Map
         for (DocHeading heading : headings) {
             DocHeadingTreeDto dto = new DocHeadingTreeDto();
             BeanUtils.copyProperties(heading, dto);
             nodeMap.put(heading.getId(), dto);
         }
-        
+
         // 构建树结构
         for (DocHeading heading : headings) {
             DocHeadingTreeDto currentNode = nodeMap.get(heading.getId());
             String parentId = heading.getParentId();
-            
+
             if (parentId == null) {
                 // 顶级标题
                 rootNodes.add(currentNode);
@@ -613,7 +618,7 @@ public class DocInfoServiceImpl implements DocInfoService {
                 }
             }
         }
-        
+
         return rootNodes;
     }
 
@@ -778,37 +783,37 @@ public class DocInfoServiceImpl implements DocInfoService {
     @Override
     public Page<DocProcessNodeDto> pageDocProcessNode(DocProcessNodeQueryDto queryDto) {
         log.info("分页查询文档流程节点，查询条件: {}", queryDto);
-        
+
         String docId = queryDto.getDocId();
         Integer pageNum = queryDto.getPageNum();
         Integer pageSize = queryDto.getPageSize();
         String keyWord = queryDto.getKeyWord();
         String headingId = queryDto.getHeadingId();
-        
+
         // 验证文档是否存在
         docInfoRepository.findById(docId)
                 .orElseThrow(() -> new DocInfoException("DOC_NOT_FOUND", "文档不存在: " + docId));
-        
+
         StringBuilder sql = new StringBuilder(
                 "SELECT n.node_id, n.doc_id, n.heading_id, n.sequence_no, n.content, n.create_date, h.heading_text " +
-                "FROM doc_process_node n LEFT JOIN doc_heading h ON n.heading_id = h.heading_id " +
-                "WHERE n.doc_id = :docId "
+                        "FROM doc_process_node n LEFT JOIN doc_heading h ON n.heading_id = h.heading_id " +
+                        "WHERE n.doc_id = :docId "
         );
-        
+
         StringBuilder countSql = new StringBuilder(
                 "SELECT COUNT(1) FROM doc_process_node n WHERE n.doc_id = :docId "
         );
-        
+
         Map<String, Object> params = new HashMap<>();
         params.put("docId", docId);
-        
+
         // 添加标题ID筛选条件
         if (headingId != null && !headingId.isEmpty()) {
             sql.append("AND n.heading_id = :headingId ");
             countSql.append("AND n.heading_id = :headingId ");
             params.put("headingId", headingId);
         }
-        
+
         // 添加关键词搜索条件
         if (keyWord != null && !keyWord.isEmpty()) {
             String searchPattern = "%" + keyWord + "%";
@@ -816,14 +821,14 @@ public class DocInfoServiceImpl implements DocInfoService {
             countSql.append("AND (n.content LIKE :keyWord OR (SELECT h.heading_text FROM doc_heading h WHERE h.heading_id = n.heading_id) LIKE :keyWord) ");
             params.put("keyWord", searchPattern);
         }
-        
+
         // 排序（按序号正序）
         JdbcQueryHelper.order(
                 "n.sequence_no",
                 "ASC",
                 sql
         );
-        
+
         // 分页SQL
         String limitSql = JdbcQueryHelper.getLimitSql(
                 jdbcTemplate,
@@ -831,7 +836,7 @@ public class DocInfoServiceImpl implements DocInfoService {
                 pageNum,
                 pageSize
         );
-        
+
         // 查询数据，返回DTO对象
         List<DocProcessNodeDto> nodeDtos = jdbcTemplate.query(
                 limitSql,
@@ -848,7 +853,7 @@ public class DocInfoServiceImpl implements DocInfoService {
                     return dto;
                 }
         );
-        
+
         // 组装分页对象
         return JdbcQueryHelper.toPage(
                 jdbcTemplate,
@@ -859,22 +864,22 @@ public class DocInfoServiceImpl implements DocInfoService {
                 pageSize
         );
     }
-    
+
     @Override
     public List<FunctionPointTreeDto> getFunctionPointTree(String docId) {
         log.info("获取功能点树，文档ID: {}", docId);
-        
+
         // 验证文档是否存在
         docInfoRepository.findById(docId)
                 .orElseThrow(() -> new DocInfoException("DOC_NOT_FOUND", "文档不存在: " + docId));
-        
+
         // 按order_num正序获取文档功能点列表
         List<FunctionPoint> functionPoints = functionPointRepository.findByDocIdOrderByOrderNumAsc(docId);
-        
+
         // 构建功能点树
         return buildFunctionPointTree(functionPoints);
     }
-    
+
     /**
      * 构建功能点树
      *
@@ -884,19 +889,19 @@ public class DocInfoServiceImpl implements DocInfoService {
     private List<FunctionPointTreeDto> buildFunctionPointTree(List<FunctionPoint> functionPoints) {
         Map<String, FunctionPointTreeDto> nodeMap = new HashMap<>();
         List<FunctionPointTreeDto> rootNodes = new ArrayList<>();
-        
+
         // 首先将所有功能点转换为DTO并放入Map
         for (FunctionPoint functionPoint : functionPoints) {
             FunctionPointTreeDto dto = new FunctionPointTreeDto();
             BeanUtils.copyProperties(functionPoint, dto);
             nodeMap.put(functionPoint.getId(), dto);
         }
-        
+
         // 构建树结构
         for (FunctionPoint functionPoint : functionPoints) {
             FunctionPointTreeDto currentNode = nodeMap.get(functionPoint.getId());
             String parentId = functionPoint.getParentId();
-            
+
             if (parentId == null) {
                 // 顶级功能点
                 rootNodes.add(currentNode);
@@ -908,7 +913,7 @@ public class DocInfoServiceImpl implements DocInfoService {
                 }
             }
         }
-        
+
         return rootNodes;
     }
 
@@ -928,10 +933,10 @@ public class DocInfoServiceImpl implements DocInfoService {
 
         Map<String, Object> queryParams = new HashMap<>();
         queryParams.put("docId", docId);
-        
+
         StringBuilder listSql = new StringBuilder(
                 "SELECT fp.id, fp.doc_id, fp.parent_id, fp.name, fp.level, fp.type, fp.order_num, " +
-                        "       fp.create_date, fp.update_date, p.name AS parent_name " +
+                        "       fp.create_date, fp.update_date, p.name AS parent_name, fp.process_summary, fp.function_desc, fp.business_desc " +
                         "FROM function_point fp " +
                         "LEFT JOIN function_point p ON fp.parent_id = p.id " +
                         "WHERE fp.doc_id = :docId AND fp.level = 3 "
@@ -981,21 +986,24 @@ public class DocInfoServiceImpl implements DocInfoService {
                     dto.setType(rs.getString("type"));
                     dto.setOrderNum(rs.getInt("order_num"));
                     dto.setParentName(rs.getString("parent_name"));
+                    dto.setProcessSummary(rs.getString("process_summary"));
+                    dto.setFunctionDesc(rs.getString("function_desc"));
+                    dto.setBusinessDesc(rs.getString("business_desc"));
                     idMap.put(id, dto);
                     return dto;
                 }
         );
-        if(!idMap.isEmpty()) {
+        if (!idMap.isEmpty()) {
             queryParams.put("docId", docId);
             queryParams.put("headingIds", new ArrayList<>(idMap.keySet()));
             Map<String, List<String>> contentsMap = new HashMap<>();
-            HumpHelper.lineToHump(jdbcTemplate.queryForList("select * from doc_process_node where doc_id = :docId and heading_id in (:headingIds) order by sequence_no asc  ", queryParams)).forEach(map->{
+            HumpHelper.lineToHump(jdbcTemplate.queryForList("select * from doc_process_node where doc_id = :docId and heading_id in (:headingIds) order by sequence_no asc  ", queryParams)).forEach(map -> {
                 String headingId = MapUtils.getString(map, "headingId");
                 String content = MapUtils.getString(map, "content");
-                contentsMap.computeIfAbsent(headingId, key->new ArrayList<>()).add(content);
+                contentsMap.computeIfAbsent(headingId, key -> new ArrayList<>()).add(content);
             });
-            contentsMap.forEach((id, contents)->{
-                if(idMap.containsKey(id)) {
+            contentsMap.forEach((id, contents) -> {
+                if (idMap.containsKey(id)) {
                     idMap.get(id).setProcessDetail(StringUtils.join(contents, "\n"));
                 }
             });
@@ -1010,6 +1018,108 @@ public class DocInfoServiceImpl implements DocInfoService {
                 pageNum,
                 pageSize
         );
+    }
+
+    public Map<String, Object> generateByProcess(String functionId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("functionId", functionId);
+
+        // 查询流程节点内容
+        List<String> contents = new ArrayList<>();
+        HumpHelper.lineToHump(jdbcTemplate.queryForList(
+                "select * from doc_process_node where heading_id = :functionId order by sequence_no asc",
+                params)).forEach(map -> {
+            String content = MapUtils.getString(map, "content");
+            if (StringUtils.isNotBlank(content)) {
+                contents.add(content);
+            }
+        });
+
+        // 查询提示词模板
+        List<Map<String, Object>> list = HumpHelper.lineToHump(jdbcTemplate.queryForList(
+                "select * from prompt_templates where name = 'processGenerate'", params));
+        if (list.isEmpty()) {
+            throw new RuntimeException("未配置提示词模板");
+        }
+
+        // 构建提示词
+        String prompt = MapUtils.getString(list.get(0), "content");
+        prompt = prompt.replace("{{processDetail}}", StringUtils.join(contents, "\n"));
+
+        // 调用大模型生成结果
+        ChatClient chatClient = chatBuilder.build();
+        String result = chatClient.prompt()
+                .user(prompt)
+                .call()
+                .content();
+        if(!result.startsWith("[")&&result.endsWith("]")) {
+            result = result.substring(0, result.length()-1);
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> jsonRes;
+
+        // 尝试解析 JSON
+        try {
+            jsonRes = parseAiResult(result, mapper);
+            jsonRes.put("functionId", functionId);
+
+            // 更新数据库
+            jdbcTemplate.update(
+                    "update function_point set process_summary = :processSummary, business_desc = :businessDesc, function_desc = :functionDesc where id = :functionId",
+                    jsonRes
+            );
+            return jsonRes;
+        } catch (Exception e) {
+            throw new RuntimeException("AI 返回结果解析失败：" + result, e);
+        }
+    }
+
+    @Override
+    public void batchGenerateProcessDescription() {
+        Map<String, Object> params = new HashMap<>();
+        HumpHelper.lineToHump(jdbcTemplate.queryForList("select * from function_point where level = 3 and (process_summary is null or function_desc is null or business_desc is null)", params)).forEach(map->{
+            CommonPool.cachedPool.execute(()->{
+                generateByProcess(MapUtils.getString(map, "id"));
+            });
+        });
+    }
+
+    /**
+     * 尝试解析 AI 返回结果为 JSON，先清理 Markdown，再提取 JSON 片段
+     */
+    private Map<String, Object> parseAiResult(String result, ObjectMapper mapper) throws Exception {
+        // 1. 清理 Markdown 代码块
+        String cleaned = cleanJsonString(result);
+
+        try {
+            return mapper.readValue(cleaned, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            // 2. 提取 JSON 片段
+            String jsonPart = extractJson(cleaned);
+            return mapper.readValue(jsonPart, new TypeReference<Map<String, Object>>() {});
+        }
+    }
+
+    /**
+     * 清理可能的 Markdown 包裹和多余空白
+     */
+    private String cleanJsonString(String text) {
+        if (text == null) return "{}";
+        text = text.replaceAll("(?s)```.*?\\n", "").replaceAll("```", "");
+        return text.trim();
+    }
+
+
+    /**
+     * 尝试从文本中提取 JSON 对象部分
+     */
+    private String extractJson(String text) {
+        int start = text.indexOf("{");
+        int end = text.lastIndexOf("}");
+        if (start != -1 && end != -1 && end > start) {
+            return text.substring(start, end + 1);
+        }
+        return text;
     }
 
 

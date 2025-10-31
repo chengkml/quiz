@@ -62,6 +62,11 @@ const getDocFunctionPoints = (docId, pageNum = 1, pageSize = 20, keyWord = '', p
   });
 };
 
+// AI生成流程说明
+const generateProcessDescription = functionId => {
+  return axios.post(`${base}/api/documents/process/generate/${functionId}`);
+};
+
 export {
   getDocInfoList,
   getDocInfoById,
@@ -72,5 +77,6 @@ export {
   getDocHeadingTree,
   getDocProcessNodes,
   getFunctionPointTree,
-  getDocFunctionPoints
+  getDocFunctionPoints,
+  generateProcessDescription
 };

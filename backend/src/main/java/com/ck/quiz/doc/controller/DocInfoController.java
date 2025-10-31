@@ -1,19 +1,9 @@
 package com.ck.quiz.doc.controller;
 
-import com.ck.quiz.doc.dto.DocHeadingTreeDto;
-import com.ck.quiz.doc.dto.DocInfoCreateDto;
-import com.ck.quiz.doc.dto.DocInfoDto;
-import com.ck.quiz.doc.dto.DocInfoQueryDto;
-import com.ck.quiz.doc.dto.DocProcessNodeDto;
-import com.ck.quiz.doc.dto.DocProcessNodeQueryDto;
-import com.ck.quiz.doc.dto.FunctionPointQueryDto;
-import com.ck.quiz.doc.dto.FunctionPointTreeDto;
-// 移除对实体类的引用，使用DTO
+import com.ck.quiz.doc.dto.*;
 import com.ck.quiz.doc.service.DocInfoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -24,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 文档管理控制器
@@ -92,11 +83,11 @@ public class DocInfoController {
         Page<DocInfoDto> docInfoPage = docInfoService.pageDocInfo(queryDto);
         return ResponseEntity.ok(docInfoPage);
     }
-    
+
     /**
      * 分页查询文档流程节点
      *
-     * @param docId 文档ID
+     * @param docId    文档ID
      * @param queryDto 查询条件
      * @return 流程节点分页结果
      */
@@ -125,7 +116,7 @@ public class DocInfoController {
         DocInfoDto docInfo = docInfoService.uploadDocFile(file);
         return ResponseEntity.ok(docInfo);
     }
-    
+
     /**
      * 根据文档ID获取文档标题树
      *
@@ -139,7 +130,7 @@ public class DocInfoController {
         List<DocHeadingTreeDto> headingTree = docInfoService.getDocHeadingTree(id);
         return ResponseEntity.ok(headingTree);
     }
-    
+
     /**
      * 根据文档ID获取功能点树
      *
@@ -173,6 +164,31 @@ public class DocInfoController {
         Page<FunctionPointTreeDto> functionPointsPage =
                 docInfoService.getThreeLevelFunctionPointsPage(queryDto);
         return ResponseEntity.ok(functionPointsPage);
+    }
+
+    /**
+     * 根据功能点ID生成流程说明
+     *
+     * @param functionId 功能点ID
+     * @return 包含流程简述、业务说明、功能描述的结果
+     */
+    @PostMapping("/process/generate/{functionId}")
+    @Operation(
+            summary = "AI生成流程说明",
+            description = "根据功能点ID，自动提取对应的流程节点内容，使用大模型生成流程简述、业务说明和功能描述"
+    )
+    public ResponseEntity<Map<String, Object>> generateProcessDescription(
+            @Parameter(description = "功能点ID", required = true)
+            @PathVariable String functionId) {
+        Map<String, Object> result = docInfoService.generateByProcess(functionId);
+        return ResponseEntity.ok(result);
+    }
+
+
+    @GetMapping("/process/batchgenerate")
+    public ResponseEntity batchGenerateProcessDescription() {
+        docInfoService.batchGenerateProcessDescription();
+        return ResponseEntity.ok().build();
     }
 
 }

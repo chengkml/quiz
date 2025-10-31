@@ -1,8 +1,9 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
-import {Form, Input, Layout, Message, Spin, Table, Tree, Typography} from '@arco-design/web-react';
+import {Button, Dropdown, Form, Input, Layout, Menu, Message, Spin, Table, Tree, Typography} from '@arco-design/web-react';
+import {IconList} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
-import {getFunctionPointTree, getDocFunctionPoints} from './api';
+import {getFunctionPointTree, getDocFunctionPoints, generateProcessDescription} from './api';
 import './style/index.less';
 
 const {Sider, Content} = Layout;
@@ -199,6 +200,35 @@ export default function DocInfoFeatures() {
     }, [id]);
 
     // 表格列定义
+    // 智能补全功能
+    const handleSmartComplete = async (record: any) => {
+        try {
+            Message.info('正在生成流程说明...');
+            const response = await generateProcessDescription(record.id);
+            const result = response.data;
+            
+            // 更新表格数据
+            setTableData(prevData => 
+                prevData.map(item => 
+                    item.id === record.id 
+                        ? {
+                            ...item,
+                            processSummary: result.processSummary || item.processSummary,
+                            processDetail: result.processDetail || item.processDetail,
+                            businessDesc: result.businessDesc || item.businessDesc,
+                            functionDesc: result.functionDesc || item.functionDesc
+                          }
+                        : item
+                )
+            );
+            
+            Message.success('流程说明生成成功');
+        } catch (error) {
+            console.error('智能补全失败:', error);
+            Message.error('流程说明生成失败，请重试');
+        }
+    };
+
     const columns = [
         {
             title: '子模块名称',
@@ -239,6 +269,35 @@ export default function DocInfoFeatures() {
             key: 'functionDesc',
             ellipsis: true,
             tooltip: (text: string) => text,
+        },
+        {
+            title: '操作',
+            key: 'action',
+            width: 100,
+            fixed: 'right',
+            align: 'center',
+            render: (text: string, record: any) => (
+                <Dropdown
+                    droplist={
+                        <Menu>
+                            <Menu.Item key="smartComplete" onClick={() => handleSmartComplete(record)}>
+                                智能补全
+                            </Menu.Item>
+                        </Menu>
+                    }
+                    position="bl"
+                >
+                    <Button
+                        type="text"
+                        className="more-btn"
+                        onClick={e => {
+                            e.stopPropagation();
+                        }}
+                    >
+                        <IconList/>
+                    </Button>
+                </Dropdown>
+            ),
         }
     ];
 
