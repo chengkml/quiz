@@ -27,6 +27,10 @@ public class FunctionPointTreeDto {
      */
     private String parentId;
 
+    private String parentName;
+
+    private String processDetail;
+
     /**
      * 功能点名称
      */

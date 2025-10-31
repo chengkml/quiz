@@ -1,31 +1,34 @@
-import { request } from '@/utils/request';
+import axios from '@/core/src/http';
+
+
+const base = '/quiz';
 
 // 创建提示词模板
 export const createPromptTemplate = (data: any) => {
-  return request.post('/prompt/template/create', data);
+  return axios.post(`${base}/api/prompt-templates`, data);
 };
 
 // 更新提示词模板
 export const updatePromptTemplate = (data: any) => {
-  return request.post('/prompt/template/update', data);
+  return axios.put(`${base}/api/prompt-templates`, data);
 };
 
 // 删除提示词模板
 export const deletePromptTemplate = (id: number) => {
-  return request.post(`/prompt/template/delete/${id}`);
+  return axios.delete(`${base}/api/prompt-templates/${id}`);
 };
 
 // 获取提示词模板详情
 export const getPromptTemplateDetail = (id: number) => {
-  return request.get(`/prompt/template/detail/${id}`);
+  return axios.get(`${base}/api/prompt-templates/${id}`);
 };
 
 // 获取提示词模板列表（分页）
 export const getPromptTemplateList = (params: any) => {
-  return request.get('/prompt/template/list', { params });
+  return axios.get(`${base}/api/prompt-templates/search`, { params });
 };
 
 // 获取所有提示词模板
 export const getAllPromptTemplates = () => {
-  return request.get('/prompt/template/all');
+  return axios.get(`${base}/api/prompt-templates`);
 };

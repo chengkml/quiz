@@ -51,13 +51,13 @@ const getDocProcessNodes = (docId, pageNum = 1, pageSize = 20, keyWord = '', hea
 const getFunctionPointTree = id => axios.get(`${base}/api/documents/${id}/function-point-tree`);
 
 // 获取文档功能点（分页查询）
-const getDocFunctionPoints = (docId, pageNum = 1, pageSize = 20, keyWord = '', functionPointId = '') => {
-  return axios.get(`${base}/api/documents/${docId}/process-nodes/page`, {
+const getDocFunctionPoints = (docId, pageNum = 1, pageSize = 20, keyWord = '', parentId = '') => {
+  return axios.get(`${base}/api/documents/${docId}/function-points/three-level/page`, {
     params: { 
       pageNum, 
       pageSize, 
-      keyWord, 
-      headingId: functionPointId 
+      name: keyWord, 
+      parentId 
     }
   });
 };

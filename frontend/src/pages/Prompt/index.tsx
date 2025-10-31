@@ -7,9 +7,9 @@ import AddPromptTemplateModal from './components/AddPromptTemplateModal';
 import EditPromptTemplateModal from './components/EditPromptTemplateModal';
 import DetailPromptTemplateModal from './components/DetailPromptTemplateModal';
 import './style/index.less';
-import {Content} from "antd/es/layout/layout";
 
 const PromptTemplateManagement: React.FC = () => {
+    // 处理Modal成功回调
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({
@@ -34,10 +34,11 @@ const PromptTemplateManagement: React.FC = () => {
             };
 
             const response = await getPromptTemplateList(queryParams);
-            setData(response.data?.items || []);
+            // 假设后端返回的是Page对象，包含content数组和totalElements属性
+            setData(response.data?.content || response.data?.items || []);
             setPagination(prev => ({
                 ...prev,
-                total: response.data?.total || 0
+                total: response.data?.totalElements || response.data?.total || 0
             }));
         } catch (error) {
             console.error('获取提示词模板列表失败:', error);
@@ -171,38 +172,44 @@ const PromptTemplateManagement: React.FC = () => {
 
     return (
         <div className="prompt-template-manager">
-            <Layout>
-                <Content>
-                    <FilterForm ref={filterFormRef} onSearch={searchTableData} onReset={searchTableData}>
-                        <Form.Item label="模板名称" field="name">
-                            <Input placeholder="请输入模板名称"/>
-                        </Form.Item>
-                        <Form.Item label="创建人" field="createUser">
-                            <Input placeholder="请输入创建人"/>
-                        </Form.Item>
-                    </FilterForm>
-                    <div className="action-buttons">
-                        <Button
-                            type="primary"
-                            icon={<IconPlus/>}
-                            onClick={() => setAddModalVisible(true)}
-                        >
-                            新增模板
-                        </Button>
-                    </div>
-                    <Table
-                        columns={columns}
-                        data={data}
-                        loading={loading}
-                        pagination={{
-                            ...pagination,
-                            onChange: handlePaginationChange,
-                            showTotal: true
-                        }}
-                        rowKey="id"
-                    />
-                </Content>
-            </Layout>
+            <div className="content-wrapper">
+                <FilterForm ref={filterFormRef} onSearch={searchTableData} onReset={searchTableData}>
+                    <Form.Item label="模板名称" field="name">
+                        <Input placeholder="请输入模板名称"/>
+                    </Form.Item>
+                    <Form.Item label="创建人" field="createUser">
+                        <Input placeholder="请输入创建人"/>
+                    </Form.Item>
+                </FilterForm>
+                <div className="action-buttons">
+                    <Button
+                        type="primary"
+                        icon={<IconPlus/>}
+                        onClick={() => setAddModalVisible(true)}
+                    >
+                        新增模板
+                    </Button>
+                </div>
+                <Table
+                    columns={columns}
+                    data={data}
+                    loading={loading}
+                    pagination={{
+                        ...pagination,
+                        onChange: handlePaginationChange,
+                        showTotal: true
+                    }}
+                    rowKey="id"
+                />
+            </div>
+            <AddPromptTemplateModal
+                visible={addModalVisible}
+                onCancel={() => setAddModalVisible(false)}
+                onSuccess={() => {
+                    setAddModalVisible(false);
+                    fetchData();
+                }}
+            />
             <EditPromptTemplateModal
                 visible={editModalVisible}
                 record={currentRecord}
@@ -212,7 +219,6 @@ const PromptTemplateManagement: React.FC = () => {
                     fetchData();
                 }}
             />
-
             <DetailPromptTemplateModal
                 visible={detailModalVisible}
                 record={currentRecord}

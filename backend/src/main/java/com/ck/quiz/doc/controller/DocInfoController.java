@@ -6,6 +6,7 @@ import com.ck.quiz.doc.dto.DocInfoDto;
 import com.ck.quiz.doc.dto.DocInfoQueryDto;
 import com.ck.quiz.doc.dto.DocProcessNodeDto;
 import com.ck.quiz.doc.dto.DocProcessNodeQueryDto;
+import com.ck.quiz.doc.dto.FunctionPointQueryDto;
 import com.ck.quiz.doc.dto.FunctionPointTreeDto;
 // 移除对实体类的引用，使用DTO
 import com.ck.quiz.doc.service.DocInfoService;
@@ -142,14 +143,36 @@ public class DocInfoController {
     /**
      * 根据文档ID获取功能点树
      *
-     * @param id 文档ID
+     * @param docId 文档ID
      * @return 功能点树列表
      */
-    @GetMapping("/{id}/function-point-tree")
+    @GetMapping("/{docId}/function-point-tree")
     @Operation(summary = "获取功能点树", description = "根据文档ID获取功能点的层级结构")
     public ResponseEntity<List<FunctionPointTreeDto>> getFunctionPointTree(
-            @Parameter(description = "文档ID") @PathVariable String id) {
-        List<FunctionPointTreeDto> functionPointTree = docInfoService.getFunctionPointTree(id);
+            @Parameter(description = "文档ID") @PathVariable String docId) {
+        List<FunctionPointTreeDto> functionPointTree = docInfoService.getFunctionPointTree(docId);
         return ResponseEntity.ok(functionPointTree);
     }
+
+    /**
+     * 分页查询文档三级功能点
+     *
+     * @param queryDto 查询条件
+     * @return 分页功能点列表
+     */
+    @GetMapping("/{docId}/function-points/three-level/page")
+    @Operation(
+            summary = "分页查询文档三级功能点",
+            description = "根据文档ID分页查询文档的三级功能点（不构建树结构，直接分页返回）"
+    )
+    public ResponseEntity<Page<FunctionPointTreeDto>> getThreeLevelFunctionPointsPage(
+            @PathVariable String docId,
+            @Valid FunctionPointQueryDto queryDto) {
+        // 设置文档ID
+        queryDto.setDocId(docId);
+        Page<FunctionPointTreeDto> functionPointsPage =
+                docInfoService.getThreeLevelFunctionPointsPage(queryDto);
+        return ResponseEntity.ok(functionPointsPage);
+    }
+
 }

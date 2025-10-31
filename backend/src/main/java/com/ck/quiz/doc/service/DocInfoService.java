@@ -1,12 +1,6 @@
 package com.ck.quiz.doc.service;
 
-import com.ck.quiz.doc.dto.DocHeadingTreeDto;
-import com.ck.quiz.doc.dto.DocInfoCreateDto;
-import com.ck.quiz.doc.dto.DocInfoDto;
-import com.ck.quiz.doc.dto.DocInfoQueryDto;
-import com.ck.quiz.doc.dto.DocProcessNodeDto;
-import com.ck.quiz.doc.dto.DocProcessNodeQueryDto;
-import com.ck.quiz.doc.dto.FunctionPointTreeDto;
+import com.ck.quiz.doc.dto.*;
 import com.ck.quiz.doc.entity.DocProcessNode;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
@@ -81,5 +75,13 @@ public interface DocInfoService {
      * @return 功能点树列表
      */
     List<FunctionPointTreeDto> getFunctionPointTree(String docId);
+
+    /**
+     * 分页查询文档三级功能点
+     *
+     * @param queryDto 查询条件
+     * @return 分页功能点列表
+     */
+    Page<FunctionPointTreeDto> getThreeLevelFunctionPointsPage(FunctionPointQueryDto queryDto);
 
 }

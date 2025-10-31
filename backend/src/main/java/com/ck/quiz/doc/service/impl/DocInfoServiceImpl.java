@@ -11,9 +11,12 @@ import com.ck.quiz.doc.repository.DocInfoRepository;
 import com.ck.quiz.doc.repository.DocProcessNodeRepository;
 import com.ck.quiz.doc.repository.FunctionPointRepository;
 import com.ck.quiz.doc.service.DocInfoService;
+import com.ck.quiz.utils.HumpHelper;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
@@ -259,7 +262,7 @@ public class DocInfoServiceImpl implements DocInfoService {
 
             // 一级功能点
             FunctionPoint fp1 = new FunctionPoint();
-            fp1.setId(IdHelper.genUuid());
+            fp1.setId(level3.getId());
             fp1.setDocId(docId);
             fp1.setParentId(null);
             fp1.setName(level3.getHeadingText());
@@ -277,7 +280,7 @@ public class DocInfoServiceImpl implements DocInfoService {
 
             for (DocHeading level4 : level4List) {
                 FunctionPoint fp2 = new FunctionPoint();
-                fp2.setId(IdHelper.genUuid());
+                fp2.setId(level4.getId());
                 fp2.setDocId(docId);
                 fp2.setParentId(fp1.getId());
                 fp2.setName(level4.getHeadingText());
@@ -295,7 +298,7 @@ public class DocInfoServiceImpl implements DocInfoService {
 
                 for (DocHeading level5 : level5List) {
                     FunctionPoint fp3 = new FunctionPoint();
-                    fp3.setId(IdHelper.genUuid());
+                    fp3.setId(level5.getId());
                     fp3.setDocId(docId);
                     fp3.setParentId(fp2.getId());
                     fp3.setName(level5.getHeadingText());
@@ -405,9 +408,9 @@ public class DocInfoServiceImpl implements DocInfoService {
         } catch (Exception ignored) {}
 
         // ✅ 3. 通过“伪标题”特征判断（加粗 + 大字体 + 特殊间距）
-        if (isPseudoHeading(para)) {
-            return 1; // 默认为一级标题
-        }
+//        if (isPseudoHeading(para)) {
+//            return 1; // 默认为一级标题
+//        }
 
         return 0;
     }
@@ -614,6 +617,71 @@ public class DocInfoServiceImpl implements DocInfoService {
         return rootNodes;
     }
 
+//    public void extractProcessNodesWithHeading(String docId, String filePath) {
+//        try (FileInputStream fis = new FileInputStream(filePath);
+//             XWPFDocument document = new XWPFDocument(fis)) {
+//
+//            // 删除旧记录
+//            nodeRepository.deleteByDocId(docId);
+//
+//            List<XWPFParagraph> paragraphs = document.getParagraphs();
+//            AtomicInteger seqNo = new AtomicInteger(1);
+//
+//            boolean inProcessSection = false;
+//            String currentHeadingId = null;
+//
+//            for (XWPFParagraph para : paragraphs) {
+//                String text = para.getText().trim();
+//                if (text.isEmpty()) continue;
+//
+//                // 检测5级标题（Heading 5 或“标题 5”）
+//                String style = para.getStyle();
+//                int level = extractHeadingLevelCompat(document, para, style);
+//                if (level == 5) {
+//                    // 获取标题在数据库中的 ID
+//                    List<DocHeading> headings = docHeadingRepository.findByDocIdAndHeadingText(docId, text);
+//                    if (!headings.isEmpty()) {
+//                        currentHeadingId = headings.get(0).getId();
+//                    } else {
+//                        currentHeadingId = null;
+//                    }
+//                    continue; // 标题本身不存储
+//                }
+//
+//                // 检测开始/结束标记
+//                if (text.startsWith("流程节点说明")) {
+//                    inProcessSection = true;
+//                    continue;
+//                }
+//                if (text.startsWith("【功能描述】")) {
+//                    inProcessSection = false;
+//                    continue;
+//                }
+//
+//                if (inProcessSection && currentHeadingId != null) {
+//                    // 按序号开头的流程节点拆分（保持序号在内容中）
+//                    String[] lines = text.split("(?<=^|\\n)(?=\\d+、)");
+//                    for (String line : lines) {
+//                        line = line.trim();
+//                        if (line.isEmpty()) continue;
+//
+//                        DocProcessNode node = new DocProcessNode();
+//                        node.setId(IdHelper.genUuid());
+//                        node.setDocId(docId);
+//                        node.setHeadingId(currentHeadingId);
+//                        node.setSequenceNo(seqNo.getAndIncrement());
+//                        node.setContent(line);
+//
+//                        nodeRepository.save(node);
+//                    }
+//                }
+//            }
+//
+//        } catch (Exception e) {
+//            throw new RuntimeException("提取流程节点失败: " + e.getMessage(), e);
+//        }
+//    }
+
     public void extractProcessNodesWithHeading(String docId, String filePath) {
         try (FileInputStream fis = new FileInputStream(filePath);
              XWPFDocument document = new XWPFDocument(fis)) {
@@ -626,59 +694,81 @@ public class DocInfoServiceImpl implements DocInfoService {
 
             boolean inProcessSection = false;
             String currentHeadingId = null;
+            StringBuilder processBuffer = new StringBuilder();
 
-            for (XWPFParagraph para : paragraphs) {
+            for (int i = 0; i < paragraphs.size(); i++) {
+                XWPFParagraph para = paragraphs.get(i);
                 String text = para.getText().trim();
                 if (text.isEmpty()) continue;
 
-                // 检测5级标题（Heading 5 或“标题 5”）
+                // 检测标题级别
                 String style = para.getStyle();
                 int level = extractHeadingLevelCompat(document, para, style);
-                if (level == 5) {
-                    // 获取标题在数据库中的 ID
+
+                // === 检测七级标题（Heading 7）===
+                if (level == 7) {
+                    // 遇到新标题前，先保存上一个“流程步骤”缓冲区内容
+                    if (inProcessSection && currentHeadingId != null && processBuffer.length() > 0) {
+                        saveProcessNodes(docId, currentHeadingId, processBuffer.toString(), seqNo);
+                        processBuffer.setLength(0);
+                        inProcessSection = false;
+                    }
+
+                    // 设置当前 headingId
                     List<DocHeading> headings = docHeadingRepository.findByDocIdAndHeadingText(docId, text);
                     if (!headings.isEmpty()) {
                         currentHeadingId = headings.get(0).getId();
                     } else {
                         currentHeadingId = null;
                     }
-                    continue; // 标题本身不存储
+                    continue;
                 }
 
-                // 检测开始/结束标记
-                if (text.startsWith("流程节点说明")) {
+                // === 检测“本时序图流程步骤如下：”开始标记 ===
+                if (text.contains("本时序图流程步骤如下：")) {
                     inProcessSection = true;
-                    continue;
-                }
-                if (text.startsWith("【功能描述】")) {
-                    inProcessSection = false;
+                    processBuffer.setLength(0); // 清空旧内容
                     continue;
                 }
 
-                if (inProcessSection && currentHeadingId != null) {
-                    // 按序号开头的流程节点拆分（保持序号在内容中）
-                    String[] lines = text.split("(?<=^|\\n)(?=\\d+、)");
-                    for (String line : lines) {
-                        line = line.trim();
-                        if (line.isEmpty()) continue;
-
-                        DocProcessNode node = new DocProcessNode();
-                        node.setId(IdHelper.genUuid());
-                        node.setDocId(docId);
-                        node.setHeadingId(currentHeadingId);
-                        node.setSequenceNo(seqNo.getAndIncrement());
-                        node.setContent(line);
-
-                        nodeRepository.save(node);
-                    }
+                // === 如果在流程步骤区，收集内容，直到下一个七级标题出现 ===
+                if (inProcessSection) {
+                    processBuffer.append(text).append("\n");
                 }
+            }
+
+            // 文档结束时若仍在流程区，也保存
+            if (inProcessSection && currentHeadingId != null && processBuffer.length() > 0) {
+                saveProcessNodes(docId, currentHeadingId, processBuffer.toString(), seqNo);
             }
 
         } catch (Exception e) {
             throw new RuntimeException("提取流程节点失败: " + e.getMessage(), e);
         }
     }
-    
+
+    /**
+     * 按行或编号拆分保存流程节点
+     */
+    private void saveProcessNodes(String docId, String headingId, String content, AtomicInteger seqNo) {
+        // 按编号或换行拆分，如 "1、" 或 "2."
+        String[] lines = content.split("(?<=^|\\n)(?=\\d+\\s*[、.])");
+        for (String line : lines) {
+            line = line.trim();
+            if (line.isEmpty()) continue;
+
+            DocProcessNode node = new DocProcessNode();
+            node.setId(IdHelper.genUuid());
+            node.setDocId(docId);
+            node.setHeadingId(headingId);
+            node.setSequenceNo(seqNo.getAndIncrement());
+            node.setContent(line);
+
+            nodeRepository.save(node);
+        }
+    }
+
+
     /**
      * 分页查询文档流程节点
      *
@@ -821,5 +911,107 @@ public class DocInfoServiceImpl implements DocInfoService {
         
         return rootNodes;
     }
+
+    @Override
+    public Page<FunctionPointTreeDto> getThreeLevelFunctionPointsPage(FunctionPointQueryDto queryDto) {
+        log.info("分页查询三级功能点，查询条件: {}", queryDto);
+
+        String docId = queryDto.getDocId();
+        String name = queryDto.getName();
+        String parentId = queryDto.getParentId();
+        int pageNum = queryDto.getPageNum();
+        int pageSize = queryDto.getPageSize();
+
+        if (StringUtils.isBlank(docId)) {
+            throw new DocInfoException("DOC_ID_REQUIRED", "文档ID不能为空");
+        }
+
+        Map<String, Object> queryParams = new HashMap<>();
+        queryParams.put("docId", docId);
+        
+        StringBuilder listSql = new StringBuilder(
+                "SELECT fp.id, fp.doc_id, fp.parent_id, fp.name, fp.level, fp.type, fp.order_num, " +
+                        "       fp.create_date, fp.update_date, p.name AS parent_name " +
+                        "FROM function_point fp " +
+                        "LEFT JOIN function_point p ON fp.parent_id = p.id " +
+                        "WHERE fp.doc_id = :docId AND fp.level = 3 "
+        );
+
+        StringBuilder countSql = new StringBuilder(
+                "SELECT COUNT(1) FROM function_point fp WHERE fp.doc_id = :docId AND fp.level = 3 "
+        );
+
+        JdbcQueryHelper.equals("parentId", parentId, "and fp.parent_id = :parentId ", queryParams, listSql, countSql);
+
+        // 模糊搜索功能点名称
+        JdbcQueryHelper.lowerLike(
+                "keyWord",
+                name,
+                " AND lower(fp.name) LIKE :keyWord ",
+                queryParams,
+                jdbcTemplate,
+                listSql,
+                countSql
+        );
+
+        // 排序（按 order_num 升序）
+        JdbcQueryHelper.order("fp.order_num", "ASC", listSql);
+
+        // 分页SQL
+        String limitSql = JdbcQueryHelper.getLimitSql(
+                jdbcTemplate,
+                listSql.toString(),
+                pageNum,
+                pageSize
+        );
+
+        Map<String, FunctionPointTreeDto> idMap = new HashMap<>();
+        // 查询结果
+        List<FunctionPointTreeDto> records = jdbcTemplate.query(
+                limitSql,
+                queryParams,
+                (rs, rowNum) -> {
+                    FunctionPointTreeDto dto = new FunctionPointTreeDto();
+                    String id = rs.getString("id");
+                    dto.setId(id);
+                    dto.setDocId(rs.getString("doc_id"));
+                    dto.setParentId(rs.getString("parent_id"));
+                    dto.setName(rs.getString("name"));
+                    dto.setLevel(rs.getInt("level"));
+                    dto.setType(rs.getString("type"));
+                    dto.setOrderNum(rs.getInt("order_num"));
+                    dto.setParentName(rs.getString("parent_name"));
+                    idMap.put(id, dto);
+                    return dto;
+                }
+        );
+        if(!idMap.isEmpty()) {
+            queryParams.put("docId", docId);
+            queryParams.put("headingIds", new ArrayList<>(idMap.keySet()));
+            Map<String, List<String>> contentsMap = new HashMap<>();
+            HumpHelper.lineToHump(jdbcTemplate.queryForList("select * from doc_process_node where doc_id = :docId and heading_id in (:headingIds) order by sequence_no asc  ", queryParams)).forEach(map->{
+                String headingId = MapUtils.getString(map, "headingId");
+                String content = MapUtils.getString(map, "content");
+                contentsMap.computeIfAbsent(headingId, key->new ArrayList<>()).add(content);
+            });
+            contentsMap.forEach((id, contents)->{
+                if(idMap.containsKey(id)) {
+                    idMap.get(id).setProcessDetail(StringUtils.join(contents, "\n"));
+                }
+            });
+        }
+
+        // 组装分页对象
+        return JdbcQueryHelper.toPage(
+                jdbcTemplate,
+                countSql.toString(),
+                queryParams,
+                records,
+                pageNum,
+                pageSize
+        );
+    }
+
+
 
 }

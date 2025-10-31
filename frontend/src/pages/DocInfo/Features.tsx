@@ -59,8 +59,8 @@ export default function DocInfoFeatures() {
         if (!id) return;
         try {
             setTableLoading(true);
-            const {keyWord = '', functionPointId = ''} = params;
-            const response = await getDocFunctionPoints(id, pageNum - 1, pageSize, keyWord, functionPointId);
+            const {keyWord = '', parentId = ''} = params;
+            const response = await getDocFunctionPoints(id, pageNum - 1, pageSize, keyWord, parentId);
             setTableData(response.data.content || []);
             setPagination({
                 current: pageNum,
@@ -77,10 +77,10 @@ export default function DocInfoFeatures() {
     // 搜索表格数据
     const searchTableData = (params = {}) => {
         setPagination(prev => ({...prev, current: 1}));
-        // 优先使用params中的functionPointId，如果没有则使用selectedTreeNode
+        // 优先使用params中的parentId，如果没有则使用selectedTreeNode
         fetchFunctionPoints(1, 20, {
             ...params,
-            functionPointId: params.functionPointId || selectedTreeNode
+            parentId: params.parentId || selectedTreeNode
         });
     };
 
@@ -146,8 +146,8 @@ export default function DocInfoFeatures() {
         if (selectedKeys.length > 0) {
             const key = selectedKeys[0];
             setSelectedTreeNode(key);
-            // 直接传入key作为functionPointId，避免状态更新异步导致的延迟问题
-            fetchFunctionPoints(1, 20, {functionPointId: key});
+            // 直接传入key作为parentId，避免状态更新异步导致的延迟问题
+            fetchFunctionPoints(1, 20, {parentId: key});
         }
     };
 
@@ -156,7 +156,7 @@ export default function DocInfoFeatures() {
         const formValues = filterFormRef.current?.getReportFiltersValue() || {};
         fetchFunctionPoints(pageNum, pageSize, {
             ...formValues,
-            functionPointId: selectedTreeNode
+            parentId: selectedTreeNode
         });
     };
 
@@ -201,36 +201,42 @@ export default function DocInfoFeatures() {
     // 表格列定义
     const columns = [
         {
+            title: '子模块名称',
+            dataIndex: 'parentName',
+            key: 'parentName',
+            width: 170,
+        },
+        {
             title: '功能点名称',
             dataIndex: 'name',
             key: 'name',
             width: 170,
         },
         {
-            title: '序号',
-            dataIndex: 'orderNum',
-            key: 'orderNum',
-            align: 'center',
-            width: 80,
-        },
-        {
-            title: '功能描述',
-            dataIndex: 'functionDesc',
-            key: 'functionDesc',
-            ellipsis: true,
-            tooltip: (text: string) => text,
-        },
-        {
-            title: '业务描述',
+            title: '业务说明',
             dataIndex: 'businessDesc',
             key: 'businessDesc',
             ellipsis: true,
             tooltip: (text: string) => text,
         },
         {
-            title: '流程简介',
+            title: '流程简述',
             dataIndex: 'processSummary',
             key: 'processSummary',
+            ellipsis: true,
+            tooltip: (text: string) => text,
+        },
+        {
+            title: '流程步骤',
+            dataIndex: 'processDetail',
+            key: 'processDetail',
+            ellipsis: true,
+            tooltip: (text: string) => text,
+        },
+        {
+            title: '功能描述',
+            dataIndex: 'functionDesc',
+            key: 'functionDesc',
             ellipsis: true,
             tooltip: (text: string) => text,
         }
