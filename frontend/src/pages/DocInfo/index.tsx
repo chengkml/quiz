@@ -7,7 +7,7 @@ import AddDocInfoModal from './components/AddDocInfoModal';
 import EditDocInfoModal from './components/EditDocInfoModal';
 import DetailDocInfoModal from './components/DetailDocInfoModal';
 
-import {deleteDocInfo, exportHeadingsToDocx, getDocInfoById, getDocInfoList, getDocHeadingTree} from './api';
+import {deleteDocInfo, exportHeadingsToDocx, exportInfToExcel, getDocInfoById, getDocInfoList, getDocHeadingTree} from './api';
 import './index.less';
 
 const {Content} = Layout;
@@ -187,6 +187,32 @@ function DocInfoManager() {
             Message.error('标题导出失败，请重试');
         }
     };
+    
+    // 处理导出接口信息到Excel
+    const handleExportInf = async (record: any) => {
+        try {
+            const response = await exportInfToExcel(record.id);
+            
+            // 创建下载链接
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            // 使用文档名称作为下载文件名
+            const fileName = record.fileName ? `${record.fileName}_接口信息.xlsx` : `接口信息_${Date.now()}.xlsx`;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            
+            // 清理
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            Message.success('接口信息导出成功');
+        } catch (error) {
+            console.error('接口信息导出失败:', error);
+            Message.error('接口信息导出失败，请重试');
+        }
+    };
 
     // 刷新列表
     const handleRefresh = () => {
@@ -283,6 +309,10 @@ function DocInfoManager() {
                                 <Menu.Item key="exportHeadings" onClick={() => handleExportHeadings(record)}>
                                     <IconFile style={{marginRight: 8}}/>
                                     导出标题
+                                </Menu.Item>
+                                <Menu.Item key="exportInf" onClick={() => handleExportInf(record)}>
+                                    <IconFile style={{marginRight: 8}}/>
+                                    导出接口信息
                                 </Menu.Item>
                                 <Menu.Item key="edit" onClick={() => handleEdit(record)}>
                                     <IconEdit style={{marginRight: 8}}/>

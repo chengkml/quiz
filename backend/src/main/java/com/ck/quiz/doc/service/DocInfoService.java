@@ -2,6 +2,7 @@ package com.ck.quiz.doc.service;
 
 import com.ck.quiz.doc.dto.*;
 import com.ck.quiz.doc.entity.DocProcessNode;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -104,5 +105,7 @@ public interface DocInfoService {
     Map<String, Object> generateInfByProcess(String functionId);
 
     void batchGenerateInf();
+
+    byte[] exportToExcel(String docId);
     
 }

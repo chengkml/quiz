@@ -84,6 +84,13 @@ const exportHeadingsToDocx = id => {
   });
 };
 
+// 导出接口信息到Excel
+const exportInfToExcel = id => {
+  return axios.get(`${base}/api/documents/${id}/export-inf`, {
+    responseType: 'blob' // 重要：设置响应类型为blob
+  });
+};
+
 export {
   getDocInfoList,
   getDocInfoById,
@@ -98,5 +105,6 @@ export {
   generateProcessDescription,
   generateFlow,
   generateInf,
-  exportHeadingsToDocx
+  exportHeadingsToDocx,
+  exportInfToExcel
 };

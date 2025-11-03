@@ -239,6 +239,29 @@ public class DocInfoController {
                 .contentLength(docxBytes.length)
                 .body(docxBytes);
     }
-    
+
+    /**
+     * 导出接口信息为Excel文件
+     *
+     * @param id 文档ID
+     * @return 生成的Excel文件
+     */
+    @GetMapping("/{id}/export-inf")
+    @Operation(
+            summary = "导出接口信息",
+            description = "将文档中提取的接口信息（infDetail）导出为Excel文件，包含接口名称、描述、输入参数、输出参数等内容"
+    )
+    public ResponseEntity<byte[]> exportInfToExcel(
+            @Parameter(description = "文档ID", required = true)
+            @PathVariable String id) {
+        byte[] excelBytes = docInfoService.exportToExcel(id);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=inf_detail_" + id + ".xlsx")
+                .contentLength(excelBytes.length)
+                .body(excelBytes);
+    }
+
 
 }

@@ -18,17 +18,17 @@ import com.ck.quiz.utils.JdbcQueryHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.util.Units;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.apache.poi.xwpf.usermodel.XWPFStyle;
-import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
-import java.io.ByteArrayOutputStream;
-import org.hibernate.dialect.JsonHelper;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xwpf.usermodel.*;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTAbstractNum;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTLvl;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STNumberFormat;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +41,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,9 +55,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.poi.xwpf.usermodel.*;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
-import java.math.BigInteger;
 
 /**
  * 文档服务实现类
@@ -891,7 +890,6 @@ public class DocInfoServiceImpl implements DocInfoService {
     }
 
 
-
 //    public void extractProcessNodesWithHeading(String docId, String filePath) {
 //        try (FileInputStream fis = new FileInputStream(filePath);
 //             XWPFDocument document = new XWPFDocument(fis)) {
@@ -1146,7 +1144,7 @@ public class DocInfoServiceImpl implements DocInfoService {
         // 按order_num正序获取文档功能点列表
         List<FunctionPoint> functionPoints = functionPointRepository.findByDocIdOrderByOrderNumAsc(docId);
         Map<String, FunctionPoint> idMap = new HashMap<>();
-        functionPoints.forEach(fp->{
+        functionPoints.forEach(fp -> {
             idMap.put(fp.getId(), fp);
         });
         Map<String, Object> queryParams = new HashMap<>();
@@ -1184,7 +1182,7 @@ public class DocInfoServiceImpl implements DocInfoService {
         for (FunctionPoint functionPoint : functionPoints) {
             FunctionPointTreeDto dto = new FunctionPointTreeDto();
             BeanUtils.copyProperties(functionPoint, dto);
-            if(processDetailMap.containsKey(dto.getId())) {
+            if (processDetailMap.containsKey(dto.getId())) {
                 dto.setProcessDetail(processDetailMap.get(dto.getId()));
             }
             nodeMap.put(functionPoint.getId(), dto);
@@ -1360,7 +1358,8 @@ public class DocInfoServiceImpl implements DocInfoService {
         } catch (Exception e) {
             String jsonPart = extractJson(result);
             try {
-                jsonRes = mapper.readValue(jsonPart, new TypeReference<Map<String, Object>>() {});
+                jsonRes = mapper.readValue(jsonPart, new TypeReference<Map<String, Object>>() {
+                });
             } catch (Exception ex) {
                 throw new RuntimeException("AI 返回结果解析失败：" + result, ex);
             }
@@ -1393,7 +1392,6 @@ public class DocInfoServiceImpl implements DocInfoService {
         jsonRes.put("infDetail", infDetailStr);
         return jsonRes;
     }
-
 
 
     public Map<String, Object> generateByProcess(String functionId) {
@@ -1495,7 +1493,8 @@ public class DocInfoServiceImpl implements DocInfoService {
         } catch (Exception e) {
             String jsonPart = extractJson(result);
             try {
-                jsonRes = mapper.readValue(jsonPart, new TypeReference<Map<String, Object>>() {});
+                jsonRes = mapper.readValue(jsonPart, new TypeReference<Map<String, Object>>() {
+                });
             } catch (Exception ex) {
                 throw new RuntimeException("AI 返回结果解析失败：" + result, ex);
             }
@@ -1591,8 +1590,6 @@ public class DocInfoServiceImpl implements DocInfoService {
     }
 
 
-
-
     @Override
     public void batchGenerateProcessDescription() {
         Map<String, Object> params = new HashMap<>();
@@ -1652,6 +1649,146 @@ public class DocInfoServiceImpl implements DocInfoService {
         }
         return text;
     }
+
+    @Override
+    public byte[] exportToExcel(String docId) {
+        log.info("导出接口信息为 Excel，文档ID: {}", docId);
+
+        // 验证文档是否存在
+        docInfoRepository.findById(docId)
+                .orElseThrow(() -> new DocInfoException("DOC_NOT_FOUND", "文档不存在: " + docId));
+
+        try {
+            // 获取文档标题树与功能点树
+            List<DocHeadingTreeDto> headingTree = getDocHeadingTree(docId);
+            List<FunctionPointTreeDto> functionPointTree = getFunctionPointTree(docId);
+            Map<String, FunctionPointTreeDto> functionIdMap = new HashMap<>();
+            resolveFunctionIdMap(functionPointTree, functionIdMap);
+
+            // 收集接口信息
+            List<Map<String, Object>> loopData = new ArrayList<>();
+            for (DocHeadingTreeDto rootNode : headingTree) {
+                loadInfData(rootNode, 1, functionIdMap, loopData);
+            }
+
+            // === 创建 Excel 工作簿 ===
+            try (Workbook workbook = new XSSFWorkbook()) {
+                Sheet sheet = workbook.createSheet("接口信息");
+
+                // 标题行
+                String[] headers = {"功能点名称", "序号", "接口名称", "接口说明", "中文字段名称", "出入参"};
+                Row headerRow = sheet.createRow(0);
+                for (int i = 0; i < headers.length; i++) {
+                    Cell cell = headerRow.createCell(i);
+                    cell.setCellValue(headers[i]);
+                    sheet.setColumnWidth(i, 8000);
+                }
+
+                int rowNum = 1;
+                int seq = 1;
+
+                for (Map<String, Object> data : loopData) {
+                    // 每个接口的入参、出参按行展开
+                    String functionName = Objects.toString(data.get("functionName"), "");
+                    String interfaceName = Objects.toString(data.get("interfaceName"), "");
+                    String description = Objects.toString(data.get("description"), "");
+
+                    List<Map<String, Object>> inputParams = (List<Map<String, Object>>) data.get("inputList");
+                    List<Map<String, Object>> outputParams = (List<Map<String, Object>>) data.get("outputList");
+
+                    int startRow = rowNum;
+
+                    // 入参
+                    for (Map<String, Object> p : inputParams) {
+                        Row row = sheet.createRow(rowNum++);
+                        row.createCell(0).setCellValue(functionName);
+                        row.createCell(1).setCellValue(seq);
+                        row.createCell(2).setCellValue(interfaceName);
+                        row.createCell(3).setCellValue(description);
+                        row.createCell(4).setCellValue(Objects.toString(p.get("name"), ""));
+                        row.createCell(5).setCellValue("入参");
+                    }
+
+                    // 出参
+                    for (Map<String, Object> p : outputParams) {
+                        Row row = sheet.createRow(rowNum++);
+                        row.createCell(0).setCellValue(functionName);
+                        row.createCell(1).setCellValue(seq);
+                        row.createCell(2).setCellValue(interfaceName);
+                        row.createCell(3).setCellValue(description);
+                        row.createCell(4).setCellValue(Objects.toString(p.get("name"), ""));
+                        row.createCell(5).setCellValue("出参");
+                    }
+
+                    seq++;
+                }
+
+                // 输出为字节数组
+                try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                    workbook.write(outputStream);
+                    outputStream.flush();
+                    return outputStream.toByteArray();
+                }
+            }
+
+        } catch (IOException e) {
+            log.error("导出 Excel 文档失败: {}", e.getMessage(), e);
+            throw new DocInfoException("DOC_EXPORT_FAIL", "导出 Excel 文件失败: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("生成接口信息 Excel 失败: {}", e.getMessage(), e);
+            throw new RuntimeException("导出 Excel 文件失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 只保留每个功能点的第一个接口
+     */
+    private void loadInfData(DocHeadingTreeDto heading, int level, Map<String, FunctionPointTreeDto> functionIdMap, List<Map<String, Object>> loopData) {
+        int actualLevel = Math.min(level, 9);
+
+        if (actualLevel == 5 && functionIdMap.containsKey(heading.getId())) {
+            FunctionPointTreeDto functionPoint = functionIdMap.get(heading.getId());
+            String infDetail = functionPoint.getInfDetail();
+            if (infDetail != null && !infDetail.isEmpty()) {
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Map<String, Map<String, Object>> infMap = objectMapper.readValue(infDetail,
+                            new TypeReference<Map<String, Map<String, Object>>>() {});
+
+                    // 只取第一个接口
+                    Map.Entry<String, Map<String, Object>> firstEntry = infMap.entrySet().iterator().next();
+                    Map<String, Object> detail = firstEntry.getValue();
+
+                    String interfaceName = Objects.toString(detail.get("interfaceName"), "");
+                    String description = Objects.toString(detail.get("description"), "");
+
+                    Map<String, Object> params = (Map<String, Object>) detail.get("params");
+                    List<Map<String, Object>> inputList = params != null ? (List<Map<String, Object>>) params.get("input") : Collections.emptyList();
+                    List<Map<String, Object>> outputList = params != null ? (List<Map<String, Object>>) params.get("output") : Collections.emptyList();
+
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("functionName", heading.getHeadingText());
+                    row.put("interfaceName", interfaceName);
+                    row.put("description", description);
+                    row.put("inputList", inputList);
+                    row.put("outputList", outputList);
+
+                    loopData.add(row);
+
+                } catch (Exception e) {
+                    throw new RuntimeException("解析 infDetail JSON 出错: " + e.getMessage(), e);
+                }
+            }
+        }
+
+        // 递归子节点
+        if (heading.getChildren() != null && !heading.getChildren().isEmpty()) {
+            for (DocHeadingTreeDto child : heading.getChildren()) {
+                loadInfData(child, actualLevel + 1, functionIdMap, loopData);
+            }
+        }
+    }
+
 
 
 }

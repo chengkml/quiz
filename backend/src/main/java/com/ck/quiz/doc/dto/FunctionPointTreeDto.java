@@ -66,6 +66,11 @@ public class FunctionPointTreeDto {
      */
     private Integer orderNum;
 
+    private String infDesc;
+
+    private String infDetail;
+
+
     /**
      * 子功能点列表
      */
