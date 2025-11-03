@@ -70,6 +70,14 @@ public interface DocInfoService {
     Page<DocProcessNodeDto> pageDocProcessNode(DocProcessNodeQueryDto queryDto);
     
     /**
+     * 导出文档标题为docx文件
+     *
+     * @param docId 文档ID
+     * @return 生成的docx文档字节数组
+     */
+    byte[] exportHeadingsToDocx(String docId);
+    
+    /**
      * 根据文档ID获取功能点树
      *
      * @param docId 文档ID
@@ -89,4 +97,12 @@ public interface DocInfoService {
 
     void batchGenerateProcessDescription();
 
+    String generateFlowByProcess(String functionId);
+
+    void batchGenerateFlowByProcess();
+
+    Map<String, Object> generateInfByProcess(String functionId);
+
+    void batchGenerateInf();
+    
 }

@@ -15,15 +15,20 @@ import com.ck.quiz.thpool.CommonPool;
 import com.ck.quiz.utils.HumpHelper;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFStyle;
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
+import java.io.ByteArrayOutputStream;
+import org.hibernate.dialect.JsonHelper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,16 +40,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.poi.xwpf.usermodel.*;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
+import java.math.BigInteger;
 
 /**
  * 文档服务实现类
@@ -377,7 +388,7 @@ public class DocInfoServiceImpl implements DocInfoService {
     /**
      * 智能识别标题层级
      * 支持：
-     * - Heading 1 / 标题 1 / heading1
+     * - Heading 1 / 标题1 / heading1
      * - 手动加粗 + 大字号（伪标题）
      * - 自定义样式引用
      */
@@ -622,6 +633,265 @@ public class DocInfoServiceImpl implements DocInfoService {
         return rootNodes;
     }
 
+    @Override
+    public byte[] exportHeadingsToDocx(String docId) {
+        log.info("导出文档标题为docx，文档ID: {}", docId);
+
+        // 验证文档是否存在
+        docInfoRepository.findById(docId)
+                .orElseThrow(() -> new DocInfoException("DOC_NOT_FOUND", "文档不存在: " + docId));
+
+        // 获取文档标题树
+        List<DocHeadingTreeDto> headingTree = getDocHeadingTree(docId);
+
+        List<FunctionPointTreeDto> functionPointTree = getFunctionPointTree(docId);
+        Map<String, FunctionPointTreeDto> functionIdMap = new HashMap<>();
+        resolveFunctionIdMap(functionPointTree, functionIdMap);
+
+        // 创建新的docx文档
+        try (XWPFDocument document = new XWPFDocument()) {
+            // 创建标题样式
+            createHeadingStyles(document);
+
+            // 添加空行
+            document.createParagraph();
+
+            // 递归添加标题树
+            for (DocHeadingTreeDto rootNode : headingTree) {
+                addHeadingToDocument(document, rootNode, 1, functionIdMap);
+            }
+
+            // 保存到字节数组
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            document.write(outputStream);
+            outputStream.flush();
+            return outputStream.toByteArray();
+
+        } catch (IOException e) {
+            log.error("导出docx文档失败: {}", e.getMessage(), e);
+            throw new DocInfoException("DOC_EXPORT_FAIL", "导出文档失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 递归解析功能点树，构建功能点ID与节点的映射关系
+     */
+    private void resolveFunctionIdMap(List<FunctionPointTreeDto> functionPointTree, Map<String, FunctionPointTreeDto> functionIdMap) {
+        if (functionPointTree == null || functionPointTree.isEmpty()) {
+            return;
+        }
+
+        for (FunctionPointTreeDto node : functionPointTree) {
+            // 将当前节点放入Map
+            if (node.getId() != null) {
+                functionIdMap.put(node.getId(), node);
+            }
+
+            // 递归处理子节点
+            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+                resolveFunctionIdMap(node.getChildren(), functionIdMap);
+            }
+        }
+    }
+
+
+    /**
+     * 创建标题样式
+     */
+    private void createHeadingStyles(XWPFDocument document) {
+        // 这里可以创建自定义样式，但为了简单起见，我们直接在添加标题时设置格式
+    }
+
+    /**
+     * 递归添加标题到文档
+     */
+    private void addHeadingToDocument(XWPFDocument document, DocHeadingTreeDto heading, int level, Map<String, FunctionPointTreeDto> functionIdMap) {
+        // 确保level不超过9（Word支持的最大标题级别）
+        int actualLevel = Math.min(level, 9);
+
+        // 确保存在编号定义
+        if (document.getNumbering() == null) {
+            XWPFNumbering numbering = document.createNumbering();
+            createMultilevelHeadingNumbering(numbering);
+        }
+
+        // 获取编号对象
+        XWPFNumbering numbering = document.getNumbering();
+        BigInteger abstractNumId = BigInteger.ZERO;
+        BigInteger numId = numbering.numExist(BigInteger.ONE)
+                ? BigInteger.ONE
+                : numbering.addNum(abstractNumId);
+
+        // 创建段落并设置标题样式
+        XWPFParagraph paragraph = document.createParagraph();
+        paragraph.setStyle("标题" + actualLevel);
+        paragraph.setNumID(numId);
+        paragraph.setNumILvl(BigInteger.valueOf(actualLevel - 1));
+
+        XWPFRun run = paragraph.createRun();
+        run.setText(heading.getHeadingText());
+
+        // 根据标题级别设置字体样式
+        switch (actualLevel) {
+            case 1 -> {
+                run.setFontSize(16);
+                run.setBold(true);
+            }
+            case 2 -> {
+                run.setFontSize(14);
+                run.setBold(true);
+            }
+            case 3 -> {
+                run.setFontSize(13);
+                run.setBold(true);
+            }
+            case 4 -> {
+                run.setFontSize(12);
+                run.setBold(true);
+            }
+            default -> run.setFontSize(11);
+        }
+
+        // 第五级标题时，输出功能说明及配图
+        if (actualLevel == 5 && functionIdMap.containsKey(heading.getId())) {
+            FunctionPointTreeDto functionPoint = functionIdMap.get(heading.getId());
+
+            // 写入业务说明、流程简介、流程节点信息、功能描述
+            addSubSection(document, "业务说明：", functionPoint.getBusinessDesc());
+            addSubSection(document, "流程简述：", functionPoint.getProcessSummary());
+            insertFlowImage(document, functionPoint.getId());
+            addSubSection(document, "流程节点信息：", functionPoint.getProcessDetail());
+            addSubSection(document, "功能描述：", functionPoint.getFunctionDesc());
+
+            // 插入功能流程图
+        }
+
+        // 递归添加子标题
+        if (heading.getChildren() != null && !heading.getChildren().isEmpty()) {
+            for (DocHeadingTreeDto child : heading.getChildren()) {
+                addHeadingToDocument(document, child, actualLevel + 1, functionIdMap);
+            }
+        }
+    }
+
+    /**
+     * 添加说明小节（标题 + 内容）
+     */
+    private void addSubSection(XWPFDocument document, String title, String content) {
+        if (content == null || content.isBlank()) return;
+
+        // 添加小标题
+        XWPFParagraph titlePara = document.createParagraph();
+        XWPFRun titleRun = titlePara.createRun();
+        titleRun.setBold(true);
+        titleRun.setFontSize(12);
+        titleRun.setText(title);
+
+        // 添加正文内容（支持多行）
+        for (String line : content.split("\\r?\\n")) {
+            if (line.isBlank()) continue;
+            XWPFParagraph contentPara = document.createParagraph();
+            XWPFRun contentRun = contentPara.createRun();
+            contentRun.setFontSize(11);
+            contentRun.setText(line.trim());
+        }
+    }
+
+    /**
+     * 插入功能流程图（如果图片存在）
+     */
+    private void insertFlowImage(XWPFDocument document, String functionId) {
+        String uploadDir = "D:\\quiz\\flows";
+        Path imagePath = Paths.get(uploadDir, functionId + ".png");
+
+        if (Files.exists(imagePath)) {
+            try (InputStream is = Files.newInputStream(imagePath)) {
+                XWPFParagraph imgPara = document.createParagraph();
+                XWPFRun imgRun = imgPara.createRun();
+
+                // 添加标题“流程图：”
+                XWPFParagraph labelPara = document.createParagraph();
+                XWPFRun labelRun = labelPara.createRun();
+                labelRun.setBold(true);
+                labelRun.setFontSize(12);
+                labelRun.setText("流程图：");
+
+                // 插入图片（设置宽度、高度）
+                imgRun.addPicture(
+                        is,
+                        XWPFDocument.PICTURE_TYPE_PNG,
+                        imagePath.getFileName().toString(),
+                        Units.toEMU(420),  // 宽度
+                        Units.toEMU(260)   // 高度
+                );
+            } catch (Exception e) {
+                System.err.println("插入流程图失败：" + imagePath + " - " + e.getMessage());
+            }
+        } else {
+            System.err.println("未找到流程图文件：" + imagePath);
+        }
+    }
+
+
+    /**
+     * 创建多级标题编号定义：
+     * - 标题1 从 2 开始
+     * - 标题2 从 2.1 开始
+     * - 标题3 从 2.1.5 开始
+     * - 标题4 从 2.1.5.1 开始
+     * - 标题5 从 2.1.5.1.1 开始
+     */
+    private void createMultilevelHeadingNumbering(XWPFNumbering numbering) {
+        CTAbstractNum abstractNum = CTAbstractNum.Factory.newInstance();
+        abstractNum.setAbstractNumId(BigInteger.ZERO);
+
+        // ===== 标题1：从2开始 =====
+        CTLvl lvl1 = abstractNum.addNewLvl();
+        lvl1.setIlvl(BigInteger.ZERO);
+        lvl1.addNewStart().setVal(BigInteger.valueOf(2));
+        lvl1.addNewNumFmt().setVal(STNumberFormat.DECIMAL);
+        lvl1.addNewLvlText().setVal("%1");
+        lvl1.addNewPStyle().setVal("标题1");
+
+        // ===== 标题2：从2.1开始 =====
+        CTLvl lvl2 = abstractNum.addNewLvl();
+        lvl2.setIlvl(BigInteger.ONE);
+        lvl2.addNewStart().setVal(BigInteger.ONE);
+        lvl2.addNewNumFmt().setVal(STNumberFormat.DECIMAL);
+        lvl2.addNewLvlText().setVal("%1.%2");
+        lvl2.addNewPStyle().setVal("标题2");
+
+        // ===== 标题3：从2.1.5开始 =====
+        CTLvl lvl3 = abstractNum.addNewLvl();
+        lvl3.setIlvl(BigInteger.valueOf(2));
+        lvl3.addNewStart().setVal(BigInteger.valueOf(5));
+        lvl3.addNewNumFmt().setVal(STNumberFormat.DECIMAL);
+        lvl3.addNewLvlText().setVal("%1.%2.%3");
+        lvl3.addNewPStyle().setVal("标题3");
+
+        // ===== 标题4：从2.1.5.1开始 =====
+        CTLvl lvl4 = abstractNum.addNewLvl();
+        lvl4.setIlvl(BigInteger.valueOf(3));
+        lvl4.addNewStart().setVal(BigInteger.ONE);
+        lvl4.addNewNumFmt().setVal(STNumberFormat.DECIMAL);
+        lvl4.addNewLvlText().setVal("%1.%2.%3.%4");
+        lvl4.addNewPStyle().setVal("标题4");
+
+        // ===== 标题5：从2.1.5.1.1开始 =====
+        CTLvl lvl5 = abstractNum.addNewLvl();
+        lvl5.setIlvl(BigInteger.valueOf(4));
+        lvl5.addNewStart().setVal(BigInteger.ONE);
+        lvl5.addNewNumFmt().setVal(STNumberFormat.DECIMAL);
+        lvl5.addNewLvlText().setVal("%1.%2.%3.%4.%5");
+        lvl5.addNewPStyle().setVal("标题5");
+
+        // 注册定义
+        XWPFAbstractNum absNum = new XWPFAbstractNum(abstractNum);
+        numbering.addAbstractNum(absNum);
+    }
+
+
+
 //    public void extractProcessNodesWithHeading(String docId, String filePath) {
 //        try (FileInputStream fis = new FileInputStream(filePath);
 //             XWPFDocument document = new XWPFDocument(fis)) {
@@ -639,7 +909,7 @@ public class DocInfoServiceImpl implements DocInfoService {
 //                String text = para.getText().trim();
 //                if (text.isEmpty()) continue;
 //
-//                // 检测5级标题（Heading 5 或“标题 5”）
+//                // 检测5级标题（Heading 5 或“标题5”）
 //                String style = para.getStyle();
 //                int level = extractHeadingLevelCompat(document, para, style);
 //                if (level == 5) {
@@ -875,9 +1145,29 @@ public class DocInfoServiceImpl implements DocInfoService {
 
         // 按order_num正序获取文档功能点列表
         List<FunctionPoint> functionPoints = functionPointRepository.findByDocIdOrderByOrderNumAsc(docId);
-
+        Map<String, FunctionPoint> idMap = new HashMap<>();
+        functionPoints.forEach(fp->{
+            idMap.put(fp.getId(), fp);
+        });
+        Map<String, Object> queryParams = new HashMap<>();
+        Map<String, String> processDetailMap = new HashMap<>();
+        if (!idMap.isEmpty()) {
+            queryParams.put("docId", docId);
+            queryParams.put("headingIds", new ArrayList<>(idMap.keySet()));
+            Map<String, List<String>> contentsMap = new HashMap<>();
+            HumpHelper.lineToHump(jdbcTemplate.queryForList("select * from doc_process_node where doc_id = :docId and heading_id in (:headingIds) order by sequence_no asc  ", queryParams)).forEach(map -> {
+                String headingId = MapUtils.getString(map, "headingId");
+                String content = MapUtils.getString(map, "content");
+                contentsMap.computeIfAbsent(headingId, key -> new ArrayList<>()).add(content);
+            });
+            contentsMap.forEach((id, contents) -> {
+                if (idMap.containsKey(id)) {
+                    processDetailMap.put(id, StringUtils.join(contents, "\n"));
+                }
+            });
+        }
         // 构建功能点树
-        return buildFunctionPointTree(functionPoints);
+        return buildFunctionPointTree(functionPoints, processDetailMap);
     }
 
     /**
@@ -886,7 +1176,7 @@ public class DocInfoServiceImpl implements DocInfoService {
      * @param functionPoints 功能点列表
      * @return 功能点树列表
      */
-    private List<FunctionPointTreeDto> buildFunctionPointTree(List<FunctionPoint> functionPoints) {
+    private List<FunctionPointTreeDto> buildFunctionPointTree(List<FunctionPoint> functionPoints, Map<String, String> processDetailMap) {
         Map<String, FunctionPointTreeDto> nodeMap = new HashMap<>();
         List<FunctionPointTreeDto> rootNodes = new ArrayList<>();
 
@@ -894,6 +1184,9 @@ public class DocInfoServiceImpl implements DocInfoService {
         for (FunctionPoint functionPoint : functionPoints) {
             FunctionPointTreeDto dto = new FunctionPointTreeDto();
             BeanUtils.copyProperties(functionPoint, dto);
+            if(processDetailMap.containsKey(dto.getId())) {
+                dto.setProcessDetail(processDetailMap.get(dto.getId()));
+            }
             nodeMap.put(functionPoint.getId(), dto);
         }
 
@@ -1020,6 +1313,89 @@ public class DocInfoServiceImpl implements DocInfoService {
         );
     }
 
+    @Override
+    public Map<String, Object> generateInfByProcess(String functionId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("functionId", functionId);
+
+        // 1. 查询流程节点内容
+        List<String> contents = new ArrayList<>();
+        HumpHelper.lineToHump(jdbcTemplate.queryForList(
+                "select * from doc_process_node where heading_id = :functionId order by sequence_no asc",
+                params)).forEach(map -> {
+            String content = MapUtils.getString(map, "content");
+            if (StringUtils.isNotBlank(content)) {
+                contents.add(content);
+            }
+        });
+
+        if (contents.isEmpty()) {
+            throw new RuntimeException("未找到流程节点内容");
+        }
+
+        // 2. 查询提示词模板
+        List<Map<String, Object>> list = HumpHelper.lineToHump(jdbcTemplate.queryForList(
+                "select * from prompt_templates where name = 'infGenerate'", params));
+        if (list.isEmpty()) {
+            throw new RuntimeException("未配置提示词模板：infGenerate");
+        }
+
+        // 3. 构建提示词
+        String prompt = MapUtils.getString(list.get(0), "content");
+        prompt = prompt.replace("{{processDetail}}", String.join("\n", contents));
+
+        // 4. 调用大模型生成接口信息 JSON
+        ChatClient chatClient = chatBuilder.build();
+        String result = chatClient.prompt()
+                .user(prompt)
+                .call()
+                .content();
+
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> jsonRes;
+
+        // 5. 尝试解析 JSON
+        try {
+            jsonRes = parseAiResult(result, mapper);
+        } catch (Exception e) {
+            String jsonPart = extractJson(result);
+            try {
+                jsonRes = mapper.readValue(jsonPart, new TypeReference<Map<String, Object>>() {});
+            } catch (Exception ex) {
+                throw new RuntimeException("AI 返回结果解析失败：" + result, ex);
+            }
+        }
+
+        // 6. 补充 functionId
+        jsonRes.put("functionId", functionId);
+
+        // 7. 将 infDetail 转为字符串（JSON）
+        Object infDetail = jsonRes.get("infDetail");
+        String infDetailStr = null;
+        try {
+            infDetailStr = mapper.writeValueAsString(infDetail);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("infDetail 转 JSON 字符串失败", e);
+        }
+
+        Map<String, Object> updateMap = new HashMap<>();
+        updateMap.put("functionId", functionId);
+        updateMap.put("infDescr", MapUtils.getString(jsonRes, "infDescr"));
+        updateMap.put("infDetail", infDetailStr);
+
+        // 8. 更新数据库
+        jdbcTemplate.update(
+                "update function_point set inf_desc = :infDescr, inf_detail = :infDetail where id = :functionId",
+                updateMap
+        );
+
+        // 9. 返回最终结果
+        jsonRes.put("infDetail", infDetailStr);
+        return jsonRes;
+    }
+
+
+
     public Map<String, Object> generateByProcess(String functionId) {
         Map<String, Object> params = new HashMap<>();
         params.put("functionId", functionId);
@@ -1052,8 +1428,8 @@ public class DocInfoServiceImpl implements DocInfoService {
                 .user(prompt)
                 .call()
                 .content();
-        if(!result.startsWith("[")&&result.endsWith("]")) {
-            result = result.substring(0, result.length()-1);
+        if (!result.startsWith("[") && result.endsWith("]")) {
+            result = result.substring(0, result.length() - 1);
         }
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> jsonRes;
@@ -1074,12 +1450,165 @@ public class DocInfoServiceImpl implements DocInfoService {
         }
     }
 
+    public String generateFlowByProcess(String functionId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("functionId", functionId);
+
+        // 1. 查询流程节点内容
+        List<String> contents = new ArrayList<>();
+        HumpHelper.lineToHump(jdbcTemplate.queryForList(
+                "select * from doc_process_node where heading_id = :functionId order by sequence_no asc",
+                params)).forEach(map -> {
+            String content = MapUtils.getString(map, "content");
+            if (StringUtils.isNotBlank(content)) {
+                contents.add(content);
+            }
+        });
+
+        if (contents.isEmpty()) {
+            throw new RuntimeException("未找到流程节点内容");
+        }
+
+        // 2. 查询提示词模板
+        List<Map<String, Object>> list = HumpHelper.lineToHump(jdbcTemplate.queryForList(
+                "select * from prompt_templates where name = 'flowGenerate'", params));
+        if (list.isEmpty()) {
+            throw new RuntimeException("未配置提示词模板：flowGenerate");
+        }
+
+        // 3. 构建提示词
+        String prompt = MapUtils.getString(list.get(0), "content");
+        prompt = prompt.replace("{{processDetail}}", String.join("\n", contents));
+
+        // 4. 调用大模型生成 Mermaid 流程图 JSON
+        ChatClient chatClient = chatBuilder.build();
+        String result = chatClient.prompt()
+                .user(prompt)
+                .call()
+                .content();
+
+        // 5. 尝试解析 JSON
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> jsonRes;
+        try {
+            jsonRes = parseAiResult(result, mapper);
+        } catch (Exception e) {
+            String jsonPart = extractJson(result);
+            try {
+                jsonRes = mapper.readValue(jsonPart, new TypeReference<Map<String, Object>>() {});
+            } catch (Exception ex) {
+                throw new RuntimeException("AI 返回结果解析失败：" + result, ex);
+            }
+        }
+
+        // 6. 补充 functionId 并更新数据库
+        jsonRes.put("functionId", functionId);
+        jdbcTemplate.update(
+                "update function_point set mermaid_code = :mermaidCode where id = :functionId",
+                jsonRes
+        );
+
+        String mermaidCode = MapUtils.getString(jsonRes, "mermaidCode");
+        if (StringUtils.isBlank(mermaidCode)) {
+            throw new RuntimeException("AI 未生成 mermaidCode");
+        }
+
+        // 7. 使用 URL 安全 Base64 编码
+        String mermaidBase64 = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(mermaidCode.getBytes(StandardCharsets.UTF_8));
+
+        // 8. 调用 mermaid.ink 下载图片
+        String imageUrl = "https://mermaid.ink/img/" + mermaidBase64;
+        String uploadDir = "D:\\quiz\\flows";
+
+        Path targetPath = Paths.get(uploadDir, functionId + ".png");
+        try (InputStream in = new URL(imageUrl).openStream()) {
+            Files.createDirectories(targetPath.getParent());
+            Files.copy(in, targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException("下载 Mermaid 流程图失败：" + imageUrl, e);
+        }
+
+        return mermaidBase64;
+    }
+
+
+    @Override
+    public void batchGenerateFlowByProcess() {
+        Map<String, Object> params = new HashMap<>();
+        String uploadDir = "D:\\quiz\\flows";
+        File dir = new File(uploadDir);
+        if (!dir.exists()) dir.mkdirs();
+
+        List<Map<String, Object>> functionPoints = HumpHelper.lineToHump(
+                jdbcTemplate.queryForList("select * from function_point where level = 3", params)
+        );
+
+        if (functionPoints.isEmpty()) {
+            log.info("没有需要生成流程图的功能点");
+            return;
+        }
+
+        functionPoints.forEach(map -> {
+            CommonPool.cachedPool.execute(() -> {
+                String functionId = MapUtils.getString(map, "id");
+
+                File imgFile = new File(uploadDir, functionId + ".png");
+                String mermaidCode = MapUtils.getString(map, "mermaidCode");
+
+                try {
+                    // 图片存在且 mermaidCode 不为空 → 跳过
+                    if (imgFile.exists() && StringUtils.isNotBlank(mermaidCode)) {
+                        log.info("功能点 [{}] 流程图已存在，跳过生成", functionId);
+                        return;
+                    }
+
+                    // 如果 mermaidCode 为空 → 调用 AI 生成
+                    if (StringUtils.isBlank(mermaidCode)) {
+                        mermaidCode = generateFlowByProcess(functionId);
+                    }
+
+                    // 下载图片
+                    String mermaidBase64 = Base64.getUrlEncoder().withoutPadding()
+                            .encodeToString(mermaidCode.getBytes(StandardCharsets.UTF_8));
+                    String imgUrl = "https://mermaid.ink/img/" + mermaidBase64;
+
+                    try (InputStream in = new URL(imgUrl).openStream();
+                         FileOutputStream out = new FileOutputStream(imgFile)) {
+                        byte[] buffer = new byte[8192];
+                        int len;
+                        while ((len = in.read(buffer)) != -1) {
+                            out.write(buffer, 0, len);
+                        }
+                    }
+
+                    log.info("功能点 [{}] 流程图生成并保存成功: {}", functionId, imgFile.getAbsolutePath());
+                } catch (Exception e) {
+                    log.error("功能点 [{}] 流程图生成失败: {}", functionId, e.getMessage(), e);
+                }
+            });
+        });
+    }
+
+
+
+
     @Override
     public void batchGenerateProcessDescription() {
         Map<String, Object> params = new HashMap<>();
-        HumpHelper.lineToHump(jdbcTemplate.queryForList("select * from function_point where level = 3 and (process_summary is null or function_desc is null or business_desc is null)", params)).forEach(map->{
-            CommonPool.cachedPool.execute(()->{
+        HumpHelper.lineToHump(jdbcTemplate.queryForList("select * from function_point where level = 3 and (process_summary is null or function_desc is null or business_desc is null)", params)).forEach(map -> {
+            CommonPool.cachedPool.execute(() -> {
                 generateByProcess(MapUtils.getString(map, "id"));
+            });
+        });
+    }
+
+    @Override
+    public void batchGenerateInf() {
+        Map<String, Object> params = new HashMap<>();
+        HumpHelper.lineToHump(jdbcTemplate.queryForList("select * from function_point where level = 3 and (inf_desc is null or inf_detail is null)", params)).forEach(map -> {
+            CommonPool.cachedPool.execute(() -> {
+                generateInfByProcess(MapUtils.getString(map, "id"));
             });
         });
     }
@@ -1092,11 +1621,13 @@ public class DocInfoServiceImpl implements DocInfoService {
         String cleaned = cleanJsonString(result);
 
         try {
-            return mapper.readValue(cleaned, new TypeReference<Map<String, Object>>() {});
+            return mapper.readValue(cleaned, new TypeReference<Map<String, Object>>() {
+            });
         } catch (Exception e) {
             // 2. 提取 JSON 片段
             String jsonPart = extractJson(cleaned);
-            return mapper.readValue(jsonPart, new TypeReference<Map<String, Object>>() {});
+            return mapper.readValue(jsonPart, new TypeReference<Map<String, Object>>() {
+            });
         }
     }
 
@@ -1121,7 +1652,6 @@ public class DocInfoServiceImpl implements DocInfoService {
         }
         return text;
     }
-
 
 
 }

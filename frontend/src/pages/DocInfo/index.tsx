@@ -7,7 +7,7 @@ import AddDocInfoModal from './components/AddDocInfoModal';
 import EditDocInfoModal from './components/EditDocInfoModal';
 import DetailDocInfoModal from './components/DetailDocInfoModal';
 
-import {deleteDocInfo, getDocInfoById, getDocInfoList, getDocHeadingTree} from './api';
+import {deleteDocInfo, exportHeadingsToDocx, getDocInfoById, getDocInfoList, getDocHeadingTree} from './api';
 import './index.less';
 
 const {Content} = Layout;
@@ -162,6 +162,32 @@ function DocInfoManager() {
         });
     };
 
+    // 处理导出标题到docx
+    const handleExportHeadings = async (record: any) => {
+        try {
+            const response = await exportHeadingsToDocx(record.id);
+            
+            // 创建下载链接
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            // 使用文档名称作为下载文件名
+            const fileName = record.fileName ? `${record.fileName}_标题.docx` : `文档标题_${Date.now()}.docx`;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            
+            // 清理
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            Message.success('标题导出成功');
+        } catch (error) {
+            console.error('标题导出失败:', error);
+            Message.error('标题导出失败，请重试');
+        }
+    };
+
     // 刷新列表
     const handleRefresh = () => {
         fetchDocInfoList();
@@ -253,6 +279,10 @@ function DocInfoManager() {
                                 <Menu.Item key="headingTree" onClick={() => handleViewHeadingTree(record)}>
                                     <IconList style={{marginRight: 8}}/>
                                     标题树
+                                </Menu.Item>
+                                <Menu.Item key="exportHeadings" onClick={() => handleExportHeadings(record)}>
+                                    <IconFile style={{marginRight: 8}}/>
+                                    导出标题
                                 </Menu.Item>
                                 <Menu.Item key="edit" onClick={() => handleEdit(record)}>
                                     <IconEdit style={{marginRight: 8}}/>

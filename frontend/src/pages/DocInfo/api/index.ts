@@ -67,6 +67,23 @@ const generateProcessDescription = functionId => {
   return axios.post(`${base}/api/documents/process/generate/${functionId}`);
 };
 
+// AI生成流程图
+const generateFlow = functionId => {
+  return axios.post(`${base}/api/documents/process/generate/flow/${functionId}`);
+};
+
+// AI生成接口说明
+const generateInf = functionId => {
+  return axios.post(`${base}/api/documents/process/generate/inf/${functionId}`);
+};
+
+// 导出文档标题到docx
+const exportHeadingsToDocx = id => {
+  return axios.get(`${base}/api/documents/${id}/export-headings`, {
+    responseType: 'blob' // 重要：设置响应类型为blob
+  });
+};
+
 export {
   getDocInfoList,
   getDocInfoById,
@@ -78,5 +95,8 @@ export {
   getDocProcessNodes,
   getFunctionPointTree,
   getDocFunctionPoints,
-  generateProcessDescription
+  generateProcessDescription,
+  generateFlow,
+  generateInf,
+  exportHeadingsToDocx
 };

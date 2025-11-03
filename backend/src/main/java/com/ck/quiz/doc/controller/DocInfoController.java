@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -184,11 +186,59 @@ public class DocInfoController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/process/generate/flow/{functionId}")
+    public ResponseEntity<String> generateFlow(
+            @Parameter(description = "功能点ID", required = true)
+            @PathVariable String functionId) {
+        String result = docInfoService.generateFlowByProcess(functionId);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/process/generate/inf/{functionId}")
+    public ResponseEntity<Map<String, Object>> generateInf(
+            @Parameter(description = "功能点ID", required = true)
+            @PathVariable String functionId) {
+        Map<String, Object> result = docInfoService.generateInfByProcess(functionId);
+        return ResponseEntity.ok(result);
+    }
+
 
     @GetMapping("/process/batchgenerate")
     public ResponseEntity batchGenerateProcessDescription() {
         docInfoService.batchGenerateProcessDescription();
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/process/batchgenerate/flow")
+    public ResponseEntity batchGenerateFlow() {
+        docInfoService.batchGenerateFlowByProcess();
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/process/batchgenerate/inf")
+    public ResponseEntity batchGenerateInf() {
+        docInfoService.batchGenerateInf();
+        return ResponseEntity.ok().build();
+    }
+    
+    /**
+     * 导出文档标题为docx文件
+     *
+     * @param id 文档ID
+     * @return 生成的docx文档
+     */
+    @GetMapping("/{id}/export-headings")
+    @Operation(summary = "导出文档标题", description = "将文档标题数据导出为docx文件")
+    public ResponseEntity<byte[]> exportHeadings(
+            @Parameter(description = "文档ID") @PathVariable String id) {
+        byte[] docxBytes = docInfoService.exportHeadingsToDocx(id);
+        
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=doc_headings_" + id + ".docx")
+                .contentLength(docxBytes.length)
+                .body(docxBytes);
+    }
+    
 
 }

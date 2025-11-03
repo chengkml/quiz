@@ -3,7 +3,7 @@ import {useNavigate, useParams} from 'react-router-dom';
 import {Button, Dropdown, Form, Input, Layout, Menu, Message, Spin, Table, Tree, Typography} from '@arco-design/web-react';
 import {IconList} from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
-import {getFunctionPointTree, getDocFunctionPoints, generateProcessDescription} from './api';
+import {getFunctionPointTree, getDocFunctionPoints, generateProcessDescription, generateFlow, generateInf} from './api';
 import './style/index.less';
 
 const {Sider, Content} = Layout;
@@ -211,7 +211,7 @@ export default function DocInfoFeatures() {
             setTableData(prevData => 
                 prevData.map(item => 
                     item.id === record.id 
-                        ? {
+                        ? { 
                             ...item,
                             processSummary: result.processSummary || item.processSummary,
                             processDetail: result.processDetail || item.processDetail,
@@ -228,6 +228,53 @@ export default function DocInfoFeatures() {
             Message.error('流程说明生成失败，请重试');
         }
     };
+
+    // 生成流程图功能
+    const handleGenerateFlow = async (record: any) => {
+        try {
+            Message.info('正在生成流程图...');
+            const response = await generateFlow(record.id);
+            const mermaidBase64 = response.data; // 后端直接返回 Base64 编码字符串
+
+            if (mermaidBase64) {
+                const mermaidUrl = `https://mermaid.ink/img/${mermaidBase64}`;
+                window.open(mermaidUrl, '_blank');
+            }
+
+            Message.success('流程图生成成功');
+        } catch (error) {
+            console.error('流程图生成失败:', error);
+            Message.error('流程图生成失败，请重试');
+        }
+    };
+
+    // 生成接口说明功能
+    const handleGenerateInf = async (record: any) => {
+        try {
+            Message.info('正在生成接口说明...');
+            const response = await generateInf(record.id);
+            const result = response.data;
+            
+            // 更新表格数据中的接口说明
+            setTableData(prevData => 
+                prevData.map(item => 
+                    item.id === record.id 
+                        ? { 
+                            ...item,
+                            infDesc: result.infDesc || item.infDesc,
+                            infDetail: result.infDetail || item.infDetail
+                          }
+                        : item
+                )
+            );
+            
+            Message.success('接口说明生成成功');
+        } catch (error) {
+            console.error('接口说明生成失败:', error);
+            Message.error('接口说明生成失败，请重试');
+        }
+    };
+
 
     const columns = [
         {
@@ -270,6 +317,7 @@ export default function DocInfoFeatures() {
             ellipsis: true,
             tooltip: (text: string) => text,
         },
+        {            title: '流程图代码',            dataIndex: 'mermaidCode',            key: 'mermaidCode',            ellipsis: true,            tooltip: (text: string) => text,        },        {            title: '接口描述',            dataIndex: 'infDesc',            key: 'infDesc',            ellipsis: true,            tooltip: (text: string) => text,        },        {            title: '接口详情',            dataIndex: 'infDetail',            key: 'infDetail',            ellipsis: true,            tooltip: (text: string) => text,        },
         {
             title: '操作',
             key: 'action',
@@ -278,15 +326,21 @@ export default function DocInfoFeatures() {
             align: 'center',
             render: (text: string, record: any) => (
                 <Dropdown
-                    droplist={
-                        <Menu>
-                            <Menu.Item key="smartComplete" onClick={() => handleSmartComplete(record)}>
-                                智能补全
-                            </Menu.Item>
-                        </Menu>
-                    }
-                    position="bl"
-                >
+                        droplist={
+                            <Menu>
+                                    <Menu.Item key="smartComplete" onClick={() => handleSmartComplete(record)}>
+                                        智能补全
+                                    </Menu.Item>
+                                    <Menu.Item key="generateFlow" onClick={() => handleGenerateFlow(record)}>
+                                        生成流程图
+                                    </Menu.Item>
+                                    <Menu.Item key="generateInf" onClick={() => handleGenerateInf(record)}>
+                                        生成接口说明
+                                    </Menu.Item>
+                                </Menu>
+                        }
+                        position="bl"
+                    >
                     <Button
                         type="text"
                         className="more-btn"

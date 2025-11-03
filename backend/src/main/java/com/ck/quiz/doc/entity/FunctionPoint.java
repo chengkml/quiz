@@ -43,6 +43,15 @@ public class FunctionPoint {
     @Column(name = "function_desc", columnDefinition = "TEXT")
     private String functionDesc; // 功能描述，最下级功能点填写
 
+    @Column(name = "mermaid_code", columnDefinition = "TEXT")
+    private String mermaidCode;
+
+    @Column(name = "inf_desc", length=512)
+    private String infDesc;
+
+    @Column(name = "inf_detail", columnDefinition = "TEXT")
+    private String infDetail;
+
     @Column(name = "order_num")
     private Integer orderNum; // 同级排序号
 
