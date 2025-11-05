@@ -4,10 +4,15 @@ import com.ck.quiz.question.entity.Question;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+
 /**
  * 题目数据访问接口
  */
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, String> {
 
+    long countByCreateUserAndCreateDateBetween(String userId, LocalDateTime start, LocalDateTime end);
+
+    long countByCreateUser(String userId);
 }

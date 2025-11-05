@@ -115,4 +115,22 @@ public class QuestionController {
             @Parameter(description = "题目ID", required = true) @PathVariable String id) {
         return ResponseEntity.ok(questionService.getQuestionKnowledge(id));
     }
+
+    @Operation(summary = "获取近七天题目增加量", description = "统计近七天每天新增的题目数量")
+    @GetMapping("/statistics/last-seven-days")
+    public ResponseEntity getQuestionCountByLastSevenDays() {
+        return ResponseEntity.ok(questionService.getQuestionCountByLastSevenDays());
+    }
+
+    @Operation(summary = "获取各学科题目量", description = "统计各学科下的题目数量")
+    @GetMapping("/statistics/by-subject")
+    public ResponseEntity getQuestionCountBySubject() {
+        return ResponseEntity.ok(questionService.getQuestionCountBySubject());
+    }
+
+    @Operation(summary = "获取近一个月题目增加量", description = "统计近一个月每天新增的题目数量")
+    @GetMapping("/statistics/last-month")
+    public ResponseEntity getQuestionCountByLastMonth() {
+        return ResponseEntity.ok(questionService.getQuestionCountByLastMonth());
+    }
 }

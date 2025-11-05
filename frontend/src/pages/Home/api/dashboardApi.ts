@@ -1,54 +1,47 @@
-import http from '@/utils/request';
+import axios from '@/core/src/http';
 
-// 统计数据接口
+const base = '/quiz';
+
+// 定义接口返回类型
 export interface DashboardStats {
-  // 各学科知识点数量统计
-  knowledgeStats: {
-    subjectName: string;
+  totalQuestions: number;
+  totalCategories: number;
+  totalSubjects: number;
+  totalKnowledgePoints: number;
+  questionStats: Array<{
+    name: string;
     count: number;
-  }[];
-  
-  // 各学科题目数量统计
-  questionStats: {
-    subjectName: string;
-    count: number;
-  }[];
+  }>;
 }
 
-/**
- * 获取仪表盘统计数据
- */
-export const getDashboardStats = async (): Promise<DashboardStats> => {
-  try {
-    // 模拟数据，实际项目中应该调用真实的API
-    // const response = await http.get('/api/dashboard/stats');
-    // return response.data;
-    
-    // 返回模拟数据
-    return {
-      knowledgeStats: [
-        { subjectName: '数学', count: 156 },
-        { subjectName: '语文', count: 128 },
-        { subjectName: '英语', count: 142 },
-        { subjectName: '物理', count: 98 },
-        { subjectName: '化学', count: 87 },
-        { subjectName: '生物', count: 76 },
-      ],
-      questionStats: [
-        { subjectName: '数学', count: 567 },
-        { subjectName: '语文', count: 489 },
-        { subjectName: '英语', count: 512 },
-        { subjectName: '物理', count: 345 },
-        { subjectName: '化学', count: 298 },
-        { subjectName: '生物', count: 267 },
-      ]
-    };
-  } catch (error) {
-    console.error('获取仪表盘统计数据失败:', error);
-    // 返回默认数据以避免页面显示错误
-    return {
-      knowledgeStats: [],
-      questionStats: []
-    };
-  }
-};
+export interface Statistics {
+  todoCount: number;
+  questionCount: number;
+  yesterdayQuestionCount: number;
+  subjectCount: number;
+}
+
+// 日期统计数据接口 - 日期为键，数量为值
+export interface DateCountData {
+  [date: string]: number;
+}
+
+// 学科统计数据接口 - 学科为键，数量为值
+export interface SubjectCountData {
+  [subject: string]: number;
+}
+
+// 获取仪表盘统计数据
+export const getDashboardStats = () => axios.get(`${base}/api/statistics/dashboard`);
+
+// 获取统计数据
+export const getStatistics = () => axios.get(`${base}/api/statistics`);
+
+// 获取近七天题目增加量
+export const getQuestionCountByLastSevenDays = () => axios.get(`${base}/api/question/statistics/last-seven-days`);
+
+// 获取各学科题目量
+export const getQuestionCountBySubject = () => axios.get(`${base}/api/question/statistics/by-subject`);
+
+// 获取近一个月题目增加量
+export const getQuestionCountByLastMonth = () => axios.get(`${base}/api/question/statistics/last-month`);

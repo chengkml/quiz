@@ -403,4 +403,79 @@ public class QuestionServiceImpl implements QuestionService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getQuestionCountByLastSevenDays() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, Object> params = new HashMap<>();
+        params.put("createUser", authentication.getName());
+        // 使用SQL查询近7天的题目数量，按日期分组
+        String sql = """
+            SELECT
+              DATE_FORMAT(create_date, '%Y-%m-%d') AS date,
+              COUNT(*) AS count
+            FROM question
+            WHERE create_user = :createUser and DATE(create_date) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+            GROUP BY DATE_FORMAT(create_date, '%Y-%m-%d')
+            ORDER BY date ASC
+        """;
+        
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            String date = rs.getString("date");
+            Long count = rs.getLong("count");
+            return Map.entry(date, count);
+        }).stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getQuestionCountBySubject() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, Object> params = new HashMap<>();
+        params.put("createUser", authentication.getName());
+        // 使用SQL查询各学科的题目数量
+        String sql = """
+            SELECT s.name as subject_name, COUNT(DISTINCT q.question_id) as count
+            FROM question q
+            LEFT JOIN question_knowledge_rela r ON q.question_id = r.question_id
+            LEFT JOIN knowledge k ON r.knowledge_id = k.knowledge_id
+            LEFT JOIN category c ON k.category_id = c.category_id
+            LEFT JOIN subject s ON c.subject_id = s.subject_id
+            WHERE q.create_user = :createUser and s.name is not null
+            GROUP BY s.name
+            ORDER BY count DESC
+        """;
+        
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            String subjectName = rs.getString("subject_name");
+            Long count = rs.getLong("count");
+            return Map.entry(subjectName, count);
+        }).stream().filter(entry -> entry.getKey() != null)
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getQuestionCountByLastMonth() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, Object> params = new HashMap<>();
+        params.put("createUser", authentication.getName());
+        // 使用SQL查询近30天的题目数量，按日期分组
+        String sql = """
+            SELECT
+              DATE_FORMAT(create_date, '%Y-%m-%d') AS date,
+              COUNT(*) AS count
+            FROM question
+            WHERE create_user = :createUser and DATE(create_date) >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+            GROUP BY DATE_FORMAT(create_date, '%Y-%m-%d')
+            ORDER BY date ASC
+        """;
+        
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            String date = rs.getString("date");
+            Long count = rs.getLong("count");
+            return Map.entry(date, count);
+        }).stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
 }

@@ -31,4 +31,6 @@ public interface SubjectRepository extends JpaRepository<Subject, String> {
     boolean existsByNameAndIdNot(String name, String subjectId);
 
     List<Subject> findByCreateUser(String userId);
+
+    long countByCreateUser(String userId);
 }

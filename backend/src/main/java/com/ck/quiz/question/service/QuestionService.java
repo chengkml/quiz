@@ -8,6 +8,8 @@ import com.ck.quiz.question.entity.Question;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Date;
 
 /**
  * 题目管理服务接口
@@ -99,4 +101,22 @@ public interface QuestionService {
      * @return 知识点列表
      */
     List<com.ck.quiz.knowledge.dto.KnowledgeDto> getQuestionKnowledge(String questionId);
+
+    /**
+     * 获取近七天题目增加量统计
+     * @return 按日期分组的题目数量统计
+     */
+    Map<String, Long> getQuestionCountByLastSevenDays();
+
+    /**
+     * 获取各学科题目数量统计
+     * @return 按学科分组的题目数量统计
+     */
+    Map<String, Long> getQuestionCountBySubject();
+
+    /**
+     * 获取近一个月题目增加量统计
+     * @return 按日期分组的题目数量统计
+     */
+    Map<String, Long> getQuestionCountByLastMonth();
 }

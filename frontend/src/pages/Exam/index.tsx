@@ -670,7 +670,7 @@ const {Content} = Layout;
                         <Form
                             ref={smartGenerateFormRef}
                             layout="vertical"
-                            initialValues={{ questionCount: 10, totalScore: 100, durationMinutes: 60, publishImmediately: true }}
+                            initialValues={{ questionCount: 20, totalScore: 100, durationMinutes: 60, publishImmediately: true }}
                         >
                             <Form.Item label="试卷名称" field="name">
                                 <Input placeholder="留空则自动生成名称" allowClear />
