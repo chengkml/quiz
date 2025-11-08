@@ -125,10 +125,12 @@ public class MindMapServiceImpl implements MindMapService {
                 "SELECT COUNT(1) FROM mind_map m "
         );
 
-        sql.append("WHERE 1=1 ");
-        countSql.append("WHERE 1=1 ");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        sql.append("WHERE m.create_user = :createUser ");
+        countSql.append("WHERE m.create_user = :createUser ");
 
         Map<String, Object> params = new HashMap<>();
+        params.put("createUser", authentication.getName());
 
         // 查询条件
         if (queryDto.getMapName() != null && !queryDto.getMapName().isEmpty()) {
