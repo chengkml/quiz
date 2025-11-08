@@ -28,7 +28,6 @@ import DocInfoManager from '@/pages/DocInfo';
 import DocInfoDetail from '@/pages/DocInfo/Detail';
 import DocInfoFeatures from '@/pages/DocInfo/Features';
 import PromptTemplateManagement from '@/pages/Prompt';
-import PlaneWars from '@/pages/PlaneWars';
 
 /**
  * 检查用户是否有访问指定路径的权限
@@ -124,7 +123,6 @@ const protectedPages = [
     { path: 'mindmap', element: <MindMapPage />, requiredPath: 'mindmap' },
     { path: 'docinfo', element: <DocInfoManager />, requiredPath: 'docinfo' },
     { path: 'prompt', element: <PromptTemplateManagement />, requiredPath: 'prompt' },
-    { path: 'planewars', element: <PlaneWars />, requiredPath: 'planewars' },
 ];
 
 /**
