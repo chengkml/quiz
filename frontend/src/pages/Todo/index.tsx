@@ -4,6 +4,7 @@ import {
     DatePicker,
     Dropdown,
     Form,
+    Grid,
     Input,
     Layout,
     Menu,
@@ -18,17 +19,17 @@ import {
 import {IconDelete, IconEdit, IconList, IconMindMapping, IconPlus} from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
 import './style/index.less';
-import FilterForm from '@/components/FilterForm';
-import {createTodo, deleteTodo, getTodoById, getTodoList, initMindMap, updateTodo} from './api';
+import {createTodo, deleteTodo, getTodoList, initMindMap, updateTodo} from './api';
 import dayjs from 'dayjs';
 
 const {Content} = Layout;
 const {TextArea} = Input;
 const {Option} = Select;
+const {Row, Col} = Grid;
 
 function TodoManager() {
     const navigate = useNavigate();
-    
+
     // 表格数据与状态
     const [tableData, setTableData] = useState<any[]>([]);
     const [tableLoading, setTableLoading] = useState(false);
@@ -223,7 +224,6 @@ function TodoManager() {
     };
 
 
-
     // 分析待办，生成思维导图
     const handleAnalyze = async (record: any) => {
         setAnalyzeLoading(true);
@@ -346,7 +346,7 @@ function TodoManager() {
     useEffect(() => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
-            const otherElementsHeight = 235;
+            const otherElementsHeight = 190;
             const newHeight = Math.max(200, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
@@ -357,56 +357,55 @@ function TodoManager() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // 筛选表单配置（可选）
-    const filterFormConfig = [
-        {type: 'input', field: 'title', label: '标题', placeholder: '请输入标题关键字', span: 6},
-        {type: 'select', field: 'status', label: '状态', placeholder: '请选择状态', span: 6, options: statusOptions},
-        {
-            type: 'select',
-            field: 'priority',
-            label: '优先级',
-            placeholder: '请选择优先级',
-            span: 6,
-            options: priorityOptions
-        },
-        {type: 'input', field: 'createUser', label: '创建人', placeholder: '请输入创建人', span: 6},
-    ];
 
     return (
         <div className="todo-manager">
             <Layout>
                 <Content>
                     {/* 筛选表单 */}
-                    <FilterForm ref={filterFormRef} config={filterFormConfig} onSearch={searchTableData}
-                                onReset={() => fetchTableData()}>
-                        <Form.Item field="title" label="标题">
-                            <Input placeholder="请输入标题关键字"/>
-                        </Form.Item>
-                        <Form.Item field="status" label="状态">
-                            <Select placeholder="请选择状态" allowClear>
-                                {statusOptions.map(opt => (
-                                    <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                                ))}
-                            </Select>
-                        </Form.Item>
-                        <Form.Item field="priority" label="优先级">
-                            <Select placeholder="请选择优先级" allowClear>
-                                {priorityOptions.map(opt => (
-                                    <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                                ))}
-                            </Select>
-                        </Form.Item>
-                        <Form.Item field="createUser" label="创建人">
-                            <Input placeholder="请输入创建人"/>
-                        </Form.Item>
-                    </FilterForm>
-
-                    {/* 操作按钮 */}
-                    <div className="action-buttons">
-                        <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
-                            新增待办
-                        </Button>
-                    </div>
+                    <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
+                        const values = filterFormRef.current?.getFieldsValue?.() || {};
+                        searchTableData(values);
+                    }}>
+                        <Row gutter={16}>
+                            <Col span={6}>
+                                <Form.Item field="title" label="标题">
+                                    <Input placeholder="请输入标题关键字"/>
+                                </Form.Item>
+                            </Col>
+                            <Col span={6}>
+                                <Form.Item field="status" label="状态">
+                                    <Select placeholder="请选择状态" allowClear>
+                                        {statusOptions.map(opt => (
+                                            <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={6}>
+                                <Form.Item field="priority" label="优先级">
+                                    <Select placeholder="请选择优先级" allowClear>
+                                        {priorityOptions.map(opt => (
+                                            <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
+                                <Space>
+                                    <Button type="primary" onClick={() => {
+                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                        searchTableData(values);
+                                    }}>
+                                        搜索
+                                    </Button>
+                                    <Button status="success" onClick={handleAdd}>
+                                        新增
+                                    </Button>
+                                </Space>
+                            </Col>
+                        </Row>
+                    </Form>
 
                     {/* 表格 */}
                     <Table
