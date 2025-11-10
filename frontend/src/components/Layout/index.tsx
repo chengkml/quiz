@@ -20,7 +20,7 @@ import {clearUserInfo} from '@/utils/userUtils';
 import {logoutUser} from '@/pages/User/api';
 import './style.less';
 
-const {Content, Sider} = Layout;
+const {Content, Header, Sider} = Layout;
 const MenuItem = Menu.Item;
 const SubMenu = Menu.SubMenu;
 
@@ -257,53 +257,52 @@ const AppLayout: React.FC = () => {
         </Menu>
     );
 
-    // 已移除 Header 与面包屑，用户信息与操作移至侧边菜单顶部
-
     return (
         <Layout className='app-layout'>
-            <Sider
-                collapsed={collapsed}
-                onCollapse={(value) => setCollapsed(value)}
-                collapsible
-                trigger={collapsed ? <IconCaretRight/> : <IconCaretLeft/>}
-                breakpoint='xl'
-            >
-                <div className='sider-user' style={{
-                    height: 56,
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '0 12px',
-                    borderBottom: '1px solid #f0f0f0'
-                }}>
-                    <Dropdown droplist={userDropdownMenu} position="br">
-                        <Button
-                            type="text"
-                            icon={<IconUser/>}
-                            style={{width: '100%', textAlign: collapsed ? 'center' : 'left'}}
-                        >
-                            {!collapsed && user?.userName}
-                        </Button>
-                    </Dropdown>
-                </div>
-                <Menu
-                    selectedKeys={getSelectedKeys()}
-                    openKeys={openKeys}
-                    onClickMenuItem={handleMenuClick}
-                    onClickSubMenu={(_key, keys) => setOpenKeys(keys)}
-                    style={{width: '100%'}}
+            <Header style={{
+                backgroundColor: '#fff',
+                padding: '10px 24px',
+                borderBottom: '1px solid #f0f0f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end'
+            }}>
+                <Dropdown droplist={userDropdownMenu} position="br">
+                    <Button
+                        type="text"
+                        icon={<IconUser/>}
+                        style={{display: 'flex', alignItems: 'center'}}
+                    >
+                        <span style={{marginLeft: 8}}>{user?.userName}</span>
+                    </Button>
+                </Dropdown>
+            </Header>
+            <Layout style={{height:'calc(100% - 60px)'}}>
+                <Sider
+                    collapsed={collapsed}
+                    onCollapse={(value) => setCollapsed(value)}
+                    collapsible
+                    trigger={collapsed ? <IconCaretRight/> : <IconCaretLeft/>}
+                    breakpoint='xl'
                 >
-                    {menuTree && menuTree.length > 0 ? (
-                        renderMenuItems(menuTree)
-                    ) : (
-                        <MenuItem key="no-menu" disabled>
-                            <IconHome/>
-                            暂无菜单
-                        </MenuItem>
-                    )}
-                </Menu>
-            </Sider>
-            <Layout style={{overflow: 'hidden'}}>
-                <Content style={{height: '100%'}}>
+                    <Menu
+                        selectedKeys={getSelectedKeys()}
+                        openKeys={openKeys}
+                        onClickMenuItem={handleMenuClick}
+                        onClickSubMenu={(_key, keys) => setOpenKeys(keys)}
+                        style={{width: '100%', height: '100%'}}
+                    >
+                        {menuTree && menuTree.length > 0 ? (
+                            renderMenuItems(menuTree)
+                        ) : (
+                            <MenuItem key="no-menu" disabled>
+                                <IconHome/>
+                                暂无菜单
+                            </MenuItem>
+                        )}
+                    </Menu>
+                </Sider>
+                <Content style={{height: '100%', padding: 0, overflow: 'auto'}}>
                     <Outlet/>
                 </Content>
             </Layout>

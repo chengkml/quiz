@@ -433,7 +433,7 @@ const {Row, Col} = Grid;
     // 计算表格高度的函数
     const calculateTableHeight = () => {
         const windowHeight = window.innerHeight;
-        const otherElementsHeight = 190; // 其他元素占用的高度
+        const otherElementsHeight = 240; // 其他元素占用的高度
         const newHeight = Math.max(200, windowHeight - otherElementsHeight);
         setTableScrollHeight(newHeight);
     };

@@ -222,7 +222,7 @@ function CategoryManager() {
             const windowHeight = window.innerHeight;
             // 减去页面其他元素的高度，如头部、筛选区域、分页等
             // 这里可以根据实际页面布局调整计算逻辑
-            const otherElementsHeight = 190; // 预估其他元素占用的高度
+            const otherElementsHeight = 240; // 预估其他元素占用的高度
             const newHeight = Math.max(200, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };

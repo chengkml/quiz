@@ -440,7 +440,7 @@ function KnowledgeManager() {
     useEffect(() => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
-            const otherElementsHeight = 190; // 预估其他元素占用的高度
+            const otherElementsHeight = 240; // 预估其他元素占用的高度
             const newHeight = Math.max(200, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
