@@ -25,7 +25,15 @@ import {
     importSubjects,
     updateSubject
 } from './api';
-import {IconDelete, IconDownload, IconEdit, IconList, IconUpload} from '@arco-design/web-react/icon';
+import {
+    IconDelete,
+    IconDownload,
+    IconEdit,
+    IconList,
+    IconPlus,
+    IconSearch,
+    IconUpload
+} from '@arco-design/web-react/icon';
 
 const {TextArea} = Input;
 const {Content} = Layout;
@@ -401,13 +409,13 @@ function SubjectManager() {
                             paddingBottom: '16px'
                         }}>
                             <Space>
-                                <Button type="primary" onClick={() => {
+                                <Button type="primary" icon={<IconSearch/>} onClick={() => {
                                     const values = filterFormRef.current?.getFieldsValue?.() || {};
                                     searchTableData(values);
                                 }}>
                                     搜索
                                 </Button>
-                                <Button type="primary" status="success" onClick={handleAdd}>
+                                <Button type="primary" icon={<IconPlus/>} status="success" onClick={handleAdd}>
                                     新增
                                 </Button>
                                 <Button type="default" icon={<IconUpload/>} onClick={handleImportModal}>

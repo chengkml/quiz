@@ -16,7 +16,15 @@ import {
     Table,
     Tag,
 } from '@arco-design/web-react';
-import {IconCheck, IconDelete, IconEdit, IconList, IconMindMapping, IconPlus} from '@arco-design/web-react/icon';
+import {
+    IconCheck,
+    IconDelete,
+    IconEdit,
+    IconList,
+    IconMindMapping,
+    IconPlus,
+    IconSearch
+} from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
 import './style/index.less';
 import {createTodo, deleteTodo, getTodoList, initMindMap, updateTodo} from './api';
@@ -422,13 +430,13 @@ function TodoManager() {
                             </Col>
                             <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
                                 <Space>
-                                    <Button type="primary" onClick={() => {
+                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
                                         const values = filterFormRef.current?.getFieldsValue?.() || {};
                                         searchTableData(values);
                                     }}>
                                         搜索
                                     </Button>
-                                    <Button type="primary" status="success" onClick={handleAdd}>
+                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
                                         新增
                                     </Button>
                                 </Space>

@@ -15,7 +15,7 @@ import {
 } from '@arco-design/web-react';
 import './style/index.less';
 import {deleteExamHistory, getExamHistoryList} from './api';
-import {IconDelete, IconEye, IconList} from '@arco-design/web-react/icon';
+import {IconDelete, IconEye, IconList, IconSearch} from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
 
 const {Row, Col} = Grid;
@@ -316,7 +316,7 @@ function ExamHistoryManager() {
                                     alignItems: 'flex-end',
                                     paddingBottom: '16px'
                                 }}>
-                                    <Button type="primary" onClick={() => {
+                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
                                         const values = filterFormRef.current?.getFieldsValue?.() || {};
                                         searchTableData(values);
                                     }}>

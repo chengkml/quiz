@@ -3,11 +3,13 @@ import {
     Button,
     Dropdown,
     Form,
+    Grid,
     Input,
     Layout,
     Menu,
     Message,
-    Modal, Pagination,
+    Modal,
+    Pagination,
     Select,
     Space,
     Table,
@@ -24,11 +26,11 @@ import {
     getKnowledgeQuestions,
     updateKnowledge,
 } from './api';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot} from '@arco-design/web-react/icon';
-import FilterForm from '@/components/FilterForm';
+import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 
 const {TextArea} = Input;
 const {Content} = Layout;
+const {Row, Col} = Grid;
 
 function KnowledgeManager() {
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
@@ -367,7 +369,8 @@ function KnowledgeManager() {
     };
 
     // 分页变化处理
-    const handlePageChange = (filterParams, pageSize, current) => {
+    const handlePageChange = (current, pageSize) => {
+        const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
         fetchTableData(filterParams, pageSize, current);
     };
 
@@ -433,79 +436,81 @@ function KnowledgeManager() {
         }
     };
 
-    // 监听窗口大小变化，动态调整表格高度
+    // 监听窗口大小变化，动态调整表格高度和初始化数据
     useEffect(() => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
-            // 减去页面其他元素的高度，如头部、筛选区域、分页等
-            // 这里可以根据实际页面布局调整计算逻辑
-            const otherElementsHeight = 240; // 预估其他元素占用的高度
-            const newHeight = Math.max(100, windowHeight - otherElementsHeight);
+            const otherElementsHeight = 190; // 预估其他元素占用的高度
+            const newHeight = Math.max(200, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
-
-        // 初始计算
         calculateTableHeight();
 
-        // 监听窗口大小变化
-        const handleResize = () => {
-            calculateTableHeight();
-        };
-
-        window.addEventListener('resize', handleResize);
-
-        // 清理事件监听器
-        return () => {
-            window.removeEventListener('resize', handleResize);
-        };
-    }, []);
-
-    // 初始化数据
-    useEffect(() => {
+        // 初始化数据
         fetchTableData();
         fetchSubjects();
-        // 初始时不加载分类，等用户选择学科后再加载
-    }, []);
 
-    // 筛选表单配置
-    const filterFormConfig = [
-        {
-            label: '知识点名称',
-            field: 'name',
-            type: 'input',
-            placeholder: '请输入知识点名称',
-        },
-        {
-            label: '难度等级',
-            field: 'difficultyLevel',
-            type: 'select',
-            placeholder: '请选择难度等级',
-            options: difficultyOptions,
-        },
-    ];
+        // 设置表单默认值
+        setTimeout(() => {
+            filterFormRef.current?.setFieldsValue?.({});
+        }, 50);
+
+        // 监听窗口大小变化
+        const handleResize = () => calculateTableHeight();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     return (
         <Layout className="knowledge-manager">
             <Layout>
                 <Content>
-                    {/* 筛选区域 */}
-                    <FilterForm
-                        ref={filterFormRef}
-                        config={filterFormConfig}
-                        onSearch={searchTableData}
-                        onReset={() => fetchTableData()}
-                    >
-                        <Form.Item field='knowledgeName' label='关键字'>
-                            <Input
-                                placeholder='请输入关键字'
-                            />
-                        </Form.Item>
-                    </FilterForm>
-                    <div className="action-buttons">
-                        <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
-                            新增知识点
-                        </Button>
-                    </div>
+                    {/* 筛选表单 */}
+                    <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}}
+                          onValuesChange={() => {
+                              const values = filterFormRef.current?.getFieldsValue?.() || {};
+                              searchTableData(values);
+                          }}>
+                        <Row gutter={16}>
+                            <Col span={6}>
+                                <Form.Item field="name" label="名称">
+                                    <Input placeholder="请输入知识点名称"/>
+                                </Form.Item>
+                            </Col>
+                            <Col span={6}>
+                                <Form.Item field="difficultyLevel" label="难度">
+                                    <Select placeholder="请选择难度等级" allowClear>
+                                        {difficultyOptions.map(opt => (
+                                            <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={6}>
+                                <Form.Item field="knowledgeName" label="关键字">
+                                    <Input placeholder="请输入关键字"/>
+                                </Form.Item>
+                            </Col>
+                            <Col span={6} style={{
+                                display: 'flex',
+                                justifyContent: 'flex-start',
+                                alignItems: 'flex-end',
+                                paddingBottom: '16px'
+                            }}>
+                                <Space>
+                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
+                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                        searchTableData(values);
+                                    }}>
+                                        搜索
+                                    </Button>
+                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
+                                        新增
+                                    </Button>
+                                </Space>
+                            </Col>
+                        </Row>
+                    </Form>
                     <Table
                         columns={columns}
                         data={tableData}
@@ -517,9 +522,7 @@ function KnowledgeManager() {
                     <div className="pagination-wrapper">
                         <Pagination
                             {...pagination}
-                            onChange={(current, pageSize) => {
-                                handlePageChange({}, pageSize, current);
-                            }}
+                            onChange={handlePageChange}
                         />
                     </div>
 

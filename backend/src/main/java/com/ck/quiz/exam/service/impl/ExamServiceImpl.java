@@ -186,8 +186,7 @@ public class ExamServiceImpl implements ExamService {
 
         // 试卷名称模糊查询（name 或 description）
         if (queryDto.getKeyWord() != null && !queryDto.getKeyWord().trim().isEmpty()) {
-            String keywordLike = "%" + queryDto.getKeyWord().trim().toLowerCase() + "%";
-            JdbcQueryHelper.lowerLike("keyWord", keywordLike,
+            JdbcQueryHelper.lowerLike("keyWord", queryDto.getKeyWord(),
                     " AND (LOWER(e.name) LIKE :keyWord OR LOWER(e.description) LIKE :keyWord) ", params, jdbcTemplate, sb, countSb);
         }
 

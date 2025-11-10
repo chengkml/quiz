@@ -38,6 +38,7 @@ import {
     IconList,
     IconPlus,
     IconPublic,
+    IconSearch,
     IconSettings,
 } from '@arco-design/web-react/icon';
 
@@ -303,7 +304,6 @@ const {Row, Col} = Grid;
         const mapped: Partial<ExamQueryDto> = {
             keyWord: params?.name,
             status: params?.status,
-            subjectId: params?.subjectId,
         };
         fetchTableData(mapped, pagination.pageSize, 1);
     };
@@ -501,9 +501,6 @@ const {Row, Col} = Grid;
     // 初始化数据
     useEffect(() => {
         fetchTableData();
-        // 加载学科列表
-        loadSubjects();
-        
         // 初始化表格高度
         calculateTableHeight();
         // 添加窗口大小改变事件监听
@@ -549,25 +546,15 @@ const {Row, Col} = Grid;
                                 </Select>
                             </Form.Item>
                         </Col>
-                        <Col span={5}>
-                            <Form.Item field="subjectId" label="学科">
-                                <Select placeholder="请选择学科" allowClear>
-                                    {subjects.map((s: any) => (
-                                        <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-
-                        <Col span={5} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
+                        <Col span={10} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
                             <Space>
-                                    <Button type="primary" onClick={() => {
+                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
                                         const values = filterFormRef.current?.getFieldsValue?.() || {};
                                         searchTableData(values);
                                     }}>
                                         搜索
                                     </Button>
-                                    <Button type="primary" status="success" onClick={openSmartGenerateModal}>
+                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={openSmartGenerateModal}>
                                         新建
                                     </Button>
                                 </Space>

@@ -14,7 +14,7 @@ import {
     Space,
     Table
 } from '@arco-design/web-react';
-import {IconDelete, IconEdit, IconList} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import './style/index.less';
 import {createMindMap, deleteMindMap, getMindMapList, updateMindMapBasicInfo} from './api/mindMapService';
 import {MindMapDto, PaginationConfig} from './types';
@@ -371,13 +371,13 @@ const MindMapListPage: React.FC = () => {
                             paddingBottom: '16px'
                         }}>
                             <Space>
-                                <Button type="primary" onClick={() => {
+                                <Button type="primary" icon={<IconSearch/>} onClick={() => {
                                     const values = filterFormRef.current?.getFieldsValue?.() || {};
                                     handleSearch(values);
                                 }}>
                                     搜索
                                 </Button>
-                                <Button type="primary" status="success" onClick={handleCreate}>
+                                <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleCreate}>
                                     新建
                                 </Button>
                             </Space>

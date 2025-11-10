@@ -1,6 +1,20 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Button, Dropdown, Form, Grid, Input, Layout, Menu, Message, Modal, Select, Space, Table} from '@arco-design/web-react';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus} from '@arco-design/web-react/icon';
+import {
+    Button,
+    Dropdown,
+    Form,
+    Grid,
+    Input,
+    Layout,
+    Menu,
+    Message,
+    Modal,
+    Pagination,
+    Select,
+    Space,
+    Table
+} from '@arco-design/web-react';
+import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import AddCategoryModal from './components/AddCategoryModal';
 import EditCategoryModal from './components/EditCategoryModal';
 import DetailCategoryModal from './components/DetailCategoryModal';
@@ -351,13 +365,13 @@ function CategoryManager() {
                         </Col>
                         <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
                             <Space>
-                                <Button type="primary" onClick={() => {
+                                <Button type="primary" icon={<IconSearch/>} onClick={() => {
                                     const values = filterFormRef.current?.getFieldsValue?.() || {};
                                     searchTableData(values);
                                 }}>
                                     搜索
                                 </Button>
-                                <Button type="primary" status="success" onClick={handleAdd}>
+                                <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
                                     新增
                                 </Button>
                             </Space>
@@ -370,13 +384,18 @@ function CategoryManager() {
                     columns={columns}
                     data={tableData}
                     loading={loading}
-                    pagination={pagination}
-                    onChange={handleTableChange}
+                    pagination={false}
                     rowKey="id"
                     scroll={{
                         y: tableScrollHeight,
                     }}
                 />
+                <div className="pagination-wrapper">
+                    <Pagination
+                        {...pagination}
+                        onChange={handleTableChange}
+                    />
+                </div>
                 {/* 新增模态框 */}
                 <AddCategoryModal
                     visible={addModalVisible}
