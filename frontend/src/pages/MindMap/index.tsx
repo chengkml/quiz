@@ -2,9 +2,9 @@ import React, {useEffect, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {
     Button,
-    Checkbox,
     Dropdown,
     Form,
+    Grid,
     Input,
     Layout,
     Menu,
@@ -12,17 +12,15 @@ import {
     Modal,
     Pagination,
     Space,
-    Spin,
-    Table,
-    Tag
+    Table
 } from '@arco-design/web-react';
-import {IconDelete, IconEdit, IconList, IconPlus} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconList} from '@arco-design/web-react/icon';
 import './style/index.less';
-import {createMindMap, deleteMindMap, getMindMapList, getSharedMindMaps, getUserMindMaps, updateMindMap} from './api/mindMapService';
-import {FormRef, MindMapDto, PaginationConfig} from './types';
-import FilterForm from '@/components/FilterForm';
+import {createMindMap, deleteMindMap, getMindMapList, updateMindMap} from './api/mindMapService';
+import {MindMapDto, PaginationConfig} from './types';
 
 const {Content} = Layout;
+const {Row, Col} = Grid;
 
 const MindMapListPage: React.FC = () => {
     const navigate = useNavigate();
@@ -40,17 +38,6 @@ const MindMapListPage: React.FC = () => {
 
     // 表单引用
     const filterFormRef = useRef(null);
-    
-    // 筛选表单配置
-    const filterFormConfig = [
-        {
-            type: 'input',
-            field: 'mapName',
-            label: '思维导图名称',
-            placeholder: '请输入思维导图名称',
-            span: 6,
-        },
-    ];
 
     // 分页配置
     const [pagination, setPagination] = useState<PaginationConfig>({
@@ -102,30 +89,13 @@ const MindMapListPage: React.FC = () => {
     useEffect(() => {
         loadMindMaps();
     }, [pagination.current, pagination.pageSize]);
-    
+
     // 处理搜索
     const handleSearch = (values: any) => {
         setSearchKeyword(values.mapName || '');
-        setPagination(prev => ({ ...prev, current: 1 }));
+        setPagination(prev => ({...prev, current: 1}));
         loadMindMaps();
     };
-    
-    // 处理重置
-    const handleReset = () => {
-        setSearchKeyword('');
-        setPagination(prev => ({ ...prev, current: 1 }));
-        loadMindMaps();
-    };
-
-    // 处理分页变化
-    const handlePageChange = (page: number, pageSize: number) => {
-        setPagination(prev => ({
-            ...prev,
-            current: page,
-            pageSize
-        }));
-    };
-
 
 
     // 处理创建新思维导图
@@ -139,10 +109,10 @@ const MindMapListPage: React.FC = () => {
         try {
             // 获取表单值并触发表单验证
             const values = createForm.getFieldsValue();
-            
+
             // 移除isShared字段，确保不提交共享相关信息
-            const { isShared, ...createData } = values;
-            
+            const {isShared, ...createData} = values;
+
             setTableLoading(true);
             await createMindMap(createData);
             Message.success('创建成功');
@@ -188,7 +158,7 @@ const MindMapListPage: React.FC = () => {
         });
         setEditModalVisible(true);
     };
-    
+
     // 处理点击思维导图名称进行编辑
     const handleEdit = (record: MindMapDto) => {
         handleEditInfo(record);
@@ -211,7 +181,7 @@ const MindMapListPage: React.FC = () => {
             const values = editForm.getFieldsValue();
             setTableLoading(true);
             // 调用更新思维导图信息的API
-            await updateMindMap({ id: currentRecord.id, ...values });
+            await updateMindMap({id: currentRecord.id, ...values});
             Message.success('更新成功');
             setEditModalVisible(false);
             // 重新加载列表
@@ -367,30 +337,34 @@ const MindMapListPage: React.FC = () => {
     return (
         <Layout className="mindmap-list-page">
             <Content className="mindmap-list-content">
-                {/* 筛选表单 */}
-                <FilterForm
-                    ref={filterFormRef}
-                    config={filterFormConfig}
-                    onSearch={handleSearch}
-                    onReset={handleReset}
-                >
-                    <Form.Item field='mapName' label='关键字'>
-                        <Input
-                            placeholder='请输入关键字'
-                        />
-                    </Form.Item>
-                </FilterForm>
-                
-                {/* 操作按钮 */}
-                <div className="action-buttons">
-                    <Button
-                        type="primary"
-                        icon={<IconPlus/>}
-                        onClick={handleCreate}
-                    >
-                        创建思维导图
-                    </Button>
-                </div>
+                {/* 筛选表单和操作按钮 */}
+                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}}>
+                    <Row gutter={16}>
+                        <Col span={6}>
+                            <Form.Item field="mapName" label="导图名称">
+                                <Input placeholder="请输入导图名称"/>
+                            </Form.Item>
+                        </Col>
+                        <Col span={6} style={{
+                            display: 'flex',
+                            justifyContent: 'flex-start',
+                            alignItems: 'flex-end',
+                            paddingBottom: '16px'
+                        }}>
+                            <Space>
+                                <Button type="primary" onClick={() => {
+                                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                    handleSearch(values);
+                                }}>
+                                    搜索
+                                </Button>
+                                <Button status="success" onClick={handleCreate}>
+                                    新建
+                                </Button>
+                            </Space>
+                        </Col>
+                    </Row>
+                </Form>
 
                 <Table
                     columns={columns}
@@ -403,15 +377,15 @@ const MindMapListPage: React.FC = () => {
                 {/* 分页 */}
                 <div className="pagination-wrapper">
                     <Pagination
-                    {...pagination}
-                    onChange={(current, pageSize) => {
-                        setPagination(prev => ({
-                            ...prev,
-                            current,
-                            pageSize
-                        }));
-                    }}
-                />
+                        {...pagination}
+                        onChange={(current, pageSize) => {
+                            setPagination(prev => ({
+                                ...prev,
+                                current,
+                                pageSize
+                            }));
+                        }}
+                    />
                 </div>
 
                 {/* 创建思维导图模态框 */}
@@ -433,9 +407,9 @@ const MindMapListPage: React.FC = () => {
                         <Form.Item
                             label="思维导图名称"
                             field="mapName"
-                            rules={[{ required: true, message: '请输入思维导图名称' }]}
+                            rules={[{required: true, message: '请输入思维导图名称'}]}
                         >
-                            <Input placeholder="请输入思维导图名称" />
+                            <Input placeholder="请输入思维导图名称"/>
                         </Form.Item>
                         <Form.Item
                             label="描述"
@@ -468,9 +442,9 @@ const MindMapListPage: React.FC = () => {
                         <Form.Item
                             label="思维导图名称"
                             field="mapName"
-                            rules={[{ required: true, message: '请输入思维导图名称' }]}
+                            rules={[{required: true, message: '请输入思维导图名称'}]}
                         >
-                            <Input placeholder="请输入思维导图名称" />
+                            <Input placeholder="请输入思维导图名称"/>
                         </Form.Item>
                         <Form.Item
                             label="描述"

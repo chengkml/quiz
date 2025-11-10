@@ -16,7 +16,7 @@ import {
     Table,
     Tag,
 } from '@arco-design/web-react';
-import {IconDelete, IconEdit, IconList, IconMindMapping, IconPlus} from '@arco-design/web-react/icon';
+import {IconCheck, IconDelete, IconEdit, IconList, IconMindMapping, IconPlus} from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
 import './style/index.less';
 import {createTodo, deleteTodo, getTodoList, initMindMap, updateTodo} from './api';
@@ -241,6 +241,21 @@ function TodoManager() {
         }
     };
 
+    // 完成待办
+    const handleComplete = async (record: any) => {
+        try {
+            const payload = {
+                id: record.id,
+                status: 'COMPLETED'
+            };
+            await updateTodo(payload);
+            Message.success('待办已完成');
+            fetchTableData();
+        } catch (error) {
+            Message.error('完成待办失败');
+        }
+    };
+
     // 菜单点击
     const handleMenuClick = (key: string, e: React.MouseEvent, record: any) => {
         e.stopPropagation();
@@ -250,6 +265,8 @@ function TodoManager() {
             handleDelete(record);
         } else if (key === 'analyze') {
             handleAnalyze(record);
+        } else if (key === 'complete') {
+            handleComplete(record);
         }
     };
 
@@ -326,6 +343,12 @@ function TodoManager() {
                                     <IconEdit style={{marginRight: 5}}/>
                                     编辑
                                 </Menu.Item>
+                                {record.status !== 'COMPLETED' && (
+                                    <Menu.Item key="complete">
+                                        <IconCheck style={{marginRight: 5}}/>
+                                        完成
+                                    </Menu.Item>
+                                )}
                                 <Menu.Item key="delete">
                                     <IconDelete style={{marginRight: 5}}/>
                                     删除
@@ -351,7 +374,13 @@ function TodoManager() {
             setTableScrollHeight(newHeight);
         };
         calculateTableHeight();
-        fetchTableData();
+        // 默认查询待处理状态的任务
+        const defaultParams = { status: 'PENDING' };
+        fetchTableData(defaultParams);
+        // 设置表单默认值
+        setTimeout(() => {
+            filterFormRef.current?.setFieldsValue?.(defaultParams);
+        }, 50);
         const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
@@ -399,7 +428,7 @@ function TodoManager() {
                                     }}>
                                         搜索
                                     </Button>
-                                    <Button status="success" onClick={handleAdd}>
+                                    <Button type="primary" status="success" onClick={handleAdd}>
                                         新增
                                     </Button>
                                 </Space>
