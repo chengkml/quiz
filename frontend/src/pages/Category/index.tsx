@@ -1,13 +1,14 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Button, Dropdown, Form, Input, Layout, Menu, Message, Modal, Select, Table} from '@arco-design/web-react';
+import {Button, Dropdown, Form, Grid, Input, Layout, Menu, Message, Modal, Select, Space, Table} from '@arco-design/web-react';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus} from '@arco-design/web-react/icon';
-import FilterForm from '@/components/FilterForm';
 import AddCategoryModal from './components/AddCategoryModal';
 import EditCategoryModal from './components/EditCategoryModal';
 import DetailCategoryModal from './components/DetailCategoryModal';
 import {deleteCategory, getCategoryById, getCategoryList} from './api';
 import {getAllSubjects} from '../Subject/api';
 import './index.less';
+
+const {Row, Col} = Grid;
 
 const {Content} = Layout;
 
@@ -226,7 +227,7 @@ function CategoryManager() {
             const windowHeight = window.innerHeight;
             // 减去页面其他元素的高度，如头部、筛选区域、分页等
             // 这里可以根据实际页面布局调整计算逻辑
-            const otherElementsHeight = 245; // 预估其他元素占用的高度
+            const otherElementsHeight = 190; // 预估其他元素占用的高度
             const newHeight = Math.max(200, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
@@ -320,35 +321,49 @@ function CategoryManager() {
         <Layout className="category-manager">
             <Content>
                 {/* 筛选表单 */}
-                <FilterForm onSearch={searchTableData} onReset={searchTableData}>
-                    <Form.Item label="分类名称" field="name">
-                        <Input placeholder="请输入分类名称"/>
-                    </Form.Item>
-                    <Form.Item label="学科" field="subjectId">
-                        <Select placeholder="请选择学科" allowClear>
-                            {subjectOptions.map(subject => (
-                                <Select.Option key={subject.id} value={subject.id}>
-                                    {subject.name}
-                                </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                    <Form.Item label="等级" field="level">
-                        <Select placeholder="请选择等级" allowClear>
-                            {levelOptions.map(level => (
-                                <Select.Option key={level.value} value={level.value}>
-                                    {level.label}
-                                </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                </FilterForm>
-
-                <div className="action-buttons">
-                    <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
-                        新增分类
-                    </Button>
-                </div>
+                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
+                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                    searchTableData(values);
+                }}>
+                    <Row gutter={16}>
+                        <Col span={6}>
+                            <Form.Item field="name" label="名称">
+                                <Input placeholder="请输入分类名称"/>
+                            </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                            <Form.Item field="subjectId" label="学科">
+                                <Select placeholder="请选择学科" allowClear>
+                                    {subjectOptions.map(subject => (
+                                        <Select.Option key={subject.id} value={subject.id}>{subject.name}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                            <Form.Item field="level" label="等级">
+                                <Select placeholder="请选择等级" allowClear>
+                                    {levelOptions.map(level => (
+                                        <Select.Option key={level.value} value={level.value}>{level.label}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
+                            <Space>
+                                <Button type="primary" onClick={() => {
+                                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                    searchTableData(values);
+                                }}>
+                                    搜索
+                                </Button>
+                                <Button type="primary" status="success" onClick={handleAdd}>
+                                    新增
+                                </Button>
+                            </Space>
+                        </Col>
+                    </Row>
+                </Form>
 
                 {/* 表格 */}
                 <Table

@@ -3,12 +3,14 @@ import {
     Button,
     Dropdown,
     Form,
+    Grid,
     Input,
     Layout,
     Menu,
     Message,
     Modal,
     Pagination,
+    Space,
     Table,
     Tag,
     Upload,
@@ -23,11 +25,11 @@ import {
     importSubjects,
     updateSubject
 } from './api';
-import {IconDelete, IconDownload, IconEdit, IconEye, IconList, IconPlus, IconUpload} from '@arco-design/web-react/icon';
-import FilterForm from '@/components/FilterForm';
+import {IconDelete, IconDownload, IconEdit, IconList, IconUpload} from '@arco-design/web-react/icon';
 
 const {TextArea} = Input;
 const {Content} = Layout;
+const {Row, Col} = Grid;
 
 function SubjectManager() {
     // 状态管理
@@ -44,10 +46,6 @@ function SubjectManager() {
     const [uploading, setUploading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [currentRecord, setCurrentRecord] = useState(null);
-
-    // 查看详情相关状态
-    const [detailModalVisible, setDetailModalVisible] = useState(false);
-    const [detailRecord, setDetailRecord] = useState(null);
 
     // 表单引用
     const filterFormRef = useRef();
@@ -152,10 +150,6 @@ function SubjectManager() {
                             }}
                             className="handle-dropdown-menu"
                         >
-                            <Menu.Item key="detail">
-                                <IconEye style={{marginRight: '5px'}}/>
-                                查看详情
-                            </Menu.Item>
                             <Menu.Item key="edit">
                                 <IconEdit style={{marginRight: '5px'}}/>
                                 编辑
@@ -216,9 +210,6 @@ function SubjectManager() {
     const handleMenuClick = (key, e, record) => {
         e.stopPropagation();
         switch (key) {
-            case 'detail':
-                handleDetail(record);
-                break;
             case 'edit':
                 handleEdit(record);
                 break;
@@ -301,13 +292,7 @@ function SubjectManager() {
         }
     };
 
-    // 处理详情
-    const handleDetail = (record) => {
-        setDetailRecord(record);
-        setDetailModalVisible(true);
-    };
-
-    // 处理导出
+      // 处理导出
     const handleExport = () => {
         try {
             exportSubjects();
@@ -337,21 +322,22 @@ function SubjectManager() {
 
             const response = await importSubjects(formData);
             if (response.data) {
-                const { successCount, errorCount, errorMessages, message } = response.data;
-                
+                const {successCount, errorCount, errorMessages, message} = response.data;
+
                 if (errorCount > 0) {
                     // 显示导入结果详情
                     Modal.info({
                         title: '导入结果',
                         content: (
                             <div>
-                                <p style={{ marginBottom: '12px' }}>{message}</p>
+                                <p style={{marginBottom: '12px'}}>{message}</p>
                                 {errorMessages && errorMessages.length > 0 && (
                                     <div>
-                                        <p style={{ color: '#ff4d4f', marginBottom: '8px' }}>失败详情：</p>
-                                        <ul style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                        <p style={{color: '#ff4d4f', marginBottom: '8px'}}>失败详情：</p>
+                                        <ul style={{maxHeight: '200px', overflowY: 'auto'}}>
                                             {errorMessages.map((msg: string, index: number) => (
-                                                <li key={index} style={{ color: '#ff4d4f', fontSize: '14px', marginBottom: '4px' }}>
+                                                <li key={index}
+                                                    style={{color: '#ff4d4f', fontSize: '14px', marginBottom: '4px'}}>
                                                     {msg}
                                                 </li>
                                             ))}
@@ -378,21 +364,11 @@ function SubjectManager() {
         }
     };
 
-    // 筛选表单配置
-    const filterFormConfig = [
-        {
-            type: 'input',
-            field: 'subjectName',
-            label: '学科名称',
-            placeholder: '请输入学科名称',
-            span: 6,
-        },
-    ];
 
     useEffect(() => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
-            const otherElementsHeight = 235;
+            const otherElementsHeight = 190;
             const newHeight = Math.max(200, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
@@ -407,30 +383,43 @@ function SubjectManager() {
         <Layout className="subject-manager">
             <Content>
                 {/* 筛选表单 */}
-                <FilterForm
-                    ref={filterFormRef}
-                    config={filterFormConfig}
-                    onSearch={searchTableData}
-                    onReset={() => fetchTableData()}
-                >
-                    <Form.Item field='subjectName' label='关键字'>
-                        <Input
-                            placeholder='请输入关键字'
-                        />
-                    </Form.Item>
-                </FilterForm>
-
-                <div className="action-buttons">
-                    <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
-                        新增学科
-                    </Button>
-                    <Button type="default" icon={<IconUpload/>} onClick={handleImportModal} style={{marginLeft: '12px'}}>
-                        导入学科
-                    </Button>
-                    <Button type="default" icon={<IconDownload/>} onClick={handleExport} style={{marginLeft: '12px'}}>
-                        导出学科
-                    </Button>
-                </div>
+                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}}
+                      onValuesChange={() => {
+                          const values = filterFormRef.current?.getFieldsValue?.() || {};
+                          searchTableData(values);
+                      }}>
+                    <Row gutter={16}>
+                        <Col span={6}>
+                            <Form.Item field="subjectName" label="名称">
+                                <Input placeholder="请输入学科名称"/>
+                            </Form.Item>
+                        </Col>
+                        <Col span={6} style={{
+                            display: 'flex',
+                            justifyContent: 'flex-start',
+                            alignItems: 'flex-end',
+                            paddingBottom: '16px'
+                        }}>
+                            <Space>
+                                <Button type="primary" onClick={() => {
+                                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                    searchTableData(values);
+                                }}>
+                                    搜索
+                                </Button>
+                                <Button type="primary" status="success" onClick={handleAdd}>
+                                    新增
+                                </Button>
+                                <Button type="default" icon={<IconUpload/>} onClick={handleImportModal}>
+                                    导入
+                                </Button>
+                                <Button type="default" icon={<IconDownload/>} onClick={handleExport}>
+                                    导出
+                                </Button>
+                            </Space>
+                        </Col>
+                    </Row>
+                </Form>
                 <Table
                     columns={columns}
                     data={tableData}
@@ -543,45 +532,7 @@ function SubjectManager() {
                     <p style={{color: '#f53f3f'}}>删除后不可恢复，请谨慎操作！</p>
                 </Modal>
 
-                {/* 详情对话框 */}
-                <Modal
-                    title="学科详情"
-                    visible={detailModalVisible}
-                    onCancel={() => setDetailModalVisible(false)}
-                    footer={null}
-                    width={600}
-                >
-                    {detailRecord && (
-                        <div className="subject-detail">
-                            <div className="detail-item">
-                                <label>学科名称：</label>
-                                <span>{detailRecord.name}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>学科描述：</label>
-                                <span>{detailRecord.description || '--'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>创建人：</label>
-                                <span>{detailRecord.createUserName || '--'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>创建时间：</label>
-                                <span>{detailRecord.createDate || '--'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>更新人：</label>
-                                <span>{detailRecord.updateUser || '--'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <label>更新时间：</label>
-                                <span>{detailRecord.updateDate || '--'}</span>
-                            </div>
-                        </div>
-                    )}
-                </Modal>
-
-                {/* 导入模态框 */}
+                  {/* 导入模态框 */}
                 <Modal
                     title="导入学科"
                     visible={importModalVisible}
@@ -602,16 +553,16 @@ function SubjectManager() {
                                 setSelectedFile(file as File);
                                 return false; // 阻止自动上传
                             }}
-                            fileList={selectedFile ? [{ uid: '1', name: selectedFile.name, status: 'done' }] : []}
+                            fileList={selectedFile ? [{uid: '1', name: selectedFile.name, status: 'done'}] : []}
                         >
                             <Button type="default">选择文件</Button>
                         </Upload>
                     </div>
-                    
+
                     <div style={{marginTop: '16px'}}>
-                        <Button 
-                            type="default" 
-                            icon={<IconDownload />} 
+                        <Button
+                            type="default"
+                            icon={<IconDownload/>}
                             onClick={downloadTemplate}
                         >
                             下载导入模板
