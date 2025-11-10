@@ -1,8 +1,6 @@
 package com.ck.quiz.mindmap.controller;
 
-import com.ck.quiz.mindmap.dto.MindMapCreateDto;
-import com.ck.quiz.mindmap.dto.MindMapQueryDto;
-import com.ck.quiz.mindmap.dto.MindMapUpdateDto;
+import com.ck.quiz.mindmap.dto.*;
 import com.ck.quiz.mindmap.service.MindMapService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,7 +27,21 @@ public class MindMapController {
         return ResponseEntity.ok(mindMapService.createMindMap(mindMapCreateDto));
     }
 
-    @Operation(summary = "更新思维导图", description = "更新指定思维导图的信息")
+    @Operation(summary = "更新思维导图基本信息", description = "更新思维导图的名称、描述等基本信息")
+    @PutMapping("/update-basic-info")
+    public ResponseEntity updateMindMapBasicInfo(
+            @Parameter(description = "思维导图基本信息更新", required = true) @Valid @RequestBody MindMapBasicInfoUpdateDto mindMapBasicInfoUpdateDto) {
+        return ResponseEntity.ok(mindMapService.updateMindMapBasicInfo(mindMapBasicInfoUpdateDto));
+    }
+
+    @Operation(summary = "更新思维导图数据", description = "更新思维导图的实际数据内容")
+    @PutMapping("/update-data")
+    public ResponseEntity updateMindMapData(
+            @Parameter(description = "思维导图数据更新", required = true) @Valid @RequestBody MindMapDataUpdateDto mindMapDataUpdateDto) {
+        return ResponseEntity.ok(mindMapService.updateMindMapData(mindMapDataUpdateDto));
+    }
+
+    @Operation(summary = "更新思维导图（兼容旧接口）", description = "更新指定思维导图的信息（包含基本信息和数据）")
     @PutMapping("/update")
     public ResponseEntity updateMindMap(
             @Parameter(description = "思维导图更新信息", required = true) @Valid @RequestBody MindMapUpdateDto mindMapUpdateDto) {

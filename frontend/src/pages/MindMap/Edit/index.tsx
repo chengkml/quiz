@@ -10,6 +10,7 @@ import {
     getMindMapById,
     parseMindMapData,
     updateMindMap,
+    updateMindMapData,
 } from '../api/mindMapService';
 import {MindMapData, MindMapDto} from '../types';
 
@@ -209,10 +210,9 @@ const MindMapEditPage: React.FC = () => {
 
             // 当有ID时，始终调用更新接口
             if (id) {
-                // 根据MindMapUpdateDto的要求，更新时需要提供id、mapName和mapData
-                await updateMindMap({ 
+                // 使用新的思维导图数据更新接口
+                await updateMindMapData({ 
                     id, 
-                    mapName, 
                     mapData: formattedData 
                 });
                 Message.success('思维导图更新成功');

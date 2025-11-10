@@ -1,9 +1,6 @@
 package com.ck.quiz.mindmap.service.impl;
 
-import com.ck.quiz.mindmap.dto.MindMapCreateDto;
-import com.ck.quiz.mindmap.dto.MindMapDto;
-import com.ck.quiz.mindmap.dto.MindMapQueryDto;
-import com.ck.quiz.mindmap.dto.MindMapUpdateDto;
+import com.ck.quiz.mindmap.dto.*;
 import com.ck.quiz.mindmap.entity.MindMap;
 import com.ck.quiz.mindmap.repository.MindMapRepository;
 import com.ck.quiz.mindmap.service.MindMapService;
@@ -62,16 +59,15 @@ public class MindMapServiceImpl implements MindMapService {
 
     @Override
     @Transactional
-    public MindMapDto updateMindMap(MindMapUpdateDto mindMapUpdateDto) {
-        Optional<MindMap> optionalMindMap = mindMapRepository.findById(mindMapUpdateDto.getId());
+    public MindMapDto updateMindMapBasicInfo(MindMapBasicInfoUpdateDto mindMapBasicInfoUpdateDto) {
+        Optional<MindMap> optionalMindMap = mindMapRepository.findById(mindMapBasicInfoUpdateDto.getId());
         if (!optionalMindMap.isPresent()) {
             throw new RuntimeException("思维导图不存在");
         }
 
         MindMap mindMap = optionalMindMap.get();
-        mindMap.setMapName(mindMapUpdateDto.getMapName());
-        mindMap.setDescription(mindMapUpdateDto.getDescription());
-        mindMap.setMapData(mindMapUpdateDto.getMapData());
+        mindMap.setMapName(mindMapBasicInfoUpdateDto.getMapName());
+        mindMap.setDescription(mindMapBasicInfoUpdateDto.getDescription());
 
         // 设置更新人信息
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -83,6 +79,52 @@ public class MindMapServiceImpl implements MindMapService {
 
         MindMap updatedMindMap = mindMapRepository.save(mindMap);
         return convertToDto(updatedMindMap);
+    }
+
+    @Override
+    @Transactional
+    public MindMapDto updateMindMapData(MindMapDataUpdateDto mindMapDataUpdateDto) {
+        Optional<MindMap> optionalMindMap = mindMapRepository.findById(mindMapDataUpdateDto.getId());
+        if (!optionalMindMap.isPresent()) {
+            throw new RuntimeException("思维导图不存在");
+        }
+
+        MindMap mindMap = optionalMindMap.get();
+        mindMap.setMapData(mindMapDataUpdateDto.getMapData());
+
+        // 设置更新人信息
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            mindMap.setUpdateUser(authentication.getName());
+        }
+
+        mindMap.setUpdateDate(LocalDateTime.now());
+
+        MindMap updatedMindMap = mindMapRepository.save(mindMap);
+        return convertToDto(updatedMindMap);
+    }
+
+    @Override
+    @Transactional
+    public MindMapDto updateMindMap(MindMapUpdateDto mindMapUpdateDto) {
+        // 为了向后兼容，调用新的方法实现
+        MindMapBasicInfoUpdateDto basicInfoDto = new MindMapBasicInfoUpdateDto(
+                mindMapUpdateDto.getId(),
+                mindMapUpdateDto.getMapName(),
+                mindMapUpdateDto.getDescription()
+        );
+        MindMapDto result = updateMindMapBasicInfo(basicInfoDto);
+
+        // 如果提供了mapData，则更新数据
+        if (mindMapUpdateDto.getMapData() != null) {
+            MindMapDataUpdateDto dataDto = new MindMapDataUpdateDto(
+                    mindMapUpdateDto.getId(),
+                    mindMapUpdateDto.getMapData()
+            );
+            result = updateMindMapData(dataDto);
+        }
+
+        return result;
     }
 
     @Override

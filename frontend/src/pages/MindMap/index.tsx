@@ -16,7 +16,7 @@ import {
 } from '@arco-design/web-react';
 import {IconDelete, IconEdit, IconList} from '@arco-design/web-react/icon';
 import './style/index.less';
-import {createMindMap, deleteMindMap, getMindMapList, updateMindMap} from './api/mindMapService';
+import {createMindMap, deleteMindMap, getMindMapList, updateMindMap, updateMindMapBasicInfo} from './api/mindMapService';
 import {MindMapDto, PaginationConfig} from './types';
 
 const {Content} = Layout;
@@ -180,8 +180,8 @@ const MindMapListPage: React.FC = () => {
         try {
             const values = editForm.getFieldsValue();
             setTableLoading(true);
-            // 调用更新思维导图信息的API
-            await updateMindMap({id: currentRecord.id, ...values});
+            // 调用更新思维导图基本信息的API
+            await updateMindMapBasicInfo({id: currentRecord.id, ...values});
             Message.success('更新成功');
             setEditModalVisible(false);
             // 重新加载列表

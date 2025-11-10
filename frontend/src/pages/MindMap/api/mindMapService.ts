@@ -12,8 +12,25 @@ const getMindMapById = id => axios.get(`${base}/api/mindmap/${id}`);
 // 创建思维导图
 const createMindMap = params => axios.post(`${base}/api/mindmap/create`, params);
 
-// 更新思维导图
-const updateMindMap = params => axios.put(`${base}/api/mindmap/update`, params);
+// 更新思维导图基本信息（名称和描述）
+const updateMindMapBasicInfo = params => axios.put(`${base}/api/mindmap/update-basic-info`, params);
+
+// 更新思维导图数据
+const updateMindMapData = params => axios.put(`${base}/api/mindmap/update-data`, params);
+
+// 更新思维导图（兼容旧接口）
+const updateMindMap = async (params) => {
+  // 根据参数内容自动选择调用新接口
+  const { mapData, ...basicInfo } = params;
+  
+  if (mapData !== undefined) {
+    // 如果包含mapData，调用数据更新接口
+    return updateMindMapData({ id: params.id, mapData });
+  } else {
+    // 否则调用基本信息更新接口
+    return updateMindMapBasicInfo(basicInfo);
+  }
+};
 
 // 删除思维导图
 const deleteMindMap = async id => {
@@ -61,6 +78,8 @@ export {
   getMindMapById,
   createMindMap,
   updateMindMap,
+  updateMindMapBasicInfo,
+  updateMindMapData,
   deleteMindMap,
   getUserMindMaps,
   getSharedMindMaps,

@@ -1,9 +1,6 @@
 package com.ck.quiz.mindmap.service;
 
-import com.ck.quiz.mindmap.dto.MindMapCreateDto;
-import com.ck.quiz.mindmap.dto.MindMapDto;
-import com.ck.quiz.mindmap.dto.MindMapQueryDto;
-import com.ck.quiz.mindmap.dto.MindMapUpdateDto;
+import com.ck.quiz.mindmap.dto.*;
 import com.ck.quiz.mindmap.entity.MindMap;
 import org.springframework.data.domain.Page;
 
@@ -24,11 +21,28 @@ public interface MindMapService {
     MindMapDto createMindMap(MindMapCreateDto mindMapCreateDto);
 
     /**
-     * 更新思维导图
+     * 更新思维导图基本信息
      *
-     * @param mindMapUpdateDto 思维导图更新信息（包含思维导图ID和待更新字段）
+     * @param mindMapBasicInfoUpdateDto 思维导图基本信息更新DTO
      * @return 更新后的思维导图信息
      */
+    MindMapDto updateMindMapBasicInfo(MindMapBasicInfoUpdateDto mindMapBasicInfoUpdateDto);
+
+    /**
+     * 更新思维导图数据
+     *
+     * @param mindMapDataUpdateDto 思维导图数据更新DTO
+     * @return 更新后的思维导图信息
+     */
+    MindMapDto updateMindMapData(MindMapDataUpdateDto mindMapDataUpdateDto);
+
+    /**
+     * 更新思维导图（旧接口，为了向后兼容保留）
+     *
+     * @param mindMapUpdateDto 思维导图更新信息
+     * @return 更新后的思维导图信息
+     */
+    @Deprecated
     MindMapDto updateMindMap(MindMapUpdateDto mindMapUpdateDto);
 
     /**
