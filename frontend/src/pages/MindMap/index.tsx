@@ -16,7 +16,7 @@ import {
 } from '@arco-design/web-react';
 import {IconDelete, IconEdit, IconList} from '@arco-design/web-react/icon';
 import './style/index.less';
-import {createMindMap, deleteMindMap, getMindMapList, updateMindMap, updateMindMapBasicInfo} from './api/mindMapService';
+import {createMindMap, deleteMindMap, getMindMapList, updateMindMapBasicInfo} from './api/mindMapService';
 import {MindMapDto, PaginationConfig} from './types';
 
 const {Content} = Layout;
@@ -38,6 +38,9 @@ const MindMapListPage: React.FC = () => {
 
     // 表单引用
     const filterFormRef = useRef(null);
+    
+    // 表格高度状态
+    const [tableScrollHeight, setTableScrollHeight] = useState<number>(420);
 
     // 分页配置
     const [pagination, setPagination] = useState<PaginationConfig>({
@@ -85,9 +88,25 @@ const MindMapListPage: React.FC = () => {
         }
     };
 
-    // 初始加载
+    // 计算表格高度的函数
+    const calculateTableHeight = () => {
+        const windowHeight = window.innerHeight;
+        const otherElementsHeight = 190; // 其他元素占用的高度
+        const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+        setTableScrollHeight(newHeight);
+    };
+
+    // 初始加载和高度自适应
     useEffect(() => {
         loadMindMaps();
+        calculateTableHeight(); // 初始化计算高度
+        
+        // 添加窗口大小改变事件监听
+        const handleResize = () => calculateTableHeight();
+        window.addEventListener('resize', handleResize);
+        
+        // 清理函数
+        return () => window.removeEventListener('resize', handleResize);
     }, [pagination.current, pagination.pageSize]);
 
     // 处理搜索
@@ -341,7 +360,7 @@ const MindMapListPage: React.FC = () => {
                 <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}}>
                     <Row gutter={16}>
                         <Col span={6}>
-                            <Form.Item field="mapName" label="导图名称">
+                            <Form.Item field="mapName" label="名称">
                                 <Input placeholder="请输入导图名称"/>
                             </Form.Item>
                         </Col>
@@ -358,7 +377,7 @@ const MindMapListPage: React.FC = () => {
                                 }}>
                                     搜索
                                 </Button>
-                                <Button status="success" onClick={handleCreate}>
+                                <Button type="primary" status="success" onClick={handleCreate}>
                                     新建
                                 </Button>
                             </Space>
@@ -373,6 +392,9 @@ const MindMapListPage: React.FC = () => {
                     rowKey="id"
                     pagination={false}
                     tableLayout="auto"
+                    scroll={{
+                        y: tableScrollHeight,
+                    }}
                 />
                 {/* 分页 */}
                 <div className="pagination-wrapper">
