@@ -3,13 +3,13 @@ import {
     Button,
     Dropdown,
     Form,
+    Grid,
     Input,
     Layout,
     Menu,
     Message,
     Modal,
     Pagination,
-    Space,
     Table,
     Tag,
 } from '@arco-design/web-react';
@@ -17,7 +17,8 @@ import './style/index.less';
 import {deleteExamHistory, getExamHistoryList} from './api';
 import {IconDelete, IconEye, IconList} from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
-import FilterForm from '@/components/FilterForm';
+
+const {Row, Col} = Grid;
 
 const {Content} = Layout;
 
@@ -155,20 +156,20 @@ function ExamHistoryManager() {
                     position="bl"
                     droplist={
                         <Menu
-                                    onClickMenuItem={(key, e) => {
-                                        handleMenuClick(key, e, record);
-                                    }}
-                                    className="handle-dropdown-menu"
-                                >
-                                    <Menu.Item key="detail">
-                                        <IconEye style={{marginRight: '5px'}}/>
-                                        查看详情
-                                    </Menu.Item>
-                                    <Menu.Item key="delete">
-                                        <IconDelete style={{marginRight: '5px'}}/>
-                                        删除
-                                    </Menu.Item>
-                                </Menu>
+                            onClickMenuItem={(key, e) => {
+                                handleMenuClick(key, e, record);
+                            }}
+                            className="handle-dropdown-menu"
+                        >
+                            <Menu.Item key="detail">
+                                <IconEye style={{marginRight: '5px'}}/>
+                                查看详情
+                            </Menu.Item>
+                            <Menu.Item key="delete">
+                                <IconDelete style={{marginRight: '5px'}}/>
+                                删除
+                            </Menu.Item>
+                        </Menu>
                     }
                 >
                     <Button
@@ -277,21 +278,12 @@ function ExamHistoryManager() {
     }, [hasCheckedLastResult]);
 
 
-    // 筛选表单配置
-    const filterFormConfig = [
-        {
-            type: 'input',
-            field: 'examName',
-            label: '试卷名称',
-            placeholder: '请输入试卷名称',
-            span: 6,
-        }
-    ];
+    // 筛选表单配置已移除，直接在Form组件中定义
 
     useEffect(() => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
-            const otherElementsHeight = 225;
+            const otherElementsHeight = 190;
             const newHeight = Math.max(200, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
@@ -310,24 +302,29 @@ function ExamHistoryManager() {
                 ) : (
                     <>
                         {/* 筛选表单 */}
-                        <FilterForm
-                            ref={filterFormRef}
-                            config={filterFormConfig}
-                            onSearch={searchTableData}
-                            onReset={() => fetchTableData()}
-                        >
-                            <Form.Item field='examName' label='试卷名称'>
-                                <Input
-                                    placeholder='请输入试卷名称'
-                                />
-                            </Form.Item>
-                        </FilterForm>
-
-                        <div className="action-buttons">
-                            <Space>
-                                {/* 搜索和重置按钮已在 FilterForm 组件中包含 */}
-                            </Space>
-                        </div>
+                        <Form ref={filterFormRef} layout="horizontal" className="filter-form"
+                              style={{marginTop: '10px'}}>
+                            <Row gutter={16}>
+                                <Col span={6}>
+                                    <Form.Item field="examName" label="名称">
+                                        <Input placeholder="请输入试卷名称"/>
+                                    </Form.Item>
+                                </Col>
+                                <Col span={6} style={{
+                                    display: 'flex',
+                                    justifyContent: 'flex-start',
+                                    alignItems: 'flex-end',
+                                    paddingBottom: '16px'
+                                }}>
+                                    <Button type="primary" onClick={() => {
+                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                        searchTableData(values);
+                                    }}>
+                                        搜索
+                                    </Button>
+                                </Col>
+                            </Row>
+                        </Form>
                         <Table
                             columns={columns}
                             data={tableData}

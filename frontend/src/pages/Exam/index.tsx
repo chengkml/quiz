@@ -2,15 +2,18 @@ import React, {useEffect, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {
     Button,
+    Card,
     Drawer,
     Dropdown,
     Form,
+    Grid,
     Input,
     InputNumber,
     Layout,
     Menu,
     Message,
     Modal,
+    Pagination,
     Select,
     Space,
     Switch,
@@ -21,7 +24,6 @@ import './style/index.less';
 import {
     archiveExam,
     autoGenerateExam,
-    createExam,
     deleteExam,
     getExamById,
     getExamList,
@@ -38,7 +40,7 @@ import {
     IconPublic,
     IconSettings,
 } from '@arco-design/web-react/icon';
-import FilterForm from '@/components/FilterForm';
+
 import ExamQuestionManager from './components/ExamQuestionManager';
 import {getAllSubjects} from '../Subject/api';
 import {getCategoriesBySubjectId} from '../Category/api';
@@ -46,16 +48,16 @@ import {ExamDto, ExamQueryDto, ExamStatus, FormRef, PaginationConfig, StatusOpti
 
 const {TextArea} = Input;
 const {Content} = Layout;
+const {Row, Col} = Grid;
 
  function ExamManager(): React.ReactElement {
     const navigate = useNavigate();
     // 状态管理
     const [tableData, setTableData] = useState<ExamDto[]>([]);
     const [tableLoading, setTableLoading] = useState<boolean>(false);
-    const [tableScrollHeight, setTableScrollHeight] = useState<number>(200);
+    const [tableScrollHeight, setTableScrollHeight] = useState<number>(420);
 
     // 对话框状态
-    const [addModalVisible, setAddModalVisible] = useState<boolean>(false);
     const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState<boolean>(false);
     const [currentRecord, setCurrentRecord] = useState<ExamDto | null>(null);
@@ -77,7 +79,6 @@ const {Content} = Layout;
 
     // 表单引用
     const filterFormRef = useRef<FormRef['current']>();
-    const addFormRef = useRef<FormRef['current']>();
     const editFormRef = useRef<FormRef['current']>();
 
     // 分页配置
@@ -300,10 +301,10 @@ const {Content} = Layout;
     const searchTableData = (params: any): void => {
         // 将筛选表单的 name 映射为后端的 keyWord
         const mapped: Partial<ExamQueryDto> = {
-            ...params,
             keyWord: params?.name,
+            status: params?.status,
+            subjectId: params?.subjectId,
         };
-        delete (mapped as any).name;
         fetchTableData(mapped, pagination.pageSize, 1);
     };
 
@@ -406,26 +407,7 @@ const {Content} = Layout;
         }
     };
 
-    // 添加试卷
-    const handleAdd = (): void => {
-        setAddModalVisible(true);
-    };
 
-    // 确认添加
-    const handleAddConfirm = async (): Promise<void> => {
-        try {
-            const values = await addFormRef.current?.validate();
-            if (values) {
-                await createExam(values);
-                Message.success('试卷创建成功');
-                setAddModalVisible(false);
-                addFormRef.current?.resetFields();
-                fetchTableData();
-            }
-        } catch (error) {
-            Message.error('试卷创建失败');
-        }
-    };
 
     // 打开智能生成试卷弹窗
     const openSmartGenerateModal = async (): Promise<void> => {
@@ -508,11 +490,28 @@ const {Content} = Layout;
         fetchTableData({}, pageSize, current);
     };
 
+    // 计算表格高度的函数
+    const calculateTableHeight = () => {
+        const windowHeight = window.innerHeight;
+        const otherElementsHeight = 190; // 其他元素占用的高度
+        const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+        setTableScrollHeight(newHeight);
+    };
+
     // 初始化数据
     useEffect(() => {
         fetchTableData();
         // 加载学科列表
         loadSubjects();
+        
+        // 初始化表格高度
+        calculateTableHeight();
+        // 添加窗口大小改变事件监听
+        const handleResize = () => calculateTableHeight();
+        window.addEventListener('resize', handleResize);
+        
+        // 清理函数
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
     
     // 加载学科列表
@@ -525,135 +524,74 @@ const {Content} = Layout;
         }
     };
 
-    // 筛选表单配置
-    const filterFormConfig = [
-        {
-            type: 'input',
-            name: 'name',
-            label: '试卷名称',
-            placeholder: '请输入试卷名称',
-        },
-        {
-            type: 'select',
-            name: 'status',
-            label: '试卷状态',
-            placeholder: '请选择试卷状态',
-            options: statusOptions,
-        },
-        {
-            type: 'select',
-            name: 'subjectId',
-            label: '学科',
-            placeholder: '请选择学科',
-            options: subjects.map(s => ({ label: s.name, value: s.id })),
-        },
-        {
-            type: 'input',
-            name: 'createUser',
-            label: '创建人',
-            placeholder: '请输入创建人',
-        },
-    ];
+
 
     return (
         <Layout className="exam-manager">
             <Content>
                 {/* 筛选表单 */}
-                <FilterForm
-                    ref={filterFormRef}
-                    config={filterFormConfig}
-                    onSearch={searchTableData}
-                    onReset={() => fetchTableData()}
-                >
-                    <Form.Item field='keyWord' label='试卷名称'>
-                        <Input
-                            placeholder='请输入试卷名称关键词'
-                        />
-                    </Form.Item>
-                </FilterForm>
-
-                {/* 操作按钮 */}
-                <div className="action-buttons">
-                    <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
-                        新建试卷
-                    </Button>
-                    <Button onClick={openSmartGenerateModal}>
-                        智能生成试卷
-                    </Button>
-                </div>
-                <Table
-                    columns={columns}
-                    data={tableData}
-                    loading={tableLoading}
-                    pagination={pagination}
-                    onChange={handlePaginationChange}
-                    scroll={{
-                        y: tableScrollHeight,
-                    }}
-                    rowKey="id"
-                />
-
-                {/* 添加试卷模态框 */}
-                <Modal
-                    title="新建试卷"
-                    visible={addModalVisible}
-                    onOk={handleAddConfirm}
-                    onCancel={() => {
-                        setAddModalVisible(false);
-                        addFormRef.current?.resetFields();
-                    }}
-                    autoFocus={false}
-                    focusLock={true}
-                >
-                    <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                        <Form ref={addFormRef} layout="vertical" initialValues={{ totalScore: 100, durationMinutes: 25 }}>
-                            <Form.Item
-                                label="试卷名称"
-                                field="name"
-                                rules={[{required: true, message: '请输入试卷名称'}]}
-                            >
+                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
+                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                    searchTableData(values);
+                }}>
+                    <Row gutter={16}>
+                        <Col span={5}>
+                            <Form.Item field="name" label="名称">
                                 <Input placeholder="请输入试卷名称"/>
                             </Form.Item>
-                            <Form.Item label="试卷描述" field="description">
-                                <TextArea
-                                    placeholder="请输入试卷描述"
-                                    autoSize={{minRows: 3, maxRows: 6}}
-                                />
+                        </Col>
+                        <Col span={5}>
+                            <Form.Item field="status" label="状态">
+                                <Select placeholder="请选择试卷状态" allowClear>
+                                    {statusOptions.map(opt => (
+                                        <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                                    ))}
+                                </Select>
                             </Form.Item>
-                            <Form.Item
-                                label="学科"
-                                field="subjectId"
-                                rules={[{required: true, message: '请选择学科'}]}
-                            >
-                                <Select placeholder="请选择学科">
+                        </Col>
+                        <Col span={5}>
+                            <Form.Item field="subjectId" label="学科">
+                                <Select placeholder="请选择学科" allowClear>
                                     {subjects.map((s: any) => (
                                         <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
                                     ))}
                                 </Select>
                             </Form.Item>
-                            <Form.Item
-                                label="总分"
-                                field="totalScore"
-                                rules={[{required: true, message: '请输入总分'}]}
-                            >
-                                <InputNumber
-                                    placeholder="请输入总分"
-                                    min={1}
-                                    max={1000}
-                                    style={{width: '100%'}}
-                                />
-                            </Form.Item>
-                            <Form.Item label="考试时长（分钟）" field="durationMinutes">
-                                <InputNumber
-                                    placeholder="请输入考试时长"
-                                    min={1}
-                                    max={600}
-                                    style={{width: '100%'}}
-                                />
-                            </Form.Item>
-                        </Form>
-                    </div>
-                </Modal>
+                        </Col>
+
+                        <Col span={5} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
+                            <Space>
+                                    <Button type="primary" onClick={() => {
+                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                        searchTableData(values);
+                                    }}>
+                                        搜索
+                                    </Button>
+                                    <Button type="primary" status="success" onClick={openSmartGenerateModal}>
+                                        新建
+                                    </Button>
+                                </Space>
+                        </Col>
+                    </Row>
+                </Form>
+                <Table
+                    columns={columns}
+                    data={tableData}
+                    loading={tableLoading}
+                    pagination={false}
+                    scroll={{y: tableScrollHeight}}
+                    rowKey="id"
+                />
+
+                {/* 分页 */}
+                <div className="pagination-wrapper">
+                    <Pagination
+                        {...pagination}
+                        onChange={handlePaginationChange}
+                    />
+                </div>
+                </Content>
+
 
                 {/* 智能生成试卷模态框 */}
                 <Modal
@@ -791,7 +729,6 @@ const {Content} = Layout;
                         />
                     )}
                 </Drawer>
-            </Content>
         </Layout>
     );
 }
