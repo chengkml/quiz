@@ -162,12 +162,7 @@ public class CategoryServiceImpl implements CategoryService {
         JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(),
                 " and c.subject_id = :subjectId ", params, sql, countSql);
 
-        // 分类层级
-        if (queryDto.getLevel() != null) {
-            sql.append(" and c.level = :level ");
-            countSql.append(" and c.level = :level ");
-            params.put("level", queryDto.getLevel());
-        }
+
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
@@ -197,7 +192,6 @@ public class CategoryServiceImpl implements CategoryService {
                     c.setName(rs.getString("name"));
                     c.setParentId(rs.getString("parent_id"));
                     c.setSubjectName(rs.getString("subject_name"));
-                    c.setLevel(rs.getInt("level"));
                     c.setDescription(rs.getString("description"));
                     c.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
                     c.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
@@ -250,15 +244,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .toList();
     }
 
-    @Override
-    public List<CategoryDto> getCategoriesByLevel(Integer level) {
-        log.debug("根据层级获取分类: {}", level);
 
-        List<Category> categories = categoryRepository.findByLevel(level);
-        return categories.stream()
-                .map(this::convertToDto)
-                .toList();
-    }
 
     @Override
     public boolean checkCategoryNameExists(String name, String excludeId) {

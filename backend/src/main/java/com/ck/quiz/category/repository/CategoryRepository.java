@@ -55,13 +55,7 @@ public interface CategoryRepository extends JpaRepository<Category, String> {
      */
     List<Category> findByParentId(String parentId);
 
-    /**
-     * 根据层级查找分类列表
-     *
-     * @param level 分类层级
-     * @return 分类列表
-     */
-    List<Category> findByLevel(Integer level);
+
 
 
 }

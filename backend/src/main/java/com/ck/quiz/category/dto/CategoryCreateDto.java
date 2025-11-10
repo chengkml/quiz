@@ -13,7 +13,6 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class CategoryCreateDto {
 
     /**
@@ -36,11 +35,7 @@ public class CategoryCreateDto {
     @Size(max = 32, message = "学科ID长度不能超过32个字符")
     private String subjectId;
 
-    /**
-     * 分类层级（1=学科下一级，2=章节，3=知识点）
-     */
-    @NotNull(message = "分类层级不能为空")
-    private Integer level;
+
 
     /**
      * 分类描述

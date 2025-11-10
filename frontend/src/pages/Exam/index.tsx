@@ -28,12 +28,10 @@ import {
     getExamById,
     getExamList,
     publishExam,
-    updateExam,
 } from './api';
 import {
     IconArchive,
     IconDelete,
-    IconEdit,
     IconEye,
     IconList,
     IconPlus,
@@ -59,7 +57,6 @@ const {Row, Col} = Grid;
     const [tableScrollHeight, setTableScrollHeight] = useState<number>(420);
 
     // 对话框状态
-    const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState<boolean>(false);
     const [currentRecord, setCurrentRecord] = useState<ExamDto | null>(null);
 
@@ -80,7 +77,6 @@ const {Row, Col} = Grid;
 
     // 表单引用
     const filterFormRef = useRef<FormRef['current']>();
-    const editFormRef = useRef<FormRef['current']>();
 
     // 分页配置
     const [pagination, setPagination] = useState<PaginationConfig>({
@@ -130,21 +126,6 @@ const {Row, Col} = Grid;
             render: (value) => (
                 <span>{value ? `${value}分钟` : '--'}</span>
             ),
-        },
-        {
-            title: '状态',
-            dataIndex: 'status',
-            width: 100,
-            align: 'center',
-            render: (value) => {
-                const statusMap = {
-                    'DRAFT': {text: '草稿', color: 'gray'},
-                    'PUBLISHED': {text: '已发布', color: 'green'},
-                    'ARCHIVED': {text: '已归档', color: 'orange'}
-                };
-                const status = statusMap[value] || {text: value, color: 'gray'};
-                return <Tag bordered color={status.color}>{status.text}</Tag>;
-            },
         },
         {
             title: '题目数量',
@@ -230,10 +211,6 @@ const {Row, Col} = Grid;
                                     <IconEye style={{marginRight: '5px'}}/>
                                     查看详情
                                 </Menu.Item>
-                                <Menu.Item key="edit">
-                                    <IconEdit style={{marginRight: '5px'}}/>
-                                    编辑
-                                </Menu.Item>
                                 <Menu.Item key="questions">
                                     <IconSettings style={{marginRight: '5px'}}/>
                                     管理题目
@@ -317,9 +294,6 @@ const {Row, Col} = Grid;
             case 'detail':
                 navigate(`/quiz/frame/exam/detail/${record.id}`);
                 break;
-            case 'edit':
-                handleEdit(record);
-                break;
             case 'questions':
                 handleManageQuestions(record);
                 break;
@@ -368,21 +342,6 @@ const {Row, Col} = Grid;
                 Message.error('刷新试卷信息失败');
             }
         }
-    };
-
-    // 编辑试卷
-    const handleEdit = (record: ExamDto): void => {
-        setCurrentRecord(record);
-        setEditModalVisible(true);
-        setTimeout(() => {
-            editFormRef.current?.setFieldsValue({
-                name: record.name,
-                description: record.description,
-                subjectId: record.subjectId,
-                totalScore: record.totalScore,
-                durationMinutes: record.durationMinutes,
-            });
-        }, 100);
     };
 
     // 发布试卷
@@ -454,25 +413,6 @@ const {Row, Col} = Grid;
         }
     };
 
-    // 确认编辑
-    const handleEditConfirm = async (): Promise<void> => {
-        try {
-            const values = await editFormRef.current?.validate();
-            if (values && currentRecord) {
-                await updateExam({
-                    id: currentRecord.id,
-                    ...values,
-                });
-                Message.success('试卷更新成功');
-                setEditModalVisible(false);
-                editFormRef.current?.resetFields();
-                fetchTableData();
-            }
-        } catch (error) {
-            Message.error('试卷更新失败');
-        }
-    };
-
     // 确认删除
     const handleDeleteConfirm = async (): Promise<void> => {
         try {
@@ -511,18 +451,6 @@ const {Row, Col} = Grid;
         return () => window.removeEventListener('resize', handleResize);
     }, []);
     
-    // 加载学科列表
-    const loadSubjects = async (): Promise<void> => {
-        try {
-            const res = await getAllSubjects();
-            setSubjects(res?.data || []);
-        } catch (e) {
-            Message.error('获取学科列表失败');
-        }
-    };
-
-
-
     return (
         <Layout className="exam-manager">
             <Content>
@@ -621,68 +549,6 @@ const {Row, Col} = Grid;
                             </Form.Item>
                             <Form.Item label="生成后立即发布" field="publishImmediately" triggerPropName="checked">
                                 <Switch />
-                            </Form.Item>
-                        </Form>
-                    </div>
-                </Modal>
-
-                {/* 编辑试卷模态框 */}
-                <Modal
-                    title="编辑试卷"
-                    visible={editModalVisible}
-                    onOk={handleEditConfirm}
-                    onCancel={() => {
-                        setEditModalVisible(false);
-                        editFormRef.current?.resetFields();
-                    }}
-                    autoFocus={false}
-                    focusLock={true}
-                >
-                    <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                        <Form ref={editFormRef} layout="vertical">
-                            <Form.Item
-                                label="试卷名称"
-                                field="name"
-                                rules={[{required: true, message: '请输入试卷名称'}]}
-                            >
-                                <Input placeholder="请输入试卷名称"/>
-                            </Form.Item>
-                            <Form.Item label="试卷描述" field="description">
-                                <TextArea
-                                    placeholder="请输入试卷描述"
-                                    autoSize={{minRows: 3, maxRows: 6}}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="学科"
-                                field="subjectId"
-                                rules={[{required: true, message: '请选择学科'}]}
-                            >
-                                <Select placeholder="请选择学科">
-                                    {subjects.map((s: any) => (
-                                        <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                            <Form.Item
-                                label="总分"
-                                field="totalScore"
-                                rules={[{required: true, message: '请输入总分'}]}
-                            >
-                                <InputNumber
-                                    placeholder="请输入总分"
-                                    min={1}
-                                    max={1000}
-                                    style={{width: '100%'}}
-                                />
-                            </Form.Item>
-                            <Form.Item label="考试时长（分钟）" field="durationMinutes">
-                                <InputNumber
-                                    placeholder="请输入考试时长"
-                                    min={1}
-                                    max={600}
-                                    style={{width: '100%'}}
-                                />
                             </Form.Item>
                         </Form>
                     </div>

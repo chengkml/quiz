@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class CategoryQueryDto {
 
     /**
@@ -28,10 +27,7 @@ public class CategoryQueryDto {
      */
     private String subjectId;
 
-    /**
-     * 分类层级
-     */
-    private Integer level;
+
 
     /**
      * 页码（从1开始）

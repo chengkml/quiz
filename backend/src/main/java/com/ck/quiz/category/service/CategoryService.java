@@ -88,13 +88,7 @@ public interface CategoryService {
      */
     List<CategoryDto> getCategoriesByParentId(String parentId);
 
-    /**
-     * 根据层级获取分类列表
-     *
-     * @param level 分类层级
-     * @return 分类列表
-     */
-    List<CategoryDto> getCategoriesByLevel(Integer level);
+
 
     /**
      * 检查分类名称是否存在

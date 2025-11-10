@@ -473,8 +473,8 @@ function KnowledgeManager() {
                           }}>
                         <Row gutter={16}>
                             <Col span={6}>
-                                <Form.Item field="name" label="名称">
-                                    <Input placeholder="请输入知识点名称"/>
+                                <Form.Item field="knowledgeName" label="关键字">
+                                    <Input placeholder="请输入关键字"/>
                                 </Form.Item>
                             </Col>
                             <Col span={6}>
@@ -484,11 +484,6 @@ function KnowledgeManager() {
                                             <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
                                         ))}
                                     </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={6}>
-                                <Form.Item field="knowledgeName" label="关键字">
-                                    <Input placeholder="请输入关键字"/>
                                 </Form.Item>
                             </Col>
                             <Col span={6} style={{

@@ -14,10 +14,10 @@ import {
     Space,
     Table
 } from '@arco-design/web-react';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import AddCategoryModal from './components/AddCategoryModal';
 import EditCategoryModal from './components/EditCategoryModal';
-import DetailCategoryModal from './components/DetailCategoryModal';
+
 import {deleteCategory, getCategoryById, getCategoryList} from './api';
 import {getAllSubjects} from '../Subject/api';
 import './index.less';
@@ -35,7 +35,6 @@ function CategoryManager() {
     // 模态框状态
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [currentRecord, setCurrentRecord] = useState(null);
 
     // 表单引用
@@ -54,14 +53,7 @@ function CategoryManager() {
     // 学科选项
     const [subjectOptions, setSubjectOptions] = useState([]);
 
-    // 分类级别选项
-    const levelOptions = [
-        {label: '一级分类', value: 1},
-        {label: '二级分类', value: 2},
-        {label: '三级分类', value: 3},
-        {label: '四级分类', value: 4},
-        {label: '五级分类', value: 5},
-    ];
+
 
     // 表格列配置
     const columns = [
@@ -83,13 +75,6 @@ function CategoryManager() {
             dataIndex: 'subjectName',
             key: 'subjectName',
             width: 120,
-        },
-        {
-            title: '级别',
-            dataIndex: 'level',
-            key: 'level',
-            width: 80,
-            render: (level) => `${level}级`,
         },
         {
             title: '描述',
@@ -157,10 +142,6 @@ function CategoryManager() {
                 <Dropdown
                     droplist={
                         <Menu>
-                            <Menu.Item key="detail" onClick={() => handleDetail(record)}>
-                                <IconEye style={{marginRight: 8}}/>
-                                详情
-                            </Menu.Item>
                             <Menu.Item key="edit" onClick={() => handleEdit(record)}>
                                 <IconEdit style={{marginRight: 8}}/>
                                 编辑
@@ -303,17 +284,7 @@ function CategoryManager() {
         });
     };
 
-    // 处理查看详情
-    const handleDetail = async (record) => {
-        try {
-            const response = await getCategoryById(record.id);
-            setCurrentRecord(response.data);
-            setDetailModalVisible(true);
-        } catch (error) {
-            console.error('获取分类详情失败:', error);
-            Message.error('获取分类详情失败');
-        }
-    };
+
 
     // 模态框成功回调
     const handleModalSuccess = () => {
@@ -327,7 +298,6 @@ function CategoryManager() {
     const handleModalCancel = () => {
         setAddModalVisible(false);
         setEditModalVisible(false);
-        setDetailModalVisible(false);
         setCurrentRecord(null);
     };
 
@@ -354,15 +324,7 @@ function CategoryManager() {
                                 </Select>
                             </Form.Item>
                         </Col>
-                        <Col span={6}>
-                            <Form.Item field="level" label="等级">
-                                <Select placeholder="请选择等级" allowClear>
-                                    {levelOptions.map(level => (
-                                        <Select.Option key={level.value} value={level.value}>{level.label}</Select.Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
+
                         <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
                             <Space>
                                 <Button type="primary" icon={<IconSearch/>} onClick={() => {
@@ -411,12 +373,7 @@ function CategoryManager() {
                     onSuccess={handleModalSuccess}
                 />
 
-                {/* 详情模态框 */}
-                <DetailCategoryModal
-                    visible={detailModalVisible}
-                    record={currentRecord}
-                    onCancel={handleModalCancel}
-                />
+
             </Content>
         </Layout>
     );

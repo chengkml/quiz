@@ -153,19 +153,7 @@ public class CategoryController {
         return ResponseEntity.ok(categories);
     }
 
-    /**
-     * 根据层级获取分类列表
-     *
-     * @param level 分类层级
-     * @return 分类列表
-     */
-    @GetMapping("/level/{level}")
-    @Operation(summary = "根据层级获取分类", description = "根据层级获取分类列表")
-    public ResponseEntity<List<CategoryDto>> getCategoriesByLevel(
-            @Parameter(description = "分类层级") @PathVariable Integer level) {
-        List<CategoryDto> categories = categoryService.getCategoriesByLevel(level);
-        return ResponseEntity.ok(categories);
-    }
+
 
     /**
      * 检查分类名称是否存在

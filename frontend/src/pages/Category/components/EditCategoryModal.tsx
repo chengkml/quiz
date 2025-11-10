@@ -54,7 +54,6 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
         name: record.name,
         subjectId: record.subjectId,
         parentId: record.parentId,
-        level: record.level,
         description: record.description
       });
     }
@@ -136,21 +135,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
             </Select>
           </Form.Item>
 
-          <Form.Item
-              label="分类级别"
-              field="level"
-              rules={[
-                { required: true, message: '请输入分类级别' },
-                { type: 'number', min: 1, max: 10, message: '分类级别必须在1-10之间' }
-              ]}
-          >
-            <InputNumber
-                placeholder="请输入分类级别"
-                min={1}
-                max={10}
-                style={{ width: '100%' }}
-            />
-          </Form.Item>
+
 
           <Form.Item
               label="分类描述"

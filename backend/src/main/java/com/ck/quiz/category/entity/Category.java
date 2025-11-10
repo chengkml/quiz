@@ -25,7 +25,6 @@ import java.time.LocalDateTime;
 )
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class Category {
 
     @Id
@@ -51,11 +50,7 @@ public class Category {
     @Column(name = "subject_id", length = 32, nullable = false)
     private String subjectId;
 
-    /**
-     * 分类层级（1=学科下一级，2=章节，3=知识点）
-     */
-    @Column(name = "level", nullable = false)
-    private Integer level;
+
 
     /**
      * 描述

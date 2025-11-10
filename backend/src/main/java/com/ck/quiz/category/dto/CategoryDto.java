@@ -13,7 +13,6 @@ import java.util.List;
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class CategoryDto {
 
     /**
@@ -46,10 +45,7 @@ public class CategoryDto {
      */
     private String subjectName;
 
-    /**
-     * 分类层级（1=学科下一级，2=章节，3=知识点）
-     */
-    private Integer level;
+
 
     /**
      * 分类描述信息
