@@ -80,7 +80,6 @@ public class UserController {
     @Operation(summary = "分页查询用户", description = "根据条件分页查询用户列表")
     @GetMapping("search")
     public ResponseEntity<Page<UserDto>> searchUsers(
-            @RequestParam(required = false) String userId,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String state,
             @RequestParam(defaultValue = "0") int page,
@@ -89,8 +88,7 @@ public class UserController {
             @RequestParam(defaultValue = "desc") String sortDir) {
 
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-        return ResponseEntity.ok(userService.searchUsers(userId, name, state, sortBy, sortDir, page, size));
+        return ResponseEntity.ok(userService.searchUsers(name, state, sortBy, sortDir, page, size));
     }
 
     @Operation(summary = "更新用户信息", description = "更新指定用户的基本信息")

@@ -4,6 +4,7 @@ import {
     Drawer,
     Dropdown,
     Form,
+    Grid,
     Input,
     Layout,
     Menu,
@@ -28,13 +29,13 @@ import {
     replaceRoleMenus,
     updateRole,
 } from './api';
-import {IconDelete, IconEdit, IconList, IconMenu, IconPlus, IconUser,} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconList, IconMenu, IconPlus, IconSearch, IconUser,} from '@arco-design/web-react/icon';
 import {getMenuTree} from '@/pages/Menu/api';
-import FilterForm from '@/components/FilterForm';
 
 const {Content} = Layout;
 const {Option} = Select;
 const {TextArea} = Input;
+const {Row, Col} = Grid;
 
 function RoleManager() {
     // 状态管理
@@ -75,9 +76,9 @@ function RoleManager() {
     // 表单引用
     const [addForm] = Form.useForm();
     const [editForm] = Form.useForm();
+    const filterFormRef = useRef<any>(null);
 
-    // 容器引用
-    const containerRef = useRef(null);
+
 
     // 角色状态选项
     const roleStateOptions = [
@@ -264,9 +265,6 @@ function RoleManager() {
         },
     ];
 
-    // FilterForm引用
-    const filterFormRef = useRef(null);
-
     // 处理菜单点击
     const handleMenuClick = (key, event, record) => {
         event.stopPropagation();
@@ -420,6 +418,7 @@ function RoleManager() {
         const resetParams = {roleName: '', state: ''};
         setSearchParams(resetParams);
         setPagination(prev => ({...prev, current: 1}));
+        filterFormRef.current?.setFieldsValue?.(resetParams);
         fetchRoles(resetParams);
     };
 
@@ -566,14 +565,10 @@ function RoleManager() {
 
     // 计算表格高度
     const calculateTableHeight = () => {
-        if (containerRef.current) {
-            const containerHeight = containerRef.current.clientHeight;
-            const headerHeight = 120; // 搜索表单和按钮区域高度
-            const paginationHeight = 60; // 分页区域高度
-            const padding = 40; // 内边距
-            const calculatedHeight = containerHeight - headerHeight - paginationHeight - padding;
-            setTableScrollHeight(Math.max(calculatedHeight, 200));
-        }
+        const windowHeight = window.innerHeight;
+        const otherElementsHeight = 240; // 搜索表单、按钮区域和分页等其他元素的总高度
+        const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+        setTableScrollHeight(newHeight);
     };
 
     // 初始化和窗口大小变化处理
@@ -581,10 +576,12 @@ function RoleManager() {
         fetchRoles();
         calculateTableHeight();
 
-        const handleResize = () => {
-            calculateTableHeight();
-        };
+        // 设置表单默认值
+        setTimeout(() => {
+            filterFormRef.current?.setFieldsValue?.(searchParams);
+        }, 50);
 
+        const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -595,39 +592,50 @@ function RoleManager() {
     }, [pagination.current, pagination.pageSize]);
 
     return (
-        <div className="role-manager" ref={containerRef}>
+        <div className="role-manager">
             <Content>
-                {/* 搜索表单 */}
-                <FilterForm
-                    ref={filterFormRef}
-                    onSearch={handleSearch}
-                    onReset={handleReset}
-                    initialValues={searchParams}
-                >
-                    <Form.Item field="roleName" label="角色名称">
-                        <Input placeholder="请输入角色名称"/>
-                    </Form.Item>
-                    <Form.Item field="state" label="状态">
-                        <Select placeholder="请选择状态" allowClear>
-                            {roleStateOptions.map(option => (
-                                <Option key={option.value} value={option.value}>
-                                    {option.label}
-                                </Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                </FilterForm>
-
-                {/* 操作按钮 */}
-                <div className="action-buttons">
-                    <Button
-                        type="primary"
-                        icon={<IconPlus/>}
-                        onClick={handleAdd}
-                    >
-                        新增角色
-                    </Button>
-                </div>
+                {/* 筛选表单 */}
+                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}}
+                      onValuesChange={(changedValues, values) => {
+                          handleSearch(values);
+                      }}>
+                    <Row gutter={16}>
+                        <Col span={6}>
+                            <Form.Item field="roleName" label="名称">
+                                <Input placeholder="请输入角色名称"/>
+                            </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                            <Form.Item field="state" label="状态">
+                                <Select placeholder="请选择状态" allowClear>
+                                    {roleStateOptions.map(option => (
+                                        <Option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={12} style={{
+                            display: 'flex',
+                            justifyContent: 'flex-start',
+                            alignItems: 'flex-end',
+                            paddingBottom: '16px'
+                        }}>
+                            <Space>
+                                <Button type="primary" icon={<IconSearch/>} onClick={() => {
+                                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                    handleSearch(values);
+                                }}>
+                                    搜索
+                                </Button>
+                                <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
+                                    新增
+                                </Button>
+                            </Space>
+                        </Col>
+                    </Row>
+                </Form>
 
                 {/* 角色表格 */}
                 <Table
@@ -636,11 +644,9 @@ function RoleManager() {
                     loading={tableLoading}
                     pagination={false}
                     scroll={{
-                        x: 1200,
                         y: tableScrollHeight,
                     }}
                     rowKey="id"
-                    size="small"
                 />
 
                 {/* 分页 */}

@@ -29,7 +29,6 @@ public interface UserService {
     /**
      * 分页查询用户
      *
-     * @param userId
      * @param userName
      * @param state
      * @param sortColumn
@@ -38,7 +37,7 @@ public interface UserService {
      * @param pageSize
      * @return
      */
-    Page<UserDto> searchUsers(String userId, String userName, String state, String sortColumn, String sortType, int pageNum, int pageSize);
+    Page<UserDto> searchUsers(String userName, String state, String sortColumn, String sortType, int pageNum, int pageSize);
 
     /**
      * 更新用户信息

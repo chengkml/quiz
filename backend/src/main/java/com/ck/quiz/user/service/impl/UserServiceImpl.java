@@ -81,7 +81,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public Page<UserDto> searchUsers(String userId, String userName, String state, String sortColumn, String sortType, int pageNum, int pageSize) {
+    public Page<UserDto> searchUsers(String userName, String state, String sortColumn, String sortType, int pageNum, int pageSize) {
         StringBuilder sql = new StringBuilder(
                 "select u.user_id, u.user_name, u.password, u.email, u.phone, u.state, u.logo, " +
                         "u.create_date, u.create_user, cu.user_name as create_user_name, " +
@@ -97,7 +97,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         Map<String, Object> params = new HashMap<>();
 
         // 动态条件构建
-        JdbcQueryHelper.equals("userId", userId, " and u.user_id = :userId ", params, sql, countSql);
         JdbcQueryHelper.lowerLike("userName", userName, " and (lower(u.user_name) like :userName or lower(u.user_id) like :userName) ", params, jdbcTemplate, sql, countSql);
         JdbcQueryHelper.equals("state", state, " and u.state = :state ", params, sql, countSql);
 

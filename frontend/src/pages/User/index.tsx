@@ -1,10 +1,9 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
     Button,
-    Checkbox,
-    Drawer,
     Dropdown,
     Form,
+    Grid,
     Input,
     Layout,
     Menu,
@@ -30,10 +29,19 @@ import {
     searchUsers,
     updateUser,
 } from './api';
-import {IconDelete, IconEdit, IconList, IconMenu, IconPlus, IconRefresh, IconUser,} from '@arco-design/web-react/icon';
-import FilterForm from '@/components/FilterForm';
+import {
+    IconDelete,
+    IconEdit,
+    IconList,
+    IconMenu,
+    IconPlus,
+    IconRefresh,
+    IconSearch,
+    IconUser
+} from '@arco-design/web-react/icon';
 
 const {Content} = Layout;
+const {Row, Col} = Grid;
 
 function UserManager() {
     // 状态管理
@@ -59,7 +67,6 @@ function UserManager() {
 
     // 搜索条件
     const [searchParams, setSearchParams] = useState({
-        userId: '',
         name: '',
         state: '',
     });
@@ -71,9 +78,7 @@ function UserManager() {
     const [addForm] = Form.useForm();
     const [editForm] = Form.useForm();
     const [resetPasswordForm] = Form.useForm();
-
-    // 容器引用
-    const containerRef = useRef(null);
+    const filterFormRef = useRef<any>(null);
 
     // 用户状态选项
     const userStateOptions = [
@@ -266,7 +271,7 @@ function UserManager() {
 
             const response = await searchUsers(queryParams);
             const {content, totalElements} = response.data;
-            
+
             // 为每个用户获取角色信息
             if (content && content.length > 0) {
                 const usersWithRoles = await Promise.all(
@@ -290,7 +295,7 @@ function UserManager() {
             } else {
                 setTableData([]);
             }
-            
+
             setPagination(prev => ({
                 ...prev,
                 total: totalElements || 0,
@@ -312,11 +317,18 @@ function UserManager() {
 
     // 重置搜索
     const handleReset = () => {
-        const resetParams = {userId: '', name: '', state: ''};
+        const resetParams = {name: '', state: ''};
         setSearchParams(resetParams);
         setPagination(prev => ({...prev, current: 1}));
         fetchUsers(resetParams);
     };
+
+    // 初始化设置表单默认值
+    useEffect(() => {
+        if (filterFormRef.current) {
+            filterFormRef.current.setFieldsValue(searchParams);
+        }
+    }, []);
 
     // 添加用户
     const handleAdd = () => {
@@ -496,14 +508,10 @@ function UserManager() {
 
     // 计算表格高度
     const calculateTableHeight = () => {
-        if (containerRef.current) {
-            const containerHeight = containerRef.current.clientHeight;
-            const headerHeight = 120; // 搜索表单和按钮区域高度
-            const paginationHeight = 60; // 分页区域高度
-            const padding = 40; // 内边距
-            const calculatedHeight = containerHeight - headerHeight - paginationHeight - padding;
-            setTableScrollHeight(Math.max(calculatedHeight, 200));
-        }
+        const windowHeight = window.innerHeight;
+        const otherElementsHeight = 240;
+        const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+        setTableScrollHeight(newHeight);
     };
 
     // 初始化和窗口大小变化处理
@@ -525,35 +533,48 @@ function UserManager() {
     }, [pagination.current, pagination.pageSize]);
 
     return (
-        <div className="user-manager" ref={containerRef}>
+        <div className="user-manager">
             <Content>
-                {/* 搜索表单 */}
-                <FilterForm
-                    onSearch={handleSearch}
-                    onReset={handleReset}
-                >
-                    <Form.Item field='userId' label='用户ID'>
-                        <Input
-                            placeholder='请输入用户ID关键词'
-                        />
-                    </Form.Item>
-                    <Form.Item field='name' label='用户名'>
-                        <Input
-                            placeholder='请输入用户名关键词'
-                        />
-                    </Form.Item>
-                </FilterForm>
-
-                {/* 操作按钮 */}
-                <div className="action-buttons">
-                    <Button
-                        type="primary"
-                        icon={<IconPlus/>}
-                        onClick={handleAdd}
-                    >
-                        新增用户
-                    </Button>
-                </div>
+                {/* 搜索表单和操作按钮 */}
+                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
+                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                    handleSearch(values);
+                }}>
+                    <Row gutter={16}>
+                        <Col span={6}>
+                            <Form.Item field="name" label="用户名">
+                                <Input placeholder="请输入用户名关键词"/>
+                            </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                            <Form.Item field="state" label="状态">
+                                <Select placeholder="请选择状态" allowClear>
+                                    {userStateOptions.map(opt => (
+                                        <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={6} style={{
+                            display: 'flex',
+                            justifyContent: 'flex-start',
+                            alignItems: 'flex-end',
+                            paddingBottom: '16px'
+                        }}>
+                            <Space>
+                                <Button type="primary" icon={<IconSearch/>} onClick={() => {
+                                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                    handleSearch(values);
+                                }}>
+                                    搜索
+                                </Button>
+                                <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
+                                    新增
+                                </Button>
+                            </Space>
+                        </Col>
+                    </Row>
+                </Form>
 
                 {/* 用户表格 */}
                 <Table
@@ -562,11 +583,9 @@ function UserManager() {
                     loading={tableLoading}
                     pagination={false}
                     scroll={{
-                        x: 1200,
                         y: tableScrollHeight,
                     }}
                     rowKey="userId"
-                    size="small"
                 />
 
                 {/* 分配角色对话框 */}
@@ -579,7 +598,7 @@ function UserManager() {
                     okText="确定"
                     cancelText="取消"
                 >
-                    <Spin loading={assignRoleLoading} tip="加载中..." style={{width:'100%'}}>
+                    <Spin loading={assignRoleLoading} tip="加载中..." style={{width: '100%'}}>
                         <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
                             <Form layout="vertical">
                                 <Form.Item

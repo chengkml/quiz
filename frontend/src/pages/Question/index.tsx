@@ -5,6 +5,7 @@ import {
     Collapse,
     Dropdown,
     Form,
+    Grid,
     Input,
     InputNumber,
     Layout,
@@ -13,6 +14,7 @@ import {
     Modal,
     Pagination,
     Select,
+    Space,
     Spin,
     Table,
     Tag,
@@ -32,14 +34,14 @@ import {
     getSubjectCategoryTree,
     updateQuestion,
 } from './api';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot,} from '@arco-design/web-react/icon';
-import FilterForm from '@/components/FilterForm';
+import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot, IconSearch} from '@arco-design/web-react/icon';
 import DynamicQuestionForm from '@/components/DynamicQuestionForm';
 import Sider from '@arco-design/web-react/es/Layout/sider';
 import {createKnowledge, getKnowledgeList} from '../Knowledge/api';
 
 const {TextArea} = Input;
 const {Content} = Layout;
+const {Row, Col} = Grid;
 
 function QuestionManager() {
     // 状态管理
@@ -968,39 +970,35 @@ function QuestionManager() {
                     </div>
                 </Sider>
                 <Content>
-                    <FilterForm
-                        ref={filterFormRef}
-                        onSearch={searchTableData}
-                        onReset={() => fetchTableData()}
-                    >
-                        <Form.Item field='type' label='题目类型'>
-                            <Select allowClear
-                                    placeholder='请选择题目类型'
-                                    options={questionTypeOptions}
-                            />
-                        </Form.Item>
-                        <Form.Item field='content' label='题干内容'>
-                            <Input
-                                placeholder='请输入题干内容关键词'
-                            />
-                        </Form.Item>
-                        <Form.Item field='difficultyLevel' label='难度等级'>
-                            <Select allowClear
-                                    placeholder='请选择难度等级'
-                                    options={difficultyOptions}
-                            />
-                        </Form.Item>
-                    </FilterForm>
-
-                    {/* 表格 */}
-                    <div className="action-buttons">
-                        <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
-                            新增题目
-                        </Button>
-                        <Button type="outline" icon={<IconRobot/>} onClick={handleGenerate}>
-                            AI生成题目
-                        </Button>
-                    </div>
+                    {/* 筛选表单 */}
+                    <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
+                        const values = filterFormRef.current?.getFieldsValue?.() || {};
+                        searchTableData(values);
+                    }}>
+                        <Row gutter={16}>
+                            <Col span={8}>
+                                <Form.Item field="content" label="关键字">
+                                    <Input placeholder="请输入题干内容关键词" />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
+                                <Space>
+                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
+                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                        searchTableData(values);
+                                    }}>
+                                        搜索
+                                    </Button>
+                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
+                                        新增
+                                    </Button>
+                                    <Button type="outline" icon={<IconRobot/>} onClick={handleGenerate}>
+                                        AI生成
+                                    </Button>
+                                </Space>
+                            </Col>
+                        </Row>
+                    </Form>
                     <Table
                         columns={columns}
                         data={tableData}
@@ -1200,7 +1198,7 @@ function QuestionManager() {
                         // 模态框完全打开后触发
                         if (currentRecord && editFormRef.current) {
                             // 在这里执行初始化逻辑，代码同上（带 setTimeout 或直接执行）
-                            // 但因为是在 afterOpen 后，ref 通常已就绪
+                            //  cuz是在 afterOpen 后，ref 通常已就绪
                             setTimeout(() => {
                                 if (editFormRef.current) {
                                     let parsedOptions = {};
