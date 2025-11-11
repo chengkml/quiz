@@ -1,15 +1,17 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
     Button,
     Cascader,
     Dropdown,
     Form,
+    Grid,
     Input,
     InputNumber,
     Layout,
     Menu,
     Message,
-    Modal, Pagination,
+    Modal,
+    Pagination,
     Select,
     Space,
     Table,
@@ -17,6 +19,7 @@ import {
 } from '@arco-design/web-react';
 import './style/index.less';
 import {createMenu, deleteMenu, disableMenu, enableMenu, getMenuList, getMenuTree, updateMenu,} from './api';
+import * as ArcoIcons from '@arco-design/web-react/icon';
 import {
     IconApps,
     IconArchive,
@@ -115,11 +118,10 @@ import {
     IconZoomIn,
     IconZoomOut,
 } from '@arco-design/web-react/icon';
-import FilterForm from '@/components/FilterForm';
-import * as ArcoIcons from '@arco-design/web-react/icon';
 
 const {TextArea} = Input;
 const {Content} = Layout;
+const {Row, Col} = Grid;
 
 function MenuManager() {
 
@@ -148,8 +150,6 @@ function MenuManager() {
 
     // 查询条件
     const [searchParams, setSearchParams] = useState({
-        menuName: '',
-        menuType: '',
         state: '',
         parentId: '',
     });
@@ -157,7 +157,7 @@ function MenuManager() {
     // 表单引用
     const [addForm] = Form.useForm();
     const [editForm] = Form.useForm();
-    const [searchForm] = Form.useForm();
+    const filterFormRef = useRef<any>(null);
 
     // 菜单类型选项
     const menuTypeOptions = [
@@ -296,7 +296,7 @@ function MenuManager() {
     const convertMenuTreeToCascaderData = (menuTree) => {
         return menuTree.map(menu => ({
             value: menu.menuId,
-            label: menu.menuLabel,
+            label: menu.menuName,
             children: menu.children && menu.children.length > 0
                 ? convertMenuTreeToCascaderData(menu.children)
                 : undefined
@@ -351,8 +351,8 @@ function MenuManager() {
         },
         {
             title: '菜单名称',
-            dataIndex: 'menuLabel',
-            key: 'menuLabel',
+            dataIndex: 'menuName',
+            key: 'menuName',
             width: 150,
         },
         {
@@ -537,31 +537,36 @@ function MenuManager() {
         }
     };
 
-    // 处理搜索
-    const handleSearch = (values) => {
-        setSearchParams(values);
-        setPagination(prev => ({...prev, current: 1}));
-        fetchMenuList({ ...values, pageNum: 0, pageSize: pagination.pageSize });
+    // 防抖函数
+    const debounce = (func, wait) => {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     };
 
-    // 处理重置
-    const handleReset = () => {
-        searchForm.resetFields();
-        const resetParams = {
-            menuName: '',
-            menuType: '',
-            state: '',
-            parentId: '',
-        };
-        setSearchParams(resetParams);
+    // 处理搜索
+    const handleSearch = () => {
+        const values = filterFormRef.current?.getFieldsValue?.() || {};
+        setSearchParams(values);
         setPagination(prev => ({...prev, current: 1}));
-        fetchMenuList({ ...resetParams, pageNum: 0, pageSize: pagination.pageSize });
+        fetchMenuList({...values, pageNum: 0, pageSize: pagination.pageSize});
     };
+
+    // 创建防抖版本的搜索函数
+    const debouncedSearch = React.useMemo(() => debounce(handleSearch, 300), [pagination.pageSize]);
+
+    
 
     // 处理分页变化
     const handleTableChange = (pagination) => {
         setPagination(prev => ({...prev, ...pagination}));
-        fetchMenuList({ pageNum: (pagination.current ?? 1) - 1, pageSize: pagination.pageSize });
+        fetchMenuList({pageNum: (pagination.current ?? 1) - 1, pageSize: pagination.pageSize});
     };
 
     // 处理新增
@@ -598,7 +603,7 @@ function MenuManager() {
     const handleDelete = (record) => {
         Modal.confirm({
             title: '确认删除',
-            content: `确定要删除菜单"${record.menuLabel || record.menuName}"吗？`,
+            content: `确定要删除菜单"${record.menuName || record.menuName}"吗？`,
             onOk: async () => {
                 try {
                     await deleteMenu(record.menuId);
@@ -713,69 +718,52 @@ function MenuManager() {
         fetchMenuTree();
     }, []);
 
-    // 搜索表单配置
-    const searchFormItems = [
-        {
-            label: '菜单编码',
-            field: 'menuName',
-            component: <Input placeholder="请输入菜单编码"/>,
-        },
-        {
-            label: '菜单类型',
-            field: 'menuType',
-            component: (
-                <Select placeholder="请选择菜单类型" allowClear>
-                    {menuTypeOptions.map(option => (
-                        <Select.Option key={option.value} value={option.value}>
-                            {option.label}
-                        </Select.Option>
-                    ))}
-                </Select>
-            ),
-        },
-        {
-            label: '状态',
-            field: 'state',
-            component: (
-                <Select placeholder="请选择状态" allowClear>
-                    {menuStateOptions.map(option => (
-                        <Select.Option key={option.value} value={option.value}>
-                            {option.label}
-                        </Select.Option>
-                    ))}
-                </Select>
-            ),
-        },
-    ];
 
     return (
         <div className="menu-manager">
             <Layout>
                 <Content>
-                    {/* 搜索区域 */}
-                    <FilterForm
-                        form={searchForm}
-                        items={searchFormItems}
-                        onSearch={handleSearch}
-                        onReset={handleReset}
+                    {/* 搜索表单和操作按钮 */}
+                    <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}}
+                        onValuesChange={() => {
+                            // 表单值变化时触发搜索（使用防抖优化）
+                            debouncedSearch();
+                        }}
                     >
-                        <Form.Item field='menuName' label='菜单名'>
-                            <Input
-                                placeholder='请输入菜单名关键词'
-                            />
-                        </Form.Item>
-                    </FilterForm>
-
-                    {/* 操作按钮区域 */}
-                    <div className="action-buttons">
-                        <Button
-                            type="primary"
-                            icon={<IconPlus/>}
-                            onClick={handleAdd}
-                        >
-                            新增菜单
-                        </Button>
-                    </div>
+                        <Row gutter={16}>
+                            <Col span={6}>
+                                <Form.Item field="menuName" label="名称">
+                                    <Input placeholder="请输入菜单名称"/>
+                                </Form.Item>
+                            </Col>
+                            <Col span={6}>
+                                <Form.Item field="state" label="状态">
+                                    <Select placeholder="请选择状态" allowClear>
+                                        {menuStateOptions.map(option => (
+                                            <Select.Option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </Select.Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={6} style={{
+                                display: 'flex',
+                                justifyContent: 'flex-start',
+                                alignItems: 'flex-end',
+                                paddingBottom: '16px'
+                            }}>
+                                <Space>
+                                    <Button type="primary" icon={<IconSearch/>} onClick={handleSearch}>
+                                        搜索
+                                    </Button>
+                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
+                                        新增
+                                    </Button>
+                                </Space>
+                            </Col>
+                        </Row>
+                    </Form>
 
                     {/* 表格区域 */}
                     <Table
@@ -820,7 +808,7 @@ function MenuManager() {
                         </Form.Item>
                         <Form.Item
                             label="菜单名称"
-                            field="menuLabel"
+                            field="menuName"
                             rules={[{required: true, message: '请输入菜单名称'}]}
                         >
                             <Input placeholder="请输入菜单名称"/>
@@ -850,9 +838,10 @@ function MenuManager() {
                             <Input placeholder="请输入路由地址"/>
                         </Form.Item>
                         <Form.Item label="菜单图标" field="menuIcon">
-                            <Select placeholder="请选择菜单图标" allowClear showSearch filterOption={(inputValue, option) =>
-                                option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
-                            }>
+                            <Select placeholder="请选择菜单图标" allowClear showSearch
+                                    filterOption={(inputValue, option) =>
+                                        option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
+                                    }>
                                 {menuIconOptions.map(option => (
                                     <Select.Option key={option.value} value={option.value}>
                                         <Space>
@@ -895,7 +884,7 @@ function MenuManager() {
                         </Form.Item>
                         <Form.Item
                             label="菜单名称"
-                            field="menuLabel"
+                            field="menuName"
                             rules={[{required: true, message: '请输入菜单名称'}]}
                         >
                             <Input placeholder="请输入菜单名称"/>
@@ -965,7 +954,7 @@ function MenuManager() {
                         </div>
                         <div className="detail-item">
                             <span className="label">菜单名称：</span>
-                            <span className="value">{currentMenu.menuLabel}</span>
+                            <span className="value">{currentMenu.menuName}</span>
                         </div>
                         <div className="detail-item">
                             <span className="label">菜单类型：</span>

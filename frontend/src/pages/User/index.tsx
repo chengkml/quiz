@@ -315,13 +315,7 @@ function UserManager() {
         fetchUsers(values);
     };
 
-    // 重置搜索
-    const handleReset = () => {
-        const resetParams = {name: '', state: ''};
-        setSearchParams(resetParams);
-        setPagination(prev => ({...prev, current: 1}));
-        fetchUsers(resetParams);
-    };
+    // 搜索逻辑已优化，移除重置功能
 
     // 初始化设置表单默认值
     useEffect(() => {
