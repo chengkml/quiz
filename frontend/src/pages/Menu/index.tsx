@@ -296,7 +296,7 @@ function MenuManager() {
     const convertMenuTreeToCascaderData = (menuTree) => {
         return menuTree.map(menu => ({
             value: menu.menuId,
-            label: menu.menuName,
+            label: menu.menuLabel,
             children: menu.children && menu.children.length > 0
                 ? convertMenuTreeToCascaderData(menu.children)
                 : undefined
@@ -351,8 +351,8 @@ function MenuManager() {
         },
         {
             title: '菜单名称',
-            dataIndex: 'menuName',
-            key: 'menuName',
+            dataIndex: 'menuLabel',
+            key: 'menuLabel',
             width: 150,
         },
         {
@@ -732,7 +732,7 @@ function MenuManager() {
                     >
                         <Row gutter={16}>
                             <Col span={6}>
-                                <Form.Item field="menuName" label="名称">
+                                <Form.Item field="menuLabel" label="名称">
                                     <Input placeholder="请输入菜单名称"/>
                                 </Form.Item>
                             </Col>
@@ -808,7 +808,7 @@ function MenuManager() {
                         </Form.Item>
                         <Form.Item
                             label="菜单名称"
-                            field="menuName"
+                            field="menuLabel"
                             rules={[{required: true, message: '请输入菜单名称'}]}
                         >
                             <Input placeholder="请输入菜单名称"/>
@@ -884,7 +884,7 @@ function MenuManager() {
                         </Form.Item>
                         <Form.Item
                             label="菜单名称"
-                            field="menuName"
+                            field="menuLabel"
                             rules={[{required: true, message: '请输入菜单名称'}]}
                         >
                             <Input placeholder="请输入菜单名称"/>
@@ -954,7 +954,7 @@ function MenuManager() {
                         </div>
                         <div className="detail-item">
                             <span className="label">菜单名称：</span>
-                            <span className="value">{currentMenu.menuName}</span>
+                            <span className="value">{currentMenu.menuLabel}</span>
                         </div>
                         <div className="detail-item">
                             <span className="label">菜单类型：</span>

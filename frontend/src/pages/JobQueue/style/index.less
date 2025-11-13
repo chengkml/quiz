@@ -1,0 +1,76 @@
+.job-queue-manager {
+
+  box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+  overflow: hidden;
+  background: var(--background-color-base);
+  height: 100%;
+
+  .arco-layout {
+    margin: 10px;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: calc(100% - 20px);
+    width: calc(100% - 20px);
+  }
+
+  // 操作按钮样式
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: var(--color-white);
+    margin-bottom: 16px;
+  }
+
+  .table-btn-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .pagination-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin: 12px 0 16px;
+    position: absolute;
+    bottom: 10px;
+    right: 22px;
+  }
+
+  .handle-dropdown-menu {
+    min-width: 120px;
+  }
+
+  .more-btn {
+    color: var(--color-text-2);
+  }
+
+  .arco-modal .arco-modal-title {
+    font-weight: 500;
+  }
+
+  .modal-form {
+    .arco-form-item-label {
+      font-weight: 400;
+    }
+  }
+
+  .delete-modal {
+    color: #e33b3b;
+  }
+
+  .queue-detail {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    grid-row-gap: 8px;
+    grid-column-gap: 12px;
+    .detail-item {
+      display: contents;
+      label {
+        color: var(--color-text-2);
+      }
+    }
+  }
+}
