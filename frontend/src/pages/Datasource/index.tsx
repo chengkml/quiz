@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Button, Form, Input, Message, Modal, Select, Space, Table, Tag} from '@arco-design/web-react';
+import {Button, Form, Grid, Input, Message, Modal, Select, Space, Table, Tag, Dropdown, Menu} from '@arco-design/web-react';
+import {IconMore} from '@arco-design/web-react/icon';
 import './style/index.less';
 import {
     collectSchema,
@@ -178,15 +179,18 @@ function DatasourceManager() {
     };
 
     // 测试连接
-    const handleTestConnection = async (record) => {
-        try {
-            const res = await testConnection(record.id);
-            const ok = res?.data?.success ?? true;
-            Message[ok ? 'success' : 'error'](res?.data?.message || (ok ? '连接成功' : '连接失败'));
-        } catch (e: any) {
-            Message.error(e?.message || '连接测试失败');
-        }
-    };
+const handleTestConnection = async (record: any) => {
+    try {
+        setTableLoading(true);
+        const res = await testConnection(record.id);
+        const ok = res?.data?.success ?? true;
+        Message[ok ? 'success' : 'error'](res?.data?.message || (ok ? '连接测试成功' : '连接测试失败'));
+    } catch (error: any) {
+        Message.error(error?.message || '连接测试失败');
+    } finally {
+        setTableLoading(false);
+    }
+};
 
     // 采集前获取 schema 列表并打开弹窗
     const handleCollectSchema = async (record) => {
@@ -255,6 +259,20 @@ function DatasourceManager() {
         }
     };
 
+    // 菜单点击
+    const handleMenuClick = (key: string, e: React.MouseEvent, record: any) => {
+        e.stopPropagation();
+        if (key === 'edit') {
+            openEditModal(record);
+        } else if (key === 'delete') {
+            openDeleteModal(record);
+        } else if (key === 'testConnection') {
+            handleTestConnection(record);
+        } else if (key === 'collectSchema') {
+            handleCollectSchema(record);
+        }
+    };
+
     const columns = [
         {title: '名称', dataIndex: 'name', width: 160},
         {title: '驱动', dataIndex: 'driver', width: 140},
@@ -310,21 +328,26 @@ function DatasourceManager() {
         {
             title: '操作',
             dataIndex: 'op',
-            width: 240,
+            width: 100,
+            align: 'center',
+            fixed: 'right' as any,
             render: (_: any, record: any) => (
-                <Space>
-                    <Button size="mini" type="primary" onClick={() => openEditModal(record)}>
-                        编辑
-                    </Button>
-                    <Button size="mini" status="danger" onClick={() => openDeleteModal(record)}>
-                        删除
-                    </Button>
-                    <Button size="mini" onClick={() => handleTestConnection(record)}>
-                        测试连接
-                    </Button>
-                    <Button size="mini" onClick={() => handleCollectSchema(record)}>
-                        采集表结构
-                    </Button>
+                <Space size="large" className="table-btn-group">
+                    <Dropdown
+                        position="bl"
+                        droplist={
+                            <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)} className="handle-dropdown-menu">
+                                <Menu.Item key="edit">编辑</Menu.Item>
+                                <Menu.Item key="delete">删除</Menu.Item>
+                                <Menu.Item key="testConnection">测试连接</Menu.Item>
+                                <Menu.Item key="collectSchema">采集表结构</Menu.Item>
+                            </Menu>
+                        }
+                    >
+                        <Button type="text" className="more-btn" onClick={(e) => e.stopPropagation()}>
+                            <IconMore />
+                        </Button>
+                    </Dropdown>
                 </Space>
             ),
         },
@@ -332,37 +355,45 @@ function DatasourceManager() {
 
     return (
         <div className="datasource-page" ref={containerRef}>
-            {/* 搜索区域 */}
-            <div className="search-form">
-                <Form layout="inline" form={searchForm} initialValues={searchParams}>
-                    <Form.Item label="名称" field="name">
-                        <Input allowClear placeholder="输入名称关键字" style={{width: 220}}/>
-                    </Form.Item>
-                    <Form.Item label="启用状态" field="active">
-                        <Select allowClear placeholder="请选择" style={{width: 160}}>
-                            <Option value="true">启用</Option>
-                            <Option value="false">禁用</Option>
-                        </Select>
-                    </Form.Item>
-                    <Form.Item>
+            {/* 筛选表单 */}
+            <Form layout="horizontal" form={searchForm} initialValues={searchParams} className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
+                const values = searchForm.getFieldsValue();
+                setSearchParams(values);
+                fetchTableData({current: 1, pageSize: pagination.pageSize, total: 0});
+            }}>
+                <Grid.Row gutter={16}>
+                    <Grid.Col span={6}>
+                        <Form.Item label="名称" field="name">
+                            <Input allowClear placeholder="输入名称关键字" style={{width: 220}}/>
+                        </Form.Item>
+                    </Grid.Col>
+                    <Grid.Col span={6}>
+                        <Form.Item label="启用状态" field="active">
+                            <Select allowClear placeholder="请选择" style={{width: 160}}>
+                                <Option value="true">启用</Option>
+                                <Option value="false">禁用</Option>
+                            </Select>
+                        </Form.Item>
+                    </Grid.Col>
+                    <Grid.Col span={6}>
                         <Space>
                             <Button type="primary" onClick={handleSearch}>
                                 查询
                             </Button>
-                            <Button onClick={handleReset}>重置</Button>
+                            <Button onClick={handleReset}>
+                                重置
+                            </Button>
                         </Space>
-                    </Form.Item>
-                </Form>
-            </div>
-
-            {/* 操作区 */}
-            <div className="toolbar">
-                <Space>
-                    <Button type="primary" onClick={openAddModal}>
-                        新增数据源
-                    </Button>
-                </Space>
-            </div>
+                    </Grid.Col>
+                    <Grid.Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
+                        <Space>
+                            <Button type="primary" onClick={openAddModal}>
+                                新增数据源
+                            </Button>
+                        </Space>
+                    </Grid.Col>
+                </Grid.Row>
+            </Form>
 
             {/* 表格 */}
             <Table

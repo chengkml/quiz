@@ -8,6 +8,7 @@ import com.ck.quiz.datasource.service.DatasourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -192,4 +193,45 @@ public class DatasourceController {
             @Parameter(description = "数据源ID", required = true) @PathVariable String id) {
         return ResponseEntity.ok(datasourceService.listSchemas(id));
     }
+
+    @Operation(summary = "自动生成表结构备注", description = "使用大模型为指定数据源与schema的表和字段自动生成中文备注")
+    @GetMapping("/{id}/schema/generate-remarks")
+    public ResponseEntity<Integer> generateRemarks(
+            @Parameter(description = "数据源ID", required = true) @PathVariable String id,
+            @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
+            @RequestParam(required = false) String schema) {
+
+        Integer count = datasourceService.generateRemarks(id, schema);
+        return ResponseEntity.ok(count);
+    }
+
+    @Operation(summary = "自动对表进行分类", description = "使用大模型为指定数据源与schema的表自动分类（门户、文档库、知识编排、监控运营、数据接入、系统管理）")
+    @GetMapping("/{id}/schema/select-group")
+    public ResponseEntity<Integer> selectGroup(
+            @Parameter(description = "数据源ID", required = true) @PathVariable String id,
+            @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
+            @RequestParam(required = false) String schema) {
+
+        Integer count = datasourceService.selectGroup(id, schema);
+        return ResponseEntity.ok(count);
+    }
+
+    @Operation(summary = "导出表结构为Excel（使用服务层）", description = "根据ID与可选schema导出数据库表结构为XLSX文件")
+    @GetMapping("/{id}/schema/export/excel/v2")
+    public void exportSchemaExcelV2(
+            @Parameter(description = "数据源ID", required = true) @PathVariable String id,
+            @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
+            @RequestParam(required = false) String schema,
+            HttpServletResponse response) {
+        try {
+            // 调用服务层方法直接生成并写入Excel
+            datasourceService.exportToExcel(id, schema, response);
+        } catch (Exception e) {
+            // 异常处理，可记录日志
+            throw new RuntimeException("导出Excel失败", e);
+        }
+    }
+
+
+
 }

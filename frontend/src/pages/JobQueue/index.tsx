@@ -76,18 +76,35 @@ function JobQueueManager() {
         {value: 'DISABLED', label: '禁用'}
     ];
 
-    // 时间格式化
+    // 时间格式化（与其它页面一致的相对/绝对展示）
     const formatDateTime = (value?: string | Date) => {
         if (!value) return '-';
         const date = new Date(value);
         if (isNaN(date.getTime())) return '-';
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffSeconds / 60);
+        const diffHours = Math.floor(diffMinutes / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffDays === 0) {
+            if (diffSeconds < 60) return `${diffSeconds}秒前`;
+            if (diffMinutes < 60) return `${diffMinutes}分钟前`;
+            return `${diffHours}小时前`;
+        } else if (diffDays === 1) {
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `昨天 ${hours}:${minutes}`;
+        } else {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
     };
 
     // 获取表格数据

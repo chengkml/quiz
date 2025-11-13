@@ -77,10 +77,8 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
 
         // 2. 拼接查询条件
         // 模糊查询：脚本编码 / 名称 / 类型
-        JdbcQueryHelper.lowerLike("scriptCode", queryDto.getScriptCode(),
-                " AND LOWER(script_code) LIKE :scriptCode ", params, jt, sql, countSql);
         JdbcQueryHelper.lowerLike("scriptName", queryDto.getScriptName(),
-                " AND LOWER(script_name) LIKE :scriptName ", params, jt, sql, countSql);
+                " AND (LOWER(script_name) LIKE :scriptName or LOWER(script_code) LIKE :scriptName) ", params, jt, sql, countSql);
         JdbcQueryHelper.lowerLike("scriptType", queryDto.getScriptType(),
                 " AND LOWER(script_type) LIKE :scriptType ", params, jt, sql, countSql);
 
@@ -150,6 +148,10 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
         if (StringUtils.hasText(updateDto.getState())) {
             entity.setState(ScriptInfo.State.valueOf(updateDto.getState()));
         }
+        // 处理脚本类型枚举转换
+        if (StringUtils.hasText(updateDto.getScriptType())) {
+            entity.setScriptType(ScriptInfo.ScriptType.fromValue(updateDto.getScriptType()));
+        }
 
         // 保存更新
         scriptInfoRepository.save(entity);
@@ -205,6 +207,10 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
         // 枚举类型需要特殊处理
         if (StringUtils.hasText(createDto.getState())) {
             entity.setState(ScriptInfo.State.valueOf(createDto.getState()));
+        }
+        // 处理脚本类型枚举转换
+        if (StringUtils.hasText(createDto.getScriptType())) {
+            entity.setScriptType(ScriptInfo.ScriptType.fromValue(createDto.getScriptType()));
         }
         return entity;
     }

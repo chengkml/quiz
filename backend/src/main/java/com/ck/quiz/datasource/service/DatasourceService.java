@@ -1,15 +1,12 @@
 package com.ck.quiz.datasource.service;
 
-import com.ck.quiz.datasource.dto.DatasourceCreateDto;
-import com.ck.quiz.datasource.dto.DatasourceDto;
-import com.ck.quiz.datasource.dto.DatasourceQueryDto;
-import com.ck.quiz.datasource.dto.DatasourceUpdateDto;
- import com.ck.quiz.datasource.dto.DatabaseSchemaDto;
- import com.ck.quiz.datasource.entity.Datasource;
- import org.springframework.data.domain.Page;
+import com.ck.quiz.datasource.dto.*;
+import com.ck.quiz.datasource.entity.Datasource;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.data.domain.Page;
 
- import java.util.Map;
- import java.util.List;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 数据源管理服务接口
@@ -31,20 +28,26 @@ public interface DatasourceService {
     /**
      * 测试连接
      */
-     Map<String, Object> testConnection(String id);
+    Map<String, Object> testConnection(String id);
 
-     /**
-      * 采集指定数据源的表结构
-      */
-     DatabaseSchemaDto collectSchema(String id);
+    /**
+     * 采集指定数据源的表结构
+     */
+    DatabaseSchemaDto collectSchema(String id);
 
-     /**
-      * 采集指定数据源的表结构（按指定schema过滤）
-      */
-     DatabaseSchemaDto collectSchema(String id, String schema);
+    /**
+     * 采集指定数据源的表结构（按指定schema过滤）
+     */
+    DatabaseSchemaDto collectSchema(String id, String schema);
 
-     /**
-      * 获取数据源的可选schema列表（若数据库无schema则返回catalog列表）
-      */
-     List<String> listSchemas(String id);
- }
+    /**
+     * 获取数据源的可选schema列表（若数据库无schema则返回catalog列表）
+     */
+    List<String> listSchemas(String id);
+
+    int generateRemarks(String datasourceId, String schema);
+
+    int selectGroup(String datasourceId, String schema);
+
+    void exportToExcel(String datasourceId, String schema, HttpServletResponse response);
+}

@@ -10,12 +10,6 @@ import javax.validation.constraints.Size;
 public class ScriptInfoQueryDto {
 
     /**
-     * 脚本编码
-     */
-    @Size(max = 64, message = "脚本编码长度不能超过64个字符")
-    private String scriptCode;
-
-    /**
      * 脚本名称
      */
     @Size(max = 128, message = "脚本名称长度不能超过128个字符")

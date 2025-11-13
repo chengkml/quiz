@@ -16,6 +16,7 @@ import CategoryManagement from '@/pages/Category';
 import KnowledgeManagement from '@/pages/Knowledge';
 import UserManagement from '@/pages/User';
 import TodoManagement from '@/pages/Todo';
+import ScriptManagement from '@/pages/Script';
 import JobQueueManagement from '@/pages/JobQueue';
 import ExamHistoryManager from "@/pages/Exam/History";
 import Home from '@/pages/Home';
@@ -119,6 +120,7 @@ const protectedPages = [
     { path: 'datasource', element: <DatasourceManagement />, requiredPath: 'datasource' },
     { path: 'exam', element: <ExamManagement />, requiredPath: 'exam' },
     { path: 'todo', element: <TodoManagement />, requiredPath: 'todo' },
+    { path: 'script', element: <ScriptManagement />, requiredPath: 'script' },
     { path: 'jobqueue', element: <JobQueueManagement />, requiredPath: 'jobqueue' },
     { path: 'history', element: <ExamHistoryManager />, requiredPath: 'history' },
     { path: 'llmmodel', element: <Model />, requiredPath: 'llmmodel' },

@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.time.LocalDateTime;
 
@@ -45,8 +47,9 @@ public class ScriptInfo {
     /**
      * 脚本类型（python/shell/node/java/...）
      */
+    @Enumerated(EnumType.STRING)
     @Column(name = "script_type", length = 32, nullable = false)
-    private String scriptType;
+    private ScriptType scriptType;
 
     /**
      * 执行入口文件
@@ -59,6 +62,13 @@ public class ScriptInfo {
      */
     @Column(name = "file_path", length = 512, nullable = false)
     private String filePath;
+
+    /**
+     * 自定义执行命令模板，可包含占位符
+     * 示例：python {entry} --config={file_path}/config.yaml
+     */
+    @Column(name = "exec_cmd", length = 512)
+    private String execCmd;
 
     /**
      * 脚本描述
@@ -113,6 +123,44 @@ public class ScriptInfo {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated()) {
             this.updateUser = auth.getName();
+        }
+    }
+
+    /**
+     * 脚本类型枚举
+     */
+    public enum ScriptType {
+        PYTHON("python"),
+        SHELL("shell"),
+        NODE("node"),
+        JAVA("java"),
+        HTTP("http"),
+        OTHER("other");
+
+        private final String value;
+
+        ScriptType(String value) {
+            this.value = value;
+        }
+
+        @JsonValue
+        public String getValue() {
+            return value;
+        }
+
+        /**
+         * 根据字符串值获取对应的枚举
+         * @param value 字符串值
+         * @return 对应的枚举
+         */
+        @JsonCreator
+        public static ScriptType fromValue(String value) {
+            for (ScriptType scriptType : ScriptType.values()) {
+                if (scriptType.value.equalsIgnoreCase(value)) {
+                    return scriptType;
+                }
+            }
+            throw new IllegalArgumentException("Invalid script type: " + value);
         }
     }
 
