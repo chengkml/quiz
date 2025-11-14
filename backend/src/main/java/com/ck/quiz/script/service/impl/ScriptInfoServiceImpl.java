@@ -10,6 +10,9 @@ import com.ck.quiz.script.service.ScriptInfoService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -18,6 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -106,6 +112,7 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
             dto.setScriptType((String) row.get("script_type"));
             dto.setExecEntry((String) row.get("exec_entry"));
             dto.setFilePath((String) row.get("file_path"));
+            dto.setExecCmd((String) row.get("exec_cmd"));
             dto.setDescription((String) row.get("description"));
             dto.setState((String) row.get("state"));
             dto.setCreateUser((String) row.get("create_user"));
@@ -130,7 +137,6 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
         }
         return null;
     }
-
 
 
     @Override
@@ -213,5 +219,129 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
             entity.setScriptType(ScriptInfo.ScriptType.fromValue(createDto.getScriptType()));
         }
         return entity;
+    }
+
+
+    /**
+     * 构建脚本执行命令
+     *
+     * @param filePath   脚本文件或目录路径
+     * @param execEntry  执行入口（main.py / run.sh / xxx.jar / com.xxx.Main）
+     * @param scriptType 脚本类型（枚举 ScriptType）
+     * @return 最终可执行命令
+     */
+    @Override
+    public String buildCommand(String filePath, String execEntry, ScriptInfo.ScriptType scriptType) {
+
+        if (scriptType == null) {
+            throw new IllegalArgumentException("ScriptType cannot be null.");
+        }
+
+        // 处理路径末尾“/”
+        String normalizedPath = normalizePath(filePath);
+        String entry = execEntry == null ? "" : execEntry.trim();
+
+        // 生成执行命令（不含 cd）
+        String execCmd = switch (scriptType) {
+
+            // ================== Python ==================
+            case PYTHON -> "python " + entry;
+            case PYTHON3 -> "python3 " + entry;
+
+            // ================== Shell ==================
+            case SHELL -> "bash " + entry;
+
+            // ================== Node ==================
+            case NODE -> "node " + entry;
+
+            // ================== Java ==================
+            case JAVA_JAR -> {
+                if (!entry.endsWith(".jar")) {
+                    throw new IllegalArgumentException("JAVA_JAR 类型入口必须是 .jar 文件: " + entry);
+                }
+                yield "java -jar " + entry;
+            }
+            case JAVA_CLASS -> {
+                // entry 可为：Main / com.example.Main / Main.class / Main.java
+                if (entry.endsWith(".class")) {
+                    entry = entry.substring(0, entry.length() - 6); // 去掉 .class
+                }
+                if (entry.endsWith(".java")) {
+                    entry = entry.substring(0, entry.length() - 5);
+                }
+                yield String.format("java -cp \"%s\" %s", normalizedPath, entry);
+            }
+
+            // ================== HTTP ==================
+            case HTTP -> "HTTP 调用脚本无需本地执行命令（应通过 HTTP 客户端执行）";
+
+            // ================== 纯命令 ==================
+            case COMMAND -> entry;
+
+            // ================== 其他未知类型 ==================
+            case OTHER -> entry.isBlank() ? "" : entry;
+        };
+
+        // HTTP 类型无需 cd
+        if (scriptType == ScriptInfo.ScriptType.HTTP) {
+            return execCmd;
+        }
+
+        // 最终命令：进入脚本目录后执行
+        return String.format("cd \"%s\" && %s", normalizedPath, execCmd);
+    }
+
+    // 去掉末尾 / 或 \
+    private static String normalizePath(String filePath) {
+        if (filePath == null) return "";
+        String fp = filePath.trim();
+        if (fp.endsWith("/") || fp.endsWith("\\")) {
+            return fp.substring(0, fp.length() - 1);
+        }
+        return fp;
+    }
+
+    @Override
+    public String executeScript(String filePath, String execEntry, ScriptInfo.ScriptType scriptType, String... args) {
+        // 1. 构建命令
+        String baseCommand = buildCommand(filePath, execEntry, scriptType);
+        if (baseCommand == null || baseCommand.isBlank()) {
+            throw new IllegalArgumentException("执行命令为空，请检查脚本类型和入口参数");
+        }
+
+        // 2. CommandLine 对象
+        CommandLine cmdLine = CommandLine.parse(baseCommand);
+
+        // 3. 添加额外参数
+        if (args != null) {
+            for (String arg : args) {
+                cmdLine.addArgument(arg, false);
+            }
+        }
+
+        // 4. 设置输出流
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
+        PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream, errorStream);
+
+        DefaultExecutor executor = new DefaultExecutor();
+        executor.setStreamHandler(streamHandler);
+
+        // 5. 执行命令
+        int exitCode = 0;
+        try {
+            exitCode = executor.execute(cmdLine);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        String stdOut = outputStream.toString(StandardCharsets.UTF_8);
+        String stdErr = errorStream.toString(StandardCharsets.UTF_8);
+
+        if (exitCode != 0) {
+            throw new RuntimeException("脚本执行失败，exitCode=" + exitCode + ", error=" + stdErr);
+        }
+
+        return stdOut;
     }
 }

@@ -28,7 +28,7 @@ public abstract class AbstractAsyncJob {
         Map<String, Object> queryParams = new HashMap<>();
         queryParams.put("id", jobId);
         List<Map<String, Object>> list = HumpHelper
-                .lineToHump(jt.queryForList("select * from synth_job where id=:id", queryParams));
+                .lineToHump(jt.queryForList("select * from job where id=:id", queryParams));
         if (list.isEmpty()) {
             throw new RuntimeException("未查询到任务id为【" + jobId + "】的job任务");
         }
@@ -56,7 +56,7 @@ public abstract class AbstractAsyncJob {
             updateParams.put("endTime", endTime);
             updateParams.put("durationMs", endTime.getTime() - startTime.getTime());
             updateParams.put("errorMessage", ExceptionUtils.getStackTrace(e));
-            jt.update("update synth_job set state=:state, end_time=:endTime, duration_ms=:durationMs, error_message=:errorMessage where id=:jobId", updateParams);
+            jt.update("update job set state=:state, end_time=:endTime, duration_ms=:durationMs, error_message=:errorMessage where id=:jobId", updateParams);
         }
     }
 

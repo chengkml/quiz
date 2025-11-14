@@ -59,7 +59,7 @@ public abstract class AbstractCronTask {
             Map<String, Object> updateParams = new HashMap<>();
             String jobId = MapUtils.getString(params, "jobId");
             updateParams.put("jobId", jobId);
-            List<Map<String, Object>> jobList = HumpHelper.lineToHump(jt.queryForList("select * from synth_job where id = :jobId", updateParams));
+            List<Map<String, Object>> jobList = HumpHelper.lineToHump(jt.queryForList("select * from job where id = :jobId", updateParams));
             if (jobList.isEmpty()) {
                 return;
             }
@@ -71,14 +71,14 @@ public abstract class AbstractCronTask {
                 updateParams.put("endTime", endTime);
                 updateParams.put("durationMs", endTime.getTime() - startTime.getTime());
                 updateParams.put("logPath", logPath);
-                jt.update("update synth_job set state=:state, end_time=:endTime, duration_ms=:durationMs, log_path=:logPath where id=:jobId", updateParams);
+                jt.update("update job set state=:state, end_time=:endTime, duration_ms=:durationMs, log_path=:logPath where id=:jobId", updateParams);
             } catch (Exception e) {
                 log.error("任务【{}】执行失败：{}", jobId, e);
                 Date endTime = new Date();
                 updateParams.put("state", "FAILED");
                 updateParams.put("endTime", endTime);
                 updateParams.put("durationMs", endTime.getTime() - startTime.getTime());
-                jt.update("update synth_job set state=:state, end_time=:endTime, duration_ms=:durationMs where id=:jobId", updateParams);
+                jt.update("update job set state=:state, end_time=:endTime, duration_ms=:durationMs where id=:jobId", updateParams);
             }
         }
     }

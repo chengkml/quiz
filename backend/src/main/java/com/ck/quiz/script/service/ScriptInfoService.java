@@ -90,4 +90,9 @@ public interface ScriptInfoService {
      * @return 实体类
      */
     ScriptInfo convertToEntity(ScriptInfoCreateDto createDto);
+
+    String buildCommand(String filePath, String execEntry, ScriptInfo.ScriptType scriptType);
+
+    String executeScript(String filePath, String execEntry, ScriptInfo.ScriptType scriptType, String... args);
+
 }

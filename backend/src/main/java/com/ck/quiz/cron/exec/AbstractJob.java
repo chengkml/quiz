@@ -30,7 +30,7 @@ public abstract class AbstractJob {
         Map<String, Object> queryParams = new HashMap<>();
         queryParams.put("id", jobId);
         List<Map<String, Object>> list = HumpHelper
-                .lineToHump(jt.queryForList("select * from synth_job where id=:id", queryParams));
+                .lineToHump(jt.queryForList("select * from job where id=:id", queryParams));
         if (list.isEmpty()) {
             throw new RuntimeException("未查询到任务id为【" + jobId + "】的job任务");
         }
@@ -51,7 +51,7 @@ public abstract class AbstractJob {
         try {
             String logName = getJobPreffix() + "-" + jobId;
             MDC.put("bizLogFile", logName);
-            String logPath = Paths.get("logs", logName).toAbsolutePath().toString()+".log";
+            String logPath = Paths.get("logs", logName).toAbsolutePath()+".log";
             taskParams.put("jobId", jobId);
             run(taskParams);
             Date endTime = new Date();
@@ -59,7 +59,7 @@ public abstract class AbstractJob {
             updateParams.put("endTime", endTime);
             updateParams.put("durationMs", endTime.getTime() - startTime.getTime());
             updateParams.put("logPath", logPath);
-            jt.update("update synth_job set state=:state, end_time=:endTime, duration_ms=:durationMs, log_path=:logPath where id=:jobId", updateParams);
+            jt.update("update job set state=:state, end_time=:endTime, duration_ms=:durationMs, log_path=:logPath where id=:jobId", updateParams);
         } catch (Exception e) {
             log.error("任务【{}】执行失败：{}", jobId, ExceptionUtils.getStackTrace(e));
             Date endTime = new Date();
@@ -68,7 +68,7 @@ public abstract class AbstractJob {
             updateParams.put("durationMs", endTime.getTime() - startTime.getTime());
             // 将异常栈保存为纯文本，避免二进制序列化导致的编码错误
             updateParams.put("errorMessage", ExceptionUtils.getStackTrace(e));
-            jt.update("update synth_job set state=:state, end_time=:endTime, duration_ms=:durationMs, error_message=:errorMessage where id=:jobId", updateParams);
+            jt.update("update job set state=:state, end_time=:endTime, duration_ms=:durationMs, error_message=:errorMessage where id=:jobId", updateParams);
         } finally {
             MDC.remove("bizLogFile");
         }

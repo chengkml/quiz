@@ -40,6 +40,11 @@ public class ScriptInfoDto {
     private String filePath;
 
     /**
+     * 自定义执行命令模板
+     */
+    private String execCmd;
+
+    /**
      * 脚本描述
      */
     private String description;

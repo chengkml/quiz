@@ -60,8 +60,8 @@ public class JobService {
     public Page<Map<String, Object>> searchJobs(int offset, int limit, String state, String taskClass, String queueName, String triggerType, String startTimeLt, String startTimeGt, String taskId, String keyWord) {
         Map<String, Object> params = new HashMap<>();
 
-        StringBuilder listSql = new StringBuilder("select j.*,q.queue_label from synth_job j left join synth_job_queue q on j.queue_name = q.queue_name where 1=1 ");
-        StringBuilder countSql = new StringBuilder("select count(*) from synth_job j where 1=1 ");
+        StringBuilder listSql = new StringBuilder("select j.*,q.queue_label from job j left join job_queue q on j.queue_name = q.queue_name where 1=1 ");
+        StringBuilder countSql = new StringBuilder("select count(*) from job j where 1=1 ");
 
         // 状态过滤
         JdbcQueryHelper.equals("state", state, "and j.state = :state ", params, listSql, countSql);
@@ -135,7 +135,7 @@ public class JobService {
 
         Map<String, Object> params = new HashMap<>();
         // 采用通用辅助方法生成跨库兼容的时间范围 SQL（内部适配 MySQL/PG）
-        StringBuilder countSql = new StringBuilder("select count(*) from synth_job where 1=1 ");
+        StringBuilder countSql = new StringBuilder("select count(*) from job where 1=1 ");
         JdbcQueryHelper.datetimeBetween(
                 "create_time",
                 "startTimeGt", startOfDay,
@@ -178,8 +178,8 @@ public class JobService {
     public Page<Map<String, Object>> searchQueueJobs(int offset, int limit, String queueName, String taskId, String keyWord) {
         Map<String, Object> params = new HashMap<>();
 
-        StringBuilder listSql = new StringBuilder("select * from synth_pending_job where 1=1 ");
-        StringBuilder countSql = new StringBuilder("select count(*) from synth_pending_job where 1=1 ");
+        StringBuilder listSql = new StringBuilder("select * from pending_job where 1=1 ");
+        StringBuilder countSql = new StringBuilder("select count(*) from pending_job where 1=1 ");
 
         // 队列名过滤
         JdbcQueryHelper.equals("queueName", queueName, "and queue_name = :queueName ", params, listSql, countSql);
@@ -271,7 +271,7 @@ public class JobService {
         // 生成 jobId
         String jobId = seqService.genDaylySeq(preffix);
 
-        // 保存到 synth_job
+        // 保存到 job
         Job job = new Job();
         job.setId(jobId);
         job.setTaskClass(jobDto.getTaskClass());
@@ -282,7 +282,7 @@ public class JobService {
         job.setCreateTime(LocalDateTime.now());
         jobRepository.save(job);
 
-        // 保存到 synth_pending_job
+        // 保存到 pending_job
         PendingJob pendingJob = new PendingJob();
         pendingJob.setId(jobId); // 和 job 共用同一个 id
         pendingJob.setTaskClass(jobDto.getTaskClass());

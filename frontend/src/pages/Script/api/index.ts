@@ -43,6 +43,10 @@ export const enableScript = (id: string) => axios.put(`${base}/api/script/info/$
 // 禁用脚本
 export const disableScript = (id: string) => axios.put(`${base}/api/script/info/${id}/disable`);
 
+// 构建脚本执行命令
+export const buildCommand = (params: { filePath: string; execEntry: string; scriptType: string }) => 
+  axios.post(`${base}/api/script/info/build-command`, params);
+
 export default {
   getScriptInfoList,
   getScriptInfoById,
@@ -53,4 +57,5 @@ export default {
   batchDeleteScriptInfo,
   enableScript,
   disableScript,
+  buildCommand,
 };

@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Entity
 @Table(
-        name = "synth_job_queue",
+        name = "job_queue",
         indexes = {
                 @Index(name = "idx_queue_name", columnList = "queue_name"),
                 @Index(name = "idx_queue_state", columnList = "state")

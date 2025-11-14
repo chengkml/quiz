@@ -161,7 +161,7 @@ public class DynamicCronTaskScheduler {
         jobMap.put("create_time", new Date());
         jobMap.put("task_params", MapUtils.getString(task, "fireParams"));
         jobMap.put("task_class", MapUtils.getString(task, "taskClass"));
-        String insertSql = "INSERT INTO synth_job (id, task_id, trigger_type, state, start_time, create_time, task_params, task_class) " +
+        String insertSql = "INSERT INTO job (id, task_id, trigger_type, state, start_time, create_time, task_params, task_class) " +
                 "VALUES (:id, :task_id, :trigger_type, :state, :start_time, :create_time, :task_params, :task_class)";
         SpringContextUtil.getBean(NamedParameterJdbcTemplate.class).update(insertSql, jobMap);
         return jobId;
@@ -206,7 +206,7 @@ public class DynamicCronTaskScheduler {
         jobMap.put("create_time", new Date());
         jobMap.put("task_params", task.getFireParams());
         jobMap.put("task_class", task.getTaskClass());
-        String insertSql = "INSERT INTO synth_job (id, task_id, trigger_type, state, start_time, create_time, task_params, task_class) " +
+        String insertSql = "INSERT INTO job (id, task_id, trigger_type, state, start_time, create_time, task_params, task_class) " +
                 "VALUES (:id, :task_id, :trigger_type, :state, :start_time, :create_time, :task_params, :task_class)";
         SpringContextUtil.getBean(NamedParameterJdbcTemplate.class).update(insertSql, jobMap);
         return jobId;

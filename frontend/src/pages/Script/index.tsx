@@ -18,6 +18,7 @@ import {
 import {IconDelete, IconEdit, IconList, IconLock, IconPlus, IconSearch, IconUnlock} from '@arco-design/web-react/icon';
 import './style/index.less';
 import {
+    buildCommand,
     createScriptInfo,
     deleteScriptInfo,
     disableScript,
@@ -151,6 +152,49 @@ function ScriptManager() {
     const handlePageChange = (current: number, pageSize: number) => {
         const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
         fetchTableData(filterParams, pageSize, current);
+    };
+
+    // 生成脚本命令
+    const handleBuildCommand = async (formRef: React.RefObject<any>) => {
+        try {
+            const formInstance = formRef.current;
+            if (!formInstance) {
+                Message.error('表单实例获取失败');
+                return;
+            }
+            
+            const values = formInstance.getFieldsValue();
+            if (!values?.filePath || !values?.execEntry || !values?.scriptType) {
+                Message.warning('请先填写脚本文件路径、执行入口文件和脚本类型');
+                return;
+            }
+
+            const response = await buildCommand({
+                filePath: values.filePath,
+                execEntry: values.execEntry,
+                scriptType: values.scriptType
+            });
+
+            if (response.data?.command) {
+                // 将生成的命令设置到execCmd字段，确保表单重新渲染
+                formInstance.setFieldsValue({
+                    execCmd: response.data.command
+                });
+                
+                // 强制更新表单，解决回显问题
+                setTimeout(() => {
+                    formInstance.setFieldsValue({
+                        execCmd: response.data.command
+                    });
+                }, 0);
+                
+                Message.success('脚本命令生成成功');
+            } else {
+                Message.error('脚本命令生成失败');
+            }
+        } catch (error) {
+            Message.error('脚本命令生成失败');
+        }
     };
 
     // 新增
@@ -484,6 +528,13 @@ function ScriptManager() {
                         onOk={handleAddConfirm}
                         onCancel={() => setAddModalVisible(false)}
                         okButtonProps={{loading: tableLoading}}
+                        footer={(
+                            <>
+                                <Button onClick={() => handleBuildCommand(addFormRef)}>生成脚本</Button>
+                                <Button onClick={() => setAddModalVisible(false)}>取消</Button>
+                                <Button type="primary" onClick={handleAddConfirm} loading={tableLoading}>确定</Button>
+                            </>
+                        )}
                     >
                         <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
                             <Form ref={addFormRef} layout="vertical" className="modal-form">
@@ -495,6 +546,9 @@ function ScriptManager() {
                                            rules={[{required: true, message: '请输入脚本名称'}]}>
                                     <Input placeholder="请输入脚本名称"/>
                                 </Form.Item>
+                                <Form.Item label="描述" field="description">
+                                    <TextArea placeholder="请输入脚本描述" autoSize={{minRows: 2, maxRows: 4}}/>
+                                </Form.Item>
                                 <Form.Item label="脚本类型" field="scriptType"
                                            rules={[{required: true, message: '请选择脚本类型'}]}>
                                     <Select placeholder="请选择脚本类型">
@@ -504,21 +558,20 @@ function ScriptManager() {
                                         ))}
                                     </Select>
                                 </Form.Item>
-                                <Form.Item label="执行入口文件" field="execEntry"
-                                           rules={[{required: true, message: '请输入执行入口文件'}]}>
-                                    <Input placeholder="请输入执行入口文件"/>
-                                </Form.Item>
                                 <Form.Item label="脚本文件路径" field="filePath"
                                            rules={[{required: true, message: '请输入脚本文件路径'}]}>
                                     <Input placeholder="请输入脚本文件或目录路径"/>
                                 </Form.Item>
-                                <Form.Item label="自定义执行命令" field="execCmd">
-                                    <Input placeholder="示例：python {entry} --config={file_path}/config.yaml"/>
+                                <Form.Item label="执行入口文件" field="execEntry"
+                                           rules={[{required: true, message: '请输入执行入口文件'}]}>
+                                    <Input placeholder="请输入执行入口文件"/>
                                 </Form.Item>
-                                <Form.Item label="描述" field="description">
-                                    <TextArea placeholder="请输入脚本描述" autoSize={{minRows: 2, maxRows: 4}}/>
+                                <Form.Item label="执行命令" field="execCmd"
+                                           rules={[{required: true, message: '请输入执行命令'}]}>
+                                    <Input
+                                        placeholder="示例：python {entry} --config={file_path}/config.yaml"
+                                    />
                                 </Form.Item>
-
                             </Form>
                         </div>
                     </Modal>
@@ -530,6 +583,13 @@ function ScriptManager() {
                         onOk={handleEditConfirm}
                         onCancel={() => setEditModalVisible(false)}
                         okButtonProps={{loading: tableLoading}}
+                        footer={(
+                            <>
+                                <Button onClick={() => handleBuildCommand(editFormRef)}>生成脚本</Button>
+                                <Button onClick={() => setEditModalVisible(false)}>取消</Button>
+                                <Button type="primary" onClick={handleEditConfirm} loading={tableLoading}>确定</Button>
+                            </>
+                        )}
                     >
                         <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
                             <Form ref={editFormRef} layout="vertical" className="modal-form">
@@ -541,6 +601,9 @@ function ScriptManager() {
                                            rules={[{required: true, message: '请输入脚本名称'}]}>
                                     <Input placeholder="请输入脚本名称"/>
                                 </Form.Item>
+                                <Form.Item label="描述" field="description">
+                                    <TextArea placeholder="请输入脚本描述" autoSize={{minRows: 2, maxRows: 4}}/>
+                                </Form.Item>
                                 <Form.Item label="脚本类型" field="type"
                                            rules={[{required: true, message: '请选择脚本类型'}]}>
                                     <Select placeholder="请选择脚本类型">
@@ -550,20 +613,21 @@ function ScriptManager() {
                                         ))}
                                     </Select>
                                 </Form.Item>
-                                <Form.Item label="执行入口文件" field="execEntry"
-                                           rules={[{required: true, message: '请输入执行入口文件'}]}>
-                                    <Input placeholder="请输入执行入口文件"/>
-                                </Form.Item>
                                 <Form.Item label="脚本文件路径" field="filePath"
                                            rules={[{required: true, message: '请输入脚本文件路径'}]}>
                                     <Input placeholder="请输入脚本文件或目录路径"/>
                                 </Form.Item>
-                                <Form.Item label="自定义执行命令" field="execCmd">
-                                    <Input placeholder="示例：python {entry} --config={file_path}/config.yaml"/>
+                                <Form.Item label="执行入口文件" field="execEntry"
+                                           rules={[{required: true, message: '请输入执行入口文件'}]}>
+                                    <Input placeholder="请输入执行入口文件"/>
                                 </Form.Item>
-                                <Form.Item label="描述" field="description">
-                                    <TextArea placeholder="请输入脚本描述" autoSize={{minRows: 2, maxRows: 4}}/>
+                                <Form.Item label="执行命令" field="execCmd"
+                                           rules={[{required: true, message: '请输入执行命令'}]}>
+                                    <Input
+                                        placeholder="示例：python {entry} --config={file_path}/config.yaml"
+                                    />
                                 </Form.Item>
+
 
                             </Form>
                         </div>

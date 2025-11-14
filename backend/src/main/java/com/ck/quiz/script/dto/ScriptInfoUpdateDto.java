@@ -42,6 +42,12 @@ public class ScriptInfoUpdateDto {
     private String filePath;
 
     /**
+     * 自定义执行命令模板
+     */
+    @Size(max = 512, message = "自定义执行命令长度不能超过512个字符")
+    private String execCmd;
+
+    /**
      * 脚本描述
      */
     private String description;

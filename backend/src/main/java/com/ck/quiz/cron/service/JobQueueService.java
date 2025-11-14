@@ -33,8 +33,8 @@ public class JobQueueService {
      */
     public Page<JobQueueDto> searchQueues(int limit, int offset, String keyWord) {
         Map<String, Object> params = new HashMap<>();
-        StringBuilder listSql = new StringBuilder("select * from synth_job_queue where 1=1 ");
-        StringBuilder countSql = new StringBuilder("select count(*) from synth_job_queue where 1=1 ");
+        StringBuilder listSql = new StringBuilder("select * from job_queue where 1=1 ");
+        StringBuilder countSql = new StringBuilder("select count(*) from job_queue where 1=1 ");
 
         // 模糊查询
         JdbcQueryHelper.lowerLike("keyWord", keyWord, "and (lower(queue_name) like :keyWord or lower(queue_label) like :keyWord)", params, jt, listSql, countSql);

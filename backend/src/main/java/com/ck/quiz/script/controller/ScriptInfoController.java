@@ -1,9 +1,6 @@
 package com.ck.quiz.script.controller;
 
-import com.ck.quiz.script.dto.ScriptInfoCreateDto;
-import com.ck.quiz.script.dto.ScriptInfoDto;
-import com.ck.quiz.script.dto.ScriptInfoQueryDto;
-import com.ck.quiz.script.dto.ScriptInfoUpdateDto;
+import com.ck.quiz.script.dto.*;
 import com.ck.quiz.script.service.ScriptInfoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -105,4 +102,18 @@ public class ScriptInfoController {
         scriptInfoService.updateScriptState(id, "DISABLED");
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * 构建脚本执行命令
+     */
+    @PostMapping("/build-command")
+    public ResponseEntity<Map<String, String>> buildCommand(@RequestBody BuildCommandRequestDto dto) {
+        String command = scriptInfoService.buildCommand(
+                dto.getFilePath(),
+                dto.getExecEntry(),
+                dto.getScriptType()
+        );
+        return ResponseEntity.ok(Map.of("command", command));
+    }
+
 }

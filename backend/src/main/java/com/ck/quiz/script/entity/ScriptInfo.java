@@ -129,12 +129,31 @@ public class ScriptInfo {
     /**
      * 脚本类型枚举
      */
+    /**
+     * 脚本类型枚举
+     * 区分不同的执行方式，而不仅是语言名称
+     */
     public enum ScriptType {
-        PYTHON("python"),
-        SHELL("shell"),
-        NODE("node"),
-        JAVA("java"),
-        HTTP("http"),
+
+        // ========= Python 系 =========
+        PYTHON("python"),            // python 解释器执行 main.py
+        PYTHON3("python3"),          // 指定 python3 版本
+
+        // ========= Shell =========
+        SHELL("shell"),              // bash/sh 脚本
+
+        // ========= Node.js / JS =========
+        NODE("node"),                // node index.js
+
+        // ========= Java 系 =========
+        JAVA_JAR("java-jar"),        // java -jar xxx.jar
+        JAVA_CLASS("java-class"),    // java com.xxx.Main（需要 classpath）
+
+        // ========= 任务代理 / 网络执行 =========
+        HTTP("http"),                // HTTP 请求类“脚本”，并非本地执行
+        COMMAND("command"),          // 纯命令，不依赖文件
+
+        // ========= 其他 =========
         OTHER("other");
 
         private final String value;
@@ -148,11 +167,6 @@ public class ScriptInfo {
             return value;
         }
 
-        /**
-         * 根据字符串值获取对应的枚举
-         * @param value 字符串值
-         * @return 对应的枚举
-         */
         @JsonCreator
         public static ScriptType fromValue(String value) {
             for (ScriptType scriptType : ScriptType.values()) {
@@ -163,6 +177,7 @@ public class ScriptInfo {
             throw new IllegalArgumentException("Invalid script type: " + value);
         }
     }
+
 
     /**
      * 启用状态枚举
