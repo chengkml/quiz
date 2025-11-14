@@ -5,11 +5,13 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.PumpStreamHandler;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -36,7 +38,10 @@ public class ScriptExecJob extends AbstractAsyncJob {
     public void run(Map<String, Object> params) {
         // 1. 获取基础命令
         String baseCommand = MapUtils.getString(params, "cmd");
-        List<String> args = (List<String>) params.get("args");
+        List<String> args = new ArrayList<>();
+        if(params.containsKey("args")) {
+            args = (List<String>) params.get("args");
+        }
         if (baseCommand == null || baseCommand.isBlank()) {
             throw new IllegalArgumentException("执行命令为空，请检查脚本类型和入口参数");
         }

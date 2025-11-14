@@ -159,7 +159,7 @@ public class QueueCronTask {
         try {
             Map<String, Object> params = new HashMap<>();
             List<Map<String, Object>> queues = HumpHelper.lineToHump(
-                    jt.queryForList("select * from job_queue where state='1'", params));
+                    jt.queryForList("select * from job_queue where state='ENABLED'", params));
 
             for (Map<String, Object> queue : queues) {
                 String queueName = MapUtils.getString(queue, "queueName");
