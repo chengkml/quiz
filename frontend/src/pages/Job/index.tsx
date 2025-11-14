@@ -16,19 +16,22 @@ import {
     Space,
     Table,
     Tag,
+    Drawer,
 } from '@arco-design/web-react';
 import {
     IconDelete,
     IconEdit,
+    IconInfo,
     IconList,
     IconPlus,
     IconRefresh,
     IconSearch,
-    IconStop,
+    IconStop
 } from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
 import './style/index.less';
 import {addJob, deleteJob, getJobOptions, getQueueList, retryJob, searchJobs, stopJob,} from './api';
+import LogDetails from './components/logDetails/index';
 
 const {Content} = Layout;
 const {TextArea} = Input;
@@ -57,6 +60,8 @@ function JobManager() {
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [stopModalVisible, setStopModalVisible] = useState(false);
     const [retryModalVisible, setRetryModalVisible] = useState(false);
+    const [logModalVisible, setLogModalVisible] = useState(false);
+    const [currentJobId, setCurrentJobId] = useState<string>('');
 
     // 表单引用
     const addFormRef = useRef<any>(null);
@@ -175,10 +180,14 @@ function JobManager() {
                                         重试
                                     </Menu.Item>
                                 )}
-                                <Menu.Item key="delete">
-                                    <IconDelete style={{marginRight: 5}}/>
-                                    删除
-                                </Menu.Item>
+                                <Menu.Item key="log">
+                                <IconInfo style={{marginRight: 5}}/>
+                                日志
+                            </Menu.Item>
+                            <Menu.Item key="delete">
+                                <IconDelete style={{marginRight: 5}}/>
+                                删除
+                            </Menu.Item>
                             </Menu>
                         }
                     >
@@ -200,6 +209,10 @@ function JobManager() {
                 break;
             case 'retry':
                 setRetryModalVisible(true);
+                break;
+            case 'log':
+                setCurrentJobId(record.id);
+                setLogModalVisible(true);
                 break;
             case 'delete':
                 setDeleteModalVisible(true);
@@ -519,6 +532,20 @@ function JobManager() {
                     >
                         <div className="delete-modal">确定要重试该作业吗？</div>
                     </Modal>
+
+                    {/* 日志查看 */}
+                    <Drawer
+                        title="作业日志"
+                        visible={logModalVisible}
+                        onCancel={() => setLogModalVisible(false)}
+                        width={800}
+                        placement="right"
+                        footer={null}
+                    >
+                        <div style={{height: '100%'}}>
+                            <LogDetails jobId={currentJobId} />
+                        </div>
+                    </Drawer>
 
                 </Content>
             </Layout>

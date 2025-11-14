@@ -5,7 +5,8 @@ import com.ck.quiz.cron.domain.PendingJob;
 import com.ck.quiz.cron.dto.JobDto;
 import com.ck.quiz.cron.exec.AbstractAsyncJob;
 import com.ck.quiz.cron.exec.AbstractJob;
-import com.ck.quiz.cron.exec.ScriptExecJob;
+import com.ck.quiz.cron.exec.LocalScriptExecJob;
+import com.ck.quiz.cron.exec.RemoteScriptExecJob;
 import com.ck.quiz.cron.repository.JobRepository;
 import com.ck.quiz.cron.repository.PendingJobRepository;
 import com.ck.quiz.seq.service.SeqService;
@@ -298,7 +299,7 @@ public class JobService {
     }
 
     public List<Map<String, String>> getJobOptions() {
-        return Arrays.stream(new Class[]{ScriptExecJob.class})
+        return Arrays.stream(new Class[]{LocalScriptExecJob.class, RemoteScriptExecJob.class})
                 .filter(clazz -> AbstractJob.class.isAssignableFrom(clazz) || AbstractAsyncJob.class.isAssignableFrom(clazz)) // 必须继承 AbstractJob
                 .filter(clazz -> !Modifier.isAbstract(clazz.getModifiers())) // 排除抽象类
                 .map(clazz -> {
@@ -344,67 +345,117 @@ public class JobService {
     }
 
 
+    /**
+     * 获取作业日志
+     *
+     * @param jobId  作业ID
+     * @param limit  每页条数
+     * @param offset 偏移量（从0开始）
+     * @return 日志列表
+     */
     public List<String> getLogs(String jobId, int limit, int offset) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("taskId", jobId);
-
-        StringBuilder sql = new StringBuilder("SELECT * FROM synth_py_log WHERE 1=1 ");
-        JdbcQueryHelper.equals("taskId", jobId, "AND task_id = :taskId ", params, sql);
-
-        sql.append("ORDER BY sort_time ASC ");
-
-        String limitSql = JdbcQueryHelper.getLimitSql(jt, sql.toString(), offset / limit, limit);
-
-        List<Map<String, Object>> rows = HumpHelper.lineToHump(jt.queryForList(limitSql, params));
-        List<String> result = new ArrayList<>();
-        for (Map<String, Object> row : rows) {
-            String msg = MapUtils.getString(row, "msg");
-            String createTime = MapUtils.getString(row, "createTime");
-            createTime = createTime.substring(0, 19);
-            msg = "[" + createTime + "]" + msg;
-            result.add(msg);
+        if (StringUtils.isBlank(jobId)) {
+            throw new IllegalArgumentException("jobId 不能为空");
         }
+        if (limit <= 0) limit = 100;
+        if (offset < 0) offset = 0;
+
+        // 根据 jobId 查询 Job 实体，获取 logPath
+        Optional<Job> optionalJob = jobRepository.findById(jobId);
+        if (!optionalJob.isPresent()) {
+            log.warn("作业不存在 jobId={}", jobId);
+            return Collections.emptyList();
+        }
+
+        Job job = optionalJob.get();
+        String logPath = job.getLogPath();
+        if (StringUtils.isBlank(logPath)) {
+            log.warn("作业未配置日志路径 jobId={}", jobId);
+            return Collections.emptyList();
+        }
+
+        File logFile = new File(logPath);
+        if (!logFile.exists() || !logFile.isFile()) {
+            log.warn("日志文件不存在 jobId={}, path={}", jobId, logPath);
+            return Collections.emptyList();
+        }
+
+        List<String> result = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(logFile))) {
+            // 跳过 offset 行
+            for (int i = 0; i < offset; i++) {
+                if (reader.readLine() == null) {
+                    // 文件行数不足 offset，直接返回空列表
+                    return Collections.emptyList();
+                }
+            }
+            // 读取 limit 行
+            for (int i = 0; i < limit; i++) {
+                String line = reader.readLine();
+                if (line == null) break;
+                result.add(line);
+            }
+        } catch (IOException e) {
+            log.error("读取作业日志失败 jobId={}, path={}: {}", jobId, logPath, ExceptionUtils.getStackTrace(e));
+        }
+
         return result;
     }
 
+
+    /**
+     * 导出作业日志到临时文件
+     *
+     * @param jobId 作业ID
+     * @return 临时文件路径，如果失败返回 null
+     */
     public String exportLogsToFile(String jobId) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("taskId", jobId);
-
-        StringBuilder sql = new StringBuilder("SELECT msg FROM synth_py_log WHERE 1=1 ");
-        JdbcQueryHelper.equals("taskId", jobId, "AND task_id = :taskId ", params, sql);
-        sql.append("ORDER BY sort_time ASC ");
-
-        String logPath = Paths.get("logs", jobId).toAbsolutePath() + ".txt";
-        File outFile = new File(logPath);
-        ensureFileAndParentExists(outFile);
-
-
-        int batchSize = 1000;
-        int offset = 0;
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outFile))) {
-            while (true) {
-                String limitSql = JdbcQueryHelper.getLimitSql(jt, sql.toString(), offset / batchSize, batchSize);
-                List<Map<String, Object>> rows = jt.queryForList(limitSql, params);
-                if (rows.isEmpty()) break;
-
-                for (Map<String, Object> row : rows) {
-                    String msg = row.get("msg") == null ? "" : row.get("msg").toString().replaceAll("\r\n|\r|\n", " ");
-                    writer.write(msg);
-                    writer.newLine(); // 每条日志换行
-                }
-
-                writer.flush(); // 每批次 flush
-                offset += batchSize;
-            }
-        } catch (Exception e) {
-            log.error("导出日志失败 jobId={}：{}", jobId, ExceptionUtils.getStackTrace(e));
+        if (StringUtils.isBlank(jobId)) {
+            log.warn("jobId 为空，无法导出日志");
             return null;
         }
 
-        return outFile.getAbsolutePath();
+        Optional<Job> optionalJob = jobRepository.findById(jobId);
+        if (!optionalJob.isPresent()) {
+            log.warn("作业不存在 jobId={}", jobId);
+            return null;
+        }
+
+        Job job = optionalJob.get();
+        String logPath = job.getLogPath();
+        if (StringUtils.isBlank(logPath)) {
+            log.warn("作业未配置日志路径 jobId={}", jobId);
+            return null;
+        }
+
+        File logFile = new File(logPath);
+        if (!logFile.exists() || !logFile.isFile()) {
+            log.warn("日志文件不存在 jobId={}, path={}", jobId, logPath);
+            return null;
+        }
+
+        // 创建临时文件
+        File tempFile;
+        try {
+            tempFile = File.createTempFile("job-log-" + jobId + "-", ".log");
+            tempFile.deleteOnExit();
+        } catch (IOException e) {
+            log.error("创建临时文件失败 jobId={}：{}", jobId, ExceptionUtils.getStackTrace(e));
+            return null;
+        }
+
+        // 拷贝日志内容到临时文件
+        try (InputStream in = new FileInputStream(logFile);
+             OutputStream out = new FileOutputStream(tempFile)) {
+            FileCopyUtils.copy(in, out);
+        } catch (IOException e) {
+            log.error("写入临时日志文件失败 jobId={}：{}", jobId, ExceptionUtils.getStackTrace(e));
+            return null;
+        }
+
+        return tempFile.getAbsolutePath();
     }
+
 
 
     public void exportLogs(String jobId, HttpServletResponse response) {

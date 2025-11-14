@@ -72,6 +72,7 @@ public abstract class AbstractAsyncJob {
             // 执行业务逻辑（异步任务核心）
             // -----------------------------
             run(taskParams);
+            MDC.remove("bizLogFile");
 
             // -----------------------------
             // 执行成功，更新记录

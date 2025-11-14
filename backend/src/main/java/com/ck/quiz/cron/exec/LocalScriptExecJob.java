@@ -5,7 +5,6 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.PumpStreamHandler;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
@@ -22,16 +21,16 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-public class ScriptExecJob extends AbstractAsyncJob {
+public class LocalScriptExecJob extends AbstractAsyncJob {
 
     @Override
     public String getJobPreffix() {
-        return "ScriptExec";
+        return "LocalScriptExec";
     }
 
     @Override
     public String getJobLabel() {
-        return "脚本执行";
+        return "本地脚本执行";
     }
 
     @Override

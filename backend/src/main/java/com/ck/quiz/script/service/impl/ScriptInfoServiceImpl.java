@@ -280,6 +280,7 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
 
             // ================== 其他未知类型 ==================
             case OTHER -> entry.isBlank() ? "" : entry;
+            default -> null;
         };
 
         // HTTP 类型无需 cd

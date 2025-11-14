@@ -52,16 +52,40 @@ public class ScriptInfo {
     private ScriptType scriptType;
 
     /**
-     * 执行入口文件
+     * 远程脚本主机
      */
-    @Column(name = "exec_entry", length = 256, nullable = false)
-    private String execEntry;
+    @Column(name = "host", length = 128)
+    private String host;
+
+    /**
+     * 远程主机端口，默认22
+     */
+    @Column(name = "port")
+    private Integer port = 22;
+
+    /**
+     * 远程主机用户名
+     */
+    @Column(name = "username", length = 64)
+    private String username;
+
+    /**
+     * 远程主机密码（可为空，推荐使用密钥认证）
+     */
+    @Column(name = "password", length = 128)
+    private String password;
 
     /**
      * 脚本文件或目录路径
      */
     @Column(name = "file_path", length = 512, nullable = false)
     private String filePath;
+
+    /**
+     * 执行入口文件
+     */
+    @Column(name = "exec_entry", length = 256, nullable = false)
+    private String execEntry;
 
     /**
      * 自定义执行命令模板，可包含占位符
@@ -153,6 +177,9 @@ public class ScriptInfo {
         HTTP("http"),                // HTTP 请求类“脚本”，并非本地执行
         COMMAND("command"),          // 纯命令，不依赖文件
 
+        // ========= 远程执行 =========
+        REMOTE_SSH("remote-ssh"),   // 通过 SSH 执行远程脚本
+
         // ========= 其他 =========
         OTHER("other");
 
@@ -177,6 +204,7 @@ public class ScriptInfo {
             throw new IllegalArgumentException("Invalid script type: " + value);
         }
     }
+
 
 
     /**
