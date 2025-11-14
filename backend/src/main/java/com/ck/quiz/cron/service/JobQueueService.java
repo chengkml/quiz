@@ -101,7 +101,7 @@ public class JobQueueService {
      * 获取所有队列（不分页）
      */
     public List<JobQueueDto> listQueues() {
-        List<JobQueue> entities = jobQueueRepo.findByState("1");
+        List<JobQueue> entities = jobQueueRepo.findByState("ENABLED");
         List<JobQueueDto> dtoList = new ArrayList<>();
         for (JobQueue entity : entities) {
             JobQueueDto dto = new JobQueueDto();
@@ -125,7 +125,7 @@ public class JobQueueService {
             throw new RuntimeException("队列不存在");
         }
         JobQueue queue = optional.get();
-        queue.setState("0");
+        queue.setState("DISABLED");
         jobQueueRepo.save(queue);
         return id;
     }
@@ -139,7 +139,7 @@ public class JobQueueService {
             throw new RuntimeException("队列不存在");
         }
         JobQueue queue = optional.get();
-        queue.setState("1");
+        queue.setState("ENABLED");
         jobQueueRepo.save(queue);
         return id;
     }

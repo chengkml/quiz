@@ -18,6 +18,7 @@ import UserManagement from '@/pages/User';
 import TodoManagement from '@/pages/Todo';
 import ScriptManagement from '@/pages/Script';
 import JobQueueManagement from '@/pages/JobQueue';
+import JobManager from '@/pages/Job';
 import ExamHistoryManager from "@/pages/Exam/History";
 import Home from '@/pages/Home';
 import NotFound from '@/pages/NotFound';
@@ -122,6 +123,7 @@ const protectedPages = [
     { path: 'todo', element: <TodoManagement />, requiredPath: 'todo' },
     { path: 'script', element: <ScriptManagement />, requiredPath: 'script' },
     { path: 'jobqueue', element: <JobQueueManagement />, requiredPath: 'jobqueue' },
+    { path: 'job', element: <JobManager />, requiredPath: 'job' },
     { path: 'history', element: <ExamHistoryManager />, requiredPath: 'history' },
     { path: 'llmmodel', element: <Model />, requiredPath: 'llmmodel' },
     { path: 'mindmap', element: <MindMapPage />, requiredPath: 'mindmap' },

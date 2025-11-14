@@ -5,6 +5,7 @@ import com.ck.quiz.cron.domain.PendingJob;
 import com.ck.quiz.cron.dto.JobDto;
 import com.ck.quiz.cron.exec.AbstractAsyncJob;
 import com.ck.quiz.cron.exec.AbstractJob;
+import com.ck.quiz.cron.exec.ScriptExecJob;
 import com.ck.quiz.cron.repository.JobRepository;
 import com.ck.quiz.cron.repository.PendingJobRepository;
 import com.ck.quiz.seq.service.SeqService;
@@ -297,7 +298,7 @@ public class JobService {
     }
 
     public List<Map<String, String>> getJobOptions() {
-        return Arrays.stream(new Class[]{})
+        return Arrays.stream(new Class[]{ScriptExecJob.class})
                 .filter(clazz -> AbstractJob.class.isAssignableFrom(clazz) || AbstractAsyncJob.class.isAssignableFrom(clazz)) // 必须继承 AbstractJob
                 .filter(clazz -> !Modifier.isAbstract(clazz.getModifiers())) // 排除抽象类
                 .map(clazz -> {
@@ -469,13 +470,6 @@ public class JobService {
         // 删除主表作业
         jobRepository.delete(job);
         log.info("已删除作业: {}", jobId);
-
-        // （可选）删除作业日志，如果你不希望保留日志的话
-        Map<String, Object> params = new HashMap<>();
-        params.put("taskId", jobId);
-        jt.update("DELETE FROM synth_py_log WHERE task_id = :taskId", params);
-        jt.update("DELETE FROM synth_py_status_log WHERE task_id = :taskId", params);
-        log.info("已删除作业日志: {}", jobId);
 
         return jobId;
     }

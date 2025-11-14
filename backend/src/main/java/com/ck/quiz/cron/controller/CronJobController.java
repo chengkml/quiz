@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.lang.reflect.InvocationTargetException;
 
 @RestController
-@RequestMapping("_api/_/synth/cron/job")
+@RequestMapping("api/cron/job")
 public class CronJobController {
 
     @Autowired
