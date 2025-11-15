@@ -21,6 +21,8 @@ public abstract class AbstractCronTask {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractCronTask.class);
 
+    public abstract String getTaskLabel();
+
     protected int checkFire(String id) {
         NamedParameterJdbcTemplate jt = SpringContextUtil.getBean(NamedParameterJdbcTemplate.class);
         Map<String, Object> params = new HashMap<>();

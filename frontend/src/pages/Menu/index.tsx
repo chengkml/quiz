@@ -732,7 +732,7 @@ function MenuManager() {
                     >
                         <Row gutter={16}>
                             <Col span={6}>
-                                <Form.Item field="menuLabel" label="名称">
+                                <Form.Item field="menuName" label="名称">
                                     <Input placeholder="请输入菜单名称"/>
                                 </Form.Item>
                             </Col>

@@ -99,48 +99,6 @@ public class ScriptTask {
     @Column(name = "log_path", length = 512)
     private String logPath;
 
-    /**
-     * 创建时间
-     */
-    @Column(name = "create_date", updatable = false)
-    private LocalDateTime createDate;
-
-    /**
-     * 创建人
-     */
-    @Column(name = "create_user", length = 64, updatable = false)
-    private String createUser;
-
-    /**
-     * 更新时间
-     */
-    @Column(name = "update_date")
-    private LocalDateTime updateDate;
-
-    /**
-     * 更新人
-     */
-    @Column(name = "update_user", length = 64)
-    private String updateUser;
-
-    @PrePersist
-    public void prePersist() {
-        this.createDate = LocalDateTime.now();
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated()) {
-            this.createUser = auth.getName();
-        }
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        this.updateDate = LocalDateTime.now();
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated()) {
-            this.updateUser = auth.getName();
-        }
-    }
-
     public enum Status {
         PENDING,
         RUNNING,

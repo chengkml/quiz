@@ -3,6 +3,12 @@ package com.ck.quiz.cron.service;
 import com.ck.quiz.cron.domain.CronTask;
 import com.ck.quiz.cron.domain.JobQueue;
 import com.ck.quiz.cron.dto.CronTaskDto;
+import com.ck.quiz.cron.exec.AbstractAsyncJob;
+import com.ck.quiz.cron.exec.AbstractCronTask;
+import com.ck.quiz.cron.exec.AbstractJob;
+import com.ck.quiz.cron.exec.CronTaskTest;
+import com.ck.quiz.cron.exec.LocalScriptExecJob;
+import com.ck.quiz.cron.exec.RemoteScriptExecJob;
 import com.ck.quiz.cron.repository.CronTaskRepository;
 import com.ck.quiz.cron.repository.JobQueueRepository;
 import com.ck.quiz.utils.HumpHelper;
@@ -16,7 +22,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -146,5 +154,24 @@ public class CronTaskService {
         }
         DynamicCronTaskScheduler.executor.execute(scheduler.createTaskRunner(list.get(0)));
         return id;
+    }
+
+    public List<Map<String, String>> getTaskOptions() {
+        return Arrays.stream(new Class[]{CronTaskTest.class})
+                .filter(clazz -> AbstractCronTask.class.isAssignableFrom(clazz) || AbstractAsyncJob.class.isAssignableFrom(clazz)) // 必须继承 AbstractJob
+                .filter(clazz -> !Modifier.isAbstract(clazz.getModifiers())) // 排除抽象类
+                .map(clazz -> {
+                    try {
+                        Object instance = clazz.getDeclaredConstructor().newInstance();
+                        AbstractCronTask task = (AbstractCronTask) instance;
+                        Map<String, String> option = new HashMap<>();
+                        option.put("label", task.getTaskLabel());
+                        option.put("value", clazz.getName());
+                        return option;
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to instantiate task class: " + clazz.getName(), e);
+                    }
+                })
+                .collect(Collectors.toList());
     }
 }

@@ -18,4 +18,9 @@ public class CronTaskTest extends AbstractCronTask{
 	    	return null;
 		}
 
+		@Override
+		public String getTaskLabel() {
+			return "定时任务测试";
+		}
+
 }

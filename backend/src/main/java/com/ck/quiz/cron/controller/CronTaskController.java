@@ -13,7 +13,7 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("_api/_/synth/cron/task")
+@RequestMapping("api/cron/task")
 public class CronTaskController {
 
     @Autowired
@@ -45,6 +45,12 @@ public class CronTaskController {
     @Operation(summary = "触发")
     public ResponseEntity<Object> triggerById(@Parameter(description = "任务ID") @PathVariable String id) {
         return ResponseEntity.ok(cronTaskService.triggerById(id));
+    }
+
+    @GetMapping("/options")
+    @Operation(summary = "获取作业类型选项")
+    public ResponseEntity<Object> getTaskOptions() {
+        return ResponseEntity.ok(cronTaskService.getTaskOptions());
     }
 
 }
