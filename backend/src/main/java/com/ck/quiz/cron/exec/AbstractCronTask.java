@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
@@ -65,21 +66,21 @@ public abstract class AbstractCronTask {
             if (jobList.isEmpty()) {
                 return;
             }
-            Date startTime = (Date) jobList.get(0).get("startTime");
+            LocalDateTime startTime = (LocalDateTime) jobList.get(0).get("startTime");
             try {
                 String logPath = run(runParams);
-                Date endTime = new Date();
+                LocalDateTime endTime = LocalDateTime.now();
                 updateParams.put("state", "SUCCESS");
                 updateParams.put("endTime", endTime);
-                updateParams.put("durationMs", endTime.getTime() - startTime.getTime());
+                updateParams.put("durationMs", endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - startTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
                 updateParams.put("logPath", logPath);
                 jt.update("update job set state=:state, end_time=:endTime, duration_ms=:durationMs, log_path=:logPath where id=:jobId", updateParams);
             } catch (Exception e) {
                 log.error("任务【{}】执行失败：{}", jobId, e);
-                Date endTime = new Date();
+                LocalDateTime endTime = LocalDateTime.now();
                 updateParams.put("state", "FAILED");
                 updateParams.put("endTime", endTime);
-                updateParams.put("durationMs", endTime.getTime() - startTime.getTime());
+                updateParams.put("durationMs", endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - startTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
                 jt.update("update job set state=:state, end_time=:endTime, duration_ms=:durationMs where id=:jobId", updateParams);
             }
         }

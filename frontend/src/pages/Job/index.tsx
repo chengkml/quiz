@@ -119,7 +119,6 @@ function JobManager() {
         {
             title: '任务类名',
             dataIndex: 'taskClass',
-            width: 250,
             ellipsis: true,
         },
         {
@@ -158,7 +157,7 @@ function JobManager() {
         },
         {
             title: '操作',
-            width: 150,
+            width: 100,
             align: 'center',
             fixed: 'right' as any,
             render: (_: any, record: any) => (
@@ -245,7 +244,7 @@ function JobManager() {
             setTableData(response.data.content || []);
             setPagination(prev => ({
                 ...prev,
-                total: response.data.total || 0,
+                total: response.data.totalElements || 0,
             }));
         } catch (error) {
             Message.error('获取作业数据失败');

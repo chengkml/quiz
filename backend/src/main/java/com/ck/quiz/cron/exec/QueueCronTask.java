@@ -65,7 +65,7 @@ public class QueueCronTask {
         try {
             Map<String, Object> params = new HashMap<>();
             List<Map<String, Object>> list = HumpHelper.lineToHump(
-                    jt.queryForList("select * from cron_task where state = '1' and queue_name is not null ", params));
+                    jt.queryForList("select * from cron_task where state = 'ENABLED' and queue_name is not null ", params));
 
             list.forEach(map -> {
                 String id = MapUtils.getString(map, "id");

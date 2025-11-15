@@ -1,12 +1,13 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {Button, Form, Input, Layout, Message, Popconfirm, Space, Table} from '@arco-design/web-react';
-import {IconDelete, IconEdit, IconEye, IconPlus} from '@arco-design/web-react/icon';
-import FilterForm from '@/components/FilterForm';
+import {Button, Dropdown, Form, Grid, Input, Layout, Menu, Message, Popconfirm, Space, Table} from '@arco-design/web-react';
+import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import {deletePromptTemplate, getPromptTemplateList} from './api';
 import AddPromptTemplateModal from './components/AddPromptTemplateModal';
 import EditPromptTemplateModal from './components/EditPromptTemplateModal';
 import DetailPromptTemplateModal from './components/DetailPromptTemplateModal';
 import './style/index.less';
+
+const { Row, Col } = Grid;
 
 const PromptTemplateManagement: React.FC = () => {
     // 处理Modal成功回调
@@ -60,7 +61,7 @@ const PromptTemplateManagement: React.FC = () => {
             pageSize
         }));
         // 获取过滤条件
-        const formValues = filterFormRef.current?.getReportFiltersValue() || {};
+        const formValues = filterFormRef.current?.getFieldsValue?.() || {};
         fetchData(formValues);
     };
 
@@ -96,18 +97,51 @@ const PromptTemplateManagement: React.FC = () => {
         setDetailModalVisible(true);
     };
 
+    // 时间格式化（与其它页面一致的相对/绝对展示）
+    const formatDateTime = (value?: string) => {
+        if (!value) return '-';
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return '-';
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffSeconds / 60);
+        const diffHours = Math.floor(diffMinutes / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffDays === 0) {
+            if (diffSeconds < 60) return `${diffSeconds}秒前`;
+            if (diffMinutes < 60) return `${diffMinutes}分钟前`;
+            return `${diffHours}小时前`;
+        } else if (diffDays === 1) {
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `昨天 ${hours}:${minutes}`;
+        } else {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+    };
+
+    // 菜单点击
+    const handleMenuClick = (key: string, _: React.MouseEvent, record: any) => {
+        if (key === 'detail') {
+            handleDetail(record);
+        } else if (key === 'edit') {
+            handleEdit(record);
+        }
+    };
+
     const columns = [
         {
             title: '模板名称',
             dataIndex: 'name',
             key: 'name',
-            ellipsis: true,
-            tooltip: true
-        },
-        {
-            title: '变量列表',
-            dataIndex: 'variables',
-            key: 'variables',
             ellipsis: true,
             tooltip: true
         },
@@ -119,6 +153,13 @@ const PromptTemplateManagement: React.FC = () => {
             tooltip: true
         },
         {
+            title: '模板内容',
+            dataIndex: 'content',
+            key: 'content',
+            ellipsis: true,
+            tooltip: true
+        },
+        {
             title: '创建人',
             dataIndex: 'createUser',
             key: 'createUser',
@@ -126,46 +167,48 @@ const PromptTemplateManagement: React.FC = () => {
         },
         {
             title: '创建时间',
+            width: 180,
             dataIndex: 'createDate',
             key: 'createDate',
-            ellipsis: true
+            ellipsis: true,
+            render: (value: string) => formatDateTime(value)
         },
         {
             title: '操作',
             key: 'action',
+            width: 100,
             render: (_, record) => (
-                <Space size="small">
-                    <Button
-                        size="small"
-                        type="text"
-                        icon={<IconEye/>}
-                        onClick={() => handleDetail(record)}
-                    >
-                        详情
+                <Dropdown
+                    position="bl"
+                    droplist={
+                        <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)} className="handle-dropdown-menu">
+                            <Menu.Item key="detail">
+                                <IconEye style={{marginRight: 5}} />
+                                详情
+                            </Menu.Item>
+                            <Menu.Item key="edit">
+                                <IconEdit style={{marginRight: 5}} />
+                                编辑
+                            </Menu.Item>
+                            <Menu.Item key="delete">
+                                <Popconfirm
+                                    title="确认删除"
+                                    description="确定要删除这个提示词模板吗？"
+                                    onConfirm={() => handleDelete(record.id)}
+                                >
+                                    <div style={{display: 'flex', alignItems: 'center'}}>
+                                        <IconDelete style={{marginRight: 5}} />
+                                        删除
+                                    </div>
+                                </Popconfirm>
+                            </Menu.Item>
+                        </Menu>
+                    }
+                >
+                    <Button type="text" className="more-btn" onClick={(e) => e.stopPropagation()}>
+                        <IconList />
                     </Button>
-                    <Button
-                        size="small"
-                        type="text"
-                        icon={<IconEdit/>}
-                        onClick={() => handleEdit(record)}
-                    >
-                        编辑
-                    </Button>
-                    <Popconfirm
-                        title="确认删除"
-                        description="确定要删除这个提示词模板吗？"
-                        onConfirm={() => handleDelete(record.id)}
-                    >
-                        <Button
-                            size="small"
-                            type="text"
-                            icon={<IconDelete/>}
-                            status="danger"
-                        >
-                            删除
-                        </Button>
-                    </Popconfirm>
-                </Space>
+                </Dropdown>
             )
         }
     ];
@@ -173,23 +216,36 @@ const PromptTemplateManagement: React.FC = () => {
     return (
         <div className="prompt-template-manager">
             <div className="content-wrapper">
-                <FilterForm ref={filterFormRef} onSearch={searchTableData} onReset={searchTableData}>
-                    <Form.Item label="模板名称" field="name">
-                        <Input placeholder="请输入模板名称"/>
-                    </Form.Item>
-                    <Form.Item label="创建人" field="createUser">
-                        <Input placeholder="请输入创建人"/>
-                    </Form.Item>
-                </FilterForm>
-                <div className="action-buttons">
-                    <Button
-                        type="primary"
-                        icon={<IconPlus/>}
-                        onClick={() => setAddModalVisible(true)}
-                    >
-                        新增模板
-                    </Button>
-                </div>
+                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginBottom: 16}} onValuesChange={() => {
+                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                    searchTableData(values);
+                }}>
+                    <Row gutter={16}>
+                        <Col span={6}>
+                            <Form.Item label="名称" field="name">
+                                <Input placeholder="请输入模板名称" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                            <Space>
+                                <Button type="primary" icon={<IconSearch/>} onClick={() => {
+                                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                    searchTableData(values);
+                                }}>
+                                    搜索
+                                </Button>
+                                <Button
+                                    type="primary"
+                                    status="success"
+                                    icon={<IconPlus/>}
+                                    onClick={() => setAddModalVisible(true)}
+                                >
+                                    新增
+                                </Button>
+                            </Space>
+                        </Col>
+                    </Row>
+                </Form>
                 <Table
                     columns={columns}
                     data={data}

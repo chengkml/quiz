@@ -82,11 +82,22 @@ const AppLayout: React.FC = () => {
     const getSelectedKeys = () => {
         const path = location.pathname;
 
-        // 递归查找匹配的菜单项
+        // 将URL转换为标准化的路径段数组（去除空字符串和斜杠）
+        const getSegments = (url: string): string[] => {
+            return url.split('/').filter(Boolean);
+        };
+
+        // 递归查找匹配的菜单项（精确匹配路径段）
         const findMatchingMenu = (menus: MenuTreeDto[]): string[] => {
+            const pathSegments = getSegments(path);
             for (const menu of menus) {
-                if (menu.url && path.includes(menu.url.replace('/', ''))) {
-                    return [menu.menuId];
+                if (menu.url) {
+                    const menuSegments = getSegments(menu.url);
+                    // 检查路径的最后N个段是否与菜单URL段完全匹配（N为菜单段长度）
+                    const lastPathSegments = pathSegments.slice(-menuSegments.length);
+                    if (JSON.stringify(lastPathSegments) === JSON.stringify(menuSegments)) {
+                        return [menu.menuId];
+                    }
                 }
                 if (menu.children) {
                     const childResult = findMatchingMenu(menu.children);
@@ -106,15 +117,27 @@ const AppLayout: React.FC = () => {
         const path = location.pathname;
         const openKeys: string[] = [];
 
-        // 递归查找需要展开的父菜单
+        // 将URL转换为标准化的路径段数组（去除空字符串和斜杠）
+        const getSegments = (url: string): string[] => {
+            return url.split('/').filter(Boolean);
+        };
+
+        // 递归查找需要展开的父菜单（精确匹配路径段）
         const findOpenKeys = (menus: MenuTreeDto[], parentKey?: string): boolean => {
+            const pathSegments = getSegments(path);
             for (const menu of menus) {
-                if (menu.url && path.includes(menu.url.replace('/', ''))) {
-                    if (parentKey) {
-                        openKeys.push(parentKey);
+                // 检查当前菜单是否匹配路径（精确匹配）
+                if (menu.url) {
+                    const menuSegments = getSegments(menu.url);
+                    const lastPathSegments = pathSegments.slice(-menuSegments.length);
+                    if (JSON.stringify(lastPathSegments) === JSON.stringify(menuSegments)) {
+                        if (parentKey) {
+                            openKeys.push(parentKey);
+                        }
+                        return true;
                     }
-                    return true;
                 }
+                // 递归检查子菜单
                 if (menu.children && menu.children.length > 0) {
                     if (findOpenKeys(menu.children, menu.menuId)) {
                         if (parentKey) {
