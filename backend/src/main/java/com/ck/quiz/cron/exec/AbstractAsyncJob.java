@@ -64,6 +64,7 @@ public abstract class AbstractAsyncJob {
             // -----------------------------
             String logName = getJobPreffix() + "-" + jobId;
             MDC.put("bizLogFile", logName);
+            MDC.put("jobId", jobId);
             String logPath = Paths.get("logs", logName).toAbsolutePath() + ".log";
 
             taskParams.put("jobId", jobId);
@@ -73,6 +74,7 @@ public abstract class AbstractAsyncJob {
             // -----------------------------
             run(taskParams);
             MDC.remove("bizLogFile");
+            MDC.remove("jobId");
 
             // -----------------------------
             // 执行成功，更新记录
@@ -108,6 +110,7 @@ public abstract class AbstractAsyncJob {
         } finally {
             // 必须清理 MDC，否则线程复用时会串日志
             MDC.remove("bizLogFile");
+            MDC.remove("jobId");
         }
     }
 

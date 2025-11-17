@@ -1,14 +1,17 @@
 package com.ck.quiz.cron.exec;
 
+import com.ck.quiz.utils.LogPushService;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -16,11 +19,14 @@ import java.util.Properties;
 /**
  * 远程脚本执行作业
  * <p>
- * 使用 JSch SSH 连接远程服务器执行脚本，并捕获日志输出
+ * 使用 JSch SSH 连接远程服务器执行脚本，并逐行捕获日志输出
  */
 @Slf4j
 @Component
 public class RemoteScriptExecJob extends AbstractAsyncJob {
+
+    @Autowired
+    private LogPushService logPushService;
 
     @Override
     public String getJobPreffix() {
@@ -34,6 +40,7 @@ public class RemoteScriptExecJob extends AbstractAsyncJob {
 
     @Override
     public void run(Map<String, Object> params) {
+        String jobId = MapUtils.getString(params, "jobId");
         String host = MapUtils.getString(params, "host");
         int port = MapUtils.getIntValue(params, "port", 22);
         String username = MapUtils.getString(params, "username");
@@ -70,31 +77,42 @@ public class RemoteScriptExecJob extends AbstractAsyncJob {
             channel = (ChannelExec) session.openChannel("exec");
             channel.setCommand(fullCommand);
 
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
-
-            channel.setOutputStream(outputStream);
-            channel.setErrStream(errorStream);
+            InputStream inputStream = channel.getInputStream();
+            InputStream errorStream = channel.getErrStream();
 
             channel.connect();
 
-            // 等待命令执行完毕
-            while (!channel.isClosed()) {
+            // 逐行读取标准输出
+            BufferedReader stdReader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
+            BufferedReader errReader = new BufferedReader(new InputStreamReader(errorStream, "UTF-8"));
+
+            String line;
+            while (true) {
+                // 标准输出
+                while (stdReader.ready() && (line = stdReader.readLine()) != null) {
+                    log.info("{}", line);
+                }
+
+                // 错误输出
+                while (errReader.ready() && (line = errReader.readLine()) != null) {
+                    log.warn("{}", line);
+                }
+
+                if (channel.isClosed()) {
+                    // 处理残余输出
+                    while ((line = stdReader.readLine()) != null) {
+                        log.info("{}", line);
+                    }
+                    while ((line = errReader.readLine()) != null) {
+                        log.warn("{}", line);
+                    }
+                    break;
+                }
+
                 Thread.sleep(100);
             }
 
             int exitStatus = channel.getExitStatus();
-
-            String stdOut = outputStream.toString(StandardCharsets.UTF_8);
-            String stdErr = errorStream.toString(StandardCharsets.UTF_8);
-
-            if (!stdOut.isBlank()) {
-                log.info("远程脚本输出:\n{}", stdOut);
-            }
-            if (!stdErr.isBlank()) {
-                log.warn("远程脚本错误输出:\n{}", stdErr);
-            }
-
             if (exitStatus != 0) {
                 log.error("远程脚本执行失败，exitCode={}", exitStatus);
                 throw new RuntimeException("远程脚本执行失败，exitCode=" + exitStatus);
@@ -106,6 +124,7 @@ public class RemoteScriptExecJob extends AbstractAsyncJob {
             log.error("远程脚本执行异常: {}", e.getMessage(), e);
             throw new RuntimeException("远程脚本执行异常", e);
         } finally {
+            logPushService.complete(jobId);
             if (channel != null && channel.isConnected()) {
                 channel.disconnect();
             }
