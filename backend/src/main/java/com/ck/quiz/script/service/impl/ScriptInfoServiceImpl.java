@@ -1,15 +1,26 @@
 package com.ck.quiz.script.service.impl;
 
+import com.ck.quiz.cron.dto.JobDto;
+import com.ck.quiz.cron.service.JobService;
 import com.ck.quiz.script.dto.ScriptInfoCreateDto;
 import com.ck.quiz.script.dto.ScriptInfoDto;
 import com.ck.quiz.script.dto.ScriptInfoQueryDto;
 import com.ck.quiz.script.dto.ScriptInfoUpdateDto;
 import com.ck.quiz.script.entity.ScriptInfo;
+import com.ck.quiz.script.entity.ScriptJob;
 import com.ck.quiz.script.repository.ScriptInfoRepository;
+import com.ck.quiz.script.repository.ScriptJobRepository;
 import com.ck.quiz.script.service.ScriptInfoService;
+import com.ck.quiz.utils.HumpHelper;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import com.ck.quiz.utils.SpringContextUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -19,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +41,7 @@ import java.util.stream.Collectors;
 /**
  * 脚本信息Service实现
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScriptInfoServiceImpl implements ScriptInfoService {
@@ -36,6 +50,12 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
 
     @Autowired
     private NamedParameterJdbcTemplate jt;
+
+    @Autowired
+    private JobService jobService;
+
+    @Autowired
+    private ScriptJobRepository jobRepo;
 
     @Override
     @Transactional
@@ -209,6 +229,97 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
             entity.setState(ScriptInfo.State.valueOf(createDto.getState()));
         }
         return entity;
+    }
+
+    @Override
+    @Transactional
+    public void execScript(String id, String queueName) {
+        ScriptInfo entity = scriptInfoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("脚本信息不存在"));
+        JobDto jobDto = new JobDto();
+        jobDto.setQueueName(queueName);
+        jobDto.setPriority(999);
+        Map<String, Object> taskParams = new HashMap<>();
+        taskParams.put("cmd", entity.getExecCmd());
+        if ("true".equals(entity.getRemoteScript())) {
+            jobDto.setTaskClass("com.ck.quiz.cron.exec.RemoteScriptExecJob");
+            taskParams.put("host", entity.getHost());
+            taskParams.put("port", entity.getPort());
+            taskParams.put("username", entity.getUsername());
+            taskParams.put("password", entity.getPassword());
+        } else {
+            jobDto.setTaskClass("com.ck.quiz.cron.exec.LocalScriptExecJob");
+        }
+        ObjectMapper mapper = SpringContextUtil.getBean(ObjectMapper.class);
+        String taskParamsStr;
+        try {
+            taskParamsStr = mapper.writeValueAsString(taskParams);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("任务参数转换失败", e);
+        }
+        // json转字符串
+        jobDto.setTaskParams(taskParamsStr);
+        ScriptJob scriptJob = new ScriptJob();
+        scriptJob.setId(IdHelper.genUuid());
+        scriptJob.setScriptId(id);
+        try {
+            scriptJob.setJobId(jobService.addJob(jobDto));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        jobRepo.save(scriptJob);
+    }
+
+    @Override
+    public Page<Map<String, Object>> searchJobs(int offset, int limit, String scriptId, String state, String taskClass, String queueName, String triggerType, String startTimeLt, String startTimeGt, String taskId, String keyWord) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("scriptId", scriptId);
+        StringBuilder listSql = new StringBuilder("select j.*,q.queue_label from job j inner join script_job sj on sj.job_id = j.id left join job_queue q on j.queue_name = q.queue_name where sj.script_id = :scriptId ");
+        StringBuilder countSql = new StringBuilder("select count(*) from job j inner join script_job sj on sj.job_id = j.id where sj.script_id = :scriptId ");
+
+        // 状态过滤
+        JdbcQueryHelper.equals("state", state, "and j.state = :state ", params, listSql, countSql);
+
+        JdbcQueryHelper.equals("taskClass", taskClass, "and j.task_class = :taskClass ", params, listSql, countSql);
+
+        JdbcQueryHelper.equals("queueName", queueName, "and j.queue_name = :queueName ", params, listSql, countSql);
+
+        JdbcQueryHelper.equals("triggerType", triggerType, "and j.trigger_type = :triggerType ", params, listSql, countSql);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        if (org.apache.commons.lang3.StringUtils.isNotBlank(startTimeLt) && org.apache.commons.lang3.StringUtils.isNotBlank(startTimeGt)) {
+            try {
+                JdbcQueryHelper.datetimeBetween("j.start_time", "startTimeGt", sdf.parse(startTimeGt), "startTimeLt", sdf.parse(startTimeLt), params, jt, listSql, countSql);
+            } catch (ParseException e) {
+                log.error("日期转换异常：{}", ExceptionUtils.getStackTrace(e));
+            }
+        }
+
+        // 任务ID过滤
+        JdbcQueryHelper.equals("taskId", taskId, "and j.task_id = :taskId ", params, listSql, countSql);
+
+        // 关键字搜索
+        JdbcQueryHelper.lowerLike("keyWord", keyWord, "and lower(j.id) like :keyWord ", params, jt, listSql, countSql);
+
+        // 排序
+        listSql.append(" order by j.create_time desc ");
+
+        // 分页
+        int pageSize = limit;
+        int pageNum = offset / pageSize;
+        String limitSql = JdbcQueryHelper.getLimitSql(jt, listSql.toString(), pageNum, pageSize);
+
+        // 查询数据
+        List<Map<String, Object>> rows = HumpHelper.lineToHump(jt.queryForList(limitSql, params));
+        if (!rows.isEmpty()) {
+            Map<String, String> jobLabelMap = jobService.getJobLabelMap();
+            rows.forEach(row -> {
+                String jobLabel = jobLabelMap.get(MapUtils.getString(row, "taskClass"));
+                row.put("jobLabel", jobLabel);
+            });
+        }
+
+        return JdbcQueryHelper.toPage(jt, countSql.toString(), params, rows, pageNum, pageSize);
     }
 
 }

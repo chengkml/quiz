@@ -106,4 +106,42 @@ public class ScriptInfoController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * 执行脚本
+     */
+    @PostMapping("/{id}/exec")
+    public ResponseEntity<Void> execScript(
+            @PathVariable("id") String id,
+            @RequestParam("queueId") String queueId) {
+
+        scriptInfoService.execScript(id, queueId);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 查询脚本执行任务列表
+     */
+    @GetMapping("/jobs")
+    public ResponseEntity<Page<Map<String, Object>>> searchJobs(
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "20") int limit,
+            @RequestParam(value = "scriptId") String scriptId,
+            @RequestParam(value = "state", required = false) String state,
+            @RequestParam(value = "taskClass", required = false) String taskClass,
+            @RequestParam(value = "queueName", required = false) String queueName,
+            @RequestParam(value = "triggerType", required = false) String triggerType,
+            @RequestParam(value = "startTimeLt", required = false) String startTimeLt,
+            @RequestParam(value = "startTimeGt", required = false) String startTimeGt,
+            @RequestParam(value = "taskId", required = false) String taskId,
+            @RequestParam(value = "keyWord", required = false) String keyWord
+    ) {
+
+        Page<Map<String, Object>> pageInfo = scriptInfoService.searchJobs(
+                offset, limit, scriptId, state, taskClass, queueName,
+                triggerType, startTimeLt, startTimeGt, taskId, keyWord
+        );
+
+        return ResponseEntity.ok(pageInfo);
+    }
+
 }

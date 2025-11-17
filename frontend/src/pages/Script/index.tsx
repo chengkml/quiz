@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import { 
+import {
     Button, 
     Dropdown, 
     Form, 
@@ -16,9 +16,9 @@ import {
     Space, 
     Table, 
     Tag, 
-    Switch, 
+    Switch,
 } from '@arco-design/web-react';
-import {IconDelete, IconEdit, IconList, IconLock, IconPlus, IconSearch, IconUnlock} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconList, IconLock, IconPlayArrow, IconPlus, IconSearch, IconUnlock} from '@arco-design/web-react/icon';
 import './style/index.less';
 import {
     createScriptInfo,
@@ -26,8 +26,11 @@ import {
     disableScript,
     enableScript,
     getScriptInfoList,
-    updateScriptInfo
+    updateScriptInfo,
+    execScript,
+    searchJobs
 } from './api';
+import {getQueueList} from '@/pages/JobQueue/api';
 
 const {Content} = Layout;
 const {TextArea} = Input;
@@ -55,6 +58,25 @@ function ScriptManager() {
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [execModalVisible, setExecModalVisible] = useState(false);
+    const [jobsModalVisible, setJobsModalVisible] = useState(false);
+    
+    // 作业表格数据与状态
+    const [jobsTableData, setJobsTableData] = useState<any[]>([]);
+    const [jobsTableLoading, setJobsTableLoading] = useState(false);
+    const [jobsPagination, setJobsPagination] = useState({
+        current: 1,
+        pageSize: 20,
+        total: 0,
+        showTotal: true,
+        showJumper: true,
+        showPageSize: true,
+    });
+
+    // 表单引用
+    const execFormRef = useRef<any>(null);
+    // 队列选项
+    const [queueOptions, setQueueOptions] = useState<any[]>([]);
 
     // 表单引用
     const addFormRef = useRef<any>(null);
@@ -110,6 +132,114 @@ function ScriptManager() {
             return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         }
     };
+
+    // 执行脚本确认
+    const handleExecConfirm = async () => {
+        if (!currentRecord || !execFormRef.current) return;
+        try {
+            const formValues = execFormRef.current.getFieldsValue() || {};
+            const res = await execScript(currentRecord.id, formValues.queueName);
+            Message.success('脚本执行成功，任务已加入队列');
+            setExecModalVisible(false);
+        } catch (error) {
+            Message.error('脚本执行失败');
+        }
+    };
+
+    // 获取作业数据
+    const fetchJobsData = async (params: any = {}, pageSize: number = jobsPagination.pageSize, current: number = jobsPagination.current) => {
+        setJobsTableLoading(true);
+        try {
+            const targetParams = {
+                ...params,
+                offset: (current - 1) * pageSize,
+                limit: pageSize,
+            };
+            const response = await searchJobs(targetParams);
+            if (response.data) {
+                setJobsTableData(response.data.content || []);
+                setJobsPagination(prev => ({
+                    ...prev,
+                    current,
+                    pageSize,
+                    total: response.data.totalElements || 0,
+                }));
+            }
+        } catch (error) {
+            Message.error('获取作业数据失败');
+        } finally {
+            setJobsTableLoading(false);
+        }
+    };
+
+    // 作业分页变化
+    const handleJobsPageChange = (current: number, pageSize: number) => {
+        fetchJobsData({}, pageSize, current);
+    };
+
+    // 作业表格列配置
+    const jobsColumns = [
+        {
+            title: '作业ID',
+            dataIndex: 'id',
+            ellipsis: true,
+        },
+        {
+            title: '任务类型',
+            dataIndex: 'jobLabel',
+            width: 140,
+            ellipsis: true,
+        },
+        {
+            title: '队列名称',
+            dataIndex: 'queueName',
+            width: 120,
+            ellipsis: true,
+        },
+        {
+            title: '触发类型',
+            dataIndex: 'triggerType',
+            width: 120,
+            render: (triggerType: string) => {
+                const map: Record<string, any> = {
+                    CRON: '定时任务',
+                    MANUAL: '手动执行',
+                };
+                return map[triggerType] || triggerType;
+            },
+        },
+        {
+            title: '状态',
+            dataIndex: 'state',
+            width: 120,
+            render: (state: string) => {
+                const map: Record<string, any> = {
+                    RUNNING: {color: 'blue', text: '运行中'},
+                    SUCCESS: {color: 'green', text: '成功'},
+                    FAILED: {color: 'red', text: '失败'},
+                    PENDING: {color: 'gray', text: '待执行'},
+                };
+                const it = map[state] || {color: 'arcoblue', text: state};
+                return <Tag color={it.color} bordered>{it.text}</Tag>;
+            },
+        },
+        {
+            title: '开始时间',
+            dataIndex: 'startTime',
+            width: 180,
+            render: (value: string) => formatDateTime(value),
+        },
+        {
+            title: '结束时间',
+            dataIndex: 'endTime',
+            width: 180,
+            render: (value: string) => formatDateTime(value),
+        },
+    ];
+
+
+
+
 
     // 获取表格数据
     const fetchTableData = async (params: any = {}, pageSize: number = pagination.pageSize, current: number = pagination.current) => {
@@ -293,6 +423,12 @@ function ScriptManager() {
         }
     };
 
+    // 执行脚本
+    const handleExec = (record: any) => {
+        setCurrentRecord(record);
+        setExecModalVisible(true);
+    };
+
     // 禁用脚本
     const handleDisable = async (record: any) => {
         try {
@@ -321,9 +457,24 @@ function ScriptManager() {
             case 'disable':
                 handleDisable(record);
                 break;
+            case 'exec':
+                handleExec(record);
+                break;
+            case 'jobs':
+                handleJobs(record);
+                break;
             default:
                 break;
         }
+    };
+
+    // 查看作业
+    const handleJobs = (record: any) => {
+        setCurrentRecord(record);
+        setJobsModalVisible(true);
+        setTimeout(() => {
+            fetchJobsData({ scriptId: record.id });
+        }, 50);
     };
 
     // 列配置
@@ -405,6 +556,16 @@ function ScriptManager() {
                                         禁用
                                     </Menu.Item>
                                 )}
+                                {/* 执行按钮 */}
+                                <Menu.Item key="exec">
+                                    <IconPlayArrow style={{marginRight: 5}}/>
+                                    执行
+                                </Menu.Item>
+                                {/* 作业按钮 */}
+                                <Menu.Item key="jobs">
+                                    <IconList style={{marginRight: 5}}/>
+                                    作业
+                                </Menu.Item>
                                 {/* 删除按钮 */}
                                 <Menu.Item key="delete">
                                     <IconDelete style={{marginRight: 5}}/>
@@ -433,6 +594,18 @@ function ScriptManager() {
         calculateTableHeight();
         // 默认查询所有脚本
         fetchTableData({});
+        // 获取队列列表
+        const fetchQueues = async () => {
+            try {
+                const response = await getQueueList();
+                if (response.data) {
+                    setQueueOptions(response.data || []);
+                }
+            } catch (error) {
+                Message.error('获取队列列表失败');
+            }
+        };
+        fetchQueues();
         const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
@@ -618,6 +791,40 @@ function ScriptManager() {
                         </div>
                     </Modal>
 
+                    {/* 执行脚本 */}
+                    <Modal
+                        title="执行脚本"
+                        visible={execModalVisible}
+                        onOk={handleExecConfirm}
+                        onCancel={() => setExecModalVisible(false)}
+                        okButtonProps={{loading: tableLoading}}
+                        footer={(
+                            <>
+                                <Button onClick={() => setExecModalVisible(false)}>取消</Button>
+                                <Button type="primary" onClick={handleExecConfirm} loading={tableLoading}>执行</Button>
+                            </>
+                        )}
+                    >
+                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                            <Form ref={execFormRef} layout="vertical" className="modal-form">
+
+                                <Form.Item label="执行队列" field="queueName" rules={[{required: true, message: '请选择执行队列'}]}>
+                                    <Select
+                                        placeholder="请选择执行队列"
+                                        style={{width: '100%'}}
+                                        onChange={() => {}}
+                                    >
+                                        {queueOptions.map(option => (
+                                            <Select.Option key={option.id} value={option.queueName}>
+                                                {option.queueLabel || option.queueName}
+                                            </Select.Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                            </Form>
+                        </div>
+                    </Modal>
+
                     {/* 删除确认 */}
                     <Modal
                         title="确认删除"
@@ -627,6 +834,34 @@ function ScriptManager() {
                         okButtonProps={{loading: tableLoading}}
                     >
                         <div className="delete-modal">确定要删除该脚本吗？此操作不可恢复。</div>
+                    </Modal>
+
+                    {/* 作业查看 */}
+                    <Modal
+                        title="脚本作业列表"
+                        visible={jobsModalVisible}
+                        onCancel={() => setJobsModalVisible(false)}
+                        footer={null}
+                        style={{width: '70%'}}
+                    >
+                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                            <Table
+                                columns={jobsColumns}
+                                data={jobsTableData}
+                                loading={jobsTableLoading}
+                                pagination={false}
+                                scroll={{y: 400}}
+                                rowKey="id"
+                            />
+                        </div>
+
+                        {/* 作业分页 */}
+                        <div className="pagination-wrapper">
+                            <Pagination
+                                {...jobsPagination}
+                                onChange={handleJobsPageChange}
+                            />
+                        </div>
                     </Modal>
                 </Content>
             </Layout>

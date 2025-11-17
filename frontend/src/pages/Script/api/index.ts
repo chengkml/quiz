@@ -43,6 +43,12 @@ export const enableScript = (id: string) => axios.put(`${base}/api/script/info/$
 // 禁用脚本
 export const disableScript = (id: string) => axios.put(`${base}/api/script/info/${id}/disable`);
 
+// 执行脚本
+export const execScript = (id: string, queueId: string) => axios.post(`${base}/api/script/info/${id}/exec`, null, { params: { queueId } });
+
+// 查询脚本执行任务列表
+export const searchJobs = (params) => axios.get(`${base}/api/script/info/jobs`, { params: params });
+
 export default {
   getScriptInfoList,
   getScriptInfoById,
@@ -53,4 +59,6 @@ export default {
   batchDeleteScriptInfo,
   enableScript,
   disableScript,
+  execScript,
+  searchJobs,
 };

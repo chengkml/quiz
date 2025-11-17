@@ -1,6 +1,6 @@
 package com.ck.quiz.script.repository;
 
-import com.ck.quiz.script.entity.ScriptTask;
+import com.ck.quiz.script.entity.ScriptJob;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -9,5 +9,5 @@ import org.springframework.stereotype.Repository;
  * 脚本任务Repository
  */
 @Repository
-public interface ScriptTaskRepository extends JpaRepository<ScriptTask, String>, JpaSpecificationExecutor<ScriptTask> {
+public interface ScriptJobRepository extends JpaRepository<ScriptJob, String>, JpaSpecificationExecutor<ScriptJob> {
 }

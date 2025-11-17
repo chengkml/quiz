@@ -1,5 +1,6 @@
 package com.ck.quiz.script.service;
 
+import com.ck.quiz.cron.dto.JobDto;
 import com.ck.quiz.script.dto.ScriptInfoCreateDto;
 import com.ck.quiz.script.dto.ScriptInfoDto;
 import com.ck.quiz.script.dto.ScriptInfoQueryDto;
@@ -8,6 +9,7 @@ import com.ck.quiz.script.entity.ScriptInfo;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 脚本信息Service
@@ -90,5 +92,9 @@ public interface ScriptInfoService {
      * @return 实体类
      */
     ScriptInfo convertToEntity(ScriptInfoCreateDto createDto);
+
+    void execScript(String id, String queueId);
+
+    Page<Map<String, Object>> searchJobs(int offset, int limit, String scriptId, String state, String taskClass, String queueName, String triggerType, String startTimeLt, String startTimeGt, String taskId, String keyWord);
 
 }
