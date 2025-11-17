@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
-import { getTrainningLog } from './api';
+import { streamLogs } from '../../api';
 import qs from "qs";
 
 interface LogDetailsProps {
@@ -11,78 +11,43 @@ interface LogDetailsProps {
 const LogDetails = (props: LogDetailsProps) => {
   const { jobId } = props;
   const [value, setValue] = useState(''); // 初始内容
-  const [pageNum, setPageNum] = useState(1);
-  const [isEnd, setIsEnd] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const eventSourceRef = useRef<EventSource | null>(null);
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const pageSize = 100; // 每次请求的日志条数
-
-  // 请求日志
-  const fetchLogs = async (page: number) => {
-    if (isLoading || isEnd) return ''; // 如果正在加载或已结束，直接返回
-    setIsLoading(true);
-    try {
-      const params = {
-        jobId,
-        offset: (page - 1) * pageSize,
-        limit: pageSize,
-      };
-
-      const res = await getTrainningLog(params);
-      let targetLog = '';
-      res.data?.forEach((row: string) => {
-        targetLog += row + '\n';
-      });
-
-      if (!targetLog) {
-        setIsEnd(true);
-        return '';
-      }
-      return targetLog;
-    } catch (err) {
-      console.error('加载日志失败:', err);
-      return '';
-    } finally {
-      setIsLoading(false); // 请求完成时释放锁
-    }
-  };
-
-  // 首次加载第一页日志
+  // 初始化SSE连接
   useEffect(() => {
-    (async () => {
-      const firstLogs = await fetchLogs(1);
-      if (firstLogs) {
-        setValue(firstLogs);
-      }
-    })();
-  }, []);
+    // 建立SSE连接
+    const eventSource = streamLogs(jobId);
+    eventSourceRef.current = eventSource;
 
-  // 监听滚动事件
-  useEffect(() => {
-    const container = editorContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = async (e: Event) => {
-      const target = e.target as HTMLElement;
-      const scrollBottom =
-          target.scrollHeight - target.scrollTop - target.clientHeight;
-
-      if (scrollBottom <= 1 && !isEnd && !isLoading) {
-        const nextPage = pageNum + 1;
-        const newLogs = await fetchLogs(nextPage);
-        if (newLogs) {
-          setValue((prev) => prev + newLogs);
-          setPageNum(nextPage);
+    // 监听SSE事件
+    eventSource.onmessage = (event) => {
+      try {
+        const logs = JSON.parse(event.data);
+        if (Array.isArray(logs)) {
+          // 如果是字符串数组，逐行追加
+          setValue((prev) => prev + logs.join('\n') + '\n');
+        } else {
+          // 否则，直接追加
+          setValue((prev) => prev + logs + '\n');
         }
+      } catch (error) {
+        // 解析失败时，直接追加原始数据
+        setValue((prev) => prev + event.data + '\n');
       }
     };
 
-    container.addEventListener('scroll', handleScroll);
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
+    eventSource.onerror = (error) => {
+      console.error('SSE连接错误:', error);
+      eventSource.close();
     };
-  }, [pageNum, isEnd, isLoading]);
+
+    // 组件卸载时关闭连接
+    return () => {
+      eventSource.close();
+      eventSourceRef.current = null;
+    };
+  }, [jobId]);
 
   return (
       <div

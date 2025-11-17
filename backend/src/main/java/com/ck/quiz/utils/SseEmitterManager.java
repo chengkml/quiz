@@ -3,6 +3,7 @@ package com.ck.quiz.utils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,11 +22,11 @@ public class SseEmitterManager {
         return emitter;
     }
 
-    public void send(String taskId, Object data) {
+    public void send(String taskId, List<String> msgs) {
         SseEmitter emitter = emitterMap.get(taskId);
         if (emitter != null) {
             try {
-                emitter.send(data);
+                emitter.send(SseEmitter.event().data(msgs));
             } catch (Exception e) {
                 emitterMap.remove(taskId);
             }

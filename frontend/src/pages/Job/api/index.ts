@@ -35,6 +35,12 @@ export const getLogs = (jobId: string, params) => axios.get(`${base}/api/cron/jo
 // 导出作业日志
 export const exportLogs = (jobId: string) => axios.post(`${base}/api/cron/job/download/logs/${jobId}`, {}, { responseType: 'blob' });
 
+// 实时获取作业日志（SSE）
+export const streamLogs = (jobId: string) => {
+  const url = `${base}/api/cron/job/logs/stream/${jobId}`;
+  return new EventSource(url);
+};
+
 export default {
   searchJobs,
   getStatistics,

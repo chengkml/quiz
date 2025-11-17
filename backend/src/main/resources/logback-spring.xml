@@ -10,11 +10,20 @@
         </encoder>
     </appender>
 
-    <appender name="SSE" class="com.ck.quiz.utils.SseLogbackAppender">
-        <layout class="ch.qos.logback.classic.PatternLayout">
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level - %msg%n</pattern>
-        </layout>
+    <appender name="SSE" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <key>bizLogFile</key>
+            <defaultValue>quiz</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="SSE-${bizLogFile}" class="com.ck.quiz.utils.SseLogbackAppender">
+                <layout class="ch.qos.logback.classic.PatternLayout">
+                    <pattern>%msg%n</pattern>
+                </layout>
+            </appender>
+        </sift>
     </appender>
+
 
     <!-- ✅ 动态日志文件 -->
     <appender name="SIFT" class="ch.qos.logback.classic.sift.SiftingAppender">
@@ -30,7 +39,7 @@
                     <maxHistory>7</maxHistory>
                 </rollingPolicy>
                 <encoder>
-                    <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level - %msg%n</pattern>
+                    <pattern>%msg%n</pattern>
                 </encoder>
             </appender>
         </sift>

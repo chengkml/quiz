@@ -63,10 +63,15 @@ public abstract class AbstractAsyncJob {
             // 设置日志输出独立文件
             // -----------------------------
             String logName = getJobPreffix() + "-" + jobId;
+            String logPath = Paths.get("logs", logName).toAbsolutePath() + ".log";
+            updateParams.put("logPath", logPath);
+            jt.update(
+                    "update job set log_path=:logPath " +
+                            "where id=:jobId",
+                    updateParams
+            );
             MDC.put("bizLogFile", logName);
             MDC.put("jobId", jobId);
-            String logPath = Paths.get("logs", logName).toAbsolutePath() + ".log";
-
             taskParams.put("jobId", jobId);
 
             // -----------------------------
@@ -83,10 +88,8 @@ public abstract class AbstractAsyncJob {
             updateParams.put("state", "SUCCESS");
             updateParams.put("endTime", endTime);
             updateParams.put("durationMs", endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - startTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-            updateParams.put("logPath", logPath);
-
             jt.update(
-                    "update job set state=:state, end_time=:endTime, duration_ms=:durationMs, log_path=:logPath " +
+                    "update job set state=:state, end_time=:endTime, duration_ms=:durationMs " +
                             "where id=:jobId",
                     updateParams
             );

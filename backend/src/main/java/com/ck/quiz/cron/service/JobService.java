@@ -10,9 +10,8 @@ import com.ck.quiz.cron.exec.RemoteScriptExecJob;
 import com.ck.quiz.cron.repository.JobRepository;
 import com.ck.quiz.cron.repository.PendingJobRepository;
 import com.ck.quiz.seq.service.SeqService;
-import com.ck.quiz.utils.HumpHelper;
-import com.ck.quiz.utils.JdbcQueryHelper;
-import com.ck.quiz.utils.SpringContextUtil;
+import com.ck.quiz.thpool.CommonPool;
+import com.ck.quiz.utils.*;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
@@ -24,6 +23,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.FileCopyUtils;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
@@ -55,6 +56,12 @@ public class JobService {
 
     @Autowired
     private NamedParameterJdbcTemplate jt;
+
+    @Autowired
+    private SseEmitterManager sseEmitterManager;
+
+    @Autowired
+    private LogPushService logPushService;
 
     /**
      * 分页查询作业
@@ -524,5 +531,51 @@ public class JobService {
 
         return jobId;
     }
+
+    public SseEmitter streamLogs(@PathVariable String jobId) {
+        Optional<Job> optional = jobRepository.findById(jobId);
+        if (!optional.isPresent()) {
+            throw new RuntimeException("作业不存在");
+        }
+        Job job = optional.get();
+
+        // 1. 创建 SSE 连接
+        SseEmitter emitter = sseEmitterManager.create(jobId);
+
+        String logPath = job.getLogPath();
+        if (StringUtils.isNotBlank(logPath)) {
+            File logFile = new File(logPath);
+            if (logFile.exists() && logFile.isFile()) {
+                // 异步线程读取日志并推送
+                CommonPool.cachedPool.execute(() -> {
+                    try (RandomAccessFile raf = new RandomAccessFile(logFile, "r")) {
+                        long pointer = 0;
+                        long fileLength = raf.length();
+                        if (fileLength < pointer) {
+                            // 文件被截断或重新生成，重置指针
+                            pointer = 0;
+                        }
+                        if (fileLength > pointer) {
+                            raf.seek(pointer);
+                            String line;
+                            while ((line = raf.readLine()) != null) {
+                                // 处理编码
+                                line = new String(line.getBytes("ISO-8859-1"), "UTF-8");
+                                logPushService.appendLog(jobId, line);
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("实时推送日志异常 jobId={}：{}", jobId, ExceptionUtils.getStackTrace(e));
+                    }
+                });
+            } else {
+                log.warn("日志文件不存在 jobId={}, path={}", jobId, logPath);
+            }
+        }
+
+        // 2. 返回给前端
+        return emitter;
+    }
+
 
 }
