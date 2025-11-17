@@ -22,6 +22,12 @@ public class ScriptInfoQueryDto {
     private String scriptType;
 
     /**
+     * 远程脚本
+     */
+    @Size(max = 32, message = "远程脚本长度不能超过32个字符")
+    private String remoteScript;
+
+    /**
      * 启用状态
      */
     @Size(max = 20, message = "状态长度不能超过20个字符")

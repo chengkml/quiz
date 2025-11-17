@@ -25,25 +25,34 @@ public class ScriptInfoCreateDto {
     private String scriptName;
 
     /**
-     * 脚本类型（python/shell/node/java/...）
+     * 远程脚本
      */
-    @NotBlank(message = "脚本类型不能为空")
-    @Size(max = 32, message = "脚本类型长度不能超过32个字符")
-    private String scriptType;
+    @NotBlank(message = "远程脚本不能为空")
+    @Size(max = 32, message = "远程脚本长度不能超过32个字符")
+    private String remoteScript;
 
     /**
-     * 执行入口文件
+     * 远程脚本主机
      */
-    @NotBlank(message = "执行入口文件不能为空")
-    @Size(max = 256, message = "执行入口文件长度不能超过256个字符")
-    private String execEntry;
+    @Size(max = 128, message = "远程主机地址长度不能超过128个字符")
+    private String host;
 
     /**
-     * 脚本文件或目录路径
+     * 远程主机端口
      */
-    @NotBlank(message = "脚本文件路径不能为空")
-    @Size(max = 512, message = "脚本文件路径长度不能超过512个字符")
-    private String filePath;
+    private Integer port;
+
+    /**
+     * 远程主机用户名
+     */
+    @Size(max = 64, message = "远程主机用户名长度不能超过64个字符")
+    private String username;
+
+    /**
+     * 远程主机密码
+     */
+    @Size(max = 128, message = "远程主机密码长度不能超过128个字符")
+    private String password;
 
     /**
      * 自定义执行命令模板

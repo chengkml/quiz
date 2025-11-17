@@ -91,8 +91,4 @@ public interface ScriptInfoService {
      */
     ScriptInfo convertToEntity(ScriptInfoCreateDto createDto);
 
-    String buildCommand(String filePath, String execEntry, ScriptInfo.ScriptType scriptType);
-
-    String executeScript(String filePath, String execEntry, ScriptInfo.ScriptType scriptType, String... args);
-
 }

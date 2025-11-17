@@ -25,29 +25,34 @@ public class ScriptInfoDto {
     private String scriptName;
 
     /**
-     * 脚本类型（python/shell/node/java/...）
+     * 远程脚本
      */
-    private String scriptType;
+    private String remoteScript;
 
     /**
-     * 执行入口文件
+     * 远程脚本主机
      */
-    private String execEntry;
+    private String host;
 
     /**
-     * 脚本文件或目录路径
+     * 远程主机端口
      */
-    private String filePath;
+    private Integer port;
+
+    /**
+     * 远程主机用户名
+     */
+    private String username;
+
+    /**
+     * 远程主机密码
+     */
+    private String password;
 
     /**
      * 自定义执行命令模板
      */
     private String execCmd;
-
-    /**
-     * 脚本描述
-     */
-    private String description;
 
     /**
      * 启用状态

@@ -119,6 +119,12 @@ function JobManager() {
         {
             title: '任务类名',
             dataIndex: 'taskClass',
+            width: 200,
+            ellipsis: true,
+        },
+        {
+            title: '请求参数',
+            dataIndex: 'taskParams',
             ellipsis: true,
         },
         {

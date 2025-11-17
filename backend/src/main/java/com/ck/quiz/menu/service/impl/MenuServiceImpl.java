@@ -192,7 +192,7 @@ public class MenuServiceImpl implements MenuService {
         JdbcQueryHelper.lowerLike(
                 "menuName",
                 menuQueryDto.getMenuName(),
-                " and lower(m.menu_name) like :menuName ",
+                " and (lower(m.menu_name) like :menuName or lower(m.menu_label) like :menuName) ",
                 params, jdbcTemplate, sql, countSql
         );
 

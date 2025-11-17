@@ -1,24 +1,26 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {
-    Button,
-    Dropdown,
-    Form,
-    Grid,
-    Input,
-    Layout,
-    Menu,
-    Message,
-    Modal,
-    Pagination,
-    Select,
-    Space,
-    Table,
-    Tag,
+import { 
+    Button, 
+    Dropdown, 
+    Form, 
+    Grid, 
+    Input, 
+    InputNumber, 
+    Checkbox, 
+    Layout, 
+    Menu, 
+    Message, 
+    Modal, 
+    Pagination, 
+    Select, 
+    Space, 
+    Table, 
+    Tag, 
+    Switch, 
 } from '@arco-design/web-react';
 import {IconDelete, IconEdit, IconList, IconLock, IconPlus, IconSearch, IconUnlock} from '@arco-design/web-react/icon';
 import './style/index.less';
 import {
-    buildCommand,
     createScriptInfo,
     deleteScriptInfo,
     disableScript,
@@ -45,6 +47,8 @@ function ScriptManager() {
         showPageSize: true,
     });
     const [tableScrollHeight, setTableScrollHeight] = useState(420);
+    const [isRemoteAdd, setIsRemoteAdd] = useState(true);
+    const [isRemoteEdit, setIsRemoteEdit] = useState(true);
 
     // 当前记录与弹窗
     const [currentRecord, setCurrentRecord] = useState<any | null>(null);
@@ -65,10 +69,14 @@ function ScriptManager() {
     // 脚本类型选项
     const scriptTypeOptions = [
         {label: 'Python', value: 'PYTHON'},
-        {label: 'Node.js', value: 'NODE'},
+        {label: 'Python3', value: 'PYTHON3'},
         {label: 'Shell', value: 'SHELL'},
-        {label: 'Java', value: 'JAVA'},
+        {label: 'Node.js', value: 'NODE'},
+        {label: 'Java Jar', value: 'JAVA_JAR'},
+        {label: 'Java Class', value: 'JAVA_CLASS'},
         {label: 'HTTP', value: 'HTTP'},
+        {label: 'Command', value: 'COMMAND'},
+        {label: 'Remote SSH', value: 'REMOTE_SSH'},
         {label: 'Other', value: 'OTHER'},
     ];
 
@@ -154,64 +162,33 @@ function ScriptManager() {
         fetchTableData(filterParams, pageSize, current);
     };
 
-    // 生成脚本命令
-    const handleBuildCommand = async (formRef: React.RefObject<any>) => {
-        try {
-            const formInstance = formRef.current;
-            if (!formInstance) {
-                Message.error('表单实例获取失败');
-                return;
-            }
-            
-            const values = formInstance.getFieldsValue();
-            if (!values?.filePath || !values?.execEntry || !values?.scriptType) {
-                Message.warning('请先填写脚本文件路径、执行入口文件和脚本类型');
-                return;
-            }
 
-            const response = await buildCommand({
-                filePath: values.filePath,
-                execEntry: values.execEntry,
-                scriptType: values.scriptType
-            });
-
-            if (response.data?.command) {
-                // 将生成的命令设置到execCmd字段，确保表单重新渲染
-                formInstance.setFieldsValue({
-                    execCmd: response.data.command
-                });
-                
-                // 强制更新表单，解决回显问题
-                setTimeout(() => {
-                    formInstance.setFieldsValue({
-                        execCmd: response.data.command
-                    });
-                }, 0);
-                
-                Message.success('脚本命令生成成功');
-            } else {
-                Message.error('脚本命令生成失败');
-            }
-        } catch (error) {
-            Message.error('脚本命令生成失败');
-        }
-    };
 
     // 新增
     const handleAdd = () => {
         setCurrentRecord(null);
         setAddModalVisible(true);
-        setTimeout(() => addFormRef.current?.resetFields?.(), 50);
+        setIsRemoteAdd(true);
+        setTimeout(() => {
+            addFormRef.current?.resetFields?.();
+            addFormRef.current?.setFieldsValue?.({ remoteScript: true });
+        }, 50);
     };
 
     const handleAddConfirm = async () => {
         try {
             const values = await addFormRef.current?.validate?.();
             if (values) {
-                const response = await createScriptInfo(values);
+                // 将remoteScript转换为字符串格式
+                const formData = {
+                    ...values,
+                    remoteScript: values.remoteScript ? 'true' : 'false'
+                };
+                const response = await createScriptInfo(formData);
                 if (response.data) {
                     Message.success('添加成功');
                     setAddModalVisible(false);
+                    setIsRemoteAdd(true);
                     addFormRef.current?.resetFields?.();
                     // 重新加载数据
                     const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
@@ -234,15 +211,20 @@ function ScriptManager() {
                 code: record.scriptCode || record.code || '',
                 name: record.scriptName || record.name || '',
                 type: record.scriptType || record.type || '',
-                description: record.description || '',
                 content: record.content || '',
                 execEntry: record.execEntry || '',
                 filePath: record.filePath || '',
-                execCmd: record.execCmd || ''
+                execCmd: record.execCmd || '',
+                remoteScript: !!record.remoteScript && record.remoteScript !== 'false' && record.remoteScript !== '0',
+                host: record.host || '',
+                port: record.port || 22,
+                username: record.username || '',
+                password: record.password || ''
             };
 
             const {content, ...otherValues} = formValues;
             editFormRef.current?.setFieldsValue?.(otherValues);
+            setIsRemoteEdit(otherValues.remoteScript);
         }, 50);
     };
 
@@ -252,14 +234,18 @@ function ScriptManager() {
             if (values && currentRecord) {
                 // 将表单字段名转换为后端需要的格式
                 const payload = {
-                    id: currentRecord.id,
-                    scriptCode: values.code || '',
-                    scriptName: values.name || '',
-                    scriptType: values.type || '',
-                    description: values.description || '',
-                    execEntry: values.execEntry || '',
-                    filePath: values.filePath || '',
-                    execCmd: values.execCmd || ''
+                id: currentRecord.id,
+                scriptCode: values.code || '',
+                scriptName: values.name || '',
+                scriptType: values.type || '',
+                execEntry: values.execEntry || '',
+                filePath: values.filePath || '',
+                execCmd: values.execCmd || '',
+                remoteScript: values.remoteScript ? 'true' : 'false',
+                host: values.host,
+                port: values.port,
+                username: values.username,
+                    password: values.password
                 };
                 await updateScriptInfo(payload);
                 Message.success('更新成功');
@@ -368,19 +354,15 @@ function ScriptManager() {
             },
         },
         {
-            title: '脚本类型',
-            dataIndex: 'scriptType',
-            width: 120,
-            render: (type: string) => {
-                const option = scriptTypeOptions.find(opt => opt.value === type);
-                return option?.label || type || '-';
+            title: '是否远程',
+            dataIndex: 'remoteScript',
+            width: 100,
+            render: (remoteScript: any) => {
+                const isRemote = remoteScript === true || remoteScript === 'true';
+                return isRemote ? <Tag color="blue">是</Tag> : <Tag color="gray">否</Tag>;
             },
         },
-        {
-            title: '描述',
-            dataIndex: 'description',
-            ellipsis: true,
-        },
+
         {
             title: '创建人',
             dataIndex: 'createUserName',
@@ -530,14 +512,13 @@ function ScriptManager() {
                         okButtonProps={{loading: tableLoading}}
                         footer={(
                             <>
-                                <Button onClick={() => handleBuildCommand(addFormRef)}>生成脚本</Button>
                                 <Button onClick={() => setAddModalVisible(false)}>取消</Button>
                                 <Button type="primary" onClick={handleAddConfirm} loading={tableLoading}>确定</Button>
                             </>
                         )}
                     >
                         <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                            <Form ref={addFormRef} layout="vertical" className="modal-form">
+                            <Form ref={addFormRef} layout="vertical" className="modal-form" initialValues={{ remoteScript: true }}>
                                 <Form.Item label="脚本编码" field="scriptCode"
                                            rules={[{required: true, message: '请输入脚本编码'}]}>
                                     <Input placeholder="请输入脚本编码"/>
@@ -546,26 +527,30 @@ function ScriptManager() {
                                            rules={[{required: true, message: '请输入脚本名称'}]}>
                                     <Input placeholder="请输入脚本名称"/>
                                 </Form.Item>
-                                <Form.Item label="描述" field="description">
-                                    <TextArea placeholder="请输入脚本描述" autoSize={{minRows: 2, maxRows: 4}}/>
+
+                                <Form.Item label="是否远程脚本" field="remoteScript" valuePropName="checked" rules={[{required: true, message: '请选择是否为远程脚本'}]}>
+                                    <Switch checked={isRemoteAdd} onChange={(checked) => {
+                                        setIsRemoteAdd(checked);
+                                        addFormRef.current?.setFieldsValue?.({ remoteScript: checked });
+                                    }} />
                                 </Form.Item>
-                                <Form.Item label="脚本类型" field="scriptType"
-                                           rules={[{required: true, message: '请选择脚本类型'}]}>
-                                    <Select placeholder="请选择脚本类型">
-                                        {scriptTypeOptions.map(option => (
-                                            <Select.Option key={option.value}
-                                                           value={option.value}>{option.label}</Select.Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                                <Form.Item label="脚本文件路径" field="filePath"
-                                           rules={[{required: true, message: '请输入脚本文件路径'}]}>
-                                    <Input placeholder="请输入脚本文件或目录路径"/>
-                                </Form.Item>
-                                <Form.Item label="执行入口文件" field="execEntry"
-                                           rules={[{required: true, message: '请输入执行入口文件'}]}>
-                                    <Input placeholder="请输入执行入口文件"/>
-                                </Form.Item>
+                                {isRemoteAdd && (
+                                    <>
+                                        <Form.Item label="远程主机" field="host" rules={[{required: true, message: '请输入远程主机地址'}]}>
+                                            <Input placeholder="请输入远程主机地址" />
+                                        </Form.Item>
+                                        <Form.Item label="端口" field="port" initialValue={22} rules={[{required: true, message: '请输入端口'}]}>
+                                            <InputNumber min={1} max={65535} />
+                                        </Form.Item>
+                                        <Form.Item label="用户名" field="username" rules={[{required: true, message: '请输入远程用户名'}]}>
+                                            <Input placeholder="请输入远程用户名" />
+                                        </Form.Item>
+                                        <Form.Item label="密码" field="password" rules={[{required: true, message: '请输入远程密码'}]}>
+                                            <Input.Password placeholder="请输入远程密码" />
+                                        </Form.Item>
+                                    </>
+                                )}
+
                                 <Form.Item label="执行命令" field="execCmd"
                                            rules={[{required: true, message: '请输入执行命令'}]}>
                                     <Input
@@ -585,7 +570,6 @@ function ScriptManager() {
                         okButtonProps={{loading: tableLoading}}
                         footer={(
                             <>
-                                <Button onClick={() => handleBuildCommand(editFormRef)}>生成脚本</Button>
                                 <Button onClick={() => setEditModalVisible(false)}>取消</Button>
                                 <Button type="primary" onClick={handleEditConfirm} loading={tableLoading}>确定</Button>
                             </>
@@ -601,34 +585,35 @@ function ScriptManager() {
                                            rules={[{required: true, message: '请输入脚本名称'}]}>
                                     <Input placeholder="请输入脚本名称"/>
                                 </Form.Item>
-                                <Form.Item label="描述" field="description">
-                                    <TextArea placeholder="请输入脚本描述" autoSize={{minRows: 2, maxRows: 4}}/>
+                                <Form.Item label="是否远程脚本" field="remoteScript" valuePropName="checked" rules={[{required: true, message: '请选择是否为远程脚本'}]}>
+                                    <Switch checked={isRemoteEdit} onChange={(checked) => {
+                                        setIsRemoteEdit(checked);
+                                        editFormRef.current?.setFieldsValue?.({ remoteScript: checked });
+                                    }} />
                                 </Form.Item>
-                                <Form.Item label="脚本类型" field="type"
-                                           rules={[{required: true, message: '请选择脚本类型'}]}>
-                                    <Select placeholder="请选择脚本类型">
-                                        {scriptTypeOptions.map(option => (
-                                            <Select.Option key={option.value}
-                                                           value={option.value}>{option.label}</Select.Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                                <Form.Item label="脚本文件路径" field="filePath"
-                                           rules={[{required: true, message: '请输入脚本文件路径'}]}>
-                                    <Input placeholder="请输入脚本文件或目录路径"/>
-                                </Form.Item>
-                                <Form.Item label="执行入口文件" field="execEntry"
-                                           rules={[{required: true, message: '请输入执行入口文件'}]}>
-                                    <Input placeholder="请输入执行入口文件"/>
-                                </Form.Item>
+                                {isRemoteEdit && (
+                                    <>
+                                        <Form.Item label="远程主机" field="host" rules={[{required: true, message: '请输入远程主机地址'}]}>
+                                            <Input placeholder="请输入远程主机地址" />
+                                        </Form.Item>
+                                        <Form.Item label="端口" field="port" initialValue={22} rules={[{required: true, message: '请输入端口'}]}>
+                                            <InputNumber min={1} max={65535} />
+                                        </Form.Item>
+                                        <Form.Item label="用户名" field="username" rules={[{required: true, message: '请输入远程用户名'}]}>
+                                            <Input placeholder="请输入远程用户名" />
+                                        </Form.Item>
+                                        <Form.Item label="密码" field="password" rules={[{required: true, message: '请输入远程密码'}]}>
+                                            <Input.Password placeholder="请输入远程密码" />
+                                        </Form.Item>
+                                    </>
+                                )}
+
                                 <Form.Item label="执行命令" field="execCmd"
                                            rules={[{required: true, message: '请输入执行命令'}]}>
                                     <Input
                                         placeholder="示例：python {entry} --config={file_path}/config.yaml"
                                     />
                                 </Form.Item>
-
-
                             </Form>
                         </div>
                     </Modal>

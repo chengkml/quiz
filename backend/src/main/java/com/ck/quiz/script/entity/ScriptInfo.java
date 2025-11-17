@@ -6,8 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.time.LocalDateTime;
 
@@ -45,11 +43,10 @@ public class ScriptInfo {
     private String scriptName;
 
     /**
-     * 脚本类型（python/shell/node/java/...）
+     * 远程脚本
      */
-    @Enumerated(EnumType.STRING)
-    @Column(name = "script_type", length = 32, nullable = false)
-    private ScriptType scriptType;
+    @Column(name = "remote_script", length = 32, nullable = false)
+    private String remoteScript;
 
     /**
      * 远程脚本主机
@@ -61,7 +58,7 @@ public class ScriptInfo {
      * 远程主机端口，默认22
      */
     @Column(name = "port")
-    private Integer port = 22;
+    private Integer port;
 
     /**
      * 远程主机用户名
@@ -76,30 +73,11 @@ public class ScriptInfo {
     private String password;
 
     /**
-     * 脚本文件或目录路径
-     */
-    @Column(name = "file_path", length = 512, nullable = false)
-    private String filePath;
-
-    /**
-     * 执行入口文件
-     */
-    @Column(name = "exec_entry", length = 256, nullable = false)
-    private String execEntry;
-
-    /**
      * 自定义执行命令模板，可包含占位符
      * 示例：python {entry} --config={file_path}/config.yaml
      */
-    @Column(name = "exec_cmd", length = 512)
+    @Column(name = "exec_cmd", length = 512, nullable = false)
     private String execCmd;
-
-    /**
-     * 脚本描述
-     */
-    @Lob
-    @Column(name = "description", columnDefinition = "LONGTEXT")
-    private String description;
 
     /**
      * 启用状态
@@ -149,63 +127,6 @@ public class ScriptInfo {
             this.updateUser = auth.getName();
         }
     }
-
-    /**
-     * 脚本类型枚举
-     */
-    /**
-     * 脚本类型枚举
-     * 区分不同的执行方式，而不仅是语言名称
-     */
-    public enum ScriptType {
-
-        // ========= Python 系 =========
-        PYTHON("python"),            // python 解释器执行 main.py
-        PYTHON3("python3"),          // 指定 python3 版本
-
-        // ========= Shell =========
-        SHELL("shell"),              // bash/sh 脚本
-
-        // ========= Node.js / JS =========
-        NODE("node"),                // node index.js
-
-        // ========= Java 系 =========
-        JAVA_JAR("java-jar"),        // java -jar xxx.jar
-        JAVA_CLASS("java-class"),    // java com.xxx.Main（需要 classpath）
-
-        // ========= 任务代理 / 网络执行 =========
-        HTTP("http"),                // HTTP 请求类“脚本”，并非本地执行
-        COMMAND("command"),          // 纯命令，不依赖文件
-
-        // ========= 远程执行 =========
-        REMOTE_SSH("remote-ssh"),   // 通过 SSH 执行远程脚本
-
-        // ========= 其他 =========
-        OTHER("other");
-
-        private final String value;
-
-        ScriptType(String value) {
-            this.value = value;
-        }
-
-        @JsonValue
-        public String getValue() {
-            return value;
-        }
-
-        @JsonCreator
-        public static ScriptType fromValue(String value) {
-            for (ScriptType scriptType : ScriptType.values()) {
-                if (scriptType.value.equalsIgnoreCase(value)) {
-                    return scriptType;
-                }
-            }
-            throw new IllegalArgumentException("Invalid script type: " + value);
-        }
-    }
-
-
 
     /**
      * 启用状态枚举
