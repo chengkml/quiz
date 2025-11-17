@@ -40,6 +40,8 @@ public class DocInfoDto {
      */
     private String uploadUser;
 
+    private String uploadUserName;
+
     /**
      * 上传时间
      */

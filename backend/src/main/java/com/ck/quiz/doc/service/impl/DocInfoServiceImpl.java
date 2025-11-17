@@ -483,8 +483,8 @@ public class DocInfoServiceImpl implements DocInfoService {
         log.info("分页查询文档信息，条件: {}", queryDto);
 
         StringBuilder sql = new StringBuilder(
-                "SELECT d.*, u.user_name create_user_name " +
-                        "FROM doc_info d LEFT JOIN user u ON d.create_user = u.user_id WHERE 1=1 "
+                "SELECT d.*, u.user_name upload_user_name " +
+                        "FROM doc_info d LEFT JOIN user u ON d.upload_user = u.user_id WHERE 1=1 "
         );
 
         StringBuilder countSql = new StringBuilder(
@@ -547,6 +547,7 @@ public class DocInfoServiceImpl implements DocInfoService {
                     dto.setRemark(rs.getString("remark"));
                     dto.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
                     dto.setCreateUser(rs.getString("create_user"));
+                    dto.setUploadUserName(rs.getString("upload_user_name"));
                     dto.setUpdateDate(
                             rs.getTimestamp("update_date") != null ?
                                     rs.getTimestamp("update_date").toLocalDateTime() : null

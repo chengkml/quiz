@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 @Table(
         name = "script_info",
         indexes = {
-                @Index(name = "idx_script_type", columnList = "script_type"),
                 @Index(name = "idx_script_code", columnList = "script_code")
         }
 )

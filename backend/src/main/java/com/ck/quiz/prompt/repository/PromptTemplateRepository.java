@@ -49,22 +49,4 @@ public interface PromptTemplateRepository extends JpaRepository<PromptTemplate, 
      */
     List<PromptTemplate> findByCreateUser(String createUser);
 
-    /**
-     * 分页查询提示词模板（支持名称模糊查询）
-     *
-     * @param name 模板名称（模糊查询）
-     * @param pageable 分页参数
-     * @return 分页提示词模板列表
-     */
-    Page<PromptTemplate> findByNameContaining(String name, Pageable pageable);
-
-    /**
-     * 分页查询提示词模板（支持名称和创建用户查询）
-     *
-     * @param name 模板名称（模糊查询）
-     * @param createUser 创建用户
-     * @param pageable 分页参数
-     * @return 分页提示词模板列表
-     */
-    Page<PromptTemplate> findByNameContainingAndCreateUser(String name, String createUser, Pageable pageable);
 }

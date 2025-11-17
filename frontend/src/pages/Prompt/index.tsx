@@ -4,7 +4,6 @@ import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@ar
 import {deletePromptTemplate, getPromptTemplateList} from './api';
 import AddPromptTemplateModal from './components/AddPromptTemplateModal';
 import EditPromptTemplateModal from './components/EditPromptTemplateModal';
-import DetailPromptTemplateModal from './components/DetailPromptTemplateModal';
 import './style/index.less';
 
 const { Row, Col } = Grid;
@@ -21,7 +20,6 @@ const PromptTemplateManagement: React.FC = () => {
     const filterFormRef = useRef(null);
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [currentRecord, setCurrentRecord] = useState<any>(null);
 
     // 获取提示词模板列表
@@ -91,11 +89,7 @@ const PromptTemplateManagement: React.FC = () => {
         setEditModalVisible(true);
     };
 
-    // 打开详情模态框
-    const handleDetail = (record: any) => {
-        setCurrentRecord(record);
-        setDetailModalVisible(true);
-    };
+
 
     // 时间格式化（与其它页面一致的相对/绝对展示）
     const formatDateTime = (value?: string) => {
@@ -130,9 +124,7 @@ const PromptTemplateManagement: React.FC = () => {
 
     // 菜单点击
     const handleMenuClick = (key: string, _: React.MouseEvent, record: any) => {
-        if (key === 'detail') {
-            handleDetail(record);
-        } else if (key === 'edit') {
+        if (key === 'edit') {
             handleEdit(record);
         }
     };
@@ -146,13 +138,6 @@ const PromptTemplateManagement: React.FC = () => {
             tooltip: true
         },
         {
-            title: '描述',
-            dataIndex: 'description',
-            key: 'description',
-            ellipsis: true,
-            tooltip: true
-        },
-        {
             title: '模板内容',
             dataIndex: 'content',
             key: 'content',
@@ -161,8 +146,8 @@ const PromptTemplateManagement: React.FC = () => {
         },
         {
             title: '创建人',
-            dataIndex: 'createUser',
-            key: 'createUser',
+            dataIndex: 'createUserName',
+            key: 'createUserName',
             ellipsis: true
         },
         {
@@ -182,10 +167,6 @@ const PromptTemplateManagement: React.FC = () => {
                     position="bl"
                     droplist={
                         <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)} className="handle-dropdown-menu">
-                            <Menu.Item key="detail">
-                                <IconEye style={{marginRight: 5}} />
-                                详情
-                            </Menu.Item>
                             <Menu.Item key="edit">
                                 <IconEdit style={{marginRight: 5}} />
                                 编辑
@@ -275,11 +256,7 @@ const PromptTemplateManagement: React.FC = () => {
                     fetchData();
                 }}
             />
-            <DetailPromptTemplateModal
-                visible={detailModalVisible}
-                record={currentRecord}
-                onCancel={() => setDetailModalVisible(false)}
-            />
+
         </div>
     );
 };

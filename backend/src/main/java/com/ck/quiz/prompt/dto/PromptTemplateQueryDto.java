@@ -36,7 +36,7 @@ public class PromptTemplateQueryDto {
     /**
      * 排序字段
      */
-    private String sortBy = "createDate";
+    private String sortBy = "create_date";
 
     /**
      * 排序方向（asc/desc）

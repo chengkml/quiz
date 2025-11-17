@@ -45,6 +45,8 @@ public class PromptTemplateDto {
      */
     private String createUser;
 
+    private String createUserName;
+
     /**
      * 更新时间
      */

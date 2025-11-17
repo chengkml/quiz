@@ -237,8 +237,8 @@ function DocInfoManager() {
         },
         {
             title: '上传用户',
-            dataIndex: 'uploadUser',
-            key: 'uploadUser',
+            dataIndex: 'uploadUserName',
+            key: 'uploadUserName',
             width: 120,
             render: (text: string) => text || '--',
         },

@@ -8,17 +8,25 @@ import com.ck.quiz.prompt.entity.PromptTemplate;
 import com.ck.quiz.prompt.exception.PromptTemplateException;
 import com.ck.quiz.prompt.repository.PromptTemplateRepository;
 import com.ck.quiz.prompt.service.PromptTemplateService;
+import com.ck.quiz.utils.HumpHelper;
+import com.ck.quiz.utils.JdbcQueryHelper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.MapUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +39,9 @@ public class PromptTemplateServiceImpl implements PromptTemplateService {
 
     @Autowired
     private PromptTemplateRepository promptTemplateRepository;
+
+    @Autowired
+    private NamedParameterJdbcTemplate jt;
 
     @Override
     @Transactional
@@ -116,29 +127,61 @@ public class PromptTemplateServiceImpl implements PromptTemplateService {
     public Page<PromptTemplateDto> searchPromptTemplates(PromptTemplateQueryDto queryDto) {
         log.info("分页查询提示词模板，查询条件: {}", queryDto);
 
-        // 构建排序参数
-        Sort.Direction direction = queryDto.getSortOrder().equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Sort sort = Sort.by(direction, queryDto.getSortBy());
+        int pageNum = queryDto.getPageNum() - 1;
+        int pageSize = queryDto.getPageSize();
 
-        // 构建分页参数
-        Pageable pageable = PageRequest.of(queryDto.getPageNum() - 1, queryDto.getPageSize(), sort);
+        StringBuilder listSb = new StringBuilder("select t.*, u.user_name create_user_name from prompt_templates t left join user u on t.create_user = u.user_id ");
+        StringBuilder countSb = new StringBuilder("select count(*) from prompt_templates t ");
+        Map<String, Object> params = new HashMap<>();
 
-        // 执行查询
-        Page<PromptTemplate> page;
-        if (queryDto.getCreateUser() != null && !queryDto.getCreateUser().isEmpty()) {
-            page = promptTemplateRepository.findByNameContainingAndCreateUser(
-                    queryDto.getName() != null ? queryDto.getName() : "",
-                    queryDto.getCreateUser(),
-                    pageable);
-        } else {
-            page = promptTemplateRepository.findByNameContaining(
-                    queryDto.getName() != null ? queryDto.getName() : "",
-                    pageable);
-        }
+        // ========== 条件构建 ==========
+        // 名称模糊查询（忽略大小写）
+        JdbcQueryHelper.lowerLike("keyWord", queryDto.getName(),
+                " and (t.lower(name) like :keyWord or lower(t.content) like :keyWord) ",
+                params, jt);
 
-        // 转换为DTO
-        return page.map(this::convertToDto);
+        // 创建用户 equals
+        JdbcQueryHelper.equals("createUser", queryDto.getCreateUser(),
+                " and t.create_user = :createUser ", params);
+
+        // ========== 排序 ==========
+        JdbcQueryHelper.order(queryDto.getSortBy(), queryDto.getSortOrder(), listSb);
+
+        // ========== 分页 SQL ==========
+        String pageSql = JdbcQueryHelper.getLimitSql(
+                jt, listSb.toString(), pageNum, pageSize);
+
+        // ========== 执行查询 ==========
+        List<Map<String, Object>> list = HumpHelper.lineToHump(jt.queryForList(pageSql, params));
+
+        // 转换 DTO
+        List<PromptTemplateDto> dtoList = list.stream()
+                .map(map->{
+                    PromptTemplateDto dto = new PromptTemplateDto();
+                    dto.setId(MapUtils.getLong(map, "id"));
+                    dto.setName(MapUtils.getString(map, "name"));
+                    dto.setContent(MapUtils.getString(map, "content"));
+                    dto.setDescription(MapUtils.getString(map, "description"));
+                    dto.setCreateDate((LocalDateTime) map.get("createDate"));
+                    dto.setUpdateDate((LocalDateTime) map.get("updateDate"));
+                    dto.setCreateUser(MapUtils.getString(map, "createUser"));
+                    dto.setCreateUserName(MapUtils.getString(map, "createUserName"));
+                    dto.setUpdateUser(MapUtils.getString(map, "updateUser"));
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        // 封装分页结果
+        return JdbcQueryHelper.toPage(
+                jt,
+                countSb.toString(),
+                params,
+                dtoList,
+                pageNum,
+                pageSize
+        );
     }
+
 
     @Override
     public List<PromptTemplateDto> getAllPromptTemplates() {
