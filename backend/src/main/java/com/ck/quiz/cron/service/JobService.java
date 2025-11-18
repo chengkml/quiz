@@ -566,7 +566,12 @@ public class JobService {
                         }
                     } catch (Exception e) {
                         log.error("实时推送日志异常 jobId={}：{}", jobId, ExceptionUtils.getStackTrace(e));
+                    }finally {
+                        if(Arrays.asList("SUCCESS", "FAILED").contains(job.getState())) {
+                            logPushService.complete(jobId);
+                        }
                     }
+
                 });
             } else {
                 log.warn("日志文件不存在 jobId={}, path={}", jobId, logPath);

@@ -64,6 +64,7 @@ function ScriptManager() {
     // 作业表格数据与状态
     const [jobsTableData, setJobsTableData] = useState<any[]>([]);
     const [jobsTableLoading, setJobsTableLoading] = useState(false);
+    const [jobsTableScrollHeight, setJobsTableScrollHeight] = useState(400);
     const [jobsPagination, setJobsPagination] = useState({
         current: 1,
         pageSize: 20,
@@ -185,14 +186,13 @@ function ScriptManager() {
             ellipsis: true,
         },
         {
-            title: '任务类型',
-            dataIndex: 'jobLabel',
-            width: 140,
+            title: '任务类名',
+            dataIndex: 'taskClass',
             ellipsis: true,
         },
         {
             title: '队列名称',
-            dataIndex: 'queueName',
+            dataIndex: 'queueLabel',
             width: 120,
             ellipsis: true,
         },
@@ -200,18 +200,27 @@ function ScriptManager() {
             title: '触发类型',
             dataIndex: 'triggerType',
             width: 120,
+            align: 'center',
             render: (triggerType: string) => {
-                const map: Record<string, any> = {
-                    CRON: '定时任务',
-                    MANUAL: '手动执行',
+                const map: Record<string, string> = {
+                    HAND: '手工触发',
+                    CRON: '定时触发',
+                    QUEUE_CRON: '定时队列触发'
                 };
                 return map[triggerType] || triggerType;
             },
         },
         {
+            title: '开始时间',
+            dataIndex: 'startTime',
+            width: 180,
+            render: (value: string) => formatDateTime(value),
+        },
+        {
             title: '状态',
             dataIndex: 'state',
             width: 120,
+            align: 'center',
             render: (state: string) => {
                 const map: Record<string, any> = {
                     RUNNING: {color: 'blue', text: '运行中'},
@@ -223,18 +232,7 @@ function ScriptManager() {
                 return <Tag color={it.color} bordered>{it.text}</Tag>;
             },
         },
-        {
-            title: '开始时间',
-            dataIndex: 'startTime',
-            width: 180,
-            render: (value: string) => formatDateTime(value),
-        },
-        {
-            title: '结束时间',
-            dataIndex: 'endTime',
-            width: 180,
-            render: (value: string) => formatDateTime(value),
-        },
+
     ];
 
 
@@ -843,18 +841,16 @@ function ScriptManager() {
                         visible={jobsModalVisible}
                         onCancel={() => setJobsModalVisible(false)}
                         footer={null}
-                        style={{width: '70%'}}
+                        style={{width: '80%'}}
                     >
-                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                            <Table
-                                columns={jobsColumns}
-                                data={jobsTableData}
-                                loading={jobsTableLoading}
-                                pagination={false}
-                                scroll={{y: 400}}
-                                rowKey="id"
-                            />
-                        </div>
+                        <Table
+                            columns={jobsColumns}
+                            data={jobsTableData}
+                            loading={jobsTableLoading}
+                            pagination={false}
+                            scroll={{y: tableScrollHeight}}
+                            rowKey="id"
+                        />
 
                         {/* 作业分页 */}
                         <div style={{marginTop:'10px'}}>
