@@ -505,8 +505,9 @@ function ScriptManager() {
             },
         },
         {
-            title: '是否远程',
+            title: '是否远程脚本',
             dataIndex: 'remoteScript',
+            align: 'center',
             width: 100,
             render: (remoteScript: any) => {
                 const isRemote = remoteScript === true || remoteScript === 'true';
@@ -856,7 +857,7 @@ function ScriptManager() {
                         </div>
 
                         {/* 作业分页 */}
-                        <div className="pagination-wrapper">
+                        <div style={{marginTop:'10px'}}>
                             <Pagination
                                 {...jobsPagination}
                                 onChange={handleJobsPageChange}

@@ -113,31 +113,32 @@ function JobManager() {
         {
             title: '作业ID',
             dataIndex: 'id',
-            width: 180,
             ellipsis: true,
         },
         {
             title: '任务类名',
             dataIndex: 'taskClass',
-            width: 200,
-            ellipsis: true,
-        },
-        {
-            title: '请求参数',
-            dataIndex: 'taskParams',
             ellipsis: true,
         },
         {
             title: '队列名称',
             dataIndex: 'queueLabel',
-            width: 180,
+            width: 120,
             ellipsis: true,
         },
         {
             title: '触发类型',
             dataIndex: 'triggerType',
             width: 120,
-            ellipsis: true,
+            align: 'center',
+            render: (triggerType: string) => {
+                const map: Record<string, string> = {
+                    HAND: '手工触发',
+                    CRON: '定时触发',
+                    QUEUE_CRON: '定时队列触发'
+                };
+                return map[triggerType] || triggerType;
+            },
         },
         {
             title: '开始时间',
@@ -148,16 +149,16 @@ function JobManager() {
         {
             title: '状态',
             dataIndex: 'state',
+            align: 'center',
             width: 120,
             render: (state: string) => {
                 const map: Record<string, any> = {
-                    PENDING: {color: 'orange', text: '待处理'},
-                    IN_PROGRESS: {color: 'arcoblue', text: '处理中'},
-                    COMPLETED: {color: 'green', text: '已完成'},
+                    RUNNING: {color: 'blue', text: '运行中'},
+                    SUCCESS: {color: 'green', text: '成功'},
                     FAILED: {color: 'red', text: '失败'},
-                    STOPPED: {color: 'gray', text: '已停止'},
+                    PENDING: {color: 'gray', text: '待执行'},
                 };
-                const it = map[state] || {color: 'gray', text: state};
+                const it = map[state] || {color: 'arcoblue', text: state};
                 return <Tag color={it.color} bordered>{it.text}</Tag>;
             },
         },

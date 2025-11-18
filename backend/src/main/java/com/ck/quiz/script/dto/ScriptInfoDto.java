@@ -69,6 +69,8 @@ public class ScriptInfoDto {
      */
     private String createUser;
 
+    private String createUserName;
+
     /**
      * 更新时间
      */

@@ -91,26 +91,26 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
     @Override
     public Page<ScriptInfoDto> queryScriptInfo(ScriptInfoQueryDto queryDto) {
         // 1. 构造基础SQL
-        StringBuilder sql = new StringBuilder("SELECT * FROM script_info WHERE 1=1 ");
-        StringBuilder countSql = new StringBuilder("SELECT COUNT(*) FROM script_info WHERE 1=1 ");
+        StringBuilder sql = new StringBuilder("SELECT s.*, u.user_name create_user_name FROM script_info s left join user u on u.user_id = s.create_user WHERE 1=1 ");
+        StringBuilder countSql = new StringBuilder("SELECT COUNT(*) FROM script_info s WHERE 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
         // 2. 拼接查询条件
         // 模糊查询：脚本编码 / 名称 / 类型
         JdbcQueryHelper.lowerLike("scriptName", queryDto.getScriptName(),
-                " AND (LOWER(script_name) LIKE :scriptName or LOWER(script_code) LIKE :scriptName) ", params, jt, sql, countSql);
+                " AND (LOWER(s.script_name) LIKE :scriptName or LOWER(s.script_code) LIKE :scriptName) ", params, jt, sql, countSql);
         JdbcQueryHelper.lowerLike("scriptType", queryDto.getScriptType(),
-                " AND LOWER(script_type) LIKE :scriptType ", params, jt, sql, countSql);
+                " AND LOWER(s.script_type) LIKE :scriptType ", params, jt, sql, countSql);
         // 模糊查询：远程脚本
         JdbcQueryHelper.lowerLike("remoteScript", queryDto.getRemoteScript(),
-                " AND LOWER(remote_script) LIKE :remoteScript ", params, jt, sql, countSql);
+                " AND LOWER(s.remote_script) LIKE :remoteScript ", params, jt, sql, countSql);
 
         // 精确匹配：状态
         JdbcQueryHelper.equals("state", queryDto.getState(),
-                " AND state = :state ", params, sql, countSql);
+                " AND s.state = :state ", params, sql, countSql);
 
         // 3. 排序（默认按创建时间倒序）
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("s.create_date", "desc", sql);
 
         // 4. 拼接分页SQL
         int pageNum = queryDto.getPageNum() == null ? 1 : queryDto.getPageNum();
@@ -134,6 +134,7 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
             dto.setExecCmd((String) row.get("exec_cmd"));
             dto.setState((String) row.get("state"));
             dto.setCreateUser((String) row.get("create_user"));
+            dto.setCreateUserName((String) row.get("create_user_name"));
             dto.setUpdateUser((String) row.get("update_user"));
             dto.setCreateDate(toLocalDateTime(row.get("create_date")));
             dto.setUpdateDate(toLocalDateTime(row.get("update_date")));
