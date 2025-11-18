@@ -23,6 +23,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -321,6 +323,18 @@ public class ScriptInfoServiceImpl implements ScriptInfoService {
         }
 
         return JdbcQueryHelper.toPage(jt, countSql.toString(), params, rows, pageNum, pageSize);
+    }
+
+    @Override
+    @Transactional
+    public void deleteJob(String id) {
+        Optional<ScriptJob> op = jobRepo.findByJobId(id);
+        if(!op.isPresent()) {
+            throw new RuntimeException("作业不存在");
+        }
+        ScriptJob job = op.get();
+        jobRepo.delete(job);
+        jobService.deleteJob(job.getJobId());
     }
 
 }

@@ -14,9 +14,15 @@ const LogDetails = (props: LogDetailsProps) => {
   const eventSourceRef = useRef<EventSource | null>(null);
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // 初始化SSE连接
-  useEffect(() => {
-    // 建立SSE连接
+  // 建立SSE连接
+  const establishSSEConnection = () => {
+    // 先关闭当前连接
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    // 建立新的SSE连接
     const eventSource = streamLogs(jobId);
     eventSourceRef.current = eventSource;
 
@@ -40,12 +46,23 @@ const LogDetails = (props: LogDetailsProps) => {
     eventSource.onerror = (error) => {
       console.error('SSE连接错误:', error);
       eventSource.close();
+      eventSourceRef.current = null;
     };
+  };
+
+  // 当jobId变化时，重新建立SSE连接
+  useEffect(() => {
+    // 清空日志内容
+    setValue('');
+    // 建立新的连接
+    establishSSEConnection();
 
     // 组件卸载时关闭连接
     return () => {
-      eventSource.close();
-      eventSourceRef.current = null;
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
     };
   }, [jobId]);
 

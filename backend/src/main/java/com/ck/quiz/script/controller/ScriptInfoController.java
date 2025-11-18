@@ -5,6 +5,8 @@ import com.ck.quiz.script.dto.ScriptInfoDto;
 import com.ck.quiz.script.dto.ScriptInfoQueryDto;
 import com.ck.quiz.script.dto.ScriptInfoUpdateDto;
 import com.ck.quiz.script.service.ScriptInfoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -142,6 +144,13 @@ public class ScriptInfoController {
         );
 
         return ResponseEntity.ok(pageInfo);
+    }
+
+    @PostMapping("/delete/job/{jobId}")
+    @Operation(summary = "删除作业")
+    public ResponseEntity<Object> deleteJob(@Parameter(description = "作业ID") @PathVariable String jobId) {
+        scriptInfoService.deleteJob(jobId);
+        return ResponseEntity.ok("删除成功");
     }
 
 }

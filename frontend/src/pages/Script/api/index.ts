@@ -49,6 +49,9 @@ export const execScript = (id: string, queueId: string) => axios.post(`${base}/a
 // 查询脚本执行任务列表
 export const searchJobs = (params) => axios.get(`${base}/api/script/info/jobs`, { params: params });
 
+// 删除作业
+export const deleteJob = (jobId: string) => axios.post(`${base}/api/script/info/delete/job/${jobId}`);
+
 export default {
   getScriptInfoList,
   getScriptInfoById,
@@ -61,4 +64,5 @@ export default {
   disableScript,
   execScript,
   searchJobs,
+  deleteJob,
 };

@@ -1,36 +1,50 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
-    Button, 
-    Dropdown, 
-    Form, 
-    Grid, 
-    Input, 
-    InputNumber, 
-    Checkbox, 
-    Layout, 
-    Menu, 
-    Message, 
-    Modal, 
-    Pagination, 
-    Select, 
-    Space, 
-    Table, 
-    Tag, 
+    Button, Drawer,
+    Dropdown,
+    Form,
+    Grid,
+    Input,
+    InputNumber,
+    Layout,
+    Menu,
+    Message,
+    Modal,
+    Pagination,
+    Select,
+    Space,
     Switch,
+    Table,
+    Tag,
 } from '@arco-design/web-react';
-import {IconDelete, IconEdit, IconList, IconLock, IconPlayArrow, IconPlus, IconSearch, IconUnlock} from '@arco-design/web-react/icon';
+import {
+    IconDelete,
+    IconEdit,
+    IconInfo,
+    IconList,
+    IconLock,
+    IconPlayArrow,
+    IconPlus,
+    IconRefresh,
+    IconSearch,
+    IconStop,
+    IconUnlock
+} from '@arco-design/web-react/icon';
 import './style/index.less';
 import {
     createScriptInfo,
     deleteScriptInfo,
     disableScript,
     enableScript,
-    getScriptInfoList,
-    updateScriptInfo,
     execScript,
-    searchJobs
+    getScriptInfoList,
+    searchJobs,
+    updateScriptInfo,
+    deleteJob
 } from './api';
 import {getQueueList} from '@/pages/JobQueue/api';
+import {retryJob, stopJob} from '@/pages/Job/api';
+import LogDetails from "@/pages/Job/components/logDetails";
 
 const {Content} = Layout;
 const {TextArea} = Input;
@@ -60,7 +74,14 @@ function ScriptManager() {
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [execModalVisible, setExecModalVisible] = useState(false);
     const [jobsModalVisible, setJobsModalVisible] = useState(false);
-    
+    const [stopModalVisible, setStopModalVisible] = useState(false);
+    const [retryModalVisible, setRetryModalVisible] = useState(false);
+    const [logModalVisible, setLogModalVisible] = useState(false);
+    const [jobDeleteModalVisible, setJobDeleteModalVisible] = useState(false);
+    const [currentJobId, setCurrentJobId] = useState<string>('');
+    // 当前作业列表对应的脚本ID
+    const [currentScriptId, setCurrentScriptId] = useState<string>('');
+
     // 作业表格数据与状态
     const [jobsTableData, setJobsTableData] = useState<any[]>([]);
     const [jobsTableLoading, setJobsTableLoading] = useState(false);
@@ -226,17 +247,52 @@ function ScriptManager() {
                     RUNNING: {color: 'blue', text: '运行中'},
                     SUCCESS: {color: 'green', text: '成功'},
                     FAILED: {color: 'red', text: '失败'},
+                    STOPPED: {color: 'gold', text: '已终止'},
                     PENDING: {color: 'gray', text: '待执行'},
                 };
                 const it = map[state] || {color: 'arcoblue', text: state};
                 return <Tag color={it.color} bordered>{it.text}</Tag>;
             },
         },
-
+        {
+            title: '操作',
+            width: 100,
+            align: 'center',
+            fixed: 'right' as any,
+            render: (_: any, record: any) => (
+                <Space size="large" className="table-btn-group">
+                    <Dropdown
+                        position="bl"
+                        droplist={
+                            <Menu onClickMenuItem={(key, e) => handleJobsMenuClick(key, e, record)}
+                                  className="handle-dropdown-menu">
+                                {record.state !== 'SUCCESS' && record.state !== 'STOPPED' && record.state !== 'FAILED' && (
+                                    <Menu.Item key="stop">
+                                        <IconStop style={{marginRight: 5}}/>
+                                        停止
+                                    </Menu.Item>
+                                )}
+                                <Menu.Item key="log">
+                                    <IconInfo style={{marginRight: 5}}/>
+                                    日志
+                                </Menu.Item>
+                                {['RUNNING'].indexOf(record.state) === -1 && (
+                                    <Menu.Item key="delete">
+                                        <IconDelete style={{marginRight: 5}}/>
+                                        删除
+                                    </Menu.Item>
+                                )}
+                            </Menu>
+                        }
+                    >
+                        <Button type="text" className="more-btn" onClick={(e) => e.stopPropagation()}>
+                            <IconList/>
+                        </Button>
+                    </Dropdown>
+                </Space>
+            ),
+        },
     ];
-
-
-
 
 
     // 获取表格数据
@@ -291,7 +347,6 @@ function ScriptManager() {
     };
 
 
-
     // 新增
     const handleAdd = () => {
         setCurrentRecord(null);
@@ -299,7 +354,7 @@ function ScriptManager() {
         setIsRemoteAdd(true);
         setTimeout(() => {
             addFormRef.current?.resetFields?.();
-            addFormRef.current?.setFieldsValue?.({ remoteScript: true });
+            addFormRef.current?.setFieldsValue?.({remoteScript: true});
         }, 50);
     };
 
@@ -362,17 +417,17 @@ function ScriptManager() {
             if (values && currentRecord) {
                 // 将表单字段名转换为后端需要的格式
                 const payload = {
-                id: currentRecord.id,
-                scriptCode: values.code || '',
-                scriptName: values.name || '',
-                scriptType: values.type || '',
-                execEntry: values.execEntry || '',
-                filePath: values.filePath || '',
-                execCmd: values.execCmd || '',
-                remoteScript: values.remoteScript ? 'true' : 'false',
-                host: values.host,
-                port: values.port,
-                username: values.username,
+                    id: currentRecord.id,
+                    scriptCode: values.code || '',
+                    scriptName: values.name || '',
+                    scriptType: values.type || '',
+                    execEntry: values.execEntry || '',
+                    filePath: values.filePath || '',
+                    execCmd: values.execCmd || '',
+                    remoteScript: values.remoteScript ? 'true' : 'false',
+                    host: values.host,
+                    port: values.port,
+                    username: values.username,
                     password: values.password
                 };
                 await updateScriptInfo(payload);
@@ -466,12 +521,79 @@ function ScriptManager() {
         }
     };
 
+    // 作业菜单点击
+    const handleJobsMenuClick = (key: string, _: any, record: any) => {
+        setCurrentRecord(record);
+        switch (key) {
+            case 'stop':
+                setStopModalVisible(true);
+                break;
+            case 'retry':
+                setRetryModalVisible(true);
+                break;
+            case 'log':
+                setCurrentJobId(record.id);
+                setLogModalVisible(true);
+                break;
+            case 'delete':
+                setJobDeleteModalVisible(true);
+                break;
+            default:
+                break;
+        }
+    };
+
+    // 停止作业确认
+    const handleStopJobConfirm = async () => {
+        try {
+            await stopJob(currentRecord?.id || '');
+            Message.success('停止作业成功');
+            setStopModalVisible(false);
+            // 刷新作业表格
+            fetchJobsData({scriptId: currentScriptId || ''});
+        } catch (error) {
+            Message.error('停止作业失败');
+        }
+    };
+
+    // 重试作业确认
+    const handleRetryJobConfirm = async () => {
+        try {
+            await retryJob(currentRecord?.id || '');
+            Message.success('重试作业成功');
+            setRetryModalVisible(false);
+            // 刷新作业表格
+            fetchJobsData({scriptId: currentScriptId || ''});
+        } catch (error) {
+            Message.error('重试作业失败');
+        }
+    };
+
+    // 删除作业确认
+    const handleDeleteJobConfirm = async () => {
+        try {
+            await deleteJob(currentRecord?.id || '');
+            Message.success('删除作业成功');
+            setJobDeleteModalVisible(false);
+            // 刷新作业表格
+            fetchJobsData({scriptId: currentScriptId || ''});
+        } catch (error) {
+            Message.error('删除作业失败');
+        }
+    };
+
+    // 作业日志模态框确认
+    const handleLogJobConfirm = () => {
+        setLogModalVisible(false);
+    };
+
     // 查看作业
     const handleJobs = (record: any) => {
         setCurrentRecord(record);
+        setCurrentScriptId(record.id);
         setJobsModalVisible(true);
         setTimeout(() => {
-            fetchJobsData({ scriptId: record.id });
+            fetchJobsData({scriptId: record.id});
         }, 50);
     };
 
@@ -675,6 +797,50 @@ function ScriptManager() {
                         />
                     </div>
 
+                    {/* 作业停止模态框 */}
+                    <Modal
+                        title="确认停止作业"
+                        visible={stopModalVisible}
+                        onOk={handleStopJobConfirm}
+                        onCancel={() => setStopModalVisible(false)}
+                    >
+                        <div className="delete-modal">确定要停止该作业吗？</div>
+                    </Modal>
+
+                    {/* 作业重试模态框 */}
+                    <Modal
+                        title="确认重试作业"
+                        visible={retryModalVisible}
+                        onOk={handleRetryJobConfirm}
+                        onCancel={() => setRetryModalVisible(false)}
+                    >
+                        <div className="delete-modal">确定要重试该作业吗？</div>
+                    </Modal>
+
+                    {/* 作业日志模态框 */}
+                    <Drawer
+                        title="作业日志"
+                        visible={logModalVisible}
+                        onCancel={() => setLogModalVisible(false)}
+                        width={800}
+                        placement="right"
+                        footer={null}
+                    >
+                        <div style={{height: '100%'}}>
+                            <LogDetails jobId={currentJobId}/>
+                        </div>
+                    </Drawer>
+
+                    {/* 作业删除模态框 */}
+                    <Modal
+                        title="确认删除作业"
+                        visible={jobDeleteModalVisible}
+                        onOk={handleDeleteJobConfirm}
+                        onCancel={() => setJobDeleteModalVisible(false)}
+                    >
+                        <div className="delete-modal">确定要删除该作业吗？</div>
+                    </Modal>
+
                     {/* 新增对话框 */}
                     <Modal
                         title="新增脚本"
@@ -690,7 +856,8 @@ function ScriptManager() {
                         )}
                     >
                         <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                            <Form ref={addFormRef} layout="vertical" className="modal-form" initialValues={{ remoteScript: true }}>
+                            <Form ref={addFormRef} layout="vertical" className="modal-form"
+                                  initialValues={{remoteScript: true}}>
                                 <Form.Item label="脚本编码" field="scriptCode"
                                            rules={[{required: true, message: '请输入脚本编码'}]}>
                                     <Input placeholder="请输入脚本编码"/>
@@ -700,25 +867,30 @@ function ScriptManager() {
                                     <Input placeholder="请输入脚本名称"/>
                                 </Form.Item>
 
-                                <Form.Item label="是否远程脚本" field="remoteScript" valuePropName="checked" rules={[{required: true, message: '请选择是否为远程脚本'}]}>
+                                <Form.Item label="是否远程脚本" field="remoteScript" valuePropName="checked"
+                                           rules={[{required: true, message: '请选择是否为远程脚本'}]}>
                                     <Switch checked={isRemoteAdd} onChange={(checked) => {
                                         setIsRemoteAdd(checked);
-                                        addFormRef.current?.setFieldsValue?.({ remoteScript: checked });
-                                    }} />
+                                        addFormRef.current?.setFieldsValue?.({remoteScript: checked});
+                                    }}/>
                                 </Form.Item>
                                 {isRemoteAdd && (
                                     <>
-                                        <Form.Item label="远程主机" field="host" rules={[{required: true, message: '请输入远程主机地址'}]}>
-                                            <Input placeholder="请输入远程主机地址" />
+                                        <Form.Item label="远程主机" field="host"
+                                                   rules={[{required: true, message: '请输入远程主机地址'}]}>
+                                            <Input placeholder="请输入远程主机地址"/>
                                         </Form.Item>
-                                        <Form.Item label="端口" field="port" initialValue={22} rules={[{required: true, message: '请输入端口'}]}>
-                                            <InputNumber min={1} max={65535} />
+                                        <Form.Item label="端口" field="port" initialValue={22}
+                                                   rules={[{required: true, message: '请输入端口'}]}>
+                                            <InputNumber min={1} max={65535}/>
                                         </Form.Item>
-                                        <Form.Item label="用户名" field="username" rules={[{required: true, message: '请输入远程用户名'}]}>
-                                            <Input placeholder="请输入远程用户名" />
+                                        <Form.Item label="用户名" field="username"
+                                                   rules={[{required: true, message: '请输入远程用户名'}]}>
+                                            <Input placeholder="请输入远程用户名"/>
                                         </Form.Item>
-                                        <Form.Item label="密码" field="password" rules={[{required: true, message: '请输入远程密码'}]}>
-                                            <Input.Password placeholder="请输入远程密码" />
+                                        <Form.Item label="密码" field="password"
+                                                   rules={[{required: true, message: '请输入远程密码'}]}>
+                                            <Input.Password placeholder="请输入远程密码"/>
                                         </Form.Item>
                                     </>
                                 )}
@@ -757,25 +929,30 @@ function ScriptManager() {
                                            rules={[{required: true, message: '请输入脚本名称'}]}>
                                     <Input placeholder="请输入脚本名称"/>
                                 </Form.Item>
-                                <Form.Item label="是否远程脚本" field="remoteScript" valuePropName="checked" rules={[{required: true, message: '请选择是否为远程脚本'}]}>
+                                <Form.Item label="是否远程脚本" field="remoteScript" valuePropName="checked"
+                                           rules={[{required: true, message: '请选择是否为远程脚本'}]}>
                                     <Switch checked={isRemoteEdit} onChange={(checked) => {
                                         setIsRemoteEdit(checked);
-                                        editFormRef.current?.setFieldsValue?.({ remoteScript: checked });
-                                    }} />
+                                        editFormRef.current?.setFieldsValue?.({remoteScript: checked});
+                                    }}/>
                                 </Form.Item>
                                 {isRemoteEdit && (
                                     <>
-                                        <Form.Item label="远程主机" field="host" rules={[{required: true, message: '请输入远程主机地址'}]}>
-                                            <Input placeholder="请输入远程主机地址" />
+                                        <Form.Item label="远程主机" field="host"
+                                                   rules={[{required: true, message: '请输入远程主机地址'}]}>
+                                            <Input placeholder="请输入远程主机地址"/>
                                         </Form.Item>
-                                        <Form.Item label="端口" field="port" initialValue={22} rules={[{required: true, message: '请输入端口'}]}>
-                                            <InputNumber min={1} max={65535} />
+                                        <Form.Item label="端口" field="port" initialValue={22}
+                                                   rules={[{required: true, message: '请输入端口'}]}>
+                                            <InputNumber min={1} max={65535}/>
                                         </Form.Item>
-                                        <Form.Item label="用户名" field="username" rules={[{required: true, message: '请输入远程用户名'}]}>
-                                            <Input placeholder="请输入远程用户名" />
+                                        <Form.Item label="用户名" field="username"
+                                                   rules={[{required: true, message: '请输入远程用户名'}]}>
+                                            <Input placeholder="请输入远程用户名"/>
                                         </Form.Item>
-                                        <Form.Item label="密码" field="password" rules={[{required: true, message: '请输入远程密码'}]}>
-                                            <Input.Password placeholder="请输入远程密码" />
+                                        <Form.Item label="密码" field="password"
+                                                   rules={[{required: true, message: '请输入远程密码'}]}>
+                                            <Input.Password placeholder="请输入远程密码"/>
                                         </Form.Item>
                                     </>
                                 )}
@@ -807,11 +984,13 @@ function ScriptManager() {
                         <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
                             <Form ref={execFormRef} layout="vertical" className="modal-form">
 
-                                <Form.Item label="执行队列" field="queueName" rules={[{required: true, message: '请选择执行队列'}]}>
+                                <Form.Item label="执行队列" field="queueName"
+                                           rules={[{required: true, message: '请选择执行队列'}]}>
                                     <Select
                                         placeholder="请选择执行队列"
                                         style={{width: '100%'}}
-                                        onChange={() => {}}
+                                        onChange={() => {
+                                        }}
                                     >
                                         {queueOptions.map(option => (
                                             <Select.Option key={option.id} value={option.queueName}>
@@ -853,7 +1032,7 @@ function ScriptManager() {
                         />
 
                         {/* 作业分页 */}
-                        <div style={{marginTop:'10px'}}>
+                        <div style={{marginTop: '10px'}}>
                             <Pagination
                                 {...jobsPagination}
                                 onChange={handleJobsPageChange}

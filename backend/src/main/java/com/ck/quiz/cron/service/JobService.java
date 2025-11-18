@@ -266,8 +266,6 @@ public class JobService {
         job.setDurationMs(null);
         job.setErrorMessage(null);
         jobRepository.save(job);
-
-
         return jobId;
     }
 
@@ -567,15 +565,24 @@ public class JobService {
                     } catch (Exception e) {
                         log.error("实时推送日志异常 jobId={}：{}", jobId, ExceptionUtils.getStackTrace(e));
                     }finally {
-                        if(Arrays.asList("SUCCESS", "FAILED").contains(job.getState())) {
-                            logPushService.complete(jobId);
+                        if(Arrays.asList("SUCCESS", "FAILED", "STOPPED").contains(job.getState())) {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }finally {
+                                logPushService.complete(jobId);
+                            }
                         }
                     }
 
                 });
             } else {
+                logPushService.complete(jobId);
                 log.warn("日志文件不存在 jobId={}, path={}", jobId, logPath);
             }
+        }else{
+            logPushService.complete(jobId);
         }
 
         // 2. 返回给前端

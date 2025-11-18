@@ -97,4 +97,5 @@ public interface ScriptInfoService {
 
     Page<Map<String, Object>> searchJobs(int offset, int limit, String scriptId, String state, String taskClass, String queueName, String triggerType, String startTimeLt, String startTimeGt, String taskId, String keyWord);
 
+    void deleteJob(String jobId);
 }

@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
     Button,
-    DatePicker,
+    Drawer,
     Dropdown,
     Form,
     Grid,
@@ -16,18 +16,8 @@ import {
     Space,
     Table,
     Tag,
-    Drawer,
 } from '@arco-design/web-react';
-import {
-    IconDelete,
-    IconEdit,
-    IconInfo,
-    IconList,
-    IconPlus,
-    IconRefresh,
-    IconSearch,
-    IconStop
-} from '@arco-design/web-react/icon';
+import {IconDelete, IconInfo, IconList, IconPlus, IconRefresh, IconSearch, IconStop} from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
 import './style/index.less';
 import {addJob, deleteJob, getJobOptions, getQueueList, retryJob, searchJobs, stopJob,} from './api';
@@ -156,6 +146,7 @@ function JobManager() {
                     RUNNING: {color: 'blue', text: '运行中'},
                     SUCCESS: {color: 'green', text: '成功'},
                     FAILED: {color: 'red', text: '失败'},
+                    STOPPED: {color: 'gold', text: '已终止'},
                     PENDING: {color: 'gray', text: '待执行'},
                 };
                 const it = map[state] || {color: 'arcoblue', text: state};
@@ -173,27 +164,23 @@ function JobManager() {
                         position="bl"
                         droplist={
                             <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}
-                                      className="handle-dropdown-menu">
-                                {record.state !== 'COMPLETED' && record.state !== 'STOPPED' && (
+                                  className="handle-dropdown-menu">
+                                {record.state !== 'SUCCESS' && record.state !== 'STOPPED' && record.state !== 'FAILED' && (
                                     <Menu.Item key="stop">
                                         <IconStop style={{marginRight: 5}}/>
                                         停止
                                     </Menu.Item>
                                 )}
-                                {record.state === 'FAILED' && (
-                                    <Menu.Item key="retry">
-                                        <IconRefresh style={{marginRight: 5}}/>
-                                        重试
+                                <Menu.Item key="log">
+                                    <IconInfo style={{marginRight: 5}}/>
+                                    日志
+                                </Menu.Item>
+                                {['RUNNING'].indexOf(record.state) === -1 && (
+                                    <Menu.Item key="delete">
+                                        <IconDelete style={{marginRight: 5}}/>
+                                        删除
                                     </Menu.Item>
                                 )}
-                                <Menu.Item key="log">
-                                <IconInfo style={{marginRight: 5}}/>
-                                日志
-                            </Menu.Item>
-                            <Menu.Item key="delete">
-                                <IconDelete style={{marginRight: 5}}/>
-                                删除
-                            </Menu.Item>
                             </Menu>
                         }
                     >
@@ -292,7 +279,6 @@ function JobManager() {
             Message.error('新增作业失败');
         }
     };
-
 
 
     // 删除确认
@@ -410,7 +396,8 @@ function JobManager() {
                                 <Form.Item field="queueName" label="队列">
                                     <Select placeholder="请选择队列名称" allowClear>
                                         {queueOptions.map(opt => (
-                                            <Option key={opt.id} value={opt.queueName}>{opt.queueLabel || opt.queueName}</Option>
+                                            <Option key={opt.id}
+                                                    value={opt.queueName}>{opt.queueLabel || opt.queueName}</Option>
                                         ))}
                                     </Select>
                                 </Form.Item>
@@ -492,7 +479,8 @@ function JobManager() {
                                 >
                                     <Select placeholder="请选择队列">
                                         {queueOptions.map(opt => (
-                                            <Option key={opt.id} value={opt.queueName}>{opt.queueLabel || opt.queueName}</Option>
+                                            <Option key={opt.id}
+                                                    value={opt.queueName}>{opt.queueLabel || opt.queueName}</Option>
                                         ))}
                                     </Select>
                                 </Form.Item>
@@ -506,7 +494,6 @@ function JobManager() {
                             </Form>
                         </div>
                     </Modal>
-
 
 
                     {/* 删除确认 */}
@@ -549,7 +536,7 @@ function JobManager() {
                         footer={null}
                     >
                         <div style={{height: '100%'}}>
-                            <LogDetails jobId={currentJobId} />
+                            <LogDetails jobId={currentJobId}/>
                         </div>
                     </Drawer>
 
