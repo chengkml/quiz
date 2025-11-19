@@ -70,16 +70,6 @@ public class QueueCronTask {
             list.forEach(map -> {
                 String id = MapUtils.getString(map, "id");
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                String dbNextFireTime = MapUtils.getString(map, "nextFireTime");
-
-                // 如果数据库中nextFireTime为空，则使用当前时间
-                if (dbNextFireTime == null) {
-                    dbNextFireTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:sss"));
-                }
-
-                LocalDateTime dbNextFireLDate = LocalDateTime.parse(dbNextFireTime, formatter);
-                Date dbNextFireDate = Date.from(dbNextFireLDate.atZone(ZoneId.systemDefault()).toInstant());
-
                 // 解析cron表达式，计算下一次触发时间
                 String cron = MapUtils.getString(map, "cronExpression");
                 LocalDateTime now = LocalDateTime.now();
@@ -89,7 +79,7 @@ public class QueueCronTask {
                 Date nowTime = new Date();
 
                 // 判断是否入队：当前时间 > 数据库记录的nextFireTime && 下一次触发时间 > 当前时间
-                if (nowTime.getTime() > dbNextFireDate.getTime() && nextFireDate.getTime() > nowTime.getTime()) {
+                if (nextFireDate.getTime() > nowTime.getTime()) {
                     params.put("nextFireTime", nextFireTime);
                     params.put("id", id);
 
@@ -98,7 +88,7 @@ public class QueueCronTask {
                             "update cron_task set next_fire_time=:nextFireTime where (next_fire_time is null or next_fire_time<>:nextFireTime) and id=:id ",
                             params);
 
-                    if (updateNum == 1) {
+                    if (MapUtils.getString(map, "nextFireTime")!=null&&updateNum == 1) {
                         // 生成pending任务
                         Map<String, Object> pjob = new HashMap<>();
                         pjob.put("id", IdHelper.genUuid());

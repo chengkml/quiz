@@ -50,9 +50,11 @@ public abstract class AbstractJob {
         updateParams.put("jobId", jobId);
         try {
             String logName = getJobPreffix() + "-" + jobId;
-            MDC.put("bizLogFile", logName);
             String logPath = Paths.get("logs", logName).toAbsolutePath()+".log";
             taskParams.put("jobId", jobId);
+            updateParams.put("logPath", logPath);
+            jt.update("update job set log_path=:logPath where id=:jobId", updateParams);
+            MDC.put("bizLogFile", logName);
             run(taskParams);
             Date endTime = new Date();
             updateParams.put("state", "SUCCESS");
