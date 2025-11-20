@@ -154,14 +154,13 @@ const ExamHistoryDetailPage: React.FC = () => {
     };
 
     return (
-        <Layout style={{height: '100vh'}}>
+        <Layout style={{height: '100%'}}>
             <Content style={{
-                margin: 10,
                 background: '#fff',
                 borderRadius: 8,
                 padding: 16,
                 display: 'flex',
-                height: 'calc(100vh - 20px)'
+                height: '100%'
             }}>
                 {loading ? (
                     <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%'}}>
