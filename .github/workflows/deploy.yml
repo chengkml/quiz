@@ -50,6 +50,7 @@ jobs:
 
       - name: 拷贝前端文件
         run: |
+          mkdir -p backend/src/main/resources/static
           cp -r frontend/dist/* backend/src/main/resources/static/
 
       - name: 构建后端Jar
