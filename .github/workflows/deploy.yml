@@ -73,7 +73,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
-          source: "backend/build/libs/*.jar"
+          source: "backend/build/libs/quiz-1.0.0.jar"
           target: "/opt/quiz/"
           strip_components: 3
 
