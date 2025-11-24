@@ -6,6 +6,7 @@
 
 APP_NAME="quiz"
 JAR_FILE="/opt/quiz/quiz-1.0.0.jar"
+LIB_DIR="/opt/quiz/lib"        # 依赖 Jar 所在目录
 MAIN_CLASS="com.ck.quiz.QuizApplication"
 PORT=8088
 LOG_DIR="/opt/quiz/logs"
@@ -30,9 +31,9 @@ if [ -f "$PID_FILE" ]; then
     rm -f "$PID_FILE"
 fi
 
-# 启动新进程
+# 启动新进程（考虑依赖目录）
 echo "[$(date)] Starting $MAIN_CLASS on port $PORT ..."
-nohup java -cp "$JAR_FILE" "$MAIN_CLASS" --server.port="$PORT" >> "$LOG_FILE" 2>&1 &
+nohup java -cp "$JAR_FILE:$LIB_DIR/*" "$MAIN_CLASS" --server.port="$PORT" >> "$LOG_FILE" 2>&1 &
 
 # 写入 PID 文件
 echo $! > "$PID_FILE"
