@@ -5,11 +5,11 @@ import com.ck.quiz.utils.SpringContextUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.nio.file.Paths;
@@ -19,8 +19,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
 public abstract class AbstractAsyncJob {
+
+    @Autowired
+    protected JobLogger log;
 
     public abstract String getJobPreffix();
 
@@ -81,21 +83,9 @@ public abstract class AbstractAsyncJob {
             MDC.remove("bizLogFile");
             MDC.remove("jobId");
 
-            // -----------------------------
-            // 执行成功，更新记录
-            // -----------------------------
-            LocalDateTime endTime = LocalDateTime.now();
-            updateParams.put("state", "SUCCESS");
-            updateParams.put("endTime", endTime);
-            updateParams.put("durationMs", endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - startTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-            jt.update(
-                    "update job set state=:state, end_time=:endTime, duration_ms=:durationMs " +
-                            "where id=:jobId",
-                    updateParams
-            );
-
         } catch (Exception e) {
-
+            MDC.remove("bizLogFile");
+            MDC.remove("jobId");
             log.error("任务【{}】执行失败：{}", jobId, ExceptionUtils.getStackTrace(e));
 
             LocalDateTime endTime = LocalDateTime.now();

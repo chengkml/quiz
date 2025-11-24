@@ -1,8 +1,10 @@
 package com.ck.quiz.cron.exec;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
-import org.apache.commons.exec.*;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.LogOutputStream;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -13,9 +15,8 @@ import java.util.Map;
 /**
  * 脚本执行作业（逐行输出日志版本）
  */
-@Slf4j
 @Component
-public class LocalScriptExecJob extends AbstractAsyncJob {
+public class LocalScriptExecJob extends AbstractJob {
 
     @Override
     public String getJobPreffix() {

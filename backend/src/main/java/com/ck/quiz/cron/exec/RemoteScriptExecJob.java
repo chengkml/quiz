@@ -1,12 +1,10 @@
 package com.ck.quiz.cron.exec;
 
-import com.ck.quiz.utils.LogPushService;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -21,12 +19,8 @@ import java.util.Properties;
  * <p>
  * 使用 JSch SSH 连接远程服务器执行脚本，并逐行捕获日志输出
  */
-@Slf4j
 @Component
-public class RemoteScriptExecJob extends AbstractAsyncJob {
-
-    @Autowired
-    private LogPushService logPushService;
+public class RemoteScriptExecJob extends AbstractJob {
 
     @Override
     public String getJobPreffix() {
@@ -40,7 +34,6 @@ public class RemoteScriptExecJob extends AbstractAsyncJob {
 
     @Override
     public void run(Map<String, Object> params) {
-        String jobId = MapUtils.getString(params, "jobId");
         String host = MapUtils.getString(params, "host");
         int port = MapUtils.getIntValue(params, "port", 22);
         String username = MapUtils.getString(params, "username");
@@ -124,7 +117,6 @@ public class RemoteScriptExecJob extends AbstractAsyncJob {
             log.error("远程脚本执行异常: {}", e.getMessage(), e);
             throw new RuntimeException("远程脚本执行异常", e);
         } finally {
-            logPushService.complete(jobId);
             if (channel != null && channel.isConnected()) {
                 channel.disconnect();
             }

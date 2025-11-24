@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+# 并发控制：同组 workflow 新触发时会取消正在运行的旧构建
+concurrency:
+  group: build-and-deploy
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:

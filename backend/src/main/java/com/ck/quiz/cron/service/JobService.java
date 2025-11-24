@@ -559,7 +559,7 @@ public class JobService {
                             while ((line = raf.readLine()) != null) {
                                 // 处理编码
                                 line = new String(line.getBytes("ISO-8859-1"), "UTF-8");
-                                logPushService.appendLog(jobId, line);
+                                logPushService.appendEmitterLog(emitter, line);
                             }
                         }
                     } catch (Exception e) {

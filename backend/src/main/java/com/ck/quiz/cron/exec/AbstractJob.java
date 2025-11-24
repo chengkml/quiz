@@ -1,25 +1,29 @@
 package com.ck.quiz.cron.exec;
 
 import com.ck.quiz.utils.HumpHelper;
+import com.ck.quiz.utils.LogPushService;
 import com.ck.quiz.utils.SpringContextUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.nio.file.Paths;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
 public abstract class AbstractJob {
+
+    @Autowired
+    protected JobLogger log;
 
     public abstract String getJobPreffix();
 
@@ -35,13 +39,14 @@ public abstract class AbstractJob {
             throw new RuntimeException("未查询到任务id为【" + jobId + "】的job任务");
         }
         Map<String, Object> job = list.get(0);
-        Date startTime = (Date) job.get("startTime");
+        LocalDateTime startTime = (LocalDateTime) job.get("startTime");
         String taskParamsStr = MapUtils.getString(job, "taskParams");
         Map<String, Object> taskParams = new HashMap<>();
         if (StringUtils.isNotBlank(taskParamsStr)) {
             ObjectMapper mapper = new ObjectMapper();
             try {
-                taskParams = mapper.readValue(taskParamsStr, new TypeReference<>() {});
+                taskParams = mapper.readValue(taskParamsStr, new TypeReference<>() {
+                });
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
@@ -50,29 +55,38 @@ public abstract class AbstractJob {
         updateParams.put("jobId", jobId);
         try {
             String logName = getJobPreffix() + "-" + jobId;
-            String logPath = Paths.get("logs", logName).toAbsolutePath()+".log";
+            String logPath = Paths.get("logs", logName).toAbsolutePath() + ".log";
             taskParams.put("jobId", jobId);
             updateParams.put("logPath", logPath);
             jt.update("update job set log_path=:logPath where id=:jobId", updateParams);
             MDC.put("bizLogFile", logName);
+            MDC.put("jobId", jobId);
             run(taskParams);
-            Date endTime = new Date();
+            MDC.remove("bizLogFile");
+            MDC.remove("jobId");
+            SpringContextUtil.getBean(LogPushService.class).complete(jobId);
+            LocalDateTime endTime = LocalDateTime.now();
             updateParams.put("state", "SUCCESS");
             updateParams.put("endTime", endTime);
-            updateParams.put("durationMs", endTime.getTime() - startTime.getTime());
+            updateParams.put("durationMs", endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - startTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             updateParams.put("logPath", logPath);
             jt.update("update job set state=:state, end_time=:endTime, duration_ms=:durationMs, log_path=:logPath where id=:jobId", updateParams);
         } catch (Exception e) {
+            SpringContextUtil.getBean(LogPushService.class).complete(jobId);
+            MDC.remove("bizLogFile");
+            MDC.remove("jobId");
             log.error("任务【{}】执行失败：{}", jobId, ExceptionUtils.getStackTrace(e));
-            Date endTime = new Date();
+            LocalDateTime endTime = LocalDateTime.now();
             updateParams.put("state", "FAILED");
             updateParams.put("endTime", endTime);
-            updateParams.put("durationMs", endTime.getTime() - startTime.getTime());
+            updateParams.put("durationMs", endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - startTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             // 将异常栈保存为纯文本，避免二进制序列化导致的编码错误
             updateParams.put("errorMessage", ExceptionUtils.getStackTrace(e));
             jt.update("update job set state=:state, end_time=:endTime, duration_ms=:durationMs, error_message=:errorMessage where id=:jobId", updateParams);
         } finally {
+            SpringContextUtil.getBean(LogPushService.class).complete(jobId);
             MDC.remove("bizLogFile");
+            MDC.remove("jobId");
         }
     }
 

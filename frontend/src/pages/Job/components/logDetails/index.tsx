@@ -31,8 +31,16 @@ const LogDetails = (props: LogDetailsProps) => {
       try {
         const logs = JSON.parse(event.data);
         if (Array.isArray(logs)) {
+          const targetLogs = [];
+          logs.forEach(log=>{
+            if(log.endsWith('\n')) {
+              targetLogs.push(log);
+            }else{
+              targetLogs.push(log+'\n');
+            }
+          });
           // 如果是字符串数组，逐行追加
-          setValue((prev) => prev + logs.join('\n') + '\n');
+          setValue((prev) => prev + targetLogs.join(''));
         } else {
           // 否则，直接追加
           setValue((prev) => prev + logs + '\n');

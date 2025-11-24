@@ -1,6 +1,5 @@
 import React from 'react';
 import './style/index.less';
-import appLoginBg from './images/app-login-bg.png';
 import {Button, Checkbox, Drawer, Form, Input, Message, Notification,} from '@arco-design/web-react';
 import {GlobalContext} from '@/utils/context';
 import {LoginUserInfo} from '@/types/user';
@@ -485,7 +484,6 @@ class appLogin extends React.Component<LoginProps> {
         }
         return (
             <div className="modo-app-login">
-                <img className="bg" src={appLoginBg}/>
                 <div className={'login-all' + (isverifycode ? ' hasverfiy' : '')}>
                     <div className="login-dialog">
                         <div className="login-info">
