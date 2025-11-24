@@ -17,9 +17,6 @@ jobs:
       - name: 拉取代码
         uses: actions/checkout@v3
 
-      - name: 检查 start.sh
-        run: ls -l
-
       - name: 配置Node
         uses: actions/setup-node@v3
         with:
@@ -78,7 +75,7 @@ jobs:
           port: 22
           source: "./backend/start.sh"
           target: "/opt/quiz/"
-          strip_components: 1
+          strip_components: 2
 
       - name: 上传后端Jar
         uses: appleboy/scp-action@v0.1.1
