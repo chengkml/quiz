@@ -38,6 +38,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: 安装 Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: '8.4'   # 可以根据你的项目需求指定版本
+
       - name: 缓存Gradle构建
         uses: actions/cache@v3
         with:
@@ -55,7 +60,7 @@ jobs:
 
       - name: 构建后端Jar
         working-directory: backend
-        run: ./gradlew clean build -x test
+        run: gradle clean build -x test
 
       - name: 部署到服务器
         uses: appleboy/scp-action@v0.1.1
