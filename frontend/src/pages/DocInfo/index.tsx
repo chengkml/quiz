@@ -1,8 +1,22 @@
 import React, {useEffect, useRef, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
-import {Button, DatePicker, Dropdown, Form, Input, Layout, Menu, Message, Modal, Space, Table, Tree} from '@arco-design/web-react';
+import {
+    Button,
+    DatePicker,
+    Dropdown,
+    Form,
+    Grid,
+    Input,
+    Layout,
+    Menu,
+    Message,
+    Modal,
+    Pagination,
+    Space,
+    Table,
+    Tree
+} from '@arco-design/web-react';
 import {IconDelete, IconEdit, IconFile, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
-import FilterForm from '@/components/FilterForm';
 import AddDocInfoModal from './components/AddDocInfoModal';
 import EditDocInfoModal from './components/EditDocInfoModal';
 import DetailDocInfoModal from './components/DetailDocInfoModal';
@@ -11,6 +25,7 @@ import {deleteDocInfo, exportHeadingsToDocx, exportInfToExcel, getDocInfoById, g
 import './index.less';
 
 const {Content} = Layout;
+const {Row, Col} = Grid;
 
 function DocInfoManager() {
     const navigate = useNavigate();
@@ -18,6 +33,7 @@ function DocInfoManager() {
     // 表格数据状态
     const [tableData, setTableData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [tableScrollHeight, setTableScrollHeight] = useState(420);
 
     // 模态框状态
     const [addModalVisible, setAddModalVisible] = useState(false);
@@ -295,31 +311,31 @@ function DocInfoManager() {
                     droplist={
                         <Menu>
                                 <Menu.Item key="detail" onClick={() => navigate(`/quiz/frame/docinfo/detail/${record.id}`)}>
-                                    <IconFile style={{marginRight: 8}}/>
+                                    <IconFile style={{marginRight: 8}} />
                                     查看详情
                                 </Menu.Item>
                                 <Menu.Item key="features" onClick={() => navigate(`/quiz/frame/docinfo/features/${record.id}`)}>
-                                    <IconSearch style={{marginRight: 8}}/>
+                                    <IconSearch style={{marginRight: 8}} />
                                     查看功能点
                                 </Menu.Item>
                                 <Menu.Item key="headingTree" onClick={() => handleViewHeadingTree(record)}>
-                                    <IconList style={{marginRight: 8}}/>
+                                    <IconList style={{marginRight: 8}} />
                                     标题树
                                 </Menu.Item>
                                 <Menu.Item key="exportHeadings" onClick={() => handleExportHeadings(record)}>
-                                    <IconFile style={{marginRight: 8}}/>
+                                    <IconFile style={{marginRight: 8}} />
                                     导出标题
                                 </Menu.Item>
                                 <Menu.Item key="exportInf" onClick={() => handleExportInf(record)}>
-                                    <IconFile style={{marginRight: 8}}/>
+                                    <IconFile style={{marginRight: 8}} />
                                     导出接口信息
                                 </Menu.Item>
                                 <Menu.Item key="edit" onClick={() => handleEdit(record)}>
-                                    <IconEdit style={{marginRight: 8}}/>
+                                    <IconEdit style={{marginRight: 8}} />
                                     编辑
                                 </Menu.Item>
                                 <Menu.Item key="delete" onClick={() => handleDelete(record)}>
-                                    <IconDelete style={{marginRight: 8}}/>
+                                    <IconDelete style={{marginRight: 8}} />
                                     删除
                                 </Menu.Item>
                             </Menu>
@@ -333,7 +349,7 @@ function DocInfoManager() {
                             e.stopPropagation();
                         }}
                     >
-                        <IconList/>
+                        <IconList />
                     </Button>
                 </Dropdown>
             ),
@@ -345,10 +361,9 @@ function DocInfoManager() {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
             // 减去页面其他元素的高度，如头部、筛选区域、分页等
-            // 这里可以根据实际页面布局调整计算逻辑
             const otherElementsHeight = 245; // 预估其他元素占用的高度
             const newHeight = Math.max(200, windowHeight - otherElementsHeight);
-            // 这里不直接设置高度，而是通过Table的scroll.y属性动态调整
+            setTableScrollHeight(newHeight);
         };
 
         // 初始计算
@@ -371,32 +386,72 @@ function DocInfoManager() {
         <Layout className="docinfo-manager">
             <Content>
                 {/* 筛选表单 */}
-                <FilterForm onSearch={searchTableData} onReset={searchTableData}>
-                    <Form.Item label="文件名" field="fileName">
-                        <Input placeholder="请输入文件名"/>
-                    </Form.Item>
-                </FilterForm>
-
-                <div className="action-buttons">
-                    <Button
-                        type="primary"
-                        icon={<IconPlus/>}
-                        onClick={handleAdd}
-                    >
-                        新增文档
-                    </Button>
-                </div>
+                <Form
+                    ref={filterFormRef}
+                    layout="horizontal"
+                    className="filter-form"
+                    style={{ marginTop: '10px' }}
+                    onValuesChange={() => {
+                        const values = filterFormRef.current?.getFieldsValue?.() || {};
+                        searchTableData(values);
+                    }}
+                >
+                    <Row gutter={16}>
+                        <Col span={6}>
+                            <Form.Item field="fileName" label="文件名">
+                                <Input placeholder="请输入文件名" />
+                            </Form.Item>
+                        </Col>
+                        <Col
+                            span={6}
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'flex-start',
+                                alignItems: 'flex-end',
+                                paddingBottom: '16px'
+                            }}
+                        >
+                            <Space>
+                                <Button
+                                    type="primary"
+                                    icon={<IconSearch />}
+                                    onClick={() => {
+                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                        searchTableData(values);
+                                    }}
+                                >
+                                    搜索
+                                </Button>
+                                <Button
+                                    type="primary"
+                                    status="success"
+                                    icon={<IconPlus />}
+                                    onClick={handleAdd}
+                                >
+                                    新增
+                                </Button>
+                            </Space>
+                        </Col>
+                    </Row>
+                </Form>
 
                 {/* 表格 */}
                 <Table
                     columns={columns}
                     data={tableData}
                     loading={loading}
-                    pagination={pagination}
-                    onChange={handlePaginationChange}
+                    pagination={false}
                     rowKey="id"
-                    scroll={{x: 1200}}
+                    scroll={{y: tableScrollHeight}}
                 />
+
+                {/* 分页 */}
+                <div className="pagination-wrapper">
+                    <Pagination
+                        {...pagination}
+                        onChange={handlePaginationChange}
+                    />
+                </div>
 
                 {/* 添加文档模态框 */}
                 <AddDocInfoModal
