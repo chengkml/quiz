@@ -27,9 +27,9 @@ import MindMapEditPage from '@/pages/MindMap/Edit';
 import { UserProvider } from '@/contexts/UserContext';
 import { MenuTreeDto, MenuType } from '@/types/menu';
 import Model from "@/pages/Model";
-import DocInfoManager from '@/pages/DocInfo';
-import DocInfoDetail from '@/pages/DocInfo/Detail';
-import DocInfoFeatures from '@/pages/DocInfo/Features';
+import FuncDocManager from '@/pages/FuncDoc';
+import FuncDocDetail from '@/pages/FuncDoc/Detail';
+import FuncDocFeatures from '@/pages/FuncDoc/Features';
 import PromptTemplateManagement from '@/pages/Prompt';
 import CronTask from '@/pages/CronTask';
 
@@ -128,7 +128,7 @@ const protectedPages = [
     { path: 'history', element: <ExamHistoryManager />, requiredPath: 'history' },
     { path: 'llmmodel', element: <Model />, requiredPath: 'llmmodel' },
     { path: 'mindmap', element: <MindMapPage />, requiredPath: 'mindmap' },
-    { path: 'docinfo', element: <DocInfoManager />, requiredPath: 'docinfo' },
+    { path: 'FuncDoc', element: <FuncDocManager />, requiredPath: 'funcDoc' },
     { path: 'prompt', element: <PromptTemplateManagement />, requiredPath: 'prompt' },
     { path: 'cron', element: <CronTask />, requiredPath: 'cron' },
 ];
@@ -178,8 +178,8 @@ export const router = createBrowserRouter([
             { path: 'mindmap/edit', element: <MindMapEditPage /> },
             { path: 'mindmap/edit/:id', element: <MindMapEditPage /> },
             // 非菜单页：文档详情页和功能点页
-            { path: 'docinfo/detail/:id', element: <DocInfoDetail /> },
-            { path: 'docinfo/features/:id', element: <DocInfoFeatures /> },
+            { path: 'FuncDoc/detail/:id', element: <FuncDocDetail /> },
+            { path: 'FuncDoc/features/:id', element: <FuncDocFeatures /> },
             { path: 'notfound', element: <NotFound /> },
         ],
     },

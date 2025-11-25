@@ -1,8 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
-import { useNavigate } from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import {
     Button,
-    DatePicker,
     Dropdown,
     Form,
     Grid,
@@ -21,7 +20,14 @@ import AddDocInfoModal from './components/AddDocInfoModal';
 import EditDocInfoModal from './components/EditDocInfoModal';
 import DetailDocInfoModal from './components/DetailDocInfoModal';
 
-import {deleteDocInfo, exportHeadingsToDocx, exportInfToExcel, getDocInfoById, getDocInfoList, getDocHeadingTree} from './api';
+import {
+    deleteDocInfo,
+    exportHeadingsToDocx,
+    exportInfToExcel,
+    getDocHeadingTree,
+    getDocInfoById,
+    getDocInfoList
+} from './api';
 import './index.less';
 
 const {Content} = Layout;
@@ -29,7 +35,7 @@ const {Row, Col} = Grid;
 
 function DocInfoManager() {
     const navigate = useNavigate();
-    
+
     // 表格数据状态
     const [tableData, setTableData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -182,7 +188,7 @@ function DocInfoManager() {
     const handleExportHeadings = async (record: any) => {
         try {
             const response = await exportHeadingsToDocx(record.id);
-            
+
             // 创建下载链接
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
@@ -192,23 +198,23 @@ function DocInfoManager() {
             link.setAttribute('download', fileName);
             document.body.appendChild(link);
             link.click();
-            
+
             // 清理
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-            
+
             Message.success('标题导出成功');
         } catch (error) {
             console.error('标题导出失败:', error);
             Message.error('标题导出失败，请重试');
         }
     };
-    
+
     // 处理导出接口信息到Excel
     const handleExportInf = async (record: any) => {
         try {
             const response = await exportInfToExcel(record.id);
-            
+
             // 创建下载链接
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
@@ -218,11 +224,11 @@ function DocInfoManager() {
             link.setAttribute('download', fileName);
             document.body.appendChild(link);
             link.click();
-            
+
             // 清理
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-            
+
             Message.success('接口信息导出成功');
         } catch (error) {
             console.error('接口信息导出失败:', error);
@@ -310,35 +316,36 @@ function DocInfoManager() {
                 <Dropdown
                     droplist={
                         <Menu>
-                                <Menu.Item key="detail" onClick={() => navigate(`/quiz/frame/docinfo/detail/${record.id}`)}>
-                                    <IconFile style={{marginRight: 8}} />
-                                    查看详情
-                                </Menu.Item>
-                                <Menu.Item key="features" onClick={() => navigate(`/quiz/frame/docinfo/features/${record.id}`)}>
-                                    <IconSearch style={{marginRight: 8}} />
-                                    查看功能点
-                                </Menu.Item>
-                                <Menu.Item key="headingTree" onClick={() => handleViewHeadingTree(record)}>
-                                    <IconList style={{marginRight: 8}} />
-                                    标题树
-                                </Menu.Item>
-                                <Menu.Item key="exportHeadings" onClick={() => handleExportHeadings(record)}>
-                                    <IconFile style={{marginRight: 8}} />
-                                    导出标题
-                                </Menu.Item>
-                                <Menu.Item key="exportInf" onClick={() => handleExportInf(record)}>
-                                    <IconFile style={{marginRight: 8}} />
-                                    导出接口信息
-                                </Menu.Item>
-                                <Menu.Item key="edit" onClick={() => handleEdit(record)}>
-                                    <IconEdit style={{marginRight: 8}} />
-                                    编辑
-                                </Menu.Item>
-                                <Menu.Item key="delete" onClick={() => handleDelete(record)}>
-                                    <IconDelete style={{marginRight: 8}} />
-                                    删除
-                                </Menu.Item>
-                            </Menu>
+                            <Menu.Item key="detail" onClick={() => navigate(`/quiz/frame/docinfo/detail/${record.id}`)}>
+                                <IconFile style={{marginRight: 8}}/>
+                                查看详情
+                            </Menu.Item>
+                            <Menu.Item key="features"
+                                       onClick={() => navigate(`/quiz/frame/docinfo/features/${record.id}`)}>
+                                <IconSearch style={{marginRight: 8}}/>
+                                查看功能点
+                            </Menu.Item>
+                            <Menu.Item key="headingTree" onClick={() => handleViewHeadingTree(record)}>
+                                <IconList style={{marginRight: 8}}/>
+                                标题树
+                            </Menu.Item>
+                            <Menu.Item key="exportHeadings" onClick={() => handleExportHeadings(record)}>
+                                <IconFile style={{marginRight: 8}}/>
+                                导出标题
+                            </Menu.Item>
+                            <Menu.Item key="exportInf" onClick={() => handleExportInf(record)}>
+                                <IconFile style={{marginRight: 8}}/>
+                                导出接口信息
+                            </Menu.Item>
+                            <Menu.Item key="edit" onClick={() => handleEdit(record)}>
+                                <IconEdit style={{marginRight: 8}}/>
+                                编辑
+                            </Menu.Item>
+                            <Menu.Item key="delete" onClick={() => handleDelete(record)}>
+                                <IconDelete style={{marginRight: 8}}/>
+                                删除
+                            </Menu.Item>
+                        </Menu>
                     }
                     position="bl"
                 >
@@ -349,7 +356,7 @@ function DocInfoManager() {
                             e.stopPropagation();
                         }}
                     >
-                        <IconList />
+                        <IconList/>
                     </Button>
                 </Dropdown>
             ),
@@ -390,7 +397,7 @@ function DocInfoManager() {
                     ref={filterFormRef}
                     layout="horizontal"
                     className="filter-form"
-                    style={{ marginTop: '10px' }}
+                    style={{marginTop: '10px'}}
                     onValuesChange={() => {
                         const values = filterFormRef.current?.getFieldsValue?.() || {};
                         searchTableData(values);
@@ -399,7 +406,7 @@ function DocInfoManager() {
                     <Row gutter={16}>
                         <Col span={6}>
                             <Form.Item field="fileName" label="文件名">
-                                <Input placeholder="请输入文件名" />
+                                <Input placeholder="请输入文件名"/>
                             </Form.Item>
                         </Col>
                         <Col
@@ -414,7 +421,7 @@ function DocInfoManager() {
                             <Space>
                                 <Button
                                     type="primary"
-                                    icon={<IconSearch />}
+                                    icon={<IconSearch/>}
                                     onClick={() => {
                                         const values = filterFormRef.current?.getFieldsValue?.() || {};
                                         searchTableData(values);
@@ -425,7 +432,7 @@ function DocInfoManager() {
                                 <Button
                                     type="primary"
                                     status="success"
-                                    icon={<IconPlus />}
+                                    icon={<IconPlus/>}
                                     onClick={handleAdd}
                                 >
                                     新增
@@ -492,17 +499,17 @@ function DocInfoManager() {
                     width={600}
                     footer={null}
                 >
-                    <div style={{ maxHeight: '500px', overflow: 'auto' }}>
+                    <div style={{maxHeight: '500px', overflow: 'auto'}}>
                         {headingTreeLoading ? (
-                            <div style={{ textAlign: 'center', padding: '40px 0' }}>加载中...</div>
+                            <div style={{textAlign: 'center', padding: '40px 0'}}>加载中...</div>
                         ) : headingTreeData.length > 0 ? (
                             <Tree
                                 treeData={headingTreeData}
                                 defaultExpandAll
-                                style={{ marginTop: 16 }}
+                                style={{marginTop: 16}}
                             />
                         ) : (
-                            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-secondary)' }}>
+                            <div style={{textAlign: 'center', padding: '40px 0', color: 'var(--color-text-secondary)'}}>
                                 暂无标题数据
                             </div>
                         )}
