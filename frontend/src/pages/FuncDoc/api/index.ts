@@ -3,19 +3,19 @@ import axios from '@/core/src/http';
 const base = '/quiz';
 
 // 获取文档列表（分页查询）
-const getDocInfoList = params => axios.get(`${base}/api/documents/page`, { params });
+const getDocInfoList = params => axios.get(`${base}/api/func/doc/page`, { params });
 
 // 获取文档详情
-const getDocInfoById = id => axios.get(`${base}/api/documents/${id}`);
+const getDocInfoById = id => axios.get(`${base}/api/func/doc/${id}`);
 
 // 创建文档
-const createDocInfo = params => axios.post(`${base}/api/documents`, params);
+const createDocInfo = params => axios.post(`${base}/api/func/doc`, params);
 
 // 更新文档
-const updateDocInfo = params => axios.put(`${base}/api/documents`, params);
+const updateDocInfo = params => axios.put(`${base}/api/func/doc`, params);
 
 // 删除文档
-const deleteDocInfo = id => axios.delete(`${base}/api/documents/${id}`);
+const deleteDocInfo = id => axios.delete(`${base}/api/func/doc/${id}`);
 
 // 上传文档文件
 const uploadDocFile = async (file: File) => {
@@ -24,7 +24,7 @@ const uploadDocFile = async (file: File) => {
     formData.append('file', file);
     
     // 移除手动设置的 Content-Type，让浏览器自动设置，这样会包含正确的 boundary
-    const response = await axios.post(`${base}/api/documents/upload`, formData, {
+    const response = await axios.post(`${base}/api/func/doc/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       // 添加响应类型配置
       responseType: 'json'
@@ -38,21 +38,21 @@ const uploadDocFile = async (file: File) => {
 };
 
 // 获取文档标题树
-const getDocHeadingTree = id => axios.get(`${base}/api/documents/${id}/heading-tree`);
+const getDocHeadingTree = id => axios.get(`${base}/api/func/doc/${id}/heading-tree`);
 
 // 获取文档流程节点（分页查询）
 const getDocProcessNodes = (docId, pageNum = 1, pageSize = 20, keyWord = '', headingId = '') => {
-  return axios.get(`${base}/api/documents/${docId}/process-nodes/page`, {
+  return axios.get(`${base}/api/func/doc/${docId}/process-nodes/page`, {
     params: { pageNum, pageSize, keyWord, headingId }
   });
 };
 
 // 获取文档功能点树
-const getFunctionPointTree = id => axios.get(`${base}/api/documents/${id}/function-point-tree`);
+const getFunctionPointTree = id => axios.get(`${base}/api/func/doc/${id}/function-point-tree`);
 
 // 获取文档功能点（分页查询）
 const getDocFunctionPoints = (docId, pageNum = 1, pageSize = 20, keyWord = '', parentId = '') => {
-  return axios.get(`${base}/api/documents/${docId}/function-points/three-level/page`, {
+  return axios.get(`${base}/api/func/doc/${docId}/function-points/three-level/page`, {
     params: { 
       pageNum, 
       pageSize, 
@@ -64,29 +64,29 @@ const getDocFunctionPoints = (docId, pageNum = 1, pageSize = 20, keyWord = '', p
 
 // AI生成流程说明
 const generateProcessDescription = functionId => {
-  return axios.post(`${base}/api/documents/process/generate/${functionId}`);
+  return axios.post(`${base}/api/func/doc/process/generate/${functionId}`);
 };
 
 // AI生成流程图
 const generateFlow = functionId => {
-  return axios.post(`${base}/api/documents/process/generate/flow/${functionId}`);
+  return axios.post(`${base}/api/func/doc/process/generate/flow/${functionId}`);
 };
 
 // AI生成接口说明
 const generateInf = functionId => {
-  return axios.post(`${base}/api/documents/process/generate/inf/${functionId}`);
+  return axios.post(`${base}/api/func/doc/process/generate/inf/${functionId}`);
 };
 
 // 导出文档标题到docx
 const exportHeadingsToDocx = id => {
-  return axios.get(`${base}/api/documents/${id}/export-headings`, {
+  return axios.get(`${base}/api/func/doc/${id}/export-headings`, {
     responseType: 'blob' // 重要：设置响应类型为blob
   });
 };
 
 // 导出接口信息到Excel
 const exportInfToExcel = id => {
-  return axios.get(`${base}/api/documents/${id}/export-inf`, {
+  return axios.get(`${base}/api/func/doc/${id}/export-inf`, {
     responseType: 'blob' // 重要：设置响应类型为blob
   });
 };

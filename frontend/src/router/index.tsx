@@ -16,6 +16,8 @@ import CategoryManagement from '@/pages/Category';
 import KnowledgeManagement from '@/pages/Knowledge';
 import UserManagement from '@/pages/User';
 import TodoManagement from '@/pages/Todo';
+import DocManagement from '@/pages/DocMgr';
+import ScheduleManagement from '@/pages/Schedule';
 import ScriptManagement from '@/pages/Script';
 import JobQueueManagement from '@/pages/JobQueue';
 import JobManager from '@/pages/Job';
@@ -122,6 +124,8 @@ const protectedPages = [
     { path: 'datasource', element: <DatasourceManagement />, requiredPath: 'datasource' },
     { path: 'exam', element: <ExamManagement />, requiredPath: 'exam' },
     { path: 'todo', element: <TodoManagement />, requiredPath: 'todo' },
+    { path: 'doc', element: <DocManagement />, requiredPath: 'doc' },
+    { path: 'schedule', element: <ScheduleManagement />, requiredPath: 'schedule' },
     { path: 'script', element: <ScriptManagement />, requiredPath: 'script' },
     { path: 'jobqueue', element: <JobQueueManagement />, requiredPath: 'jobqueue' },
     { path: 'job', element: <JobManager />, requiredPath: 'job' },
@@ -178,8 +182,8 @@ export const router = createBrowserRouter([
             { path: 'mindmap/edit', element: <MindMapEditPage /> },
             { path: 'mindmap/edit/:id', element: <MindMapEditPage /> },
             // 非菜单页：文档详情页和功能点页
-            { path: 'FuncDoc/detail/:id', element: <FuncDocDetail /> },
-            { path: 'FuncDoc/features/:id', element: <FuncDocFeatures /> },
+            { path: 'funcDoc/detail/:id', element: <FuncDocDetail /> },
+            { path: 'funcDoc/features/:id', element: <FuncDocFeatures /> },
             { path: 'notfound', element: <NotFound /> },
         ],
     },

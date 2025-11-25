@@ -1,0 +1,262 @@
+.schedule-manager {
+
+  box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+  overflow: hidden;
+  background: var(--background-color-base);
+  height: 100vh;
+  width: 100%;
+
+  .arco-layout {
+    margin: 10px;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: calc(100% - 20px);
+    width: calc(100% - 20px);
+  }
+
+  // 控制栏样式
+  .control-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-white);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--color-border-2);
+  }
+
+  .view-switcher {
+    display: flex;
+    gap: 4px;
+    background: var(--color-bg-2);
+    padding: 2px;
+    border-radius: 6px;
+  }
+
+  .view-switcher .arco-btn {
+    border-radius: 4px;
+    transition: all 0.3s ease;
+  }
+
+  .view-switcher .arco-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .date-navigation {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .current-date {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text-1);
+    min-width: 200px;
+    text-align: center;
+    padding: 8px 16px;
+    background: var(--color-bg-2);
+    border-radius: 6px;
+  }
+
+  // 日历容器
+  .calendar-container {
+    height: calc(100% - 100px);
+    overflow: auto;
+    padding: 12px;
+    background: var(--color-bg-1);
+    border-radius: 8px;
+  }
+
+  // 滚动条样式
+  .calendar-container::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .calendar-container::-webkit-scrollbar-track {
+    background: var(--color-bg-2);
+    border-radius: 3px;
+  }
+
+  .calendar-container::-webkit-scrollbar-thumb {
+    background: var(--color-border-3);
+    border-radius: 3px;
+  }
+
+  .calendar-container::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-2);
+  }
+
+  // 日历单元格样式
+  .calendar-cell {
+    border: 1px solid var(--color-border);
+    min-height: 100px;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .calendar-cell:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+
+  .calendar-cell-today {
+    background-color: var(--color-primary-light-1);
+    border-color: var(--color-primary-light-3);
+  }
+
+  .calendar-cell-today::before {
+    content: '今天';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 10px;
+    color: var(--color-primary);
+    background: white;
+    padding: 2px 4px;
+    border-radius: 2px;
+    border: 1px solid var(--color-primary-light-3);
+  }
+
+  .calendar-cell-other-month {
+    opacity: 0.5;
+    background: var(--color-bg-2);
+  }
+
+  // 日程项样式
+  .schedule-item {
+    padding: 6px 8px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    color: white;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .schedule-item:hover {
+    transform: translateX(4px) scale(1.02);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+  }
+
+  // 周视图特殊样式
+  .week-day-container {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  .week-day-header {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--color-primary-light-1);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text-1);
+  }
+
+  // 年视图特殊样式
+  .year-month-card {
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .year-month-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-primary-light-3);
+  }
+
+  .year-month-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--color-primary-light-3);
+  }
+
+  .year-month-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--color-text-1);
+  }
+
+  .year-month-stats {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  // 模态框样式增强
+  .arco-modal {
+    .arco-modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--color-text-1);
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .arco-modal-footer {
+      padding-top: 16px;
+      border-top: 1px solid var(--color-border);
+    }
+  }
+
+  .modal-form {
+    .arco-form-item-label {
+      font-weight: 500;
+      color: var(--color-text-1);
+    }
+
+    .arco-form-item {
+      margin-bottom: 20px;
+    }
+  }
+
+  // 响应式设计
+  @media (max-width: 768px) {
+    .control-bar {
+      flex-direction: column;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .view-switcher {
+      justify-content: center;
+    }
+
+    .date-navigation {
+      justify-content: center;
+    }
+
+    .calendar-container {
+      height: calc(100% - 160px);
+    }
+  }
+}
