@@ -29,6 +29,9 @@ const getAllCategories = () => axios.get(`${base}/api/categories/all`);
 // 获取所有学科列表
 const getAllSubjects = () => axios.get(`${base}/api/subject/list/all`);
 
+// 获取学科分类树
+const getSubjectCategoryTree = () => axios.get(`${base}/api/categories/subject/category/tree`);
+
 // 根据学科ID获取分类列表
 const getCategoriesBySubjectId = (subjectId) => axios.get(`${base}/api/categories/subject/${subjectId}`);
 
@@ -46,5 +49,6 @@ export {
   getAllCategories,
   getAllSubjects,
   getCategoriesBySubjectId,
-  getKnowledgeQuestions
+  getKnowledgeQuestions,
+  getSubjectCategoryTree
 };
