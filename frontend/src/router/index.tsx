@@ -34,6 +34,7 @@ import FuncDocDetail from '@/pages/FuncDoc/Detail';
 import FuncDocFeatures from '@/pages/FuncDoc/Features';
 import PromptTemplateManagement from '@/pages/Prompt';
 import CronTask from '@/pages/CronTask';
+import FileDetector from '@/pages/FileDetector';
 
 /**
  * 检查用户是否有访问指定路径的权限
@@ -135,6 +136,7 @@ const protectedPages = [
     { path: 'FuncDoc', element: <FuncDocManager />, requiredPath: 'funcDoc' },
     { path: 'prompt', element: <PromptTemplateManagement />, requiredPath: 'prompt' },
     { path: 'cron', element: <CronTask />, requiredPath: 'cron' },
+    { path: 'filedetector', element: <FileDetector />, requiredPath: 'filedetector' },
 ];
 
 /**
