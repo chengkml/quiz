@@ -3,12 +3,7 @@ package com.ck.quiz.cron.service;
 import com.ck.quiz.cron.domain.CronTask;
 import com.ck.quiz.cron.domain.JobQueue;
 import com.ck.quiz.cron.dto.CronTaskDto;
-import com.ck.quiz.cron.exec.AbstractAsyncJob;
-import com.ck.quiz.cron.exec.AbstractCronTask;
-import com.ck.quiz.cron.exec.AbstractJob;
-import com.ck.quiz.cron.exec.CronTaskTest;
-import com.ck.quiz.cron.exec.LocalScriptExecJob;
-import com.ck.quiz.cron.exec.RemoteScriptExecJob;
+import com.ck.quiz.cron.exec.*;
 import com.ck.quiz.cron.repository.CronTaskRepository;
 import com.ck.quiz.cron.repository.JobQueueRepository;
 import com.ck.quiz.utils.HumpHelper;
@@ -163,11 +158,27 @@ public class CronTaskService {
                 .map(clazz -> {
                     try {
                         Object instance = clazz.getDeclaredConstructor().newInstance();
-                        AbstractCronTask task = (AbstractCronTask) instance;
-                        Map<String, String> option = new HashMap<>();
-                        option.put("label", task.getTaskLabel());
-                        option.put("value", clazz.getName());
-                        return option;
+                        if (instance instanceof AbstractCronTask) {
+                            AbstractCronTask task = (AbstractCronTask) instance;
+                            Map<String, String> option = new HashMap<>();
+                            option.put("label", task.getTaskLabel());
+                            option.put("value", clazz.getName());
+                            return option;
+                        } else if (instance instanceof AbstractAsyncJob) {
+                            AbstractAsyncJob job = (AbstractAsyncJob) instance;
+                            Map<String, String> option = new HashMap<>();
+                            option.put("label", job.getJobLabel());
+                            option.put("value", clazz.getName());
+                            return option;
+                        } else if (instance instanceof AbstractJob) {
+                            AbstractJob job = (AbstractJob) instance;
+                            Map<String, String> option = new HashMap<>();
+                            option.put("label", job.getJobLabel());
+                            option.put("value", clazz.getName());
+                            return option;
+                        }else{
+                            return new HashMap<String, String>();
+                        }
                     } catch (Exception e) {
                         throw new RuntimeException("Failed to instantiate task class: " + clazz.getName(), e);
                     }
