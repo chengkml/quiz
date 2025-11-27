@@ -52,18 +52,18 @@ class appLogin extends React.Component<LoginProps> {
         const identity = props.identity || {};
         const {extConf, label} = identity;
         if (extConf) {
-            logoTitle = extConf.loginTitle || '数据合成平台';
+            logoTitle = extConf.loginTitle || 'Quiz';
             logoUrl = extConf.logoUrl;
             isverifycode = extConf.isverifycode === true;
             hiddenLogo = extConf.hiddenLogo;
-            document.title = extConf.loginTitle || label || '数据合成平台';
+            document.title = extConf.loginTitle || label || 'Quiz';
         } else {
             // 默认配置
-            logoTitle = '数据合成平台';
+            logoTitle = 'Quiz';
             logoUrl = '';
             isverifycode = false;
             hiddenLogo = false;
-            document.title = '数据合成平台';
+            document.title = 'Quiz';
         }
     };
 
