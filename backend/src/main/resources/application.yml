@@ -3,7 +3,7 @@ server:
   servlet:
     context-path: /quiz
     session:
-      timeout: 60m
+      timeout: 8h
 
 spring:
   application:
