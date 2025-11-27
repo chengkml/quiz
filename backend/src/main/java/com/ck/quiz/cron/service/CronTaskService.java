@@ -157,7 +157,7 @@ public class CronTaskService {
     }
 
     public List<Map<String, String>> getTaskOptions() {
-        return Arrays.stream(new Class[]{CronTaskTest.class})
+        return Arrays.stream(new Class[]{CronTaskTest.class, RemoteScriptExecJob.class, LocalScriptExecJob.class})
                 .filter(clazz -> AbstractCronTask.class.isAssignableFrom(clazz) || AbstractAsyncJob.class.isAssignableFrom(clazz)) // 必须继承 AbstractJob
                 .filter(clazz -> !Modifier.isAbstract(clazz.getModifiers())) // 排除抽象类
                 .map(clazz -> {
