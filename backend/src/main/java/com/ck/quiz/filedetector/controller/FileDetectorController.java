@@ -3,6 +3,7 @@ package com.ck.quiz.filedetector.controller;
 import com.ck.quiz.filedetector.service.FileTypeDetector;
 import com.ck.quiz.filedetector.service.impl.MagicFileTypeDetector;
 import com.ck.quiz.filedetector.service.impl.TikaFileTypeDetector;
+import com.ck.quiz.utils.IdHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,7 +33,7 @@ public class FileDetectorController {
             @RequestParam("file") MultipartFile file) {
 
         if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body(new FileInfoDto(
+            return ResponseEntity.badRequest().body(new FileInfoDto(IdHelper.genUuid(),
                     file.getOriginalFilename(), 0L, "", "unknown", type));
         }
 
@@ -48,6 +49,7 @@ public class FileDetectorController {
             }
 
             FileInfoDto result = new FileInfoDto(
+                    IdHelper.genUuid(),
                     originalName,
                     file.getSize(),
                     extension,
@@ -57,12 +59,12 @@ public class FileDetectorController {
 
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new FileInfoDto(
+            return ResponseEntity.badRequest().body(new FileInfoDto(IdHelper.genUuid(),
                     file.getOriginalFilename(), file.getSize(), "", "unknown", type
             ));
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body(new FileInfoDto(
+            return ResponseEntity.status(500).body(new FileInfoDto(IdHelper.genUuid(),
                     file.getOriginalFilename(), file.getSize(), "", "unknown", type
             ));
         }
@@ -70,13 +72,14 @@ public class FileDetectorController {
 
     // 内部 DTO 类
     record FileInfoDto(
+            String id,
             String fileName,
             long size,
             String extension,
             String mimeType,
             String detectorType
-    ) {}
-
+    ) {
+    }
 
 
     private FileTypeDetector selectDetector(String type) {
