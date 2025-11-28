@@ -44,12 +44,12 @@ public class WxUserMappingServiceImpl implements WxUserMappingService {
     @Override
     public WxLoginRespDto login(WxLoginDto dto) {
         String appId = dto.getAppId();
-        String openid = wxLoginHelper.getOpenIdByCode(appId, dto.getCode());
-        if (openid == null) {
+        String openId = wxLoginHelper.getOpenIdByCode(appId, dto.getCode());
+        if (openId == null) {
             throw new RuntimeException("微信 code 无效或已过期");
         }
 
-        Optional<WxUserMapping> mappingOpt = wxUserMappingRepository.findByAppIdAndOpenId(appId, openid);
+        Optional<WxUserMapping> mappingOpt = wxUserMappingRepository.findByAppIdAndOpenId(appId, openId);
         if (mappingOpt.isPresent()) {
             // 已绑定 Web 用户
             User user = mappingOpt.get().getUser();
@@ -64,6 +64,11 @@ public class WxUserMappingServiceImpl implements WxUserMappingService {
     @Override
     @Transactional
     public WxLoginRespDto bind(WxBindDto dto) {
+        String appId = dto.getAppId();
+        String openId = wxLoginHelper.getOpenIdByCode(appId, dto.getCode());
+        if (openId == null) {
+            throw new RuntimeException("微信 code 无效或已过期");
+        }
         // 1. 查找 Web 用户
         User user = userRepository.findByUserId(dto.getUserId())
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
@@ -74,7 +79,7 @@ public class WxUserMappingServiceImpl implements WxUserMappingService {
         }
 
         // 3. 检查是否已绑定
-        if (wxUserMappingRepository.findByAppIdAndOpenId(dto.getAppId(), dto.getOpenId()).isPresent()) {
+        if (wxUserMappingRepository.findByAppIdAndOpenId(dto.getAppId(), openId).isPresent()) {
             throw new RuntimeException("该小程序用户已绑定其他账号");
         }
 
@@ -82,7 +87,7 @@ public class WxUserMappingServiceImpl implements WxUserMappingService {
         WxUserMapping mapping = new WxUserMapping();
         mapping.setMappingId(IdHelper.genUuid());
         mapping.setAppId(dto.getAppId());
-        mapping.setOpenId(dto.getOpenId());
+        mapping.setOpenId(openId);
         mapping.setUser(user);
         mapping.setCreateTime(LocalDateTime.now());
         wxUserMappingRepository.save(mapping);
