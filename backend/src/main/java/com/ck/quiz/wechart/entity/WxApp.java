@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 
@@ -36,8 +38,8 @@ public class WxApp {
     /**
      * 小程序 AppId，用于调用微信接口
      */
-    @Column(name = "appid", length = 64, nullable = false)
-    private String appid;
+    @Column(name = "app_id", length = 64, nullable = false)
+    private String appId;
 
     /**
      * 小程序 AppSecret，用于调用微信接口
@@ -52,15 +54,48 @@ public class WxApp {
     @Column(name = "app_name", length = 128)
     private String appName;
 
+    @Column(name = "app_descr", length = 2048)
+    private String appDescr;
+
     /**
      * 创建时间
      */
-    @Column(name = "create_time", nullable = false)
-    private LocalDateTime createTime;
+    @Column(name = "create_date", nullable = false)
+    private LocalDateTime createDate;
+
+    /**
+     * 创建人
+     */
+    @Column(name = "create_user", length = 64, updatable = false)
+    private String createUser;
 
     /**
      * 更新时间
      */
-    @Column(name = "update_time")
-    private LocalDateTime updateTime;
+    @Column(name = "update_date")
+    private LocalDateTime updateDate;
+
+    /**
+     * 更新人
+     */
+    @Column(name = "update_user", length = 64)
+    private String updateUser;
+
+    @PrePersist
+    public void prePersist() {
+        this.createDate = LocalDateTime.now();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            this.createUser = authentication.getName();
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updateDate = LocalDateTime.now();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            this.updateUser = authentication.getName();
+        }
+    }
 }

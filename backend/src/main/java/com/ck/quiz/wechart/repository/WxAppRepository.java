@@ -13,10 +13,10 @@ public interface WxAppRepository extends JpaRepository<WxApp, String> {
     /**
      * 根据 appid 查询小程序配置
      *
-     * @param appid 小程序 AppId
+     * @param appId 小程序 AppId
      * @return Optional<WxApp> 配置对象
      */
-    Optional<WxApp> findByAppid(String appid);
+    Optional<WxApp> findByAppId(String appId);
 
-    boolean existsByAppid(String appid);
+    boolean existsByAppId(String appId);
 }

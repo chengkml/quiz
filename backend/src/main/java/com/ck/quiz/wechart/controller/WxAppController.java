@@ -55,8 +55,8 @@ public class WxAppController {
 
     @Operation(summary = "分页查询小程序 App", description = "分页获取小程序 App 列表")
     @PostMapping("/search")
-    public ResponseEntity<Page<TodoDto>> search(@Valid @RequestBody WxAppQueryDto queryDto) {
-        Page<TodoDto> page = wxAppService.searchTodos(queryDto);
+    public ResponseEntity<Page<WxAppDto>> search(@Valid @RequestBody WxAppQueryDto queryDto) {
+        Page<WxAppDto> page = wxAppService.searchTodos(queryDto);
         return ResponseEntity.ok(page);
     }
 }

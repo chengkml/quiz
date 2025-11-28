@@ -1,6 +1,5 @@
 package com.ck.quiz.wechart.service.impl;
 
-import com.ck.quiz.todo.dto.TodoDto;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import com.ck.quiz.wechart.dto.WxAppCreateDto;
@@ -35,24 +34,20 @@ public class WxAppServiceImpl implements WxAppService {
 
     @Override
     public WxApp createWxApp(WxAppCreateDto dto) {
-        if (wxAppRepository.existsByAppid(dto.getAppid())) {
-            throw new RuntimeException("appid 已存在：" + dto.getAppid());
+        if (wxAppRepository.existsByAppId(dto.getAppId())) {
+            throw new RuntimeException("appid 已存在：" + dto.getAppId());
         }
 
         WxApp wxApp = new WxApp();
+        BeanUtils.copyProperties(dto, wxApp);
         wxApp.setId(IdHelper.genUuid());
-        wxApp.setAppid(dto.getAppid());
-        wxApp.setAppSecret(dto.getAppSecret());
-        wxApp.setAppName(dto.getAppName());
-        wxApp.setCreateTime(LocalDateTime.now());
-        wxApp.setUpdateTime(LocalDateTime.now());
 
         return wxAppRepository.save(wxApp);
     }
 
     @Override
     public WxApp updateWxApp(WxAppUpdateDto dto) {
-        WxApp wxApp = wxAppRepository.findById(dto.getAppId())
+        WxApp wxApp = wxAppRepository.findById(dto.getId())
                 .orElseThrow(() -> new RuntimeException("WxApp 不存在: " + dto.getAppId()));
 
         if (dto.getAppSecret() != null && !dto.getAppSecret().isEmpty()) {
@@ -61,8 +56,10 @@ public class WxAppServiceImpl implements WxAppService {
         if (dto.getAppName() != null && !dto.getAppName().isEmpty()) {
             wxApp.setAppName(dto.getAppName());
         }
+        if (dto.getAppDescr() != null && !dto.getAppDescr().isEmpty()) {
+            wxApp.setAppDescr(dto.getAppDescr());
+        }
 
-        wxApp.setUpdateTime(LocalDateTime.now());
         return wxAppRepository.save(wxApp);
     }
 
@@ -86,19 +83,19 @@ public class WxAppServiceImpl implements WxAppService {
     }
 
     @Override
-    public Page<TodoDto> searchTodos(WxAppQueryDto queryDto) {
+    public Page<WxAppDto> searchTodos(WxAppQueryDto queryDto) {
         // SQL 基础查询
-        StringBuilder sql = new StringBuilder("select * from wx_app where 1=1 ");
-        StringBuilder countSql = new StringBuilder("select count(1) from wx_app where 1=1 ");
+        StringBuilder sql = new StringBuilder("select a.*, u.user_name update_user_name from wx_app a left join user u on u.user_id = a.update_user where 1=1 ");
+        StringBuilder countSql = new StringBuilder("select count(1) from wx_app a where 1=1 ");
         Map<String, Object> params = new HashMap<>();
         int pageSize = queryDto.getLimit();
         int pageNum = queryDto.getOffset() / pageSize;
 
         // 动态条件
-        JdbcQueryHelper.lowerLike("appName", queryDto.getName(), " and lower(app_name) like :appName ", params, namedParameterJdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("appName", queryDto.getName(), " and (lower(a.app_name) like :appName or lower(a.app_descr) like :appName or lower(a.app_label) like :appName) ", params, namedParameterJdbcTemplate, sql, countSql);
 
         // 排序
-        JdbcQueryHelper.order("update_time", "desc", sql);
+        JdbcQueryHelper.order("a.update_date", "desc", sql);
 
         // 分页 SQL
         String pagedSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), pageNum, pageSize);
@@ -107,14 +104,19 @@ public class WxAppServiceImpl implements WxAppService {
         List<Map<String, Object>> rows = namedParameterJdbcTemplate.queryForList(pagedSql, params);
 
         // 转换为 TodoDto
-        List<TodoDto> dtoList = new java.util.ArrayList<>();
+        List<WxAppDto> dtoList = new java.util.ArrayList<>();
         for (Map<String, Object> row : rows) {
-            TodoDto dto = new TodoDto();
-            dto.setId((String) row.get("app_id"));
-            dto.setTitle((String) row.get("app_name"));
-            dto.setDescription((String) row.get("appid"));
-            dto.setCreateDate((LocalDateTime) row.get("create_time"));
-            dto.setUpdateDate((LocalDateTime) row.get("update_time"));
+            WxAppDto dto = new WxAppDto();
+            dto.setId((String) row.get("id"));
+            dto.setAppId((String) row.get("app_id"));
+            dto.setAppName((String) row.get("app_name"));
+            dto.setAppSecret((String) row.get("app_secret"));
+            dto.setAppDescr((String) row.get("app_descr"));
+            dto.setCreateDate((LocalDateTime) row.get("create_date"));
+            dto.setCreateUser((String) row.get("create_user"));
+            dto.setUpdateDate((LocalDateTime) row.get("update_date"));
+            dto.setUpdateUser((String) row.get("update_user"));
+            dto.setUpdateUserName((String) row.get("update_user_name"));
             dtoList.add(dto);
         }
 

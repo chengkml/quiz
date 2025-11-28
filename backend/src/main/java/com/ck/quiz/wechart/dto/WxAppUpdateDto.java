@@ -14,9 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class WxAppUpdateDto {
 
-    /**
-     * 主键ID
-     */
+    private String id;
+
     @NotBlank(message = "appId不能为空")
     private String appId;
 
@@ -29,4 +28,6 @@ public class WxAppUpdateDto {
      * 小程序名称，可选更新
      */
     private String appName;
+
+    private String appDescr;
 }

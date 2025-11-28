@@ -44,14 +44,14 @@ public class WxUserMapping {
     /**
      * 小程序 AppId，用于区分不同小程序
      */
-    @Column(name = "appid", length = 64, nullable = false)
-    private String appid;
+    @Column(name = "app_id", length = 64, nullable = false)
+    private String appId;
 
     /**
      * 小程序用户唯一标识（openid）
      */
-    @Column(name = "openid", length = 64, nullable = false)
-    private String openid;
+    @Column(name = "open_id", length = 64, nullable = false)
+    private String openId;
 
     /**
      * 映射绑定时间（可选，用于记录创建时间）

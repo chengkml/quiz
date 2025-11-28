@@ -20,5 +20,5 @@ public class WxLoginDto {
     /**
      * 小程序 appId
      */
-    private String appid;
+    private String appId;
 }

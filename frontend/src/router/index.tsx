@@ -35,6 +35,8 @@ import FuncDocFeatures from '@/pages/FuncDoc/Features';
 import PromptTemplateManagement from '@/pages/Prompt';
 import CronTask from '@/pages/CronTask';
 import FileDetector from '@/pages/FileDetector';
+import OcrPage from '@/pages/Ocr';
+import WxAppManager from '@/pages/WxApp';
 
 /**
  * 检查用户是否有访问指定路径的权限
@@ -137,6 +139,8 @@ const protectedPages = [
     { path: 'prompt', element: <PromptTemplateManagement />, requiredPath: 'prompt' },
     { path: 'cron', element: <CronTask />, requiredPath: 'cron' },
     { path: 'filedetector', element: <FileDetector />, requiredPath: 'filedetector' },
+    { path: 'ocr', element: <OcrPage />, requiredPath: 'ocr' },
+  { path: 'wxapp', element: <WxAppManager />, requiredPath: 'wxapp' },
 ];
 
 /**

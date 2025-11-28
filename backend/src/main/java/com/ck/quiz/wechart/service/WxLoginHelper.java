@@ -51,7 +51,7 @@ public class WxLoginHelper {
     public JsonNode getOpenIdAndSessionKey(String appid, String code) {
         try {
             // 1. 根据 appid 从数据库获取 appSecret
-            Optional<WxApp> appOpt = wxAppRepository.findByAppid(appid);
+            Optional<WxApp> appOpt = wxAppRepository.findByAppId(appid);
             if (!appOpt.isPresent()) {
                 throw new RuntimeException("未找到对应的 WxApp 配置: " + appid);
             }

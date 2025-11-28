@@ -9,5 +9,5 @@ import java.util.Optional;
 @Repository
 public interface WxUserMappingRepository extends JpaRepository<WxUserMapping, String> {
 
-    Optional<WxUserMapping> findByAppidAndOpenid(String appid, String openid);
+    Optional<WxUserMapping> findByAppIdAndOpenId(String appId, String openId);
 }

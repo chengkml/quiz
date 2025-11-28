@@ -17,8 +17,15 @@ public class WxAppCreateDto {
     /**
      * 小程序 AppId
      */
-    @NotBlank(message = "appid不能为空")
-    private String appid;
+    @NotBlank(message = "appId不能为空")
+    private String appId;
+
+    /**
+     * 小程序名称，可选
+     */
+    private String appName;
+
+    private String appDescr;
 
     /**
      * 小程序 AppSecret
@@ -26,8 +33,4 @@ public class WxAppCreateDto {
     @NotBlank(message = "appSecret不能为空")
     private String appSecret;
 
-    /**
-     * 小程序名称，可选
-     */
-    private String appName;
 }

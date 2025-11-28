@@ -43,13 +43,13 @@ public class WxUserMappingServiceImpl implements WxUserMappingService {
 
     @Override
     public WxLoginRespDto login(WxLoginDto dto) {
-        String appid = dto.getAppid();
-        String openid = wxLoginHelper.getOpenIdByCode(appid, dto.getCode());
+        String appId = dto.getAppId();
+        String openid = wxLoginHelper.getOpenIdByCode(appId, dto.getCode());
         if (openid == null) {
             throw new RuntimeException("微信 code 无效或已过期");
         }
 
-        Optional<WxUserMapping> mappingOpt = wxUserMappingRepository.findByAppidAndOpenid(appid, openid);
+        Optional<WxUserMapping> mappingOpt = wxUserMappingRepository.findByAppIdAndOpenId(appId, openid);
         if (mappingOpt.isPresent()) {
             // 已绑定 Web 用户
             User user = mappingOpt.get().getUser();
@@ -74,15 +74,15 @@ public class WxUserMappingServiceImpl implements WxUserMappingService {
         }
 
         // 3. 检查是否已绑定
-        if (wxUserMappingRepository.findByAppidAndOpenid(dto.getAppid(), dto.getOpenid()).isPresent()) {
+        if (wxUserMappingRepository.findByAppIdAndOpenId(dto.getAppId(), dto.getOpenId()).isPresent()) {
             throw new RuntimeException("该小程序用户已绑定其他账号");
         }
 
         // 4. 保存映射关系
         WxUserMapping mapping = new WxUserMapping();
         mapping.setMappingId(IdHelper.genUuid());
-        mapping.setAppid(dto.getAppid());
-        mapping.setOpenid(dto.getOpenid());
+        mapping.setAppId(dto.getAppId());
+        mapping.setOpenId(dto.getOpenId());
         mapping.setUser(user);
         mapping.setCreateTime(LocalDateTime.now());
         wxUserMappingRepository.save(mapping);

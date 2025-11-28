@@ -17,28 +17,35 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class WxAppDto {
 
+    private String id;
+
     /**
      * 主键ID
      */
     private String appId;
 
     /**
-     * 小程序 AppId
-     */
-    private String appid;
-
-    /**
      * 小程序名称
      */
     private String appName;
 
+    private String appDescr;
+
+    private String appSecret;
+
     /**
      * 创建时间
      */
-    private LocalDateTime createTime;
+    private LocalDateTime createDate;
+
+    private String createUser;
 
     /**
      * 更新时间
      */
-    private LocalDateTime updateTime;
+    private LocalDateTime updateDate;
+
+    private String updateUser;
+
+    private String updateUserName;
 }

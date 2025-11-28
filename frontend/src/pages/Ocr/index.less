@@ -1,0 +1,143 @@
+.ocr-container {
+  box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+  overflow: hidden;
+  background: var(--background-color-base);
+  height: 100%;
+
+  .arco-layout {
+    margin: 10px;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: calc(100% - 20px);
+    width: calc(100% - 20px);
+  }
+
+  .arco-form-item-wrapper {
+    height: calc(100% - 22px);
+    .arco-form-item-control-wrapper {
+      height: 100%;
+      .arco-form-item-control {
+        height: 100%;
+      }
+    }
+    .arco-form-item-control-children {
+      height: 100%;
+    }
+  }
+
+  // 图片预览样式
+  .image-preview {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid var(--color-neutral-2);
+    border-radius: 4px;
+    background-color: var(--color-fill-2);
+    
+    h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: var(--color-text-1);
+    }
+    
+    .preview-img {
+      max-width: 100%;
+      max-height: 400px;
+      object-fit: contain;
+      border-radius: 4px;
+    }
+  }
+
+  // OCR结果区域样式
+  .ocr-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--color-text-1);
+    }
+    
+    .result-actions {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  .ocr-result-content {
+    background-color: var(--color-fill-2);
+    border: 1px solid var(--color-neutral-2);
+    border-radius: 4px;
+    padding: 16px;
+    height: calc(100% - 60px);
+    overflow: auto;
+    position: relative;
+  }
+
+  .result-text {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--font-family-mono);
+    line-height: 1.6;
+    color: var(--color-text-1);
+  }
+
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: var(--color-text-3);
+    font-size: 16px;
+  }
+
+  .error {
+    color: var(--color-danger-5);
+    padding: 20px;
+    text-align: center;
+  }
+
+  .empty-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: var(--color-text-3);
+    font-size: 16px;
+  }
+
+  .confidence-info, .language-info {
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--color-text-2);
+  }
+
+  // 响应式设计
+  @media screen and (max-width: 768px) {
+    .arco-layout {
+      margin: 5px;
+      padding: 5px;
+      width: calc(100% - 10px);
+      height: calc(100% - 10px);
+    }
+    
+    .ocr-result-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      
+      .result-actions {
+        justify-content: center;
+      }
+    }
+    
+    .image-preview .preview-img {
+      max-height: 300px;
+    }
+  }
+}

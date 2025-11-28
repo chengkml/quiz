@@ -53,6 +53,6 @@ public interface WxAppService {
     /**
      * 分页查询APP
      */
-    Page<TodoDto> searchTodos(WxAppQueryDto queryDto);
+    Page<WxAppDto> searchTodos(WxAppQueryDto queryDto);
 
 }

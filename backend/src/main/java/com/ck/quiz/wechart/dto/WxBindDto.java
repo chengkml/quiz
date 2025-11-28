@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WxBindDto {
-    private String appid;
-    private String openid;
+    private String appId;
+    private String openId;
     private String userId;     // Web 用户账号
     private String password;   // Web 用户密码
 }
