@@ -44,6 +44,16 @@ export interface WxAppResponse {
   [key: string]: any;
 }
 
+// 小程序用户响应类型 - 与后端WxAppUserDto匹配
+export interface WxAppUserResponse {
+  userId: string;
+  userName: string;
+  appId: string;
+  appName: string;
+  openId: string;
+  createTime: string;
+}
+
 // 分页查询微信小程序信息（POST search）
 export const getWxAppList = (params: WxAppQueryParams) => axios.post(`${base}/api/wx/app/search`, params);
 
@@ -59,10 +69,14 @@ export const updateWxApp = (params: WxAppUpdateParams) => axios.put(`${base}/api
 // 删除微信小程序 - 使用DELETE方法和appId作为路径参数
 export const deleteWxApp = (appId: string) => axios.delete(`${base}/api/wx/app/delete/${appId}`);
 
+// 获取小程序用户列表 - 使用appId作为路径参数
+export const getWxAppUsers = (appId: string) => axios.get(`${base}/api/wx/app/${appId}/users`);
+
 export default {
   getWxAppList,
   getWxAppById,
   createWxApp,
   updateWxApp,
   deleteWxApp,
+  getWxAppUsers,
 };

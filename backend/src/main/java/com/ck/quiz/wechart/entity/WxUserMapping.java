@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 /**
  * 小程序用户与 Web 用户映射实体类
  * <p>
@@ -57,5 +59,5 @@ public class WxUserMapping {
      * 映射绑定时间（可选，用于记录创建时间）
      */
     @Column(name = "create_time", nullable = false)
-    private java.time.LocalDateTime createTime;
+    private LocalDateTime createTime;
 }

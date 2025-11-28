@@ -21,10 +21,11 @@ import {
     IconEdit,
     IconList,
     IconPlus,
-    IconSearch
+    IconSearch,
+    IconUser
 } from '@arco-design/web-react/icon';
 import './style/index.less';
-import {createWxApp, deleteWxApp, getWxAppList, updateWxApp, WxAppResponse, WxAppQueryParams} from './api';
+import {createWxApp, deleteWxApp, getWxAppList, updateWxApp, getWxAppUsers, WxAppResponse, WxAppQueryParams, WxAppUserResponse} from './api';
 
 const {Content} = Layout;
 const {TextArea} = Input;
@@ -52,6 +53,10 @@ function WxAppManager() {
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    // 用户列表相关状态
+    const [usersModalVisible, setUsersModalVisible] = useState(false);
+    const [usersList, setUsersList] = useState<WxAppUserResponse[]>([]);
+    const [usersLoading, setUsersLoading] = useState(false);
 
     // 表单引用
     const addFormRef = useRef<any>(null);
@@ -195,6 +200,30 @@ function WxAppManager() {
         }
     };
 
+    // 清理用户列表状态
+    const clearUsersState = () => {
+        setUsersList([]);
+        setUsersLoading(false);
+    };
+
+    // 查看用户列表
+    const handleViewUsers = async (record: WxAppResponse) => {
+        setCurrentRecord(record);
+        clearUsersState();
+        setUsersLoading(true);
+        try {
+            const response = await getWxAppUsers(record.appId);
+            // 确保data是数组
+            setUsersList(Array.isArray(response.data) ? response.data : []);
+            setUsersModalVisible(true);
+        } catch (error: any) {
+            const errorMessage = error?.response?.data?.message || error?.message || '获取用户列表失败';
+            Message.error(`获取用户列表失败: ${errorMessage}`);
+        } finally {
+            setUsersLoading(false);
+        }
+    };
+
     // 删除
     const handleDelete = (record: WxAppResponse) => {
         setCurrentRecord(record);
@@ -220,6 +249,8 @@ function WxAppManager() {
             handleEdit(record);
         } else if (key === 'delete') {
             handleDelete(record);
+        } else if (key === 'users') {
+            handleViewUsers(record);
         }
     };
 
@@ -265,7 +296,11 @@ function WxAppManager() {
                         position="bl"
                         droplist={
                             <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}
-                                  className="handle-dropdown-menu">
+                                      className="handle-dropdown-menu">
+                                <Menu.Item key="users">
+                                    <IconUser style={{marginRight: 5}}/>
+                                    查看用户
+                                </Menu.Item>
                                 <Menu.Item key="edit">
                                     <IconEdit style={{marginRight: 5}}/>
                                     编辑
@@ -397,6 +432,60 @@ function WxAppManager() {
                                     <TextArea placeholder="请输入描述" autoSize={{minRows: 3, maxRows: 6}}/>
                                 </Form.Item>
                             </Form>
+                        </div>
+                    </Modal>
+
+                    {/* 用户列表模态框 */}
+                    <Modal
+                        title="小程序用户列表"
+                        visible={usersModalVisible}
+                        onCancel={() => {
+                            setUsersModalVisible(false);
+                            // 延迟清理状态，避免动画过程中数据闪烁
+                            setTimeout(() => clearUsersState(), 300);
+                        }}
+                        style={{width: '60%'}}
+                        footer={null}
+                    >
+                        <div style={{maxHeight: '60vh', overflowY: 'auto'}}>
+                            <Table
+                                columns={[
+                                    {
+                                        title: '用户ID',
+                                        dataIndex: 'userId',
+                                        ellipsis: true,
+                                        width: 150,
+                                    },
+                                    {
+                                        title: '用户名称',
+                                        dataIndex: 'userName',
+                                        ellipsis: true,
+                                        width: 150,
+                                    },
+                                    {
+                                        title: 'OpenID',
+                                        dataIndex: 'openId',
+                                        ellipsis: true,
+                                        width: 250,
+                                    },
+                                    {
+                                        title: '绑定时间',
+                                        dataIndex: 'createTime',
+                                        width: 180,
+                                        render: (value: string) => formatDateTime(value),
+                                    },
+                                ]}
+                                data={usersList}
+                                loading={usersLoading}
+                                pagination={false}
+                                rowKey="userId"
+                            />
+                            {!usersLoading && usersList.length === 0 && (
+                                <div style={{textAlign: 'center', padding: '60px 0', color: '#999'}}>
+                                    <IconUser style={{fontSize: 48, marginBottom: 16, opacity: 0.5}} />
+                                    <p>暂无绑定用户</p>
+                                </div>
+                            )}
                         </div>
                     </Modal>
 

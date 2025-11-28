@@ -1,10 +1,7 @@
 package com.ck.quiz.wechart.controller;
 
 import com.ck.quiz.todo.dto.TodoDto;
-import com.ck.quiz.wechart.dto.WxAppCreateDto;
-import com.ck.quiz.wechart.dto.WxAppDto;
-import com.ck.quiz.wechart.dto.WxAppQueryDto;
-import com.ck.quiz.wechart.dto.WxAppUpdateDto;
+import com.ck.quiz.wechart.dto.*;
 import com.ck.quiz.wechart.entity.WxApp;
 import com.ck.quiz.wechart.service.WxAppService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @Tag(name = "微信小程序 App", description = "小程序 App 管理接口")
@@ -59,4 +57,12 @@ public class WxAppController {
         Page<WxAppDto> page = wxAppService.searchTodos(queryDto);
         return ResponseEntity.ok(page);
     }
+
+    @Operation(summary = "获取已登录用户列表", description = "根据 appId 查询小程序已绑定或已登录的用户列表")
+    @GetMapping("/{appId}/users")
+    public ResponseEntity<List<WxAppUserDto>> listLoginUsers(@PathVariable String appId) {
+        List<WxAppUserDto> list = wxAppService.listLoginUsers(appId);
+        return ResponseEntity.ok(list);
+    }
+
 }

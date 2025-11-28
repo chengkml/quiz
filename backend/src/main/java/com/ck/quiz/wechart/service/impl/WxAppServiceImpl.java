@@ -1,11 +1,9 @@
 package com.ck.quiz.wechart.service.impl;
 
+import com.ck.quiz.utils.HumpHelper;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
-import com.ck.quiz.wechart.dto.WxAppCreateDto;
-import com.ck.quiz.wechart.dto.WxAppDto;
-import com.ck.quiz.wechart.dto.WxAppQueryDto;
-import com.ck.quiz.wechart.dto.WxAppUpdateDto;
+import com.ck.quiz.wechart.dto.*;
 import com.ck.quiz.wechart.entity.WxApp;
 import com.ck.quiz.wechart.repository.WxAppRepository;
 import com.ck.quiz.wechart.service.WxAppService;
@@ -18,10 +16,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class WxAppServiceImpl implements WxAppService {
@@ -128,5 +123,47 @@ public class WxAppServiceImpl implements WxAppService {
                 PageRequest.of(pageNum, pageSize),
                 total);
     }
+
+    @Override
+    public List<WxAppUserDto> listLoginUsers(String appId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("appId", appId);
+
+        List<Map<String, Object>> list =
+                HumpHelper.lineToHump(
+                        namedParameterJdbcTemplate.queryForList(
+                                "select m.*, a.app_name, u.user_name " +
+                                        "from wx_user_mapping m " +
+                                        "inner join wx_app a on m.app_id = a.app_id " +
+                                        "left join user u on u.user_id = m.user_id " +
+                                        "where a.app_id = :appId",
+                                params
+                        )
+                );
+
+        List<WxAppUserDto> result = new ArrayList<>();
+
+        for (Map<String, Object> row : list) {
+            WxAppUserDto dto = new WxAppUserDto();
+
+            dto.setUserId((String) row.get("userId"));
+            dto.setUserName((String) row.get("userName"));
+            dto.setAppId((String) row.get("appId"));
+            dto.setAppName((String) row.get("appName"));
+            dto.setOpenId((String) row.get("openId"));
+
+            Object ct = row.get("createTime");
+            if (ct instanceof LocalDateTime) {
+                dto.setCreateTime((LocalDateTime) ct);
+            } else if (ct instanceof java.sql.Timestamp) {
+                dto.setCreateTime(((java.sql.Timestamp) ct).toLocalDateTime());
+            }
+
+            result.add(dto);
+        }
+
+        return result;
+    }
+
 
 }

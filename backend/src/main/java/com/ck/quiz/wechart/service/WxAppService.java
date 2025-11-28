@@ -2,13 +2,11 @@ package com.ck.quiz.wechart.service;
 
 import com.ck.quiz.todo.dto.TodoDto;
 import com.ck.quiz.todo.dto.TodoQueryDto;
-import com.ck.quiz.wechart.dto.WxAppCreateDto;
-import com.ck.quiz.wechart.dto.WxAppDto;
-import com.ck.quiz.wechart.dto.WxAppQueryDto;
-import com.ck.quiz.wechart.dto.WxAppUpdateDto;
+import com.ck.quiz.wechart.dto.*;
 import com.ck.quiz.wechart.entity.WxApp;
 import org.springframework.data.domain.Page;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -54,5 +52,7 @@ public interface WxAppService {
      * 分页查询APP
      */
     Page<WxAppDto> searchTodos(WxAppQueryDto queryDto);
+
+    List<WxAppUserDto> listLoginUsers(String appId);
 
 }
