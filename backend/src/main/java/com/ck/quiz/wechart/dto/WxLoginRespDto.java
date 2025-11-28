@@ -17,6 +17,8 @@ public class WxLoginRespDto {
      */
     private String userId;
 
+    private String openId;
+
     /**
      * JWT token
      */

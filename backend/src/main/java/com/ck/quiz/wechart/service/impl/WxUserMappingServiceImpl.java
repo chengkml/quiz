@@ -54,10 +54,10 @@ public class WxUserMappingServiceImpl implements WxUserMappingService {
             // 已绑定 Web 用户
             User user = mappingOpt.get().getUser();
             String token = jwtUtil.generateToken(user.getUserId());
-            return new WxLoginRespDto(user.getUserId(), token, false);
+            return new WxLoginRespDto(user.getUserId(), openId, token, false);
         } else {
             // 首次登录，需要绑定 Web 用户
-            return new WxLoginRespDto(null, null, true);
+            return new WxLoginRespDto(null, openId, null, true);
         }
     }
 
@@ -65,10 +65,7 @@ public class WxUserMappingServiceImpl implements WxUserMappingService {
     @Transactional
     public WxLoginRespDto bind(WxBindDto dto) {
         String appId = dto.getAppId();
-        String openId = wxLoginHelper.getOpenIdByCode(appId, dto.getCode());
-        if (openId == null) {
-            throw new RuntimeException("微信 code 无效或已过期");
-        }
+        String openId = dto.getOpenId();
         // 1. 查找 Web 用户
         User user = userRepository.findByUserId(dto.getUserId())
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
@@ -94,7 +91,7 @@ public class WxUserMappingServiceImpl implements WxUserMappingService {
 
         // 5. 生成 JWT
         String token = jwtUtil.generateToken(user.getUserId());
-        return new WxLoginRespDto(user.getUserId(), token, false);
+        return new WxLoginRespDto(user.getUserId(), openId, token, false);
     }
 
 }

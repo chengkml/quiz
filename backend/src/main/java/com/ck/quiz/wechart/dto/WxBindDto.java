@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class WxBindDto {
     private String appId;
-    private String code;
+    private String openId;
     private String userId;     // Web 用户账号
     private String password;   // Web 用户密码
 }
