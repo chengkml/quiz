@@ -180,7 +180,9 @@ public class SubjectServiceImpl implements SubjectService {
     public List<SubjectDto> getAllSubjects() {
         List<Subject> subjects = subjectRepository.findAll();
         List<SubjectDto> dtos = subjects.stream().map(this::convertToDto).collect(Collectors.toList());
-        loadQuestionNum(dtos);
+        if(!dtos.isEmpty()) {
+            loadQuestionNum(dtos);
+        }
         return dtos;
     }
 
@@ -211,7 +213,9 @@ public class SubjectServiceImpl implements SubjectService {
     public List<SubjectDto> getAllUserSubjects(String userId) {
         List<Subject> subjects = subjectRepository.findByCreateUser(userId);
         List<SubjectDto> dtos = subjects.stream().map(this::convertToDto).collect(Collectors.toList());
-        loadQuestionNum(dtos);
+        if(!dtos.isEmpty()) {
+            loadQuestionNum(dtos);
+        }
         return dtos;
     }
 

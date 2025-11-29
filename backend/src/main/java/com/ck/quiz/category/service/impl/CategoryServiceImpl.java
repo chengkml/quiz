@@ -236,7 +236,9 @@ public class CategoryServiceImpl implements CategoryService {
         List<CategoryDto> dtos = categories.stream()
                 .map(this::convertToDto)
                 .toList();
-        loadCateQuestionNums(dtos);
+        if(!dtos.isEmpty()) {
+            loadCateQuestionNums(dtos);
+        }
         return dtos;
     }
 
