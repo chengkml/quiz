@@ -14,9 +14,11 @@ import com.ck.quiz.question.service.QuestionService;
 import com.ck.quiz.subject.dto.SubjectDto;
 import com.ck.quiz.subject.service.SubjectService;
 import com.ck.quiz.thpool.CommonPool;
+import com.ck.quiz.utils.HumpHelper;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +57,9 @@ public class CategoryServiceImpl implements CategoryService {
     @Lazy
     @Autowired
     private QuestionService questionService;
+
+    @Autowired
+    private NamedParameterJdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional
@@ -163,7 +168,6 @@ public class CategoryServiceImpl implements CategoryService {
                 " and c.subject_id = :subjectId ", params, sql, countSql);
 
 
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
             JdbcQueryHelper.equals("createUser", authentication.getName(),
@@ -229,9 +233,25 @@ public class CategoryServiceImpl implements CategoryService {
         log.debug("根据学科ID获取分类: {}", subjectId);
 
         List<Category> categories = categoryRepository.findBySubjectId(subjectId);
-        return categories.stream()
+        List<CategoryDto> dtos = categories.stream()
                 .map(this::convertToDto)
                 .toList();
+        loadCateQuestionNums(dtos);
+        return dtos;
+    }
+
+    private void loadCateQuestionNums(List<CategoryDto> dtos) {
+        Map<String, CategoryDto> idMap = new HashMap<>();
+        dtos.forEach(category -> {
+            idMap.put(category.getId(), category);
+        });
+        Map<String, Object> params = new HashMap<>();
+        params.put("categoryIds", idMap.keySet());
+        HumpHelper.lineToHump(jdbcTemplate.queryForList("select k.category_id, count(*) num from knowledge k inner join question_knowledge_rela r on k.knowledge_id = r.knowledge_id inner join question q on q.question_id = r.question_id where k.category_id in (:categoryIds) group by k.category_id", params)).forEach(map -> {
+            String categoryId = MapUtils.getString(map, "categoryId");
+            int num = MapUtils.getIntValue(map, "num");
+            idMap.get(categoryId).setQuestionNum(num);
+        });
     }
 
     @Override
@@ -243,7 +263,6 @@ public class CategoryServiceImpl implements CategoryService {
                 .map(this::convertToDto)
                 .toList();
     }
-
 
 
     @Override
@@ -345,30 +364,30 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     public void initCategoryQuestions(String userId, String categoryId, int questionNum) {
-        try{
+        try {
             Optional<Category> op = categoryRepository.findById(categoryId);
             List<String> knowledges = knowledgeService.generateKnowledges(op.get().getName());
             knowledges.forEach(knowledge -> {
                 try {
                     List<QuestionCreateDto> questions = questionService.generateQuestions(knowledge, questionNum);
-                    questions.forEach(question->{
+                    questions.forEach(question -> {
                         question.setSubjectId(op.get().getSubjectId());
                         question.setCategoryId(categoryId);
                         question.setKnowledge(knowledge);
                     });
                     questionService.createQuestions(questions);
-                }catch (Exception e) {
+                } catch (Exception e) {
                     log.error("生成知识点【{}】的问题异常：{}", knowledge, ExceptionUtils.getStackTrace(e));
                 }
             });
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("生成分类【{}】的问题异常：{}", categoryId, ExceptionUtils.getStackTrace(e));
         }
     }
 
     public void initCategoryQuestionsAsync(String categoryId, int questionNum) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CommonPool.cachedPool.execute(()->{
+        CommonPool.cachedPool.execute(() -> {
             initCategoryQuestions(authentication.getName(), categoryId, questionNum);
         });
     }

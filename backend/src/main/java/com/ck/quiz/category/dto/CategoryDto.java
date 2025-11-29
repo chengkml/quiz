@@ -83,4 +83,6 @@ public class CategoryDto {
     private String updateUserName;
 
     private List<CategoryDto> children;
+
+    private int questionNum;
 }

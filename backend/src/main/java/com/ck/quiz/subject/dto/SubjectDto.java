@@ -63,4 +63,6 @@ public class SubjectDto {
     private String updateUserName;
 
     private List<CategoryDto> categories;
+
+    private int questionNum;
 }
