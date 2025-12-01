@@ -989,11 +989,8 @@ function QuestionManager() {
                                     }}>
                                         搜索
                                     </Button>
-                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
+                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleGenerate}>
                                         新增
-                                    </Button>
-                                    <Button type="outline" icon={<IconRobot/>} onClick={handleGenerate}>
-                                        AI生成
                                     </Button>
                                 </Space>
                             </Col>
