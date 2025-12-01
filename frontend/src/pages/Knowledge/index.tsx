@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Button,
     Dropdown,
@@ -28,12 +28,12 @@ import {
     getSubjectCategoryTree,
     updateKnowledge,
 } from './api';
-import {IconDelete, IconEdit, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
+import { IconDelete, IconEdit, IconList, IconPlus, IconSearch } from '@arco-design/web-react/icon';
 import Sider from '@arco-design/web-react/es/Layout/sider';
 
-const {TextArea} = Input;
-const {Content} = Layout;
-const {Row, Col} = Grid;
+const { TextArea } = Input;
+const { Content } = Layout;
+const { Row, Col } = Grid;
 
 function KnowledgeManager() {
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
@@ -176,11 +176,11 @@ function KnowledgeManager() {
                                 className="handle-dropdown-menu"
                             >
                                 <Menu.Item key="edit">
-                                    <IconEdit style={{marginRight: '5px'}}/>
+                                    <IconEdit style={{ marginRight: '5px' }} />
                                     编辑
                                 </Menu.Item>
                                 <Menu.Item key="delete">
-                                    <IconDelete style={{marginRight: '5px'}}/>
+                                    <IconDelete style={{ marginRight: '5px' }} />
                                     删除
                                 </Menu.Item>
                             </Menu>
@@ -189,11 +189,11 @@ function KnowledgeManager() {
                         <Button
                             type="text"
                             className="more-btn"
-                            onClick={e => {
+                            onClick={(e) => {
                                 e.stopPropagation();
                             }}
                         >
-                            <IconList/>
+                            <IconList />
                         </Button>
                     </Dropdown>
                 </Space>
@@ -209,13 +209,13 @@ function KnowledgeManager() {
                 ...params,
                 pageNum: current - 1,
                 pageSize: pageSize,
-                subjectId: subjectId,  // 根据选中的学科过滤
-                categoryId: categoryId,  // 根据选中的分类过滤
+                subjectId,
+                categoryId,
             };
             const response = await getKnowledgeList(targetParams);
             if (response.data) {
                 setTableData(response.data.content || []);
-                setPagination(prev => ({
+                setPagination((prev) => ({
                     ...prev,
                     current,
                     pageSize,
@@ -315,7 +315,7 @@ function KnowledgeManager() {
         try {
             const values = await editFormRef.current.validate();
             setLoading(true);
-            await updateKnowledge({...values, id: currentRecord.id});
+            await updateKnowledge({ ...values, id: currentRecord.id });
             Message.success('知识点更新成功');
             setEditModalVisible(false);
             editFormRef.current.resetFields();
@@ -358,9 +358,9 @@ function KnowledgeManager() {
             setCategoriesLoading(true);
             const response = await getAllCategories();
             if (response.data) {
-                setCategories(response.data.map(item => ({
+                setCategories(response.data.map((item) => ({
                     label: item.name,
-                    value: item.id
+                    value: item.id,
                 })));
             }
         } catch (error) {
@@ -381,9 +381,9 @@ function KnowledgeManager() {
             setCategoriesLoading(true);
             const response = await getCategoriesBySubjectId(subjectId);
             if (response.data) {
-                setCategories(response.data.map(item => ({
+                setCategories(response.data.map((item) => ({
                     label: item.name,
-                    value: item.id
+                    value: item.id,
                 })));
             }
         } catch (error) {
@@ -401,28 +401,31 @@ function KnowledgeManager() {
             setTreeLoading(true);
             const res = await getSubjectCategoryTree();
             if (res?.data) {
-
-                // 递归构造 Tree 节点
-                const buildCategoryTree = (list = []) => {
-                    return list.map(item => ({
+                // 递归构造 Tree 节点，并为每个节点绑定 subjectId
+                const buildCategoryTreeWithSubjectId = (list = [], subjectId) => {
+                    return list.map((item) => ({
                         key: item.id,
                         title: item.name,
-                        children: item.children ? buildCategoryTree(item.children) : []
+                        subjectId, // ✅ 关键：记录所属学科ID
+                        children: item.children
+                            ? buildCategoryTreeWithSubjectId(item.children, subjectId)
+                            : [],
                     }));
                 };
 
-                const transformData = res.data.map(subject => ({
+                const transformData = res.data.map((subject) => ({
                     key: subject.id,
                     title: subject.name,
-                    children: buildCategoryTree(subject.categories || [])
+                    subjectId: subject.id, // 学科节点自身也带 subjectId
+                    children: buildCategoryTreeWithSubjectId(subject.categories || [], subject.id),
                 }));
 
                 setTreeData(transformData);
                 setFilteredTreeData(transformData);
 
-                // 默认展开第一层（subject）
+                // 默认展开第一层（学科）
                 if (transformData.length > 0) {
-                    setExpandedKeys(transformData.map(item => item.key));
+                    setExpandedKeys(transformData.map((item) => item.key));
                 }
             }
         } catch (error) {
@@ -432,7 +435,6 @@ function KnowledgeManager() {
         }
     };
 
-
     // 处理搜索关键字变化
     const handleSearchChange = (value) => {
         setSearchKeyword(value);
@@ -441,7 +443,6 @@ function KnowledgeManager() {
             return;
         }
 
-        // 简单的树结构搜索实现
         const searchInTree = (tree, keyword) => {
             const filtered = [];
             for (const node of tree) {
@@ -451,7 +452,7 @@ function KnowledgeManager() {
                 if (matched || children.length > 0) {
                     filtered.push({
                         ...node,
-                        children: children.length > 0 ? children : (matched ? node.children || [] : [])
+                        children: children.length > 0 ? children : (matched ? node.children || [] : []),
                     });
                 }
             }
@@ -462,56 +463,15 @@ function KnowledgeManager() {
         setFilteredTreeData(filtered);
     };
 
-    // 处理树节点选择
-    const handleTreeNodeSelect = (selectedKeys, info) => {
-        if (selectedKeys.length > 0) {
-            setSelectedTreeNode(selectedKeys[0]);
-
-            // 解析选中的节点，判断是学科还是分类
-            const selectedKey = selectedKeys[0];
-            const node = info.node;
-
-            let subjectId = null;
-            let categoryId = null;
-
-            // 根据树的层级结构判断：第一级是学科，第二级及以下是分类
-            if (!info.node.parent) {
-                // 学科节点
-                subjectId = selectedKey;
-                setCurrentSubjectId(selectedKey);
-                setCurrentCategoryId(null);
-            } else {
-                // 分类节点，找到对应的父学科
-                categoryId = selectedKey;
-                setCurrentCategoryId(selectedKey);
-                // 查找父学科ID
-                const findParentSubject = (tree, childKey) => {
-                    for (const subject of tree) {
-                        if (subject.children?.some(cat => cat.key === childKey)) {
-                            return subject.key;
-                        }
-                    }
-                    return null;
-                };
-                const parentSubjectId = findParentSubject(treeData, selectedKey);
-                subjectId = parentSubjectId;
-                setCurrentSubjectId(parentSubjectId);
-            }
-
-            // 重新加载表格数据，直接传递最新的学科ID和分类ID，避免状态更新的异步问题
-            fetchTableData(null, pagination.pageSize, pagination.current, subjectId, categoryId);
-        }
-    };
-
     // 获取学科列表
     const fetchSubjects = async () => {
         try {
             setSubjectsLoading(true);
             const response = await getAllSubjects();
             if (response.data) {
-                setSubjects(response.data.map(item => ({
+                setSubjects(response.data.map((item) => ({
                     label: item.name,
-                    value: item.id
+                    value: item.id,
                 })));
             }
         } catch (error) {
@@ -526,23 +486,20 @@ function KnowledgeManager() {
     useEffect(() => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
-            const otherElementsHeight = 250; // 预估其他元素占用的高度
+            const otherElementsHeight = 250;
             const newHeight = Math.max(200, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
         calculateTableHeight();
 
-        // 初始化数据
         fetchTableData();
         fetchSubjects();
         fetchSubjectCategoryTree();
 
-        // 设置表单默认值
         setTimeout(() => {
             filterFormRef.current?.setFieldsValue?.({});
         }, 50);
 
-        // 监听窗口大小变化
         const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
@@ -561,18 +518,18 @@ function KnowledgeManager() {
                         borderRight: '1px solid #e5e6eb',
                     }}
                 >
-                    <div style={{padding: '12px', borderBottom: '1px solid #e5e6eb'}}>
+                    <div style={{ padding: '12px', borderBottom: '1px solid #e5e6eb' }}>
                         <Input.Search
                             placeholder="搜索学科分类"
                             allowClear
-                            style={{width: '100%'}}
+                            style={{ width: '100%' }}
                             value={searchKeyword}
                             onChange={(value) => {
                                 handleSearchChange(value);
                             }}
                         />
                     </div>
-                    <div style={{padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto'}}>
+                    <div style={{ padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto' }}>
                         <Spin loading={treeLoading}>
                             {filteredTreeData.length > 0 ? (
                                 <Tree
@@ -584,72 +541,27 @@ function KnowledgeManager() {
                                     }}
                                     onSelect={(selectedKeys, info) => {
                                         if (selectedKeys.length > 0) {
-                                            setSelectedTreeNode(selectedKeys[0]);
-
-                                            // 解析选中的节点，判断是学科还是分类
-                                            const selectedKey = selectedKeys[0];
                                             const node = info.node;
+                                            const subjectId = node.subjectId; // ✅ 始终取顶层学科ID
+                                            // 判断是否为分类节点：若无 children 或 children 为空，则视为分类（叶子或中间节点）
+                                            // 更安全的方式：只要不是学科根节点（即有 parent），就认为是分类
+                                            // 但这里我们用一个简单规则：如果 node 有 children 且是原始学科结构（来自 res.data）则为学科
+                                            // 实际上，我们可以通过是否有子分类来判断，但更可靠的是：只有第一层是学科
+                                            // 所以：如果 node.key === node.subjectId → 是学科；否则是分类
+                                            const isSubjectNode = node.key === node.subjectId;
+                                            const categoryId = isSubjectNode ? null : node.key;
 
-                                            // 根据树的层级结构判断：第一级是学科，第二级及以下是分类
-                                            // 通过查找父节点来确定层级
-                                            const findNodeInTree = (treeData, key) => {
-                                                for (const item of treeData) {
-                                                    if (item.key === key) {
-                                                        return {node: item, parent: null};
-                                                    }
-                                                    if (item.children) {
-                                                        const result = findNodeInTreeRecursive(item.children, key, item);
-                                                        if (result) return result;
-                                                    }
-                                                }
-                                                return null;
-                                            };
+                                            setSelectedTreeNode(selectedKeys[0]);
+                                            setCurrentSubjectId(subjectId);
+                                            setCurrentCategoryId(categoryId);
 
-                                            const findNodeInTreeRecursive = (children, key, parent) => {
-                                                for (const child of children) {
-                                                    if (child.key === key) {
-                                                        return {node: child, parent};
-                                                    }
-                                                    if (child.children) {
-                                                        const result = findNodeInTreeRecursive(child.children, key, child);
-                                                        if (result) return result;
-                                                    }
-                                                }
-                                                return null;
-                                            };
-
-                                            const nodeInfo = findNodeInTree(treeData, selectedKey);
-
-                                            if (nodeInfo && nodeInfo.parent) {
-                                                // 这是一个分类节点
-                                                const categoryId = selectedKey;
-                                                const subjectId = nodeInfo.parent.key;
-
-                                                setCurrentSubjectId(subjectId);
-                                                setCurrentCategoryId(categoryId);
-
-                                                console.log('选中分类:', {
-                                                    subjectId,
-                                                    categoryId,
-                                                    categoryName: nodeInfo.node.title,
-                                                    subjectName: nodeInfo.parent.title
-                                                });
-                                                fetchTableData(null, pagination.pageSize, pagination.current, subjectId, categoryId);
-                                            } else {
-                                                // 这是一个学科节点
-                                                const subjectId = selectedKey;
-
-                                                setCurrentSubjectId(subjectId);
-                                                setCurrentCategoryId(null);
-
-                                                console.log('选中学科:', {
-                                                    subjectId,
-                                                    subjectName: nodeInfo?.node.title
-                                                });
-                                                fetchTableData(null, pagination.pageSize, pagination.current, subjectId, null);
-
-                                            }
-                                            // 重新获取表格数据
+                                            fetchTableData(
+                                                null,
+                                                pagination.pageSize,
+                                                pagination.current,
+                                                subjectId,
+                                                categoryId
+                                            );
                                         } else {
                                             setSelectedTreeNode(null);
                                             setCurrentSubjectId(null);
@@ -664,12 +576,14 @@ function KnowledgeManager() {
                                     }}
                                 />
                             ) : (
-                                <div style={{
-                                    textAlign: 'center',
-                                    color: '#86909c',
-                                    padding: '20px 0',
-                                    fontSize: '14px'
-                                }}>
+                                <div
+                                    style={{
+                                        textAlign: 'center',
+                                        color: '#86909c',
+                                        padding: '20px 0',
+                                        fontSize: '14px',
+                                    }}
+                                >
                                     暂无数据
                                 </div>
                             )}
@@ -678,32 +592,43 @@ function KnowledgeManager() {
                 </Sider>
                 <Content>
                     {/* 筛选表单 */}
-                    <Form ref={filterFormRef} layout="horizontal" className="filter-form"
-                          style={{marginTop: '10px'}}
-                          onValuesChange={() => {
-                              const values = filterFormRef.current?.getFieldsValue?.() || {};
-                              searchTableData(values);
-                          }}>
+                    <Form
+                        ref={filterFormRef}
+                        layout="horizontal"
+                        className="filter-form"
+                        style={{ marginTop: '10px' }}
+                        onValuesChange={() => {
+                            const values = filterFormRef.current?.getFieldsValue?.() || {};
+                            searchTableData(values);
+                        }}
+                    >
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item field="knowledgeName" label="关键字">
-                                    <Input placeholder="请输入关键字"/>
+                                    <Input placeholder="请输入关键字" />
                                 </Form.Item>
                             </Col>
-                            <Col span={6} style={{
-                                display: 'flex',
-                                justifyContent: 'flex-start',
-                                alignItems: 'flex-end',
-                                paddingBottom: '16px'
-                            }}>
+                            <Col
+                                span={6}
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'flex-start',
+                                    alignItems: 'flex-end',
+                                    paddingBottom: '16px',
+                                }}
+                            >
                                 <Space>
-                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                        searchTableData(values);
-                                    }}>
+                                    <Button
+                                        type="primary"
+                                        icon={<IconSearch />}
+                                        onClick={() => {
+                                            const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                            searchTableData(values);
+                                        }}
+                                    >
                                         搜索
                                     </Button>
-                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
+                                    <Button type="primary" status="success" icon={<IconPlus />} onClick={handleAdd}>
                                         新增
                                     </Button>
                                 </Space>
@@ -715,14 +640,11 @@ function KnowledgeManager() {
                         data={tableData}
                         loading={tableLoading}
                         pagination={false}
-                        scroll={{y: tableScrollHeight}}
+                        scroll={{ y: tableScrollHeight }}
                         rowKey="id"
                     />
                     <div className="pagination-wrapper">
-                        <Pagination
-                            {...pagination}
-                            onChange={handlePageChange}
-                        />
+                        <Pagination {...pagination} onChange={handlePageChange} />
                     </div>
 
                     {/* 新增对话框 */}
@@ -735,22 +657,22 @@ function KnowledgeManager() {
                             addFormRef.current?.resetFields();
                         }}
                     >
-                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                        <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
                             <Form ref={addFormRef} className="modal-form" layout="vertical">
                                 <Form.Item
                                     label="知识点名称"
                                     field="name"
                                     rules={[
-                                        {required: true, message: '请输入知识点名称'},
-                                        {maxLength: 64, message: '知识点名称不能超过64个字符'},
+                                        { required: true, message: '请输入知识点名称' },
+                                        { maxLength: 64, message: '知识点名称不能超过64个字符' },
                                     ]}
                                 >
-                                    <Input.TextArea placeholder="请输入知识点名称"/>
+                                    <Input.TextArea placeholder="请输入知识点名称" />
                                 </Form.Item>
                                 <Form.Item
                                     label="所属学科"
                                     field="subjectId"
-                                    rules={[{required: true, message: '请选择所属学科'}]}
+                                    rules={[{ required: true, message: '请选择所属学科' }]}
                                 >
                                     <Select
                                         placeholder="请选择所属学科"
@@ -758,7 +680,6 @@ function KnowledgeManager() {
                                         loading={subjectsLoading}
                                         allowClear
                                         onChange={(value) => {
-                                            // 当学科改变时，清空分类选择并重新加载分类列表
                                             addFormRef.current?.setFieldValue('categoryId', undefined);
                                             fetchCategoriesBySubject(value);
                                         }}
@@ -767,7 +688,7 @@ function KnowledgeManager() {
                                 <Form.Item
                                     label="所属分类"
                                     field="categoryId"
-                                    rules={[{required: true, message: '请选择所属分类'}]}
+                                    rules={[{ required: true, message: '请选择所属分类' }]}
                                 >
                                     <Select
                                         placeholder="请选择所属分类"
@@ -799,29 +720,28 @@ function KnowledgeManager() {
                                     subjectId: currentRecord.subjectId,
                                     difficultyLevel: currentRecord.difficultyLevel,
                                 });
-                                // 编辑时根据当前记录的学科ID加载对应的分类列表
                                 if (currentRecord.subjectId) {
                                     fetchCategoriesBySubject(currentRecord.subjectId);
                                 }
                             }
                         }}
                     >
-                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                        <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
                             <Form ref={editFormRef} className="modal-form" layout="vertical">
                                 <Form.Item
                                     label="知识点名称"
                                     field="name"
                                     rules={[
-                                        {required: true, message: '请输入知识点名称'},
-                                        {maxLength: 64, message: '知识点名称不能超过64个字符'},
+                                        { required: true, message: '请输入知识点名称' },
+                                        { maxLength: 64, message: '知识点名称不能超过64个字符' },
                                     ]}
                                 >
-                                    <Input.TextArea placeholder="请输入知识点名称"/>
+                                    <Input.TextArea placeholder="请输入知识点名称" />
                                 </Form.Item>
                                 <Form.Item
                                     label="所属学科"
                                     field="subjectId"
-                                    rules={[{required: true, message: '请选择所属学科'}]}
+                                    rules={[{ required: true, message: '请选择所属学科' }]}
                                 >
                                     <Select
                                         placeholder="请选择所属学科"
@@ -829,7 +749,6 @@ function KnowledgeManager() {
                                         loading={subjectsLoading}
                                         allowClear
                                         onChange={(value) => {
-                                            // 当学科改变时，清空分类选择并重新加载分类列表
                                             editFormRef.current?.setFieldValue('categoryId', undefined);
                                             fetchCategoriesBySubject(value);
                                         }}
@@ -838,7 +757,7 @@ function KnowledgeManager() {
                                 <Form.Item
                                     label="所属分类"
                                     field="categoryId"
-                                    rules={[{required: true, message: '请选择所属分类'}]}
+                                    rules={[{ required: true, message: '请选择所属分类' }]}
                                 >
                                     <Select
                                         placeholder="请选择所属分类"
@@ -862,7 +781,6 @@ function KnowledgeManager() {
                     >
                         <p>确定要删除知识点 "{currentRecord?.name}" 吗？此操作不可撤销。</p>
                     </Modal>
-
                 </Content>
             </Layout>
         </div>
