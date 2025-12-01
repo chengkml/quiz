@@ -376,7 +376,7 @@ function SubjectManager() {
     useEffect(() => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
-            const otherElementsHeight = 240;
+            const otherElementsHeight = 250;
             const newHeight = Math.max(200, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
