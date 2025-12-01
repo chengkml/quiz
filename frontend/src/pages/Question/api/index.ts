@@ -21,7 +21,7 @@ const updateQuestion = params => axios.put(`${base}/api/question/update`, params
 const deleteQuestion = id => axios.delete(`${base}/api/question/${id}`);
 
 // 根据知识点生成题目
-const generateQuestions = params => axios.post(`${base}/api/question/generate`, null, {params});
+const generateQuestions = params => axios.post(`${base}/api/question/generate`, params);
 
 // 为问题关联知识点
 const associateKnowledge = params => axios.post(`${base}/api/question/${params.questionId}/associate-knowledge`, params.knowledgeIds);

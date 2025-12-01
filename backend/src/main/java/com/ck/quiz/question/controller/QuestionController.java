@@ -1,6 +1,7 @@
 package com.ck.quiz.question.controller;
 
 import com.ck.quiz.question.dto.QuestionCreateDto;
+import com.ck.quiz.question.dto.QuestionGenerateDto;
 import com.ck.quiz.question.dto.QuestionQueryDto;
 import com.ck.quiz.question.dto.QuestionUpdateDto;
 import com.ck.quiz.question.entity.Question;
@@ -86,9 +87,14 @@ public class QuestionController {
     @Operation(summary = "根据知识点生成题目", description = "根据知识点描述调用大模型生成题目")
     @PostMapping("/generate")
     public ResponseEntity<List<QuestionCreateDto>> generateQuestions(
-            @Parameter(description = "知识点描述", required = true) @RequestParam String knowledgeDescr,
-            @Parameter(description = "生成题目数量", required = true) @RequestParam(defaultValue = "3") int num) {
-        return ResponseEntity.ok(questionService.generateQuestions(knowledgeDescr, num));
+            @RequestBody QuestionGenerateDto request) {
+
+        return ResponseEntity.ok(
+                questionService.generateQuestions(
+                        request.getKnowledgeDescr(),
+                        request.getNum()
+                )
+        );
     }
 
     @Operation(summary = "关联知识点", description = "为题目关联知识点")
