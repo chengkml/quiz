@@ -14,7 +14,6 @@ import {
     Space,
     Spin,
     Table,
-    Tag,
     Tree,
 } from '@arco-design/web-react';
 import './style/index.less';
@@ -29,7 +28,7 @@ import {
     getSubjectCategoryTree,
     updateKnowledge,
 } from './api';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import Sider from '@arco-design/web-react/es/Layout/sider';
 
 const {TextArea} = Input;
@@ -89,27 +88,11 @@ function KnowledgeManager() {
         showPageSize: true,
     });
 
-    // 难度等级选项
-    const difficultyOptions = [
-        {label: '1级', value: 1},
-        {label: '2级', value: 2},
-        {label: '3级', value: 3},
-        {label: '4级', value: 4},
-        {label: '5级', value: 5},
-    ];
-
     // 表格列配置
     const columns = [
         {
-            title: '知识点名称',
+            title: '知识点',
             dataIndex: 'name',
-            width: 200,
-            ellipsis: true,
-        },
-        {
-            title: '描述',
-            dataIndex: 'description',
-            width: 300,
             ellipsis: true,
         },
         {
@@ -125,21 +108,6 @@ function KnowledgeManager() {
             width: 150,
             ellipsis: true,
             render: (value) => value || '--',
-        },
-        {
-            title: '难度等级',
-            dataIndex: 'difficultyLevel',
-            width: 100,
-            align: 'center',
-            render: (value) => {
-                if (!value) return '--';
-                const colorClass = value <= 2 ? 'level-1' : value <= 3 ? 'level-3' : 'level-4';
-                return (
-                    <Tag className={`difficulty-tag ${colorClass}`}>
-                        难度: {value}级
-                    </Tag>
-                );
-            },
         },
         {
             title: '创建人',
@@ -207,17 +175,9 @@ function KnowledgeManager() {
                                 }}
                                 className="handle-dropdown-menu"
                             >
-                                <Menu.Item key="detail">
-                                    <IconEye style={{marginRight: '5px'}}/>
-                                    查看详情
-                                </Menu.Item>
                                 <Menu.Item key="edit">
                                     <IconEdit style={{marginRight: '5px'}}/>
                                     编辑
-                                </Menu.Item>
-                                <Menu.Item key="questions">
-                                    <IconList style={{marginRight: '5px'}}/>
-                                    查看关联问题
                                 </Menu.Item>
                                 <Menu.Item key="delete">
                                     <IconDelete style={{marginRight: '5px'}}/>
@@ -441,18 +401,26 @@ function KnowledgeManager() {
             setTreeLoading(true);
             const res = await getSubjectCategoryTree();
             if (res?.data) {
-                // 转换为Tree组件需要的数据结构
+
+                // 递归构造 Tree 节点
+                const buildCategoryTree = (list = []) => {
+                    return list.map(item => ({
+                        key: item.id,
+                        title: item.name,
+                        children: item.children ? buildCategoryTree(item.children) : []
+                    }));
+                };
+
                 const transformData = res.data.map(subject => ({
                     key: subject.id,
                     title: subject.name,
-                    children: subject.categories?.map(category => ({
-                        key: category.id,
-                        title: category.name
-                    })) || []
+                    children: buildCategoryTree(subject.categories || [])
                 }));
+
                 setTreeData(transformData);
                 setFilteredTreeData(transformData);
-                // 默认展开第一层
+
+                // 默认展开第一层（subject）
                 if (transformData.length > 0) {
                     setExpandedKeys(transformData.map(item => item.key));
                 }
@@ -463,6 +431,7 @@ function KnowledgeManager() {
             setTreeLoading(false);
         }
     };
+
 
     // 处理搜索关键字变化
     const handleSearchChange = (value) => {
@@ -603,7 +572,7 @@ function KnowledgeManager() {
                             }}
                         />
                     </div>
-                    <div style={{ padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto' }}>
+                    <div style={{padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto'}}>
                         <Spin loading={treeLoading}>
                             {filteredTreeData.length > 0 ? (
                                 <Tree
@@ -626,7 +595,7 @@ function KnowledgeManager() {
                                             const findNodeInTree = (treeData, key) => {
                                                 for (const item of treeData) {
                                                     if (item.key === key) {
-                                                        return { node: item, parent: null };
+                                                        return {node: item, parent: null};
                                                     }
                                                     if (item.children) {
                                                         const result = findNodeInTreeRecursive(item.children, key, item);
@@ -639,7 +608,7 @@ function KnowledgeManager() {
                                             const findNodeInTreeRecursive = (children, key, parent) => {
                                                 for (const child of children) {
                                                     if (child.key === key) {
-                                                        return { node: child, parent };
+                                                        return {node: child, parent};
                                                     }
                                                     if (child.children) {
                                                         const result = findNodeInTreeRecursive(child.children, key, child);
@@ -659,7 +628,12 @@ function KnowledgeManager() {
                                                 setCurrentSubjectId(subjectId);
                                                 setCurrentCategoryId(categoryId);
 
-                                                console.log('选中分类:', { subjectId, categoryId, categoryName: nodeInfo.node.title, subjectName: nodeInfo.parent.title });
+                                                console.log('选中分类:', {
+                                                    subjectId,
+                                                    categoryId,
+                                                    categoryName: nodeInfo.node.title,
+                                                    subjectName: nodeInfo.parent.title
+                                                });
                                                 fetchTableData(null, pagination.pageSize, pagination.current, subjectId, categoryId);
                                             } else {
                                                 // 这是一个学科节点
@@ -668,7 +642,10 @@ function KnowledgeManager() {
                                                 setCurrentSubjectId(subjectId);
                                                 setCurrentCategoryId(null);
 
-                                                console.log('选中学科:', { subjectId, subjectName: nodeInfo?.node.title });
+                                                console.log('选中学科:', {
+                                                    subjectId,
+                                                    subjectName: nodeInfo?.node.title
+                                                });
                                                 fetchTableData(null, pagination.pageSize, pagination.current, subjectId, null);
 
                                             }
@@ -713,16 +690,6 @@ function KnowledgeManager() {
                                     <Input placeholder="请输入关键字"/>
                                 </Form.Item>
                             </Col>
-                            <Col span={8}>
-                                <Form.Item field="difficultyLevel" label="难度">
-                                    <Select placeholder="请选择难度等级" allowClear>
-                                        {difficultyOptions.map(opt => (
-                                            <Select.Option key={opt.value}
-                                                           value={opt.value}>{opt.label}</Select.Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
                             <Col span={6} style={{
                                 display: 'flex',
                                 justifyContent: 'flex-start',
@@ -762,11 +729,11 @@ function KnowledgeManager() {
                     <Modal
                         title="新增知识点"
                         visible={addModalVisible}
+                        onOk={confirmAdd}
                         onCancel={() => {
                             setAddModalVisible(false);
                             addFormRef.current?.resetFields();
                         }}
-                        footer={null}
                     >
                         <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
                             <Form ref={addFormRef} className="modal-form" layout="vertical">
@@ -778,21 +745,7 @@ function KnowledgeManager() {
                                         {maxLength: 64, message: '知识点名称不能超过64个字符'},
                                     ]}
                                 >
-                                    <Input placeholder="请输入知识点名称"/>
-                                </Form.Item>
-                                <Form.Item
-                                    label="描述"
-                                    field="description"
-                                    rules={[
-                                        {maxLength: 255, message: '描述不能超过255个字符'},
-                                    ]}
-                                >
-                                    <TextArea
-                                        placeholder="请输入知识点描述"
-                                        rows={4}
-                                        maxLength={255}
-                                        showWordLimit
-                                    />
+                                    <Input.TextArea placeholder="请输入知识点名称"/>
                                 </Form.Item>
                                 <Form.Item
                                     label="所属学科"
@@ -824,26 +777,6 @@ function KnowledgeManager() {
                                         disabled={!addFormRef.current?.getFieldValue('subjectId')}
                                     />
                                 </Form.Item>
-                                <Form.Item
-                                    label="难度等级"
-                                    field="difficultyLevel"
-                                    rules={[{required: true, message: '请选择难度等级'}]}
-                                >
-                                    <Select placeholder="请选择难度等级" options={difficultyOptions}/>
-                                </Form.Item>
-                                <div className="form-actions">
-                                    <Button
-                                        onClick={() => {
-                                            setAddModalVisible(false);
-                                            addFormRef.current?.resetFields();
-                                        }}
-                                    >
-                                        取消
-                                    </Button>
-                                    <Button type="primary" loading={loading} onClick={confirmAdd}>
-                                        确定
-                                    </Button>
-                                </div>
                             </Form>
                         </div>
                     </Modal>
@@ -856,7 +789,7 @@ function KnowledgeManager() {
                             setEditModalVisible(false);
                             editFormRef.current?.resetFields();
                         }}
-                        footer={null}
+                        onOk={confirmEdit}
                         afterOpen={() => {
                             if (currentRecord) {
                                 editFormRef.current?.setFieldsValue({
@@ -883,21 +816,7 @@ function KnowledgeManager() {
                                         {maxLength: 64, message: '知识点名称不能超过64个字符'},
                                     ]}
                                 >
-                                    <Input placeholder="请输入知识点名称"/>
-                                </Form.Item>
-                                <Form.Item
-                                    label="描述"
-                                    field="description"
-                                    rules={[
-                                        {maxLength: 255, message: '描述不能超过255个字符'},
-                                    ]}
-                                >
-                                    <TextArea
-                                        placeholder="请输入知识点描述"
-                                        rows={4}
-                                        maxLength={255}
-                                        showWordLimit
-                                    />
+                                    <Input.TextArea placeholder="请输入知识点名称"/>
                                 </Form.Item>
                                 <Form.Item
                                     label="所属学科"
@@ -929,26 +848,6 @@ function KnowledgeManager() {
                                         disabled={!editFormRef.current?.getFieldValue('subjectId')}
                                     />
                                 </Form.Item>
-                                <Form.Item
-                                    label="难度等级"
-                                    field="difficultyLevel"
-                                    rules={[{required: true, message: '请选择难度等级'}]}
-                                >
-                                    <Select placeholder="请选择难度等级" options={difficultyOptions}/>
-                                </Form.Item>
-                                <div className="form-actions">
-                                    <Button
-                                        onClick={() => {
-                                            setEditModalVisible(false);
-                                            editFormRef.current?.resetFields();
-                                        }}
-                                    >
-                                        取消
-                                    </Button>
-                                    <Button type="primary" loading={loading} onClick={confirmEdit}>
-                                        确定
-                                    </Button>
-                                </div>
                             </Form>
                         </div>
                     </Modal>
@@ -964,135 +863,6 @@ function KnowledgeManager() {
                         <p>确定要删除知识点 "{currentRecord?.name}" 吗？此操作不可撤销。</p>
                     </Modal>
 
-                    {/* 详情对话框 */}
-                    <Modal
-                        title="知识点详情"
-                        visible={detailModalVisible}
-                        onCancel={() => setDetailModalVisible(false)}
-                        footer={
-                            <Button onClick={() => setDetailModalVisible(false)}>
-                                关闭
-                            </Button>
-                        }
-                        width={600}
-                    >
-                        <div className="detail-modal">
-                            <div className="detail-item">
-                                <div className="detail-label">知识点名称：</div>
-                                <div className="detail-value">{detailRecord?.name}</div>
-                            </div>
-                            <div className="detail-item">
-                                <div className="detail-label">描述：</div>
-                                <div className="detail-value">{detailRecord?.description || '--'}</div>
-                            </div>
-                            <div className="detail-item">
-                                <div className="detail-label">所属分类：</div>
-                                <div className="detail-value">{detailRecord?.categoryName || '--'}</div>
-                            </div>
-                            <div className="detail-item">
-                                <div className="detail-label">所属学科：</div>
-                                <div className="detail-value">{detailRecord?.subjectName || '--'}</div>
-                            </div>
-                            <div className="detail-item">
-                                <div className="detail-label">难度等级：</div>
-                                <div className="detail-value">
-                                    {detailRecord?.difficultyLevel ? `${detailRecord.difficultyLevel}级` : '--'}
-                                </div>
-                            </div>
-                            <div className="detail-item">
-                                <div className="detail-label">创建人：</div>
-                                <div className="detail-value">{detailRecord?.createUserName || '--'}</div>
-                            </div>
-                            <div className="detail-item">
-                                <div className="detail-label">创建时间：</div>
-                                <div className="detail-value">
-                                    {detailRecord?.createDate ? new Date(detailRecord.createDate).toLocaleString() : '--'}
-                                </div>
-                            </div>
-                            <div className="detail-item">
-                                <div className="detail-label">更新人：</div>
-                                <div className="detail-value">{detailRecord?.updateUserName || '--'}</div>
-                            </div>
-                            <div className="detail-item">
-                                <div className="detail-label">更新时间：</div>
-                                <div className="detail-value">
-                                    {detailRecord?.updateDate ? new Date(detailRecord.updateDate).toLocaleString() : '--'}
-                                </div>
-                            </div>
-                        </div>
-                    </Modal>
-
-                    {/* 关联问题模态框 */}
-                    <Modal
-                        title={`关联问题 - ${currentRecord?.name}`}
-                        visible={questionsModalVisible}
-                        onCancel={() => {
-                            setQuestionsModalVisible(false);
-                            setRelatedQuestions([]);
-                        }}
-                        footer={null}
-                        width={800}
-                    >
-                        <div style={{maxHeight: 500, overflowY: 'auto'}}>
-                            {questionsLoading ? (
-                                <div style={{textAlign: 'center', padding: '20px'}}>
-                                    加载中...
-                                </div>
-                            ) : relatedQuestions.length > 0 ? (
-                                <div>
-                                    <div style={{marginBottom: 16, color: '#666'}}>
-                                        共找到 {relatedQuestions.length} 道关联问题
-                                    </div>
-                                    {relatedQuestions.map((question, index) => (
-                                        <div key={question.id} style={{
-                                            marginBottom: 16,
-                                            padding: 16,
-                                            border: '1px solid #e5e6eb',
-                                            borderRadius: 6,
-                                            backgroundColor: '#fafbfc'
-                                        }}>
-                                            <div style={{display: 'flex', alignItems: 'center', marginBottom: 8}}>
-                                                <Tag color="blue" style={{marginRight: 8}}>
-                                                    {question.type === 'SINGLE' ? '单选题' :
-                                                        question.type === 'MULTIPLE' ? '多选题' :
-                                                            question.type === 'BLANK' ? '填空题' : '简答题'}
-                                                </Tag>
-                                                <Tag color={question.difficultyLevel <= 2 ? 'green' :
-                                                    question.difficultyLevel <= 4 ? 'orange' : 'red'}>
-                                                    难度: {question.difficultyLevel}级
-                                                </Tag>
-                                            </div>
-                                            <div style={{
-                                                fontSize: 14,
-                                                lineHeight: 1.6,
-                                                color: '#333',
-                                                marginBottom: 8
-                                            }}>
-                                                <strong>题目 {index + 1}:</strong> {question.content}
-                                            </div>
-                                            <div style={{
-                                                fontSize: 12,
-                                                color: '#999',
-                                                display: 'flex',
-                                                justifyContent: 'space-between'
-                                            }}>
-                                                <span>创建人: {question.createUser || '--'}</span>
-                                                <span>创建时间: {question.createDate || '--'}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div style={{
-                                    textAlign: 'center',
-                                    padding: '40px 20px',
-                                    color: '#999'
-                                }}>
-                                    该知识点暂无关联问题
-                                </div>
-                            )}
-                        </div>
-                    </Modal>
                 </Content>
             </Layout>
         </div>

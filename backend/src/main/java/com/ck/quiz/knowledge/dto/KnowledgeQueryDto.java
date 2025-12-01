@@ -29,11 +29,6 @@ public class KnowledgeQueryDto {
     private String subjectId;
 
     /**
-     * 难度等级
-     */
-    private Integer difficultyLevel;
-
-    /**
      * 页码（从1开始）
      */
     private Integer pageNum = 1;

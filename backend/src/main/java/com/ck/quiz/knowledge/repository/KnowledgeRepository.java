@@ -4,7 +4,6 @@ import com.ck.quiz.knowledge.entity.Knowledge;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -38,29 +37,5 @@ public interface KnowledgeRepository extends JpaRepository<Knowledge, String> {
      * @return 是否存在
      */
     boolean existsByNameAndIdNot(String name, String id);
-
-    /**
-     * 根据学科ID查找知识点列表
-     *
-     * @param subjectId 学科ID
-     * @return 知识点列表
-     */
-    List<Knowledge> findBySubjectId(String subjectId);
-
-    /**
-     * 根据分类ID查找知识点列表
-     *
-     * @param categoryId 分类ID
-     * @return 知识点列表
-     */
-    List<Knowledge> findByCategoryId(String categoryId);
-
-    /**
-     * 根据难度等级查找知识点列表
-     *
-     * @param difficultyLevel 难度等级
-     * @return 知识点列表
-     */
-    List<Knowledge> findByDifficultyLevel(Integer difficultyLevel);
 
 }

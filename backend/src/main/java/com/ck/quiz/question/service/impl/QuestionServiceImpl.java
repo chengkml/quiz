@@ -83,10 +83,8 @@ public class QuestionServiceImpl implements QuestionService {
                 KnowledgeCreateDto knowledgeCreateDto =
                         new KnowledgeCreateDto();
                 knowledgeCreateDto.setName(knowledgeName);
-                knowledgeCreateDto.setDescription(knowledgeName);
                 knowledgeCreateDto.setSubjectId(subjectId);
                 knowledgeCreateDto.setCategoryId(categoryId);
-                knowledgeCreateDto.setDifficultyLevel(questionCreateDto.getDifficultyLevel());
 
                 KnowledgeDto createdKnowledge = knowledgeService.createKnowledge(knowledgeCreateDto);
                 knowledge = knowledgeRepository.findById(createdKnowledge.getId()).orElse(null);

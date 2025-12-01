@@ -42,12 +42,6 @@ public class Knowledge {
     private String name;
 
     /**
-     * 知识点描述
-     */
-    @Column(name = "description", length = 255)
-    private String description;
-
-    /**
      * 所属分类 ID
      */
     @Column(name = "category_id", length = 32, nullable = false)
@@ -58,12 +52,6 @@ public class Knowledge {
      */
     @Column(name = "subject_id", length = 32, nullable = false)
     private String subjectId;
-
-    /**
-     * 难度等级（1-5）
-     */
-    @Column(name = "difficulty_level")
-    private Integer difficultyLevel;
 
     @Column(name = "create_date", updatable = false)
     private LocalDateTime createDate;

@@ -66,10 +66,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         Knowledge knowledge = new Knowledge();
         knowledge.setId(IdHelper.genUuid());
         knowledge.setName(createDto.getName());
-        knowledge.setDescription(createDto.getDescription());
         knowledge.setCategoryId(createDto.getCategoryId());
         knowledge.setSubjectId(createDto.getSubjectId());
-        knowledge.setDifficultyLevel(createDto.getDifficultyLevel());
 
         // 保存知识点
         Knowledge savedKnowledge = knowledgeRepository.save(knowledge);
@@ -93,10 +91,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
 
         // 更新知识点信息
         knowledge.setName(updateDto.getName());
-        knowledge.setDescription(updateDto.getDescription());
         knowledge.setCategoryId(updateDto.getCategoryId());
         knowledge.setSubjectId(updateDto.getSubjectId());
-        knowledge.setDifficultyLevel(updateDto.getDifficultyLevel());
 
         // 保存更新
         Knowledge savedKnowledge = knowledgeRepository.save(knowledge);
@@ -162,13 +158,6 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(),
                 " and k.subject_id = :subjectId ", params, sql, countSql);
 
-        // 难度等级
-        if (queryDto.getDifficultyLevel() != null) {
-            sql.append(" and k.difficulty_level = :difficultyLevel ");
-            countSql.append(" and k.difficulty_level = :difficultyLevel ");
-            params.put("difficultyLevel", queryDto.getDifficultyLevel());
-        }
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
             JdbcQueryHelper.equals("createUser", authentication.getName(),
@@ -193,12 +182,10 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                     KnowledgeDto k = new KnowledgeDto();
                     k.setId(rs.getString("knowledge_id"));
                     k.setName(rs.getString("name"));
-                    k.setDescription(rs.getString("description"));
                     k.setCategoryId(rs.getString("category_id"));
                     k.setCategoryName(rs.getString("category_name"));
                     k.setSubjectId(rs.getString("subject_id"));
                     k.setSubjectName(rs.getString("subject_name"));
-                    k.setDifficultyLevel(rs.getInt("difficulty_level"));
                     k.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
                     k.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
                     k.setCreateUser(rs.getString("create_user"));
@@ -240,10 +227,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         KnowledgeDto dto = new KnowledgeDto();
         dto.setId(knowledge.getId());
         dto.setName(knowledge.getName());
-        dto.setDescription(knowledge.getDescription());
         dto.setCategoryId(knowledge.getCategoryId());
         dto.setSubjectId(knowledge.getSubjectId());
-        dto.setDifficultyLevel(knowledge.getDifficultyLevel());
         dto.setCreateDate(knowledge.getCreateDate());
         dto.setCreateUser(knowledge.getCreateUser());
         dto.setUpdateDate(knowledge.getUpdateDate());
@@ -295,7 +280,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     }
 
     private String buildPrompt(String city) {
-        return "请根据可靠资料整理【"+city+"】的知识点，内容涵盖历史、地理、民俗、文化、旅游、美食、经济等方面。  \n" +
+        return "请根据可靠资料整理【" + city + "】的知识点，内容涵盖历史、地理、民俗、文化、旅游、美食、经济等方面。  \n" +
                 "要求：\n" +
                 "1. 所有信息必须真实可靠，不允许编造或虚构。  \n" +
                 "2. 输出格式必须为一个数组，每个数组项记录一个独立知识点。  \n" +

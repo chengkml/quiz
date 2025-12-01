@@ -26,11 +26,6 @@ public class KnowledgeDto {
     private String name;
 
     /**
-     * 知识点描述信息
-     */
-    private String description;
-
-    /**
      * 所属分类ID
      */
     private String categoryId;
@@ -49,11 +44,6 @@ public class KnowledgeDto {
      * 所属学科名称
      */
     private String subjectName;
-
-    /**
-     * 难度等级（1-5）
-     */
-    private Integer difficultyLevel;
 
     /**
      * 知识点创建时间

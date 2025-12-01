@@ -118,9 +118,6 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
               ))}
             </Select>
           </Form.Item>
-
-
-
           <Form.Item
               label="分类描述"
               field="description"
