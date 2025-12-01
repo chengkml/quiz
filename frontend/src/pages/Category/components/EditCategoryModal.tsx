@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Message } from '@arco-design/web-react';
-import { updateCategory, getAllCategories } from '../api';
+import { updateCategory, getCategoriesBySubjectId } from '../api';
 import { getAllSubjects } from '../../Subject/api';
 
 interface EditCategoryModalProps {
@@ -20,6 +20,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
   const [loading, setLoading] = React.useState(false);
   const [subjects, setSubjects] = React.useState([]);
   const [categories, setCategories] = React.useState([]);
+  const [categoriesLoading, setCategoriesLoading] = React.useState(false);
 
   // 获取学科列表
   const fetchSubjects = async () => {
@@ -31,22 +32,38 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
     }
   };
 
-  // 获取分类列表（用于父分类选择）
-  const fetchCategories = async () => {
+  // 根据学科ID获取分类列表（用于父分类选择）
+  const fetchCategoriesBySubject = async (subjectId: string) => {
+    if (!subjectId) {
+      setCategories([]);
+      return;
+    }
+
     try {
-      const response = await getAllCategories();
+      setCategoriesLoading(true);
+      const response = await getCategoriesBySubjectId(subjectId);
       // 过滤掉当前分类，避免选择自己作为父分类
       const filteredCategories = (response.data || []).filter((cat: any) => cat.id !== record?.id);
       setCategories(filteredCategories);
     } catch (error) {
       console.error('获取分类列表失败:', error);
+      Message.error('获取分类列表失败');
+    } finally {
+      setCategoriesLoading(false);
     }
+  };
+
+  // 处理学科变化
+  const handleSubjectChange = (subjectId: string) => {
+    // 清空父分类选择
+    form.setFieldValue('parentId', undefined);
+    // 根据新的学科ID加载分类
+    fetchCategoriesBySubject(subjectId);
   };
 
   useEffect(() => {
     if (visible && record) {
       fetchSubjects();
-      fetchCategories();
       
       // 设置表单初始值
       form.setFieldsValue({
@@ -56,6 +73,11 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
         parentId: record.parentId,
         description: record.description
       });
+      
+      // 根据记录中的学科ID加载分类
+      if (record.subjectId) {
+        fetchCategoriesBySubject(record.subjectId);
+      }
     }
   }, [visible, record]);
 
@@ -77,6 +99,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
 
   const handleCancel = () => {
     form.resetFields();
+    setCategories([]);
     onCancel();
   };
 
@@ -116,7 +139,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
             <Select placeholder="请选择所属学科" showSearch filterOption={(inputValue, option) =>
                 option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0 ||
                 option.props.children.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
-            }>
+            } onChange={handleSubjectChange}>
               {subjects.map((subject: any) => (
                   <Select.Option key={subject.id} value={subject.id}>
                     {subject.name}
@@ -129,10 +152,10 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
               label="父分类"
               field="parentId"
           >
-            <Select placeholder="请选择父分类（可选）" allowClear showSearch filterOption={(inputValue, option) =>
+            <Select placeholder="请先选择所属学科" allowClear showSearch filterOption={(inputValue, option) =>
                 option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0 ||
                 option.props.children.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
-            }>
+            } loading={categoriesLoading}>
               {categories.map((category: any) => (
                   <Select.Option key={category.id} value={category.id}>
                     {category.name}

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Message } from '@arco-design/web-react';
-import { createCategory, getAllCategories } from '../api';
+import { createCategory, getCategoriesBySubjectId } from '../api';
 import { getAllSubjects } from '../../Subject/api';
 
 interface AddCategoryModalProps {
@@ -18,6 +18,7 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
   const [loading, setLoading] = React.useState(false);
   const [subjects, setSubjects] = React.useState([]);
   const [categories, setCategories] = React.useState([]);
+  const [categoryLoading, setCategoryLoading] = React.useState(false);
 
   // 获取学科列表
   const fetchSubjects = async () => {
@@ -29,22 +30,39 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
     }
   };
 
-  // 获取分类列表（用于父分类选择）
-  const fetchCategories = async () => {
+  // 根据学科ID获取分类列表（用于父分类选择）
+  const fetchCategoriesBySubject = async (subjectId: string) => {
+    if (!subjectId) {
+      setCategories([]);
+      return;
+    }
+    
     try {
-      const response = await getAllCategories();
+      setCategoryLoading(true);
+      const response = await getCategoriesBySubjectId(subjectId);
       setCategories(response.data || []);
+      // 清空父分类选择，因为学科已经改变
+      form.setFieldValue('parentId', undefined);
     } catch (error) {
       console.error('获取分类列表失败:', error);
+      Message.error('获取分类列表失败');
+    } finally {
+      setCategoryLoading(false);
     }
   };
 
   useEffect(() => {
     if (visible) {
       fetchSubjects();
-      fetchCategories();
+      // 清空表单和状态
+      form.resetFields();
+      setCategories([]);
     }
   }, [visible]);
+
+  const handleSubjectChange = (subjectId: string) => {
+    fetchCategoriesBySubject(subjectId);
+  };
 
   const handleSubmit = async () => {
     try {
@@ -65,6 +83,7 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
 
   const handleCancel = () => {
     form.resetFields();
+    setCategories([]);
     onCancel();
   };
 
@@ -97,10 +116,15 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
               field="subjectId"
               rules={[{ required: true, message: '请选择所属学科' }]}
           >
-            <Select placeholder="请选择所属学科" showSearch filterOption={(inputValue, option) =>
-                option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0 ||
-                option.props.children.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
-            }>
+            <Select 
+              placeholder="请选择所属学科" 
+              showSearch 
+              onChange={handleSubjectChange}
+              filterOption={(inputValue, option) =>
+                  option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0 ||
+                  option.props.children.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
+              }
+            >
               {subjects.map((subject: any) => (
                   <Select.Option key={subject.id} value={subject.id}>
                     {subject.name}
@@ -113,10 +137,16 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
               label="父分类"
               field="parentId"
           >
-            <Select placeholder="请选择父分类（可选）" allowClear showSearch filterOption={(inputValue, option) =>
-                option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0 ||
-                option.props.children.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
-            }>
+            <Select 
+              placeholder="请先选择所属学科" 
+              allowClear 
+              showSearch 
+              loading={categoryLoading}
+              filterOption={(inputValue, option) =>
+                  option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0 ||
+                  option.props.children.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
+              }
+            >
               {categories.map((category: any) => (
                   <Select.Option key={category.id} value={category.id}>
                     {category.name}
