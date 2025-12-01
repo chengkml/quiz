@@ -85,4 +85,6 @@ public class CategoryDto {
     private List<CategoryDto> children;
 
     private int questionNum;
+
+    private int knowledgeNum;
 }

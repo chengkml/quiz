@@ -65,4 +65,6 @@ public class SubjectDto {
     private List<CategoryDto> categories;
 
     private int questionNum;
+
+    private int knowledgeNum;
 }
