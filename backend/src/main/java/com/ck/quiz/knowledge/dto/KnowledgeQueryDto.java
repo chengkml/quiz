@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * 知识点查询DTO
  * 用于知识点查询时接收查询参数
@@ -21,7 +23,7 @@ public class KnowledgeQueryDto {
     /**
      * 所属分类ID
      */
-    private String categoryId;
+    private List<String> categoryIds;
 
     /**
      * 所属学科ID

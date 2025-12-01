@@ -151,8 +151,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 " and lower(k.name) like :knowledgeName ", params, namedParameterJdbcTemplate, sql, countSql);
 
         // 分类ID
-        JdbcQueryHelper.equals("categoryId", queryDto.getCategoryId(),
-                " and k.category_id = :categoryId ", params, sql, countSql);
+        JdbcQueryHelper.in("categoryIds", queryDto.getCategoryIds(),
+                " and k.category_id in (:categoryIds) ", params, sql, countSql);
 
         // 学科ID
         JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(),

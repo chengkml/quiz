@@ -52,7 +52,7 @@ function KnowledgeManager() {
 
     // 当前选中的过滤条件
     const [currentSubjectId, setCurrentSubjectId] = useState(null);
-    const [currentCategoryId, setCurrentCategoryId] = useState(null);
+    const [currentCategoryIds, setCurrentCategoryIds] = useState(null);
 
     // 下拉选项数据
     const [categories, setCategories] = useState([]);
@@ -202,7 +202,7 @@ function KnowledgeManager() {
     ];
 
     // 获取表格数据
-    const fetchTableData = async (params = {}, pageSize = pagination.pageSize, current = pagination.current, subjectId = currentSubjectId, categoryId = currentCategoryId) => {
+    const fetchTableData = async (params = {}, pageSize = pagination.pageSize, current = pagination.current, subjectId = currentSubjectId, categoryIds = currentCategoryIds) => {
         setTableLoading(true);
         try {
             const targetParams = {
@@ -210,7 +210,7 @@ function KnowledgeManager() {
                 pageNum: current - 1,
                 pageSize: pageSize,
                 subjectId,
-                categoryId,
+                categoryIds,
             };
             const response = await getKnowledgeList(targetParams);
             if (response.data) {
@@ -542,30 +542,50 @@ function KnowledgeManager() {
                                     onSelect={(selectedKeys, info) => {
                                         if (selectedKeys.length > 0) {
                                             const node = info.node;
-                                            const subjectId = node.subjectId; // ✅ 始终取顶层学科ID
-                                            // 判断是否为分类节点：若无 children 或 children 为空，则视为分类（叶子或中间节点）
-                                            // 更安全的方式：只要不是学科根节点（即有 parent），就认为是分类
-                                            // 但这里我们用一个简单规则：如果 node 有 children 且是原始学科结构（来自 res.data）则为学科
-                                            // 实际上，我们可以通过是否有子分类来判断，但更可靠的是：只有第一层是学科
-                                            // 所以：如果 node.key === node.subjectId → 是学科；否则是分类
-                                            const isSubjectNode = node.key === node.subjectId;
+
+                                            const subjectId = node.props.subjectId;
+
+                                            // 判断是否为学科节点
+                                            const isSubjectNode = node.key === node.props.subjectId;
                                             const categoryId = isSubjectNode ? null : node.key;
+
+                                            // 递归收集所有子节点的 categoryId
+                                            const collectChildCategoryIds = (treeNode) => {
+                                                let ids = [];
+                                                if (treeNode.children && treeNode.children.length > 0) {
+                                                    treeNode.children.forEach((child) => {
+                                                        ids.push(child.key);
+                                                        ids = ids.concat(collectChildCategoryIds(child));
+                                                    });
+                                                }
+                                                return ids;
+                                            };
+
+                                            let categoryIds = [];
+
+                                            if (!isSubjectNode) {
+                                                // 当前分类
+                                                categoryIds.push(categoryId);
+
+                                                // 加上所有子分类
+                                                categoryIds = categoryIds.concat(collectChildCategoryIds(node));
+                                            }
 
                                             setSelectedTreeNode(selectedKeys[0]);
                                             setCurrentSubjectId(subjectId);
-                                            setCurrentCategoryId(categoryId);
+                                            setCurrentCategoryIds(categoryIds);
 
                                             fetchTableData(
                                                 null,
                                                 pagination.pageSize,
                                                 pagination.current,
                                                 subjectId,
-                                                categoryId
+                                                categoryIds.length > 0 ? categoryIds : null
                                             );
                                         } else {
                                             setSelectedTreeNode(null);
                                             setCurrentSubjectId(null);
-                                            setCurrentCategoryId(null);
+                                            setCurrentCategoryIds([]);
                                             fetchTableData();
                                         }
                                     }}
