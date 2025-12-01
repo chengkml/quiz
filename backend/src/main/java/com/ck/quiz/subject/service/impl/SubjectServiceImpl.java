@@ -243,7 +243,7 @@ public class SubjectServiceImpl implements SubjectService {
         });
         Map<String, Object> params = new HashMap<>();
         params.put("subjectIds", idMap.keySet());
-        HumpHelper.lineToHump(jdbcTemplate.queryForList("select k.subject_id, count(*) num from knowledge k inner join question_knowledge_rela r on k.knowledge_id = r.knowledge_id where k.subject_id in (:subjectIds) group by k.subject_id", params)).forEach(map -> {
+        HumpHelper.lineToHump(jdbcTemplate.queryForList("select k.subject_id, count(*) num from knowledge k where k.subject_id in (:subjectIds) group by k.subject_id", params)).forEach(map -> {
             String subjectId = MapUtils.getString(map, "subjectId");
             int num = MapUtils.getIntValue(map, "num");
             idMap.get(subjectId).setKnowledgeNum(num);

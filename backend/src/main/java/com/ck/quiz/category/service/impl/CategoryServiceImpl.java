@@ -264,7 +264,7 @@ public class CategoryServiceImpl implements CategoryService {
         });
         Map<String, Object> params = new HashMap<>();
         params.put("categoryIds", idMap.keySet());
-        HumpHelper.lineToHump(jdbcTemplate.queryForList("select k.category_id, count(*) num from knowledge k inner join question_knowledge_rela r on k.knowledge_id = r.knowledge_id where k.category_id in (:categoryIds) group by k.category_id", params)).forEach(map -> {
+        HumpHelper.lineToHump(jdbcTemplate.queryForList("select k.category_id, count(*) num from knowledge k where k.category_id in (:categoryIds) group by k.category_id", params)).forEach(map -> {
             String categoryId = MapUtils.getString(map, "categoryId");
             int num = MapUtils.getIntValue(map, "num");
             idMap.get(categoryId).setKnowledgeNum(num);
