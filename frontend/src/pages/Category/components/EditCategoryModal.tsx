@@ -113,7 +113,10 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
               field="subjectId"
               rules={[{ required: true, message: '请选择所属学科' }]}
           >
-            <Select placeholder="请选择所属学科">
+            <Select placeholder="请选择所属学科" showSearch filterOption={(inputValue, option) =>
+                option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0 ||
+                option.props.children.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
+            }>
               {subjects.map((subject: any) => (
                   <Select.Option key={subject.id} value={subject.id}>
                     {subject.name}
@@ -126,7 +129,10 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
               label="父分类"
               field="parentId"
           >
-            <Select placeholder="请选择父分类（可选）" allowClear>
+            <Select placeholder="请选择父分类（可选）" allowClear showSearch filterOption={(inputValue, option) =>
+                option.props.value.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0 ||
+                option.props.children.toLowerCase().indexOf(inputValue.toLowerCase()) >= 0
+            }>
               {categories.map((category: any) => (
                   <Select.Option key={category.id} value={category.id}>
                     {category.name}
