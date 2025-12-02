@@ -18,7 +18,7 @@ public class PromptTemplateDto {
     /**
      * 提示词模板ID
      */
-    private Long id;
+    private String id;
 
     /**
      * 模板名称

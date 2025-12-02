@@ -107,12 +107,6 @@ public class Question {
     private String explanation;
 
     /**
-     * 难度等级 1-5
-     */
-    @Column(name = "difficulty_level")
-    private Integer difficultyLevel = 1;
-
-    /**
      * 创建时间
      */
     @Column(name = "create_date", updatable = false)

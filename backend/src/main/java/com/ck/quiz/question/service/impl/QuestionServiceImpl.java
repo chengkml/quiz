@@ -5,6 +5,8 @@ import com.ck.quiz.knowledge.dto.KnowledgeDto;
 import com.ck.quiz.knowledge.entity.Knowledge;
 import com.ck.quiz.knowledge.repository.KnowledgeRepository;
 import com.ck.quiz.knowledge.service.KnowledgeService;
+import com.ck.quiz.prompt.dto.PromptTemplateDto;
+import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.question.dto.QuestionCreateDto;
 import com.ck.quiz.question.dto.QuestionDto;
 import com.ck.quiz.question.dto.QuestionQueryDto;
@@ -56,6 +58,9 @@ public class QuestionServiceImpl implements QuestionService {
     @Autowired
     private ChatClient.Builder chatBuilder;
 
+    @Autowired
+    private PromptTemplateService promptTemplateService;
+
     @Override
     @Transactional
     public QuestionDto createQuestion(QuestionCreateDto questionCreateDto) {
@@ -66,7 +71,6 @@ public class QuestionServiceImpl implements QuestionService {
         question.setOptions(questionCreateDto.getOptions());
         question.setAnswer(questionCreateDto.getAnswer());
         question.setExplanation(questionCreateDto.getExplanation());
-        question.setDifficultyLevel(questionCreateDto.getDifficultyLevel());
         String subjectId = questionCreateDto.getSubjectId();
         String categoryId = questionCreateDto.getCategoryId();
 
@@ -134,10 +138,6 @@ public class QuestionServiceImpl implements QuestionService {
         if (questionUpdateDto.getExplanation() != null) {
             question.setExplanation(questionUpdateDto.getExplanation());
         }
-        if (questionUpdateDto.getDifficultyLevel() != null) {
-            question.setDifficultyLevel(questionUpdateDto.getDifficultyLevel());
-        }
-
         Question savedQuestion = questionRepository.save(question);
         return convertToDto(savedQuestion);
     }
@@ -199,10 +199,6 @@ public class QuestionServiceImpl implements QuestionService {
 
         JdbcQueryHelper.lowerLike("keyWord", queryDto.getContent(), " AND LOWER(q.content) LIKE :keyWord ", params, jdbcTemplate, sql, countSql);
 
-        if (queryDto.getDifficultyLevel() != null) {
-            JdbcQueryHelper.equals("difficultyLevel", String.valueOf(queryDto.getDifficultyLevel()), " AND q.difficulty_level = :difficultyLevel ", params, sql, countSql);
-        }
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
             JdbcQueryHelper.equals("createUser", authentication.getName(), " AND q.create_user = :createUser ", params, sql, countSql);
@@ -223,7 +219,6 @@ public class QuestionServiceImpl implements QuestionService {
             dto.setOptions(rs.getString("options"));
             dto.setAnswer(rs.getString("answer"));
             dto.setExplanation(rs.getString("explanation"));
-            dto.setDifficultyLevel(rs.getInt("difficulty_level"));
             dto.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             dto.setCreateUser(rs.getString("create_user"));
             dto.setCreateUserName(rs.getString("create_user_name"));
@@ -327,32 +322,10 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     private String buildPrompt(String knowledgePointDescription, int num) {
-        return "你是一个专业的教育题库生成器。我将给你一个知识点描述，请你生成" + num + "道题目。要求如下：\n" +
-                "\n" +
-                "1. 输出严格 JSON，包含以下字段：\n" +
-                "[{\n" +
-                "  \"type\": \"SINGLE | MULTIPLE\",  // 题型\n" +
-                "  \"content\": \"题干文本\",\n" +
-                "  \"options\": \"A.选项1;B.选项2;C.选项3;D.选项4\",   // 所有选项用分号分隔，单选/多选题必填，填空/简答可为空\n" +
-                "  \"answer\": \"正确答案的 key 或文本，如 A 或 选项文本\",  // 对应正确答案，多个答案用逗号分隔\n" +
-                "  \"explanation\": \"题目解析说明\",\n" +
-                "  \"difficultyLevel\": 1-5                               // 难度等级\n" +
-                "}]\n" +
-                "\n" +
-                "2. 题型说明：\n" +
-                "- SINGLE: 单选题\n" +
-                "- MULTIPLE: 多选题，答案多个时请用逗号分隔\n" +
-                "\n" +
-                "3. 输出规则：\n" +
-                "- 题目必须紧扣知识点描述\n" +
-                "- 单选题选项互斥，多选题选项合理\n" +
-                "- 解析要详细，便于学习者理解\n" +
-                "- options 和 answer 必须为字符串，不要输出 JSON 对象或数组\n" +
-                "- 输出 JSON 严格规范，不要多余文字\n" +
-                "- 每次生成多道题时，请输出一个 JSON 数组，每个元素为一条题目\n" +
-                "\n" +
-                "知识点描述如下：\n" +
-                "\"" + knowledgePointDescription + "\"\n";
+        PromptTemplateDto promptTemplateDto = promptTemplateService.getPromptTemplateByName("questionGenerate");
+        String targetPrompt = promptTemplateDto.getContent().replace("{{questionNum}}", String.valueOf(num));
+        targetPrompt = targetPrompt.replace("{{knowledgePointDescr}}", knowledgePointDescription);
+        return targetPrompt;
     }
 
     @Override
@@ -409,15 +382,15 @@ public class QuestionServiceImpl implements QuestionService {
         params.put("createUser", authentication.getName());
         // 使用SQL查询近7天的题目数量，按日期分组
         String sql = """
-            SELECT
-              DATE_FORMAT(create_date, '%Y-%m-%d') AS date,
-              COUNT(*) AS count
-            FROM question
-            WHERE create_user = :createUser and DATE(create_date) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-            GROUP BY DATE_FORMAT(create_date, '%Y-%m-%d')
-            ORDER BY date ASC
-        """;
-        
+                    SELECT
+                      DATE_FORMAT(create_date, '%Y-%m-%d') AS date,
+                      COUNT(*) AS count
+                    FROM question
+                    WHERE create_user = :createUser and DATE(create_date) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                    GROUP BY DATE_FORMAT(create_date, '%Y-%m-%d')
+                    ORDER BY date ASC
+                """;
+
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
             String date = rs.getString("date");
             Long count = rs.getLong("count");
@@ -433,23 +406,23 @@ public class QuestionServiceImpl implements QuestionService {
         params.put("createUser", authentication.getName());
         // 使用SQL查询各学科的题目数量
         String sql = """
-            SELECT s.name as subject_name, COUNT(DISTINCT q.question_id) as count
-            FROM question q
-            LEFT JOIN question_knowledge_rela r ON q.question_id = r.question_id
-            LEFT JOIN knowledge k ON r.knowledge_id = k.knowledge_id
-            LEFT JOIN category c ON k.category_id = c.category_id
-            LEFT JOIN subject s ON c.subject_id = s.subject_id
-            WHERE q.create_user = :createUser and s.name is not null
-            GROUP BY s.name
-            ORDER BY count DESC
-        """;
-        
+                    SELECT s.name as subject_name, COUNT(DISTINCT q.question_id) as count
+                    FROM question q
+                    LEFT JOIN question_knowledge_rela r ON q.question_id = r.question_id
+                    LEFT JOIN knowledge k ON r.knowledge_id = k.knowledge_id
+                    LEFT JOIN category c ON k.category_id = c.category_id
+                    LEFT JOIN subject s ON c.subject_id = s.subject_id
+                    WHERE q.create_user = :createUser and s.name is not null
+                    GROUP BY s.name
+                    ORDER BY count DESC
+                """;
+
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
-            String subjectName = rs.getString("subject_name");
-            Long count = rs.getLong("count");
-            return Map.entry(subjectName, count);
-        }).stream().filter(entry -> entry.getKey() != null)
-          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    String subjectName = rs.getString("subject_name");
+                    Long count = rs.getLong("count");
+                    return Map.entry(subjectName, count);
+                }).stream().filter(entry -> entry.getKey() != null)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     @Override
@@ -460,15 +433,15 @@ public class QuestionServiceImpl implements QuestionService {
         params.put("createUser", authentication.getName());
         // 使用SQL查询近30天的题目数量，按日期分组
         String sql = """
-            SELECT
-              DATE_FORMAT(create_date, '%Y-%m-%d') AS date,
-              COUNT(*) AS count
-            FROM question
-            WHERE create_user = :createUser and DATE(create_date) >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
-            GROUP BY DATE_FORMAT(create_date, '%Y-%m-%d')
-            ORDER BY date ASC
-        """;
-        
+                    SELECT
+                      DATE_FORMAT(create_date, '%Y-%m-%d') AS date,
+                      COUNT(*) AS count
+                    FROM question
+                    WHERE create_user = :createUser and DATE(create_date) >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+                    GROUP BY DATE_FORMAT(create_date, '%Y-%m-%d')
+                    ORDER BY date ASC
+                """;
+
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
             String date = rs.getString("date");
             Long count = rs.getLong("count");

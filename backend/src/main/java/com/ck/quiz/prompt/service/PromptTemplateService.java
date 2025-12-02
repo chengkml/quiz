@@ -35,7 +35,7 @@ public interface PromptTemplateService {
      *
      * @param id 提示词模板ID
      */
-    void deletePromptTemplate(Long id);
+    void deletePromptTemplate(String id);
 
     /**
      * 根据ID获取提示词模板信息
@@ -43,7 +43,7 @@ public interface PromptTemplateService {
      * @param id 提示词模板ID
      * @return 提示词模板信息
      */
-    PromptTemplateDto getPromptTemplateById(Long id);
+    PromptTemplateDto getPromptTemplateById(String id);
 
     /**
      * 根据名称获取提示词模板信息
@@ -76,12 +76,4 @@ public interface PromptTemplateService {
      */
     List<PromptTemplateDto> getPromptTemplatesByCreateUser(String createUser);
 
-    /**
-     * 检查提示词模板名称是否存在
-     *
-     * @param name 模板名称
-     * @param excludeId 排除的ID
-     * @return 是否存在
-     */
-    boolean checkPromptTemplateNameExists(String name, Long excludeId);
 }

@@ -25,11 +25,6 @@ public class QuestionQueryDto {
     private String content;
 
     /**
-     * 难度等级
-     */
-    private Integer difficultyLevel;
-
-    /**
      * 当前页码，从0开始
      */
     private Integer pageNum = 0;

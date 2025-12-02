@@ -1,8 +1,6 @@
 package com.ck.quiz.question.dto;
 
 import com.ck.quiz.question.entity.Question;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -48,10 +46,4 @@ public class QuestionUpdateDto {
      */
     private String explanation;
 
-    /**
-     * 难度等级 1-5
-     */
-    @Min(value = 1, message = "难度等级最小为1")
-    @Max(value = 5, message = "难度等级最大为5")
-    private Integer difficultyLevel;
 }

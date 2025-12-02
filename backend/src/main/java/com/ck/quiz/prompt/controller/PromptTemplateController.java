@@ -65,7 +65,7 @@ public class PromptTemplateController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除提示词模板", description = "根据ID删除提示词模板")
     public ResponseEntity<Void> deletePromptTemplate(
-            @Parameter(description = "提示词模板ID") @PathVariable Long id) {
+            @Parameter(description = "提示词模板ID") @PathVariable String id) {
         promptTemplateService.deletePromptTemplate(id);
         return ResponseEntity.ok().build();
     }
@@ -79,7 +79,7 @@ public class PromptTemplateController {
     @GetMapping("/{id}")
     @Operation(summary = "获取提示词模板详情", description = "根据ID获取提示词模板详细信息")
     public ResponseEntity<PromptTemplateDto> getPromptTemplateById(
-            @Parameter(description = "提示词模板ID") @PathVariable Long id) {
+            @Parameter(description = "提示词模板ID") @PathVariable String id) {
         PromptTemplateDto template = promptTemplateService.getPromptTemplateById(id);
         return ResponseEntity.ok(template);
     }

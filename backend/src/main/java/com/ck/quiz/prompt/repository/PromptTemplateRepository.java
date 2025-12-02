@@ -1,8 +1,6 @@
 package com.ck.quiz.prompt.repository;
 
 import com.ck.quiz.prompt.entity.PromptTemplate;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,7 +12,7 @@ import java.util.Optional;
  * 定义提示词模板相关的数据库操作方法
  */
 @Repository
-public interface PromptTemplateRepository extends JpaRepository<PromptTemplate, Long> {
+public interface PromptTemplateRepository extends JpaRepository<PromptTemplate, String> {
 
     /**
      * 根据模板名称查找提示词模板
@@ -36,10 +34,10 @@ public interface PromptTemplateRepository extends JpaRepository<PromptTemplate, 
      * 检查模板名称是否存在（排除指定ID）
      *
      * @param name 模板名称
-     * @param id 排除的模板ID
+     * @param id   排除的模板ID
      * @return 是否存在
      */
-    boolean existsByNameAndIdNot(String name, Long id);
+    boolean existsByNameAndIdNot(String name, String id);
 
     /**
      * 根据创建用户查找提示词模板列表

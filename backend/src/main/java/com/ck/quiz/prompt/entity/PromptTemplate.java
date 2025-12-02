@@ -20,9 +20,8 @@ import java.time.LocalDateTime;
 public class PromptTemplate {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private Long id;
+    private String id;
 
     @Column(name = "name", length = 255, nullable = false)
     private String name;

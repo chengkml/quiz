@@ -9,21 +9,19 @@ import com.ck.quiz.prompt.exception.PromptTemplateException;
 import com.ck.quiz.prompt.repository.PromptTemplateRepository;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.utils.HumpHelper;
+import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +54,7 @@ public class PromptTemplateServiceImpl implements PromptTemplateService {
         // 创建提示词模板实体
         PromptTemplate promptTemplate = new PromptTemplate();
         BeanUtils.copyProperties(createDto, promptTemplate);
+        promptTemplate.setId(IdHelper.genUuid());
 
         // 保存提示词模板
         PromptTemplate savedTemplate = promptTemplateRepository.save(promptTemplate);
@@ -90,7 +89,7 @@ public class PromptTemplateServiceImpl implements PromptTemplateService {
 
     @Override
     @Transactional
-    public void deletePromptTemplate(Long id) {
+    public void deletePromptTemplate(String id) {
         log.info("删除提示词模板: {}", id);
 
         // 检查提示词模板是否存在
@@ -104,7 +103,7 @@ public class PromptTemplateServiceImpl implements PromptTemplateService {
     }
 
     @Override
-    public PromptTemplateDto getPromptTemplateById(Long id) {
+    public PromptTemplateDto getPromptTemplateById(String id) {
         log.info("根据ID获取提示词模板: {}", id);
 
         PromptTemplate promptTemplate = promptTemplateRepository.findById(id)
@@ -156,9 +155,9 @@ public class PromptTemplateServiceImpl implements PromptTemplateService {
 
         // 转换 DTO
         List<PromptTemplateDto> dtoList = list.stream()
-                .map(map->{
+                .map(map -> {
                     PromptTemplateDto dto = new PromptTemplateDto();
-                    dto.setId(MapUtils.getLong(map, "id"));
+                    dto.setId(MapUtils.getString(map, "id"));
                     dto.setName(MapUtils.getString(map, "name"));
                     dto.setContent(MapUtils.getString(map, "content"));
                     dto.setDescription(MapUtils.getString(map, "description"));
@@ -199,8 +198,7 @@ public class PromptTemplateServiceImpl implements PromptTemplateService {
         return templates.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
-    @Override
-    public boolean checkPromptTemplateNameExists(String name, Long excludeId) {
+    public boolean checkPromptTemplateNameExists(String name, String excludeId) {
         if (excludeId == null) {
             return promptTemplateRepository.existsByName(name);
         } else {

@@ -74,7 +74,6 @@ public class QuestionController {
         QuestionQueryDto queryDto = new QuestionQueryDto();
         queryDto.setType(type);
         queryDto.setContent(content);
-        queryDto.setDifficultyLevel(difficultyLevel);
         queryDto.setPageNum(pageNum);
         queryDto.setPageSize(pageSize);
         queryDto.setSortColumn(sortColumn);

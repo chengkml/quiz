@@ -125,14 +125,7 @@ function QuestionManager() {
         {label: '多选题', value: 'MULTIPLE'},
     ];
 
-    // 难度等级选项
-    const difficultyOptions = [
-        {label: '1级', value: 1},
-        {label: '2级', value: 2},
-        {label: '3级', value: 3},
-        {label: '4级', value: 4},
-        {label: '5级', value: 5},
-    ];
+
 
     const renderCreateDate = (value)=>{
         if (!value) return '--';
@@ -194,17 +187,7 @@ function QuestionManager() {
             ellipsis: true,
         },
 
-        {
-            title: '难度等级',
-            dataIndex: 'difficultyLevel',
-            width: 100,
-            align: 'center',
-            render: (value) => (
-                <Tag color={value <= 2 ? 'green' : value <= 4 ? 'orange' : 'red'} bordered>
-                    难度: {value}级
-                </Tag>
-            ),
-        },
+
         {
             title: '创建人',
             dataIndex: 'createUserName',
@@ -568,7 +551,7 @@ function QuestionManager() {
                         description: values.knowledge,
                         subjectId: values.subjectId,
                         categoryId: values.categoryId,
-                        difficultyLevel: values.difficultyLevel,
+    
                     });
                     const newKnowledgeId = createResp?.data?.id || createResp?.id;
                     if (newKnowledgeId) {
@@ -1169,14 +1152,7 @@ function QuestionManager() {
                             >
                                 <TextArea placeholder="请输入解析说明" rows={3}/>
                             </Form.Item>
-                            <Form.Item
-                                label="难度等级"
-                                field="difficultyLevel"
-                                initialValue={1}
-                                rules={[{required: true, message: '请选择难度等级'}]}
-                            >
-                                <Select options={difficultyOptions} placeholder="请选择难度等级"/>
-                            </Form.Item>
+
                         </Form>
                     </div>
                 </Modal>
@@ -1397,13 +1373,7 @@ function QuestionManager() {
                             >
                                 <TextArea placeholder="请输入解析说明" rows={3}/>
                             </Form.Item>
-                            <Form.Item
-                                label="难度等级"
-                                field="difficultyLevel"
-                                rules={[{required: true, message: '请选择难度等级'}]}
-                            >
-                                <Select options={difficultyOptions} placeholder="请选择难度等级"/>
-                            </Form.Item>
+
                         </Form>
                     </div>
                 </Modal>

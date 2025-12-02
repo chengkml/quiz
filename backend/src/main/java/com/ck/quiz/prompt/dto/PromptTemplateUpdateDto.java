@@ -20,7 +20,7 @@ public class PromptTemplateUpdateDto {
      * 模板ID
      */
     @NotNull(message = "模板ID不能为空")
-    private Long id;
+    private String id;
 
     /**
      * 模板名称

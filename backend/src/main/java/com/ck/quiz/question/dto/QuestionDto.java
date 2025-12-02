@@ -47,11 +47,6 @@ public class QuestionDto {
     private String explanation;
 
     /**
-     * 难度等级 1-5
-     */
-    private Integer difficultyLevel;
-
-    /**
      * 创建时间
      */
     private LocalDateTime createDate;
