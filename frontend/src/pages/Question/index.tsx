@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
     Button,
+    Cascader,
     Checkbox,
     Collapse,
     Dropdown,
@@ -25,7 +26,6 @@ import './style/index.less';
 import {
     associateKnowledge,
     batchCreateQuestion,
-    createQuestion,
     deleteQuestion,
     generateQuestions,
     getAllSubjects,
@@ -34,10 +34,11 @@ import {
     getSubjectCategoryTree,
     updateQuestion,
 } from './api';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconRobot, IconSearch} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import DynamicQuestionForm from '@/components/DynamicQuestionForm';
 import Sider from '@arco-design/web-react/es/Layout/sider';
-import {createKnowledge, getKnowledgeList} from '../Knowledge/api';
+import {createKnowledge} from '../Knowledge/api';
+import renderDate from "@/utils/timeUtil";
 
 const {TextArea} = Input;
 const {Content} = Layout;
@@ -50,7 +51,6 @@ function QuestionManager() {
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
 
     // 对话框状态
-    const [addModalVisible, setAddModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [generateModalVisible, setGenerateModalVisible] = useState(false);
@@ -64,7 +64,6 @@ function QuestionManager() {
     const [saveLoading, setSaveLoading] = useState(false);
     const [knowledge, setKnowledge] = useState('');
     const [knowledgeDescrDisabled, setKnowledgeDescrDisabled] = useState(false);
-    const [addKnowledgeDescrDisabled, setAddKnowledgeDescrDisabled] = useState(false);
     const [editKnowledgeDescrDisabled, setEditKnowledgeDescrDisabled] = useState(false);
 
     // 查看详情相关状态
@@ -76,9 +75,6 @@ function QuestionManager() {
     const [categories, setCategories] = useState([]);
     const [subjectsLoading, setSubjectsLoading] = useState(false);
     // 知识点下拉选项（按学科/分类过滤）
-    const [knowledgeOptions, setKnowledgeOptions] = useState([]);
-    const [knowledgeOptionsRaw, setKnowledgeOptionsRaw] = useState([]);
-    const [knowledgeLoading, setKnowledgeLoading] = useState(false);
     const [categoriesLoading, setCategoriesLoading] = useState(false);
 
     // 左侧树相关状态
@@ -89,9 +85,7 @@ function QuestionManager() {
     const [expandedKeys, setExpandedKeys] = useState([]);
     const [searchKeyword, setSearchKeyword] = useState('');
 
-    // 当前选中的过滤条件
-    const [currentSubjectId, setCurrentSubjectId] = useState(null);
-    const [currentCategoryId, setCurrentCategoryId] = useState(null);
+    const [currentTreeNode, setCurrentTreeNode] = useState(null);
 
     // AI生成时选择的学科和分类信息
     const [selectedSubjectForGenerate, setSelectedSubjectForGenerate] = useState(null);
@@ -99,14 +93,11 @@ function QuestionManager() {
 
     // 表单引用
     const filterFormRef = useRef();
-    const addFormRef = useRef();
     const editFormRef = useRef();
     const generateFormRef = useRef();
 
     // 动态表单数据状态
-    const [addDynamicFormData, setAddDynamicFormData] = useState({options: {}, answer: {}});
     const [editDynamicFormData, setEditDynamicFormData] = useState({options: {}, answer: {}});
-    const [addQuestionType, setAddQuestionType] = useState('');
     const [editQuestionType, setEditQuestionType] = useState('');
 
     // 分页配置
@@ -124,47 +115,6 @@ function QuestionManager() {
         {label: '单选题', value: 'SINGLE'},
         {label: '多选题', value: 'MULTIPLE'},
     ];
-
-
-
-    const renderCreateDate = (value)=>{
-        if (!value) return '--';
-
-        const now = new Date();
-        const date = new Date(value);
-        const diffMs = now.getTime() - date.getTime();
-        const diffSeconds = Math.floor(diffMs / 1000);
-        const diffMinutes = Math.floor(diffSeconds / 60);
-        const diffHours = Math.floor(diffMinutes / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        // 今天
-        if (diffDays === 0) {
-            if (diffSeconds < 60) {
-                return `${diffSeconds}秒前`;
-            } else if (diffMinutes < 60) {
-                return `${diffMinutes}分钟前`;
-            } else {
-                return `${diffHours}小时前`;
-            }
-        }
-        // 昨天
-        else if (diffDays === 1) {
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            return `昨天 ${hours}:${minutes}`;
-        }
-        // 昨天之前
-        else {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const seconds = String(date.getSeconds()).padStart(2, '0');
-            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-        }
-    };
 
     // 表格列配置
     const columns = [
@@ -186,8 +136,6 @@ function QuestionManager() {
             minWidth: 300,
             ellipsis: true,
         },
-
-
         {
             title: '创建人',
             dataIndex: 'createUserName',
@@ -199,7 +147,7 @@ function QuestionManager() {
             dataIndex: 'createDate',
             width: 170,
             render: (value) => {
-                return renderCreateDate(value);
+                return renderDate(value);
             },
         },
         {
@@ -247,50 +195,42 @@ function QuestionManager() {
     ];
 
     // 获取表格数据
-    const fetchTableData = async (params = {}, pageSize = pagination.pageSize, current = pagination.current, subjectId, categoryId) => {
+    const fetchTableData = async (inParams, inPageSize, inPageNum , inSubjectId , inCategoryId) => {
+        const params = inParams || filterFormRef.current?.getFieldsValue?.();
+        const pageSize = inPageSize || pagination.pageSize;
+        const pageNum = inPageNum || pagination.current;
+        const subjectId = inSubjectId || currentTreeNode?.subjectId;
+        const categoryId = inCategoryId || currentTreeNode?.categoryId;
         setTableLoading(true);
         try {
             const targetParams = {
                 ...params,
-                pageNum: current - 1,
+                subjectId,
+                categoryId,
+                pageNum: pageNum - 1,
                 pageSize: pageSize,
             };
 
-            // 如果有选中的学科或分类，添加到查询参数中
-            if (subjectId) {
-                targetParams.subjectId = subjectId;
-            }
-            if (categoryId) {
-                targetParams.categoryId = categoryId;
-            }
-
             const response = await getQuestionList(targetParams);
             if (response.data) {
-                setTableData(response.data.content || []);
-                setPagination(prev => ({
-                    ...prev,
-                    current,
-                    pageSize,
-                    total: response.data.totalElements || 0,
-                }));
+                if (response.data.content.length === 0 && response.data.totalElements > 0) {
+                    const params = filterFormRef.current?.getFieldsValue?.() || {};
+                    fetchTableData(inParams, inPageSize, 1 , inSubjectId , inCategoryId);
+                } else {
+                    setTableData(response.data.content || []);
+                    setPagination(prev => ({
+                        ...prev,
+                        current: pageNum,
+                        pageSize,
+                        total: response.data.totalElements || 0,
+                    }));
+                }
             }
         } catch (error) {
             Message.error('获取题目数据失败');
         } finally {
             setTableLoading(false);
         }
-    };
-
-    // 搜索表格数据
-    const searchTableData = (params) => {
-        // 重置分页到第一页，但保持当前的学科和分类过滤条件
-        fetchTableData(params, pagination.pageSize, 1);
-    };
-
-    // 处理新增
-    const handleAdd = () => {
-        setCurrentRecord(null);
-        setAddModalVisible(true);
     };
 
     // 处理编辑
@@ -335,7 +275,6 @@ function QuestionManager() {
         fetchSubjectCategoryTree();
     }, []);
 
-    // 获取学科分类树数据
     const fetchSubjectCategoryTree = async () => {
         try {
             setTreeLoading(true);
@@ -344,24 +283,23 @@ function QuestionManager() {
                 // 递归转换分类数据为Tree组件需要的格式
                 const convertCategoriesToTreeNodes = (categories) => {
                     if (!categories || !Array.isArray(categories)) return [];
-
                     return categories.map(category => ({
-                        key: `${category.id}`,
+                        key: category.id,
                         title: category.name,
+                        subjectId: category.subjectId,
+                        categoryId: category.id,
                         children: convertCategoriesToTreeNodes(category.children)
                     }));
                 };
-
-                // 转换数据格式为Tree组件需要的格式
                 const treeData = response.data.map(subject => ({
-                    key: `${subject.id}`,
+                    key: subject.id,
                     title: subject.name,
+                    subjectId: subject.id,
+                    categoryId: null,
                     children: convertCategoriesToTreeNodes(subject.categories)
                 }));
-
                 setTreeData(treeData);
                 setFilteredTreeData(treeData);
-                // 默认展开第一级节点
                 setExpandedKeys(treeData.map(item => item.key));
             }
         } catch (error) {
@@ -442,14 +380,40 @@ function QuestionManager() {
             setCategories([]);
             return;
         }
+
         try {
             setCategoriesLoading(true);
             const response = await getCategoriesBySubjectId(subjectId);
+
             if (response.data) {
-                setCategories(response.data.map(item => ({
-                    label: item.name,
-                    value: item.id
-                })));
+                const flatList = response.data;
+
+                // 构建树形结构
+                const idMap = {};
+                const tree = [];
+
+                // 先构造映射
+                flatList.forEach(item => {
+                    idMap[item.id] = {
+                        label: item.name,
+                        value: item.id,
+                        parentId: item.parentId,
+                        children: []
+                    };
+                });
+
+                // 组装 parent -> children
+                flatList.forEach(item => {
+                    const node = idMap[item.id];
+                    if (item.parentId && idMap[item.parentId]) {
+                        idMap[item.parentId].children.push(node);
+                    } else {
+                        // parentId 为 null 或未找到父节点 → 顶级节点
+                        tree.push(node);
+                    }
+                });
+
+                setCategories(tree);
             }
         } catch (error) {
             console.error('获取分类列表失败:', error);
@@ -459,6 +423,7 @@ function QuestionManager() {
             setCategoriesLoading(false);
         }
     };
+
 
     // 监听窗口大小变化，动态调整表格高度
     useEffect(() => {
@@ -487,43 +452,6 @@ function QuestionManager() {
         };
     }, []);
 
-    // 提交新增表单
-    const handleAddSubmit = async (values) => {
-        try {
-            setSaveLoading(true);
-            // 将动态表单数据转换为JSON格式
-            const submitData = {
-                ...values,
-                options: Object.keys(addDynamicFormData.options).length > 0
-                    ? JSON.stringify(addDynamicFormData.options)
-                    : null,
-                answer: addDynamicFormData.answer
-                    ? JSON.stringify(addDynamicFormData.answer)
-                    : null
-            };
-            const resp = await createQuestion(submitData);
-            const createdQuestionId = resp?.data?.id || resp?.id;
-            // 如果选择了既有知识点，建立关联
-            if (createdQuestionId && values?.knowledgeId) {
-                try {
-                    await associateKnowledge({ questionId: createdQuestionId, knowledgeIds: [values.knowledgeId] });
-                } catch (e) {
-                    console.error('关联知识点失败', e);
-                }
-            }
-            Message.success('新增成功');
-            setAddModalVisible(false);
-            addFormRef.current?.resetFields();
-            setAddDynamicFormData({options: {}, answer: {}});
-            setAddQuestionType('');
-            fetchTableData();
-        } catch (error) {
-            Message.error('新增失败');
-        } finally {
-            setSaveLoading(false);
-        }
-    };
-
     // 提交编辑表单
     const handleEditSubmit = async (values) => {
         try {
@@ -543,7 +471,7 @@ function QuestionManager() {
             // 编辑后处理知识点关联：优先使用选择的知识点，其次使用输入的知识点
             try {
                 if (values?.knowledgeId) {
-                    await associateKnowledge({ questionId: currentRecord.id, knowledgeIds: [values.knowledgeId] });
+                    await associateKnowledge({questionId: currentRecord.id, knowledgeIds: [values.knowledgeId]});
                 } else if (values?.knowledge && values?.subjectId && values?.categoryId) {
                     // 创建新知识点再关联
                     const createResp = await createKnowledge({
@@ -551,11 +479,11 @@ function QuestionManager() {
                         description: values.knowledge,
                         subjectId: values.subjectId,
                         categoryId: values.categoryId,
-    
+
                     });
                     const newKnowledgeId = createResp?.data?.id || createResp?.id;
                     if (newKnowledgeId) {
-                        await associateKnowledge({ questionId: currentRecord.id, knowledgeIds: [newKnowledgeId] });
+                        await associateKnowledge({questionId: currentRecord.id, knowledgeIds: [newKnowledgeId]});
                     }
                 }
             } catch (e) {
@@ -588,6 +516,8 @@ function QuestionManager() {
     const handleGenerateSubmit = async (values) => {
         setGenerateLoading(true);
         try {
+            values.categoryId = values.categoryIds[values.categoryIds.length - 1];
+            delete values.categoryIds;
             // 保存生成时选择的学科和分类信息
             setSelectedSubjectForGenerate(values.subjectId);
             setSelectedCategoryForGenerate(values.categoryId);
@@ -607,19 +537,6 @@ function QuestionManager() {
             Message.error('生成题目失败');
         } finally {
             setGenerateLoading(false);
-        }
-    };
-
-    const getDefaultAnswer = (type: string) => {
-        switch (type) {
-            case 'SINGLE':
-            case 'BLANK':
-            case 'SHORT_ANSWER':
-                return '';
-            case 'MULTIPLE':
-                return [];
-            default:
-                return '';
         }
     };
 
@@ -643,12 +560,6 @@ function QuestionManager() {
             }
         });
         return result;
-    };
-
-    // 处理新增表单题目类型变化
-    const handleAddTypeChange = (type) => {
-        setAddQuestionType(type);
-        setAddDynamicFormData({options: {}, answer: getDefaultAnswer(type)});
     };
 
     // 处理编辑表单题目类型变化
@@ -722,33 +633,29 @@ function QuestionManager() {
         }
     };
 
-    // 根据已选学科/分类加载知识点选项
-    const fetchKnowledgeBySubjectCategory = async (subjectId, categoryId) => {
-        if (!subjectId || !categoryId) {
-            setKnowledgeOptions([]);
-            setKnowledgeOptionsRaw([]);
-            return;
+    const findNodeInTree = (treeData, key) => {
+        for (const item of treeData) {
+            if (item.key === key) {
+                return item;
+            }
+            if (item.children) {
+                const result = findNodeInTreeRecursive(item.children, key, item);
+                if (result) return result;
+            }
         }
-        setKnowledgeLoading(true);
-        try {
-            const params = {
-                subjectId,
-                categoryId,
-                pageNum: 1,
-                pageSize: 200,
-            };
-            const resp = await getKnowledgeList(params);
-            const list = resp?.data?.content || resp?.data || resp?.content || [];
-            const options = list.map(item => ({ label: item.name, value: item.id }));
-            setKnowledgeOptions(options);
-            setKnowledgeOptionsRaw(list);
-        } catch (e) {
-            console.error('加载知识点失败:', e);
-            setKnowledgeOptions([]);
-            setKnowledgeOptionsRaw([]);
-        } finally {
-            setKnowledgeLoading(false);
+        return null;
+    };
+    const findNodeInTreeRecursive = (children, key, parent) => {
+        for (const child of children) {
+            if (child.key === key) {
+                return child;
+            }
+            if (child.children) {
+                const result = findNodeInTreeRecursive(child.children, key, child);
+                if (result) return result;
+            }
         }
+        return null;
     };
 
     // 取消保存生成的题目
@@ -845,18 +752,18 @@ function QuestionManager() {
                         borderRight: '1px solid #e5e6eb',
                     }}
                 >
-                    <div style={{ padding: '12px', borderBottom: '1px solid #e5e6eb' }}>
+                    <div style={{padding: '12px', borderBottom: '1px solid #e5e6eb'}}>
                         <Input.Search
                             placeholder="搜索学科分类"
                             allowClear
-                            style={{ width: '100%' }}
+                            style={{width: '100%'}}
                             value={searchKeyword}
                             onChange={(value) => {
                                 handleSearchChange(value);
                             }}
                         />
                     </div>
-                    <div style={{ padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto' }}>
+                    <div style={{padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto'}}>
                         <Spin loading={treeLoading}>
                             {filteredTreeData.length > 0 ? (
                                 <Tree
@@ -869,67 +776,17 @@ function QuestionManager() {
                                     onSelect={(selectedKeys, info) => {
                                         if (selectedKeys.length > 0) {
                                             setSelectedTreeNode(selectedKeys[0]);
-
-                                            // 解析选中的节点，判断是学科还是分类
                                             const selectedKey = selectedKeys[0];
-                                            const node = info.node;
-
-                                            // 根据树的层级结构判断：第一级是学科，第二级及以下是分类
-                                            // 通过查找父节点来确定层级
-                                            const findNodeInTree = (treeData, key) => {
-                                                for (const item of treeData) {
-                                                    if (item.key === key) {
-                                                        return { node: item, parent: null };
-                                                    }
-                                                    if (item.children) {
-                                                        const result = findNodeInTreeRecursive(item.children, key, item);
-                                                        if (result) return result;
-                                                    }
-                                                }
-                                                return null;
-                                            };
-
-                                            const findNodeInTreeRecursive = (children, key, parent) => {
-                                                for (const child of children) {
-                                                    if (child.key === key) {
-                                                        return { node: child, parent };
-                                                    }
-                                                    if (child.children) {
-                                                        const result = findNodeInTreeRecursive(child.children, key, child);
-                                                        if (result) return result;
-                                                    }
-                                                }
-                                                return null;
-                                            };
-
                                             const nodeInfo = findNodeInTree(treeData, selectedKey);
-
-                                            if (nodeInfo && nodeInfo.parent) {
-                                                // 这是一个分类节点
-                                                const categoryId = selectedKey;
-                                                const subjectId = nodeInfo.parent.key;
-
-                                                setCurrentSubjectId(subjectId);
-                                                setCurrentCategoryId(categoryId);
-
-                                                console.log('选中分类:', { subjectId, categoryId, categoryName: nodeInfo.node.title, subjectName: nodeInfo.parent.title });
-                                                fetchTableData(null, pagination.pageSize, pagination.current, subjectId, categoryId);
+                                            setCurrentTreeNode(nodeInfo);
+                                            if (nodeInfo) {
+                                                fetchTableData(null, null, null, nodeInfo.subjectId, nodeInfo.categoryId);
                                             } else {
-                                                // 这是一个学科节点
-                                                const subjectId = selectedKey;
-
-                                                setCurrentSubjectId(subjectId);
-                                                setCurrentCategoryId(null);
-
-                                                console.log('选中学科:', { subjectId, subjectName: nodeInfo?.node.title });
-                                                fetchTableData(null, pagination.pageSize, pagination.current, subjectId, null);
-
+                                                fetchTableData();
                                             }
-                                            // 重新获取表格数据
                                         } else {
                                             setSelectedTreeNode(null);
-                                            setCurrentSubjectId(null);
-                                            setCurrentCategoryId(null);
+                                            setCurrentTreeNode(null);
                                             fetchTableData();
                                         }
                                     }}
@@ -954,21 +811,25 @@ function QuestionManager() {
                 </Sider>
                 <Content>
                     {/* 筛选表单 */}
-                    <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
-                        const values = filterFormRef.current?.getFieldsValue?.() || {};
-                        searchTableData(values);
-                    }}>
+                    <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}}
+                          onValuesChange={(params) => {
+                              fetchTableData(params)
+                          }}>
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item field="content" label="关键字">
-                                    <Input placeholder="请输入题干内容关键词" />
+                                    <Input placeholder="请输入题干内容关键词"/>
                                 </Form.Item>
                             </Col>
-                            <Col span={8} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
+                            <Col span={8} style={{
+                                display: 'flex',
+                                justifyContent: 'flex-start',
+                                alignItems: 'flex-end',
+                                paddingBottom: '16px'
+                            }}>
                                 <Space>
-                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                        searchTableData(values);
+                                    <Button type="primary" icon={<IconSearch/>} onClick={(params) => {
+                                        fetchTableData()
                                     }}>
                                         搜索
                                     </Button>
@@ -993,169 +854,11 @@ function QuestionManager() {
                         <Pagination
                             {...pagination}
                             onChange={(current, pageSize) => {
-                                fetchTableData({}, pageSize, current);
+                                fetchTableData(null, pageSize, current);
                             }}
                         />
                     </div>
                 </Content>
-
-                {/* 新增对话框 */}
-                <Modal
-                    title="新增题目"
-                    visible={addModalVisible}
-                    onCancel={() => {
-                        setAddModalVisible(false);
-                        setAddDynamicFormData({options: {}, answer: {}});
-                        setAddQuestionType('');
-                    }}
-                    footer={
-                        <div style={{textAlign: 'right'}}>
-                            <Button onClick={() => {
-                                setAddModalVisible(false);
-                                setAddDynamicFormData({options: {}, answer: {}});
-                                setAddQuestionType('');
-                            }} style={{marginRight: 8}}>
-                                取消
-                            </Button>
-                            <Button
-                                type="primary"
-                                loading={saveLoading}
-                                onClick={() => addFormRef.current?.submit()}
-                            >
-                                确定
-                            </Button>
-                        </div>
-                    }
-                >
-                    <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                        <Form
-                            ref={addFormRef}
-                            layout="vertical"
-                            onSubmit={handleAddSubmit}
-                            className="modal-form"
-                        >
-                            <Form.Item
-                                label="题目类型"
-                                field="type"
-                                rules={[{required: true, message: '请选择题目类型'}]}
-                            >
-                                <Select
-                                    options={questionTypeOptions}
-                                    placeholder="请选择题目类型"
-                                    onChange={handleAddTypeChange}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="学科"
-                                field="subjectId"
-                                rules={[{required: true, message: '请选择学科'}]}
-                            >
-                                <Select
-                                    options={subjects}
-                                    placeholder="请选择学科"
-                                    loading={subjectsLoading}
-                                    onChange={(value) => {
-                                        // 清空分类选择
-                                        addFormRef.current?.setFieldValue('categoryId', undefined);
-                                        setCategories([]);
-                                        // 清空知识点选择与输入
-                                        addFormRef.current?.setFieldValue('knowledgeId', undefined);
-                                        addFormRef.current?.setFieldValue('knowledge', undefined);
-                                        setAddKnowledgeDescrDisabled(false);
-                                        setKnowledgeOptions([]);
-                                        setKnowledgeOptionsRaw([]);
-                                        // 获取该学科下的分类
-                                        fetchCategoriesBySubject(value);
-                                    }}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="分类"
-                                field="categoryId"
-                                rules={[{required: true, message: '请选择分类'}]}
-                            >
-                                <Select
-                                    options={categories}
-                                    placeholder="请先选择学科"
-                                    loading={categoriesLoading}
-                                    disabled={categories.length === 0}
-                                    onChange={(value) => {
-                                        // 当分类选择变化时，清空并按学科/分类加载知识点
-                                        addFormRef.current?.setFieldValue('knowledgeId', undefined);
-                                        addFormRef.current?.setFieldValue('knowledge', undefined);
-                                        setAddKnowledgeDescrDisabled(false);
-                                        const sid = addFormRef.current?.getFieldValue('subjectId');
-                                        if (sid && value) {
-                                            fetchKnowledgeBySubjectCategory(sid, value);
-                                        } else {
-                                            setKnowledgeOptions([]);
-                                            setKnowledgeOptionsRaw([]);
-                                        }
-                                    }}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="知识点选择"
-                                field="knowledgeId"
-                            >
-                                <Select
-                                    placeholder="请选择知识点（将自动填充下方描述）"
-                                    options={knowledgeOptions}
-                                    loading={knowledgeLoading}
-                                    allowClear
-                                    disabled={!addFormRef.current?.getFieldValue('subjectId') || !addFormRef.current?.getFieldValue('categoryId')}
-                                    onChange={(value) => {
-                                        const selected = knowledgeOptionsRaw.find(k => k.id === value);
-                                        const descr = selected?.name || selected?.description || '';
-                                        if (value === undefined) {
-                                            addFormRef.current?.setFieldValue('knowledge', undefined);
-                                            setAddKnowledgeDescrDisabled(false);
-                                        } else {
-                                            addFormRef.current?.setFieldValue('knowledge', descr);
-                                            setAddKnowledgeDescrDisabled(true);
-                                        }
-                                    }}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="知识点"
-                                field="knowledge"
-                            >
-                                <TextArea
-                                    placeholder="请输入知识点描述，保存时将与题目关联"
-                                    rows={3}
-                                    disabled={addKnowledgeDescrDisabled}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="题干内容"
-                                field="content"
-                                rules={[{required: true, message: '请输入题干内容'}]}
-                            >
-                                <TextArea placeholder="请输入题干内容" rows={4}/>
-                            </Form.Item>
-
-                            {/* 动态表单区域 */}
-                            {addQuestionType && (
-                                <div style={{marginBottom: 20}}>
-                                    <DynamicQuestionForm
-                                        questionType={addQuestionType}
-                                        value={addDynamicFormData}
-                                        onChange={setAddDynamicFormData}
-                                    />
-                                </div>
-                            )}
-
-                            <Form.Item
-                                label="解析说明"
-                                field="explanation"
-                            >
-                                <TextArea placeholder="请输入解析说明" rows={3}/>
-                            </Form.Item>
-
-                        </Form>
-                    </div>
-                </Modal>
 
                 {/* 编辑对话框 */}
                 <Modal
@@ -1203,7 +906,14 @@ function QuestionManager() {
                                         }
                                     }
 
-                                    const { type, subjectId, categoryId, content, explanation, difficultyLevel } = currentRecord;
+                                    const {
+                                        type,
+                                        subjectId,
+                                        categoryId,
+                                        content,
+                                        explanation,
+                                        difficultyLevel
+                                    } = currentRecord;
 
                                     // 先设置除了 categoryId 之外的所有字段
                                     editFormRef.current.setFieldsValue({
@@ -1283,8 +993,6 @@ function QuestionManager() {
                                         editFormRef.current?.setFieldValue('knowledgeId', undefined);
                                         editFormRef.current?.setFieldValue('knowledge', undefined);
                                         setEditKnowledgeDescrDisabled(false);
-                                        setKnowledgeOptions([]);
-                                        setKnowledgeOptionsRaw([]);
                                         // 获取该学科下的分类
                                         fetchCategoriesBySubject(value);
                                     }}
@@ -1295,57 +1003,13 @@ function QuestionManager() {
                                 field="categoryId"
                                 rules={[{required: true, message: '请选择分类'}]}
                             >
-                                <Select
+                                <Cascader
+                                    placeholder='请先选择学科'
                                     options={categories}
-                                    placeholder="请先选择学科"
                                     loading={categoriesLoading}
                                     disabled={categories.length === 0}
-                                    onChange={(value) => {
-                                        // 当分类选择变化时，清空并按学科/分类加载知识点
-                                        editFormRef.current?.setFieldValue('knowledgeId', undefined);
-                                        editFormRef.current?.setFieldValue('knowledge', undefined);
-                                        setEditKnowledgeDescrDisabled(false);
-                                        const sid = editFormRef.current?.getFieldValue('subjectId');
-                                        if (sid && value) {
-                                            fetchKnowledgeBySubjectCategory(sid, value);
-                                        } else {
-                                            setKnowledgeOptions([]);
-                                            setKnowledgeOptionsRaw([]);
-                                        }
-                                    }}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="知识点选择"
-                                field="knowledgeId"
-                            >
-                                <Select
-                                    placeholder="请选择知识点（将自动填充下方描述）"
-                                    options={knowledgeOptions}
-                                    loading={knowledgeLoading}
+                                    changeOnSelect
                                     allowClear
-                                    disabled={!editFormRef.current?.getFieldValue('subjectId') || !editFormRef.current?.getFieldValue('categoryId')}
-                                    onChange={(value) => {
-                                        const selected = knowledgeOptionsRaw.find(k => k.id === value);
-                                        const descr = selected?.name || selected?.description || '';
-                                        if (value === undefined) {
-                                            editFormRef.current?.setFieldValue('knowledge', undefined);
-                                            setEditKnowledgeDescrDisabled(false);
-                                        } else {
-                                            editFormRef.current?.setFieldValue('knowledge', descr);
-                                            setEditKnowledgeDescrDisabled(true);
-                                        }
-                                    }}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="知识点"
-                                field="knowledge"
-                            >
-                                <TextArea
-                                    placeholder="请输入知识点描述，保存时将与题目关联"
-                                    rows={3}
-                                    disabled={editKnowledgeDescrDisabled}
                                 />
                             </Form.Item>
                             <Form.Item
@@ -1407,7 +1071,10 @@ function QuestionManager() {
                             </Button>
                             <Button
                                 type="primary"
-                                onClick={() => {setKnowledge(generateFormRef.current.getFieldValue('knowledgeDescr'));generateFormRef.current?.submit()}}
+                                onClick={() => {
+                                    setKnowledge(generateFormRef.current.getFieldValue('knowledgeDescr'));
+                                    generateFormRef.current?.submit()
+                                }}
                                 loading={generateLoading}
                             >
                                 确定
@@ -1432,16 +1099,12 @@ function QuestionManager() {
                                         options={subjects}
                                         placeholder="请选择学科"
                                         loading={subjectsLoading}
+                                        allowClear
                                         onChange={(value) => {
                                             // 清空分类选择
-                                            generateFormRef.current?.setFieldValue('categoryId', undefined);
+                                            generateFormRef.current?.setFieldValue('categoryIds', []);
                                             setCategories([]);
-                                            // 清空知识点选择
-                                            generateFormRef.current?.setFieldValue('knowledgeId', undefined);
-                                            generateFormRef.current?.setFieldValue('knowledgeDescr', undefined);
                                             setKnowledgeDescrDisabled(false);
-                                            setKnowledgeOptions([]);
-                                            setKnowledgeOptionsRaw([]);
                                             // 获取该学科下的分类
                                             fetchCategoriesBySubject(value);
                                         }}
@@ -1449,50 +1112,16 @@ function QuestionManager() {
                                 </Form.Item>
                                 <Form.Item
                                     label="分类"
-                                    field="categoryId"
+                                    field="categoryIds"
                                     rules={[{required: true, message: '请选择分类'}]}
                                 >
-                                    <Select
+                                    <Cascader
+                                        placeholder='请先选择学科'
                                         options={categories}
-                                        placeholder="请先选择学科"
                                         loading={categoriesLoading}
                                         disabled={categories.length === 0}
-                                        onChange={(value) => {
-                                            // 当分类选择变化时，清空并按学科/分类加载知识点
-                                            generateFormRef.current?.setFieldValue('knowledgeId', undefined);
-                                            generateFormRef.current?.setFieldValue('knowledgeDescr', undefined);
-                                            setKnowledgeDescrDisabled(false);
-                                            const sid = generateFormRef.current?.getFieldValue('subjectId');
-                                            if (sid && value) {
-                                                fetchKnowledgeBySubjectCategory(sid, value);
-                                            } else {
-                                                setKnowledgeOptions([]);
-                                                setKnowledgeOptionsRaw([]);
-                                            }
-                                        }}
-                                    />
-                                </Form.Item>
-                                <Form.Item
-                                    label="知识点选择"
-                                    field="knowledgeId"
-                                >
-                                    <Select
-                                        placeholder="请选择知识点（将自动填充下方描述）"
-                                        options={knowledgeOptions}
-                                        loading={knowledgeLoading}
+                                        changeOnSelect
                                         allowClear
-                                        disabled={!generateFormRef.current?.getFieldValue('subjectId') || !generateFormRef.current?.getFieldValue('categoryId')}
-                                        onChange={(value) => {
-                                            const selected = knowledgeOptionsRaw.find(k => k.id === value);
-                                            const descr = selected?.name || selected?.description || '';
-                                            if (value === undefined) {
-                                                generateFormRef.current?.setFieldValue('knowledgeDescr', undefined);
-                                                setKnowledgeDescrDisabled(false);
-                                            } else {
-                                                generateFormRef.current?.setFieldValue('knowledgeDescr', descr);
-                                                setKnowledgeDescrDisabled(true);
-                                            }
-                                        }}
                                     />
                                 </Form.Item>
                                 <Form.Item
@@ -1607,12 +1236,6 @@ function QuestionManager() {
                                                     <Tag color="blue" style={{marginRight: 8}} bordered>
                                                         {typeMap[question.type] || question.type}
                                                     </Tag>
-                                                    <Tag bordered
-                                                        color={question.difficultyLevel <= 2 ? 'green' : question.difficultyLevel <= 4 ? 'orange' : 'red'}
-                                                        style={{marginRight: 8}}
-                                                    >
-                                                        {question.difficultyLevel}级
-                                                    </Tag>
                                                     <Tooltip content={question.content}>
                                                     <span style={{
                                                         flex: 1,
@@ -1666,17 +1289,12 @@ function QuestionManager() {
                         visible={detailModalVisible}
                         onCancel={() => setDetailModalVisible(false)}
                         footer={null}
-                        width={800}
                     >
                         <div style={{paddingTop: '16px'}}>
                             <div style={{marginBottom: 16}}>
                                 <div style={{display: 'flex', gap: 12, marginBottom: 12}}>
                                     <Tag color="blue" bordered>
                                         {detailRecord.type === 'SINGLE' ? '单选题' : '多选题'}
-                                    </Tag>
-                                    <Tag bordered
-                                        color={detailRecord.difficultyLevel <= 2 ? 'green' : detailRecord.difficultyLevel <= 4 ? 'orange' : 'red'}>
-                                        难度: {detailRecord.difficultyLevel}级
                                     </Tag>
                                 </div>
                             </div>
@@ -1722,7 +1340,7 @@ function QuestionManager() {
                                     fontSize: 14
                                 }}>
                                     <span>创建人: {detailRecord.createUserName || '--'}</span>
-                                    <span>创建时间: {renderCreateDate(detailRecord.createDate)}</span>
+                                    <span>创建时间: {renderDate(detailRecord.createDate)}</span>
                                 </div>
                             </div>
                         </div>
