@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * 题目查询 DTO
  * 用于接收前端传来的题目查询条件，支持分页和排序
@@ -37,7 +39,7 @@ public class QuestionQueryDto {
     /**
      * 排序字段
      */
-    private String sortColumn = "createDate";
+    private String sortColumn = "create_date";
 
     /**
      * 排序方式，asc 或 desc
@@ -46,5 +48,5 @@ public class QuestionQueryDto {
 
     private String subjectId;
 
-    private String categoryId;
+    private List<String> categoryIds;
 }

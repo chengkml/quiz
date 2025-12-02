@@ -195,18 +195,18 @@ function QuestionManager() {
     ];
 
     // 获取表格数据
-    const fetchTableData = async (inParams, inPageSize, inPageNum , inSubjectId , inCategoryId) => {
+    const fetchTableData = async (inParams, inPageSize, inPageNum , inSubjectId , inCategoryIds) => {
         const params = inParams || filterFormRef.current?.getFieldsValue?.();
         const pageSize = inPageSize || pagination.pageSize;
         const pageNum = inPageNum || pagination.current;
         const subjectId = inSubjectId || currentTreeNode?.subjectId;
-        const categoryId = inCategoryId || currentTreeNode?.categoryId;
+        const categoryIds = inCategoryIds || currentTreeNode?.categoryIds;
         setTableLoading(true);
         try {
             const targetParams = {
                 ...params,
                 subjectId,
-                categoryId,
+                categoryIds,
                 pageNum: pageNum - 1,
                 pageSize: pageSize,
             };
@@ -214,8 +214,7 @@ function QuestionManager() {
             const response = await getQuestionList(targetParams);
             if (response.data) {
                 if (response.data.content.length === 0 && response.data.totalElements > 0) {
-                    const params = filterFormRef.current?.getFieldsValue?.() || {};
-                    fetchTableData(inParams, inPageSize, 1 , inSubjectId , inCategoryId);
+                    fetchTableData(inParams, inPageSize, 1 , inSubjectId , inCategoryIds);
                 } else {
                     setTableData(response.data.content || []);
                     setPagination(prev => ({
@@ -413,6 +412,20 @@ function QuestionManager() {
                     }
                 });
 
+                if (generateFormRef.current && currentTreeNode && currentTreeNode.categoryId) {
+                    const path = findPathById(tree, currentTreeNode.categoryId);
+                    if (path) {
+                        generateFormRef.current.setFieldValue('categoryIds', path);
+                    }
+                }
+
+                if (editFormRef.current && currentRecord && currentRecord.categoryId) {
+                    const path = findPathById(tree, currentRecord.categoryId);
+                    if (path) {
+                        editFormRef.current.setFieldValue('categoryIds', path);
+                    }
+                }
+
                 setCategories(tree);
             }
         } catch (error) {
@@ -466,6 +479,8 @@ function QuestionManager() {
                     ? JSON.stringify(editDynamicFormData.answer)
                     : null
             };
+            submitData.categoryId = submitData.categoryIds[submitData.categoryIds.length - 1];
+            delete submitData.categoryIds;
 
             await updateQuestion(submitData);
             // 编辑后处理知识点关联：优先使用选择的知识点，其次使用输入的知识点
@@ -499,6 +514,21 @@ function QuestionManager() {
             Message.error('编辑失败');
         }
     };
+
+    const findPathById = (tree, targetId, path = []) => {
+        for (const node of tree) {
+            const newPath = [...path, node.value];
+            if (node.value === targetId) {
+                return newPath;
+            }
+            if (node.children) {
+                const result = findPathById(node.children, targetId, newPath);
+                if (result) return result;
+            }
+        }
+        return null;
+    };
+
 
     // 确认删除
     const handleDeleteConfirm = async () => {
@@ -778,9 +808,27 @@ function QuestionManager() {
                                             setSelectedTreeNode(selectedKeys[0]);
                                             const selectedKey = selectedKeys[0];
                                             const nodeInfo = findNodeInTree(treeData, selectedKey);
+                                            const collectChildCategoryIds = (treeNode) => {
+                                                let categoryIds = [];
+                                                if (treeNode.children && treeNode.children.length > 0) {
+                                                    treeNode.children.forEach((child) => {
+                                                        if(child.categoryId) {
+                                                            categoryIds.push(child.categoryId);
+                                                            categoryIds = categoryIds.concat(collectChildCategoryIds(child));
+                                                        }
+                                                    });
+                                                }
+                                                return categoryIds;
+                                            };
+                                            let categoryIds = [];
+                                            if (nodeInfo.categoryId) {
+                                                categoryIds.push(nodeInfo.categoryId);
+                                                categoryIds = categoryIds.concat(collectChildCategoryIds(nodeInfo));
+                                            }
+                                            nodeInfo.categoryIds = categoryIds;
                                             setCurrentTreeNode(nodeInfo);
                                             if (nodeInfo) {
-                                                fetchTableData(null, null, null, nodeInfo.subjectId, nodeInfo.categoryId);
+                                                fetchTableData(null, null, null, nodeInfo.subjectId, categoryIds);
                                             } else {
                                                 fetchTableData();
                                             }
@@ -871,10 +919,7 @@ function QuestionManager() {
                     }}
                     onOk={() => editFormRef.current?.submit()}
                     afterOpen={() => {
-                        // 模态框完全打开后触发
                         if (currentRecord && editFormRef.current) {
-                            // 在这里执行初始化逻辑，代码同上（带 setTimeout 或直接执行）
-                            //  cuz是在 afterOpen 后，ref 通常已就绪
                             setTimeout(() => {
                                 if (editFormRef.current) {
                                     let parsedOptions = {};
@@ -909,7 +954,6 @@ function QuestionManager() {
                                     const {
                                         type,
                                         subjectId,
-                                        categoryId,
                                         content,
                                         explanation,
                                         difficultyLevel
@@ -922,31 +966,14 @@ function QuestionManager() {
                                         content,
                                         explanation,
                                         difficultyLevel,
-                                        // 注意：这里不设置 categoryId
                                     });
-
                                     setEditQuestionType(type);
                                     setEditDynamicFormData({
                                         options: parsedOptions,
                                         answer: parsedAnswer
                                     });
-
-                                    // 清空当前的 categoryId 以防万一
-                                    editFormRef.current.setFieldValue('categoryId', undefined);
-
-                                    // 如果有学科ID，获取对应的分类列表
                                     if (subjectId) {
-                                        fetchCategoriesBySubject(subjectId).then(() => {
-                                            // 关键点：在 fetchCategoriesBySubject 完成后，再设置 categoryId
-                                            // 此时 categories 状态已经更新，包含了该学科下的所有分类
-                                            editFormRef.current?.setFieldValue('categoryId', categoryId);
-                                        }).catch(error => {
-                                            console.error('加载分类列表失败:', error);
-                                            Message.error('加载分类信息失败');
-                                        });
-                                    } else {
-                                        // 如果没有学科ID，则直接设置（虽然这种情况很少见）
-                                        editFormRef.current.setFieldValue('categoryId', categoryId);
+                                        fetchCategoriesBySubject(subjectId);
                                     }
                                 }
                             }, 0);
@@ -1000,7 +1027,7 @@ function QuestionManager() {
                             </Form.Item>
                             <Form.Item
                                 label="分类"
-                                field="categoryId"
+                                field="categoryIds"
                                 rules={[{required: true, message: '请选择分类'}]}
                             >
                                 <Cascader
@@ -1059,11 +1086,23 @@ function QuestionManager() {
                     </div>
                 </Modal>
 
-                {/* AI生成题目对话框 */}
                 <Modal
                     title="AI生成题目"
                     visible={generateModalVisible}
                     onCancel={() => setGenerateModalVisible(false)}
+                    afterOpen={() => {
+                        if (currentTreeNode && generateFormRef.current) {
+                            setTimeout(() => {
+                                if (generateFormRef.current) {
+                                    generateFormRef.current.setFieldValue('subjectId', currentTreeNode.subjectId);
+                                    setKnowledgeDescrDisabled(false);
+
+                                    // 加载分类
+                                    fetchCategoriesBySubject(currentTreeNode.subjectId);
+                                }
+                            }, 0);
+                        }
+                    }}
                     footer={
                         <div style={{textAlign: 'right'}}>
                             <Button onClick={() => setGenerateModalVisible(false)} style={{marginRight: 8}}>

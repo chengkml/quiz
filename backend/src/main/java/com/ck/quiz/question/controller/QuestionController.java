@@ -60,26 +60,8 @@ public class QuestionController {
     }
 
     @Operation(summary = "分页查询题目", description = "根据条件分页查询题目列表")
-    @GetMapping
-    public ResponseEntity searchQuestions(
-            @Parameter(description = "") @RequestParam(required = false) String subjectId,
-            @Parameter(description = "") @RequestParam(required = false) String categoryId,
-            @Parameter(description = "题目类型") @RequestParam(required = false) Question.QuestionType type,
-            @Parameter(description = "题干内容") @RequestParam(required = false) String content,
-            @Parameter(description = "难度等级") @RequestParam(required = false) Integer difficultyLevel,
-            @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
-            @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") int pageSize,
-            @Parameter(description = "排序字段") @RequestParam(defaultValue = "create_date") String sortColumn,
-            @Parameter(description = "排序方向") @RequestParam(defaultValue = "desc") String sortType) {
-        QuestionQueryDto queryDto = new QuestionQueryDto();
-        queryDto.setType(type);
-        queryDto.setContent(content);
-        queryDto.setPageNum(pageNum);
-        queryDto.setPageSize(pageSize);
-        queryDto.setSortColumn(sortColumn);
-        queryDto.setSortType(sortType);
-        queryDto.setSubjectId(subjectId);
-        queryDto.setCategoryId(categoryId);
+    @PostMapping
+    public ResponseEntity searchQuestions(@RequestBody QuestionQueryDto queryDto) {
         return ResponseEntity.ok(questionService.searchQuestions(queryDto));
     }
 

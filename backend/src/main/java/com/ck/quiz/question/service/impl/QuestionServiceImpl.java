@@ -178,7 +178,7 @@ public class QuestionServiceImpl implements QuestionService {
                 "SELECT COUNT(1) FROM question q "
         );
 
-        if (queryDto.getCategoryId() != null || queryDto.getSubjectId() != null) {
+        if (queryDto.getCategoryIds() != null || queryDto.getSubjectId() != null) {
             sql.append(" LEFT JOIN question_knowledge_rela r on q.question_id = r.question_id LEFT JOIN knowledge k on k.knowledge_id = r.knowledge_id ");
             countSql.append(" LEFT JOIN question_knowledge_rela r on q.question_id = r.question_id LEFT JOIN knowledge k on k.knowledge_id = r.knowledge_id ");
         }
@@ -193,7 +193,7 @@ public class QuestionServiceImpl implements QuestionService {
             JdbcQueryHelper.equals("type", queryDto.getType().name(), " AND q.type = :type ", params, sql, countSql);
         }
 
-        JdbcQueryHelper.equals("categoryId", queryDto.getCategoryId(), " AND k.category_id = :categoryId ", params, sql, countSql);
+        JdbcQueryHelper.in("categoryIds", queryDto.getCategoryIds(), " AND k.category_id in (:categoryIds) ", params, sql, countSql);
 
         JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(), " AND k.subject_id = :subjectId ", params, sql, countSql);
 
