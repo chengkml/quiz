@@ -170,7 +170,7 @@ public class QuestionServiceImpl implements QuestionService {
     public Page<QuestionDto> searchQuestions(QuestionQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
                 "SELECT q.question_id AS id, q.type, q.content, q.options, q.answer, q.explanation, " +
-                        "q.difficulty_level, q.create_date, q.create_user, q.update_date, q.update_user, u.user_name create_user_name " +
+                        "q.create_date, q.create_user, q.update_date, q.update_user, u.user_name create_user_name " +
                         "FROM question q left join user u on u.user_id = q.create_user "
         );
 
