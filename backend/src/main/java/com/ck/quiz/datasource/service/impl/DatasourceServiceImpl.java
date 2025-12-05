@@ -10,6 +10,8 @@ import com.ck.quiz.datasource.repository.TableSchemaRepository;
 import com.ck.quiz.datasource.service.DatasourceService;
 import com.ck.quiz.thpool.CommonPool;
 import com.ck.quiz.utils.ExcelTemplateHelper;
+import com.ck.quiz.llmmodel.entity.LLMModel;
+import com.ck.quiz.llmmodel.repository.LLMModelRepository;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -18,6 +20,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -53,7 +58,31 @@ public class DatasourceServiceImpl implements DatasourceService {
     private ColumnSchemaRepository columnSchemaRepository;
 
     @Autowired
-    private ChatClient.Builder chatBuilder;
+    private LLMModelRepository llmModelRepository;
+
+    /**
+     * 构建ChatClient，使用模型管理中的默认文本模型配置
+     */
+    private ChatClient buildChatClient() {
+        LLMModel model = llmModelRepository.findByTypeAndIsDefault(LLMModel.ModelType.TEXT, "1")
+                .orElseThrow(() -> new RuntimeException("未找到默认的文本模型，请先在模型管理中配置默认模型"));
+
+        OpenAiApi openAiApi = OpenAiApi.builder()
+                .apiKey(model.getApiKey())
+                .baseUrl(model.getApiEndpoint())
+                .build();
+
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(model.getName())
+                .build();
+
+        OpenAiChatModel chatModel = OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
+
+        return ChatClient.builder(chatModel).build();
+    }
 
     @Override
     @Transactional
@@ -126,28 +155,30 @@ public class DatasourceServiceImpl implements DatasourceService {
     public Page<DatasourceDto> searchDatasources(DatasourceQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
                 "SELECT ds.ds_id AS id, ds.name, ds.driver, ds.jdbc_url, ds.username, ds.description, ds.active, " +
-                        "ds.create_date, ds.create_user, ds.update_date, ds.update_user, u.user_name create_user_name " +
-                        "FROM datasource ds LEFT JOIN user u ON u.user_id = ds.create_user "
-        );
+                        "ds.create_date, ds.create_user, ds.update_date, ds.update_user, u.user_name create_user_name "
+                        +
+                        "FROM datasource ds LEFT JOIN user u ON u.user_id = ds.create_user ");
 
         StringBuilder countSql = new StringBuilder(
-                "SELECT COUNT(1) FROM datasource ds "
-        );
+                "SELECT COUNT(1) FROM datasource ds ");
 
         sql.append(" WHERE 1=1 ");
         countSql.append(" WHERE 1=1 ");
 
         Map<String, Object> params = new HashMap<>();
 
-        JdbcQueryHelper.lowerLike("name", queryDto.getName(), " AND LOWER(ds.name) LIKE :name ", params, jdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("name", queryDto.getName(), " AND LOWER(ds.name) LIKE :name ", params, jdbcTemplate,
+                sql, countSql);
 
         if (queryDto.getActive() != null) {
-            JdbcQueryHelper.equals("active", String.valueOf(queryDto.getActive() ? 1 : 0), " AND ds.active = :active ", params, sql, countSql);
+            JdbcQueryHelper.equals("active", String.valueOf(queryDto.getActive() ? 1 : 0), " AND ds.active = :active ",
+                    params, sql, countSql);
         }
 
         JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
 
-        String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
+        String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(),
+                queryDto.getPageSize());
 
         List<DatasourceDto> list = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
             DatasourceDto dto = new DatasourceDto();
@@ -158,15 +189,18 @@ public class DatasourceServiceImpl implements DatasourceService {
             dto.setUsername(rs.getString("username"));
             dto.setDescription(rs.getString("description"));
             dto.setActive(rs.getBoolean("active"));
-            dto.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
+            dto.setCreateDate(
+                    rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             dto.setCreateUser(rs.getString("create_user"));
             dto.setCreateUserName(rs.getString("create_user_name"));
-            dto.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
+            dto.setUpdateDate(
+                    rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;
         });
 
-        Page<DatasourceDto> page = new PageImpl<>(list, org.springframework.data.domain.PageRequest.of(queryDto.getPageNum(), queryDto.getPageSize()),
+        Page<DatasourceDto> page = new PageImpl<>(list,
+                org.springframework.data.domain.PageRequest.of(queryDto.getPageNum(), queryDto.getPageSize()),
                 jdbcTemplate.queryForObject(countSql.toString(), params, Long.class));
         return page;
     }
@@ -262,7 +296,7 @@ public class DatasourceServiceImpl implements DatasourceService {
 
             List<TableSchemaDto> tables = new ArrayList<>();
 
-            try (ResultSet rs = meta.getTables(catalogToUse, schemaToUse, "%", new String[]{"TABLE"})) {
+            try (ResultSet rs = meta.getTables(catalogToUse, schemaToUse, "%", new String[] { "TABLE" })) {
                 while (rs.next()) {
                     TableSchemaDto tableDto = new TableSchemaDto();
                     tableDto.setTableCat(rs.getString("TABLE_CAT"));
@@ -312,8 +346,7 @@ public class DatasourceServiceImpl implements DatasourceService {
                             column.setDecimalDigits(getInt(colRs, "DECIMAL_DIGITS"));
                             column.setNullable(
                                     "YES".equalsIgnoreCase(colRs.getString("IS_NULLABLE")) ||
-                                            colRs.getInt("NULLABLE") == DatabaseMetaData.columnNullable
-                            );
+                                            colRs.getInt("NULLABLE") == DatabaseMetaData.columnNullable);
                             column.setDefaultValue(colRs.getString("COLUMN_DEF"));
                             column.setPrimaryKey(pks.contains(column.getColumnName()));
                             column.setRemarks(colRs.getString("REMARKS"));
@@ -355,7 +388,6 @@ public class DatasourceServiceImpl implements DatasourceService {
 
         return result;
     }
-
 
     @Override
     @Transactional(readOnly = true)
@@ -408,17 +440,15 @@ public class DatasourceServiceImpl implements DatasourceService {
      */
     @Override
     public int generateRemarks(String datasourceId, String schema) {
-        Datasource ds = datasourceRepository.findById(datasourceId)
-                .orElseThrow(() -> new RuntimeException("数据源不存在，ID: " + datasourceId));
 
-        ChatClient chat = chatBuilder.build();
+        ChatClient chat = buildChatClient();
 
         // 查询表结构（已保存的表）
-        List<TableSchema> tables = StringUtils.hasText(schema) ?
-                tableSchemaRepository.findByTableSchem(schema) :
-                tableSchemaRepository.findAll();
+        List<TableSchema> tables = StringUtils.hasText(schema) ? tableSchemaRepository.findByTableSchem(schema)
+                : tableSchemaRepository.findAll();
 
-        if (tables.isEmpty()) return 0;
+        if (tables.isEmpty())
+            return 0;
 
         // 使用线程池并发处理
         List<java.util.concurrent.Future<Boolean>> futures = new ArrayList<>();
@@ -430,7 +460,8 @@ public class DatasourceServiceImpl implements DatasourceService {
 
                     // 查询该表的字段
                     List<ColumnSchema> columnsInDb = columnSchemaRepository.findColumnsByTableName(tableName);
-                    if (columnsInDb.isEmpty()) return false;
+                    if (columnsInDb.isEmpty())
+                        return false;
 
                     // 构建大模型提示
                     List<Map<String, String>> columns = new ArrayList<>();
@@ -444,7 +475,8 @@ public class DatasourceServiceImpl implements DatasourceService {
 
                     // 调用大模型生成备注
                     String content = chat.prompt(prompt).call().content();
-                    Map<String, Object> remarkMap = new ObjectMapper().readValue(content, new TypeReference<>() {});
+                    Map<String, Object> remarkMap = new ObjectMapper().readValue(content, new TypeReference<>() {
+                    });
 
                     // 更新表备注
                     String tableRemark = (String) remarkMap.get("tableRemark");
@@ -478,7 +510,8 @@ public class DatasourceServiceImpl implements DatasourceService {
         int updatedCount = 0;
         for (java.util.concurrent.Future<Boolean> f : futures) {
             try {
-                if (f.get()) updatedCount++;
+                if (f.get())
+                    updatedCount++;
             } catch (Exception e) {
                 // 忽略单个任务异常
             }
@@ -493,14 +526,14 @@ public class DatasourceServiceImpl implements DatasourceService {
         Datasource ds = datasourceRepository.findById(datasourceId)
                 .orElseThrow(() -> new RuntimeException("数据源不存在，ID: " + datasourceId));
 
-        ChatClient chat = chatBuilder.build();
+        ChatClient chat = buildChatClient();
 
         // 查询表结构（已保存的表）
-        List<TableSchema> tables = StringUtils.hasText(schema) ?
-                tableSchemaRepository.findByTableSchem(schema) :
-                tableSchemaRepository.findAll();
+        List<TableSchema> tables = StringUtils.hasText(schema) ? tableSchemaRepository.findByTableSchem(schema)
+                : tableSchemaRepository.findAll();
 
-        if (tables.isEmpty()) return 0;
+        if (tables.isEmpty())
+            return 0;
 
         List<java.util.concurrent.Future<Boolean>> futures = new ArrayList<>();
 
@@ -525,7 +558,8 @@ public class DatasourceServiceImpl implements DatasourceService {
 
                     // 调用大模型生成分类
                     String content = chat.prompt(prompt).call().content();
-                    Map<String, Object> groupMap = new ObjectMapper().readValue(content, new TypeReference<>() {});
+                    Map<String, Object> groupMap = new ObjectMapper().readValue(content, new TypeReference<>() {
+                    });
 
                     String category = (String) groupMap.get("category");
                     if (StringUtils.hasText(category)) {
@@ -545,7 +579,8 @@ public class DatasourceServiceImpl implements DatasourceService {
         int updatedCount = 0;
         for (java.util.concurrent.Future<Boolean> f : futures) {
             try {
-                if (f.get()) updatedCount++;
+                if (f.get())
+                    updatedCount++;
             } catch (Exception ignored) {
             }
         }
@@ -557,9 +592,8 @@ public class DatasourceServiceImpl implements DatasourceService {
     public void exportToExcel(String datasourceId, String schema, HttpServletResponse response) {
         try {
             // 查询表结构
-            List<TableSchema> tables = StringUtils.hasText(schema) ?
-                    tableSchemaRepository.findByTableSchem(schema) :
-                    tableSchemaRepository.findAll();
+            List<TableSchema> tables = StringUtils.hasText(schema) ? tableSchemaRepository.findByTableSchem(schema)
+                    : tableSchemaRepository.findAll();
 
             if (tables.isEmpty()) {
                 throw new RuntimeException("没有可导出的表结构数据");
@@ -568,7 +602,8 @@ public class DatasourceServiceImpl implements DatasourceService {
             // 读取模板
             String templatePath = "templates/table_dict_template.xlsx";
             try (InputStream is = getClass().getClassLoader().getResourceAsStream(templatePath)) {
-                if (is == null) throw new RuntimeException("Excel 模板未找到: " + templatePath);
+                if (is == null)
+                    throw new RuntimeException("Excel 模板未找到: " + templatePath);
 
                 XSSFWorkbook workbook = new XSSFWorkbook(is);
 
@@ -576,7 +611,8 @@ public class DatasourceServiceImpl implements DatasourceService {
                 Map<String, List<TableSchema>> tablesByCat = new HashMap<>();
                 for (TableSchema table : tables) {
                     String cat = table.getTableCat();
-                    if (!StringUtils.hasText(cat)) cat = "未分类";
+                    if (!StringUtils.hasText(cat))
+                        cat = "未分类";
                     tablesByCat.computeIfAbsent(cat, k -> new ArrayList<>()).add(table);
                 }
 
@@ -595,7 +631,8 @@ public class DatasourceServiceImpl implements DatasourceService {
                     List<Map<String, Object>> loopData = new ArrayList<>();
                     for (TableSchema table : catTables) {
                         List<ColumnSchema> columns = table.getColumns();
-                        if (columns == null) columns = new ArrayList<>();
+                        if (columns == null)
+                            columns = new ArrayList<>();
 
                         for (ColumnSchema col : columns) {
                             Map<String, Object> map = new LinkedHashMap<>();
@@ -627,13 +664,15 @@ public class DatasourceServiceImpl implements DatasourceService {
                     dynamic.put("dataList", loopData);
                     dynamicList.add(dynamic);
 
-                    ExcelTemplateHelper.handleSheet(sheet, staticSource, dynamicList, ExcelTemplateHelper.getBorderStyle(workbook));
+                    ExcelTemplateHelper.handleSheet(sheet, staticSource, dynamicList,
+                            ExcelTemplateHelper.getBorderStyle(workbook));
                 }
 
                 // 输出到响应
                 String fileName = "表结构导出_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".xlsx";
                 response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-                response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, "UTF-8"));
+                response.setHeader("Content-Disposition",
+                        "attachment; filename=" + URLEncoder.encode(fileName, "UTF-8"));
 
                 try (OutputStream os = response.getOutputStream()) {
                     workbook.write(os);
@@ -647,8 +686,6 @@ public class DatasourceServiceImpl implements DatasourceService {
         }
     }
 
-
-
     /**
      * 构建大模型分类提示
      */
@@ -661,16 +698,14 @@ public class DatasourceServiceImpl implements DatasourceService {
             sb.append("- ").append(col.get("name")).append(" (").append(col.get("type")).append(")\n");
         }
         sb.append("""
-            输出格式必须是 JSON，例如：
-            {
-              "category": "门户"
-            }
-            不要输出其他文字或注释。
-            """);
+                输出格式必须是 JSON，例如：
+                {
+                  "category": "门户"
+                }
+                不要输出其他文字或注释。
+                """);
         return sb.toString();
     }
-
-
 
     private String buildRemarkPrompt(String tableName, List<Map<String, String>> columns) {
         StringBuilder sb = new StringBuilder();
@@ -681,7 +716,7 @@ public class DatasourceServiceImpl implements DatasourceService {
             sb.append("- ").append(col.get("name")).append(" (").append(col.get("type")).append(")\n");
         }
         sb.append("""
-                            
+
                 输出格式必须是 JSON，例如：
                 {
                   "tableRemark": "用于存储用户信息的表",
@@ -695,7 +730,6 @@ public class DatasourceServiceImpl implements DatasourceService {
                 """);
         return sb.toString();
     }
-
 
     private Integer getInt(ResultSet rs, String column) {
         try {

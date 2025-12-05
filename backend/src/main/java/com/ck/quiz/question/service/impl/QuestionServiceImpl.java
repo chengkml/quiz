@@ -5,11 +5,8 @@ import com.ck.quiz.knowledge.dto.KnowledgeDto;
 import com.ck.quiz.knowledge.entity.Knowledge;
 import com.ck.quiz.knowledge.repository.KnowledgeRepository;
 import com.ck.quiz.knowledge.service.KnowledgeService;
-import com.ck.quiz.llmmodel.dto.LLMModelDto;
-import com.ck.quiz.llmmodel.dto.LLMModelQueryDto;
 import com.ck.quiz.llmmodel.entity.LLMModel;
 import com.ck.quiz.llmmodel.repository.LLMModelRepository;
-import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.question.dto.QuestionCreateDto;
@@ -300,11 +297,11 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public List<QuestionCreateDto> generateQuestions(String knowledgeDescr, int num, String modelName) {
         // 查询模型配置
-        LLMModelDto model = resolveModel(modelName);
+        LLMModel model = resolveModel(modelName);
         if (model == null) {
             throw new RuntimeException("未找到指定的文本模型，请先在模型管理中配置模型");
         }
-        OpenAiApi openAiApi = OpenAiApi.builder().apiKey("").baseUrl(model.getApiEndpoint())
+        OpenAiApi openAiApi = OpenAiApi.builder().apiKey(model.getApiKey()).baseUrl(model.getApiEndpoint())
                 .build();
         OpenAiChatOptions options = OpenAiChatOptions.builder().model(model.getName())
                 .build();

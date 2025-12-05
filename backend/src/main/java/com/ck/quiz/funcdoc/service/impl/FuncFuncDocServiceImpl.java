@@ -11,6 +11,8 @@ import com.ck.quiz.funcdoc.repository.FuncDocInfoRepository;
 import com.ck.quiz.funcdoc.repository.FuncDocProcessNodeRepository;
 import com.ck.quiz.funcdoc.repository.FunctionPointRepository;
 import com.ck.quiz.funcdoc.service.FuncDocService;
+import com.ck.quiz.llmmodel.entity.LLMModel;
+import com.ck.quiz.llmmodel.repository.LLMModelRepository;
 import com.ck.quiz.thpool.CommonPool;
 import com.ck.quiz.utils.HumpHelper;
 import com.ck.quiz.utils.IdHelper;
@@ -29,6 +31,9 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTAbstractNum;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTLvl;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STNumberFormat;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -78,7 +83,7 @@ public class FuncFuncDocServiceImpl implements FuncDocService {
     private FunctionPointRepository functionPointRepository;
 
     @Autowired
-    private ChatClient.Builder chatBuilder;
+    private LLMModelRepository llmModelRepository;
 
     @Override
     @Transactional
@@ -233,6 +238,27 @@ public class FuncFuncDocServiceImpl implements FuncDocService {
             log.error("计算文件MD5失败", e);
             throw new RuntimeException("计算文件MD5失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 构建动态ChatClient，使用默认TEXT模型配置
+     */
+    private ChatClient buildChatClient() {
+        LLMModel model = llmModelRepository.findByTypeAndIsDefault(LLMModel.ModelType.TEXT, "1")
+                .orElseThrow(() -> new RuntimeException("未找到默认的TEXT类型模型，请先在模型管理中配置"));
+
+        OpenAiApi openAiApi = OpenAiApi.builder()
+                .apiKey(model.getApiKey())
+                .baseUrl(model.getApiEndpoint())
+                .build();
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(model.getName())
+                .build();
+        OpenAiChatModel chatModel = OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
+        return ChatClient.builder(chatModel).build();
     }
 
     /**
@@ -1342,7 +1368,7 @@ public class FuncFuncDocServiceImpl implements FuncDocService {
         prompt = prompt.replace("{{processDetail}}", String.join("\n", contents));
 
         // 4. 调用大模型生成接口信息 JSON
-        ChatClient chatClient = chatBuilder.build();
+        ChatClient chatClient = buildChatClient();
         String result = chatClient.prompt()
                 .user(prompt)
                 .call()
@@ -1420,7 +1446,7 @@ public class FuncFuncDocServiceImpl implements FuncDocService {
         prompt = prompt.replace("{{processDetail}}", StringUtils.join(contents, "\n"));
 
         // 调用大模型生成结果
-        ChatClient chatClient = chatBuilder.build();
+        ChatClient chatClient = buildChatClient();
         String result = chatClient.prompt()
                 .user(prompt)
                 .call()
@@ -1478,7 +1504,7 @@ public class FuncFuncDocServiceImpl implements FuncDocService {
         prompt = prompt.replace("{{processDetail}}", String.join("\n", contents));
 
         // 4. 调用大模型生成 Mermaid 流程图 JSON
-        ChatClient chatClient = chatBuilder.build();
+        ChatClient chatClient = buildChatClient();
         String result = chatClient.prompt()
                 .user(prompt)
                 .call()

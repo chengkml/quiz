@@ -389,7 +389,7 @@ public class CategoryServiceImpl implements CategoryService {
             List<String> knowledges = knowledgeService.generateKnowledges(op.get().getName());
             knowledges.forEach(knowledge -> {
                 try {
-                    List<QuestionCreateDto> questions = questionService.generateQuestions(knowledge, questionNum);
+                    List<QuestionCreateDto> questions = questionService.generateQuestions(knowledge, questionNum, null);
                     questions.forEach(question -> {
                         question.setSubjectId(op.get().getSubjectId());
                         question.setCategoryId(categoryId);

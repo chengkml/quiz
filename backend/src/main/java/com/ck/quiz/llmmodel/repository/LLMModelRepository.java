@@ -28,6 +28,13 @@ public interface LLMModelRepository extends JpaRepository<LLMModel, String> {
      */
     Optional<LLMModel> findByNameAndProvider(String name, String provider);
 
+        /**
+         * 根据模型类型查询所有模型
+         * @param type 模型类型
+         * @return 指定类型的模型列表
+         */
+        java.util.List<LLMModel> findByType(LLMModel.ModelType type);
+
     Optional<LLMModel> findByName(String name);
 
     /**

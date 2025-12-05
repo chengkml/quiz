@@ -8,6 +8,8 @@ import com.ck.quiz.knowledge.entity.Knowledge;
 import com.ck.quiz.knowledge.exception.KnowledgeException;
 import com.ck.quiz.knowledge.repository.KnowledgeRepository;
 import com.ck.quiz.knowledge.service.KnowledgeService;
+import com.ck.quiz.llmmodel.entity.LLMModel;
+import com.ck.quiz.llmmodel.repository.LLMModelRepository;
 import com.ck.quiz.question.dto.QuestionDto;
 import com.ck.quiz.question.repository.QuestionKnowledgeRepository;
 import com.ck.quiz.question.service.QuestionService;
@@ -17,6 +19,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -51,7 +56,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     private QuestionService questionService;
 
     @Autowired
-    private ChatClient.Builder chatBuilder;
+    private LLMModelRepository llmModelRepository;
 
     @Override
     public KnowledgeDto createKnowledge(KnowledgeCreateDto createDto) {
@@ -250,9 +255,30 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 .toList();
     }
 
+    /**
+     * 构建动态ChatClient，使用默认TEXT模型配置
+     */
+    private ChatClient buildChatClient() {
+        LLMModel model = llmModelRepository.findByTypeAndIsDefault(LLMModel.ModelType.TEXT, "1")
+                .orElseThrow(() -> new RuntimeException("未找到默认的TEXT类型模型，请先在模型管理中配置"));
+
+        OpenAiApi openAiApi = OpenAiApi.builder()
+                .apiKey(model.getApiKey())
+                .baseUrl(model.getApiEndpoint())
+                .build();
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(model.getName())
+                .build();
+        OpenAiChatModel chatModel = OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
+        return ChatClient.builder(chatModel).build();
+    }
+
     @Override
     public List<String> generateKnowledges(String topic) {
-        ChatClient chat = chatBuilder.build();
+        ChatClient chat = buildChatClient();
         ObjectMapper objectMapper = new ObjectMapper();
 
         int maxRetries = 3;          // 最大重试次数

@@ -7,6 +7,7 @@ import com.ck.quiz.llmmodel.dto.LLMModelUpdateDto;
 import com.ck.quiz.llmmodel.entity.LLMModel;
 
 import org.springframework.data.domain.Page;
+import java.util.List;
 
 /**
  * 大语言模型管理服务接口
@@ -55,6 +56,13 @@ public interface LLMModelService {
      * @return 分页查询结果
      */
     Page<LLMModelDto> searchModels(LLMModelQueryDto queryDto);
+
+    /**
+     * 根据模型类型获取模型列表
+     * @param modelType 模型类型
+     * @return 指定类型的模型列表
+     */
+    List<LLMModelDto> listModelsByType(com.ck.quiz.llmmodel.entity.LLMModel.ModelType modelType);
 
     /**
      * 设置默认模型

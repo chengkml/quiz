@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 大语言模型管理服务实现类
@@ -158,6 +159,16 @@ public class LLMModelServiceImpl implements LLMModelService {
         });
 
         return JdbcQueryHelper.toPage(jdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LLMModelDto> listModelsByType(LLMModel.ModelType modelType) {
+        List<LLMModel> models = modelRepository.findByType(modelType);
+        if (models == null || models.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return models.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
     @Override
