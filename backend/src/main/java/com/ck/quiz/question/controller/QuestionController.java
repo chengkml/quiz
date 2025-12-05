@@ -73,7 +73,8 @@ public class QuestionController {
         return ResponseEntity.ok(
                 questionService.generateQuestions(
                         request.getKnowledgeDescr(),
-                        request.getNum()
+                        request.getNum(),
+                        request.getModelName()
                 )
         );
     }

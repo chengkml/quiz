@@ -7,19 +7,23 @@ import com.ck.quiz.llmmodel.dto.LLMModelUpdateDto;
 import com.ck.quiz.llmmodel.entity.LLMModel;
 import com.ck.quiz.llmmodel.repository.LLMModelRepository;
 import com.ck.quiz.llmmodel.service.LLMModelService;
+import com.ck.quiz.utils.IdHelper;
+import com.ck.quiz.utils.JdbcQueryHelper;
+
+import io.micrometer.common.lang.NonNull;
+
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * 大语言模型管理服务实现类
@@ -29,6 +33,9 @@ public class LLMModelServiceImpl implements LLMModelService {
 
     @Autowired
     private LLMModelRepository modelRepository;
+
+    @Autowired
+    private NamedParameterJdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional
@@ -42,13 +49,8 @@ public class LLMModelServiceImpl implements LLMModelService {
 
         LLMModel model = new LLMModel();
         BeanUtils.copyProperties(modelCreateDto, model);
-        model.setId(UUID.randomUUID().toString().replace("-", "").substring(0, 32));
-        model.setStatus(LLMModel.ModelStatus.ACTIVE);
-
-        // 如果设置为默认模型，需要将其他模型的默认标志取消
-        if (modelCreateDto.getIsDefault()) {
-            resetDefaultModel();
-        }
+        model.setId(IdHelper.genUuid());
+        model.setIsDefault("0");
 
         LLMModel savedModel = modelRepository.save(model);
         return convertToDto(savedModel);
@@ -56,7 +58,7 @@ public class LLMModelServiceImpl implements LLMModelService {
 
     @Override
     @Transactional
-    public LLMModelDto updateModel(LLMModelUpdateDto modelUpdateDto) {
+    public LLMModelDto updateModel(@NonNull LLMModelUpdateDto modelUpdateDto) {
         Optional<LLMModel> optionalModel = modelRepository.findById(modelUpdateDto.getId());
         if (!optionalModel.isPresent()) {
             throw new RuntimeException("模型不存在");
@@ -64,11 +66,6 @@ public class LLMModelServiceImpl implements LLMModelService {
 
         LLMModel model = optionalModel.get();
         BeanUtils.copyProperties(modelUpdateDto, model, getNullPropertyNames(modelUpdateDto));
-
-        // 如果设置为默认模型，需要将其他模型的默认标志取消
-        if (modelUpdateDto.getIsDefault() != null && modelUpdateDto.getIsDefault()) {
-            resetDefaultModel();
-        }
 
         LLMModel updatedModel = modelRepository.save(model);
         return convertToDto(updatedModel);
@@ -100,24 +97,67 @@ public class LLMModelServiceImpl implements LLMModelService {
     }
 
     @Override
-    public LLMModelDto getDefaultModel() {
-        Optional<LLMModel> optionalModel = modelRepository.findByIsDefault("1");
-        if (!optionalModel.isPresent()) {
-            throw new RuntimeException("未设置默认模型");
-        }
-        return convertToDto(optionalModel.get());
-    }
-
-    @Override
+    @Transactional(readOnly = true)
     public Page<LLMModelDto> searchModels(LLMModelQueryDto queryDto) {
-        // TODO
-        return null;
-    }
+        StringBuilder sql = new StringBuilder(
+                "SELECT m.model_id AS id, m.name, m.provider, m.type, m.description, " +
+                        "m.api_key, m.api_endpoint, m.context_window, m.input_price_per_1k, m.output_price_per_1k, " +
+                        "m.is_default, m.create_date, m.create_user, m.update_date, m.update_user, " +
+                        "u.user_name AS create_user_name " +
+                        "FROM llm_model m LEFT JOIN user u ON u.user_id = m.create_user "
+        );
 
-    @Override
-    public List<LLMModelDto> getActiveModels() {
-        List<LLMModel> activeModels = modelRepository.findByStatus(LLMModel.ModelStatus.ACTIVE);
-        return activeModels.stream().map(this::convertToDto).toList();
+        StringBuilder countSql = new StringBuilder(
+                "SELECT COUNT(1) FROM llm_model m "
+        );
+
+        sql.append(" WHERE 1=1 ");
+        countSql.append(" WHERE 1=1 ");
+
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+
+        // 动态条件
+        JdbcQueryHelper.lowerLike("nameKey", queryDto.getName(), " AND LOWER(m.name) LIKE :nameKey ", params, jdbcTemplate, sql, countSql);
+
+        if (queryDto.getProvider() != null && !queryDto.getProvider().isEmpty()) {
+            JdbcQueryHelper.equals("provider", queryDto.getProvider(), " AND m.provider = :provider ", params, sql, countSql);
+        }
+
+        if (queryDto.getType() != null) {
+            JdbcQueryHelper.equals("type", queryDto.getType().name(), " AND m.type = :type ", params, sql, countSql);
+        }
+
+        if (queryDto.getIsDefault() != null && !queryDto.getIsDefault().isEmpty()) {
+            JdbcQueryHelper.equals("isDefault", queryDto.getIsDefault(), " AND m.is_default = :isDefault ", params, sql, countSql);
+        }
+
+        // 排序
+        JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
+
+        // 分页
+        String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
+
+        java.util.List<LLMModelDto> list = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
+            LLMModelDto dto = new LLMModelDto();
+            dto.setId(rs.getString("id"));
+            dto.setName(rs.getString("name"));
+            dto.setProvider(rs.getString("provider"));
+            dto.setType(rs.getString("type") != null ? LLMModel.ModelType.valueOf(rs.getString("type")) : null);
+            dto.setDescription(rs.getString("description"));
+            dto.setApiEndpoint(rs.getString("api_endpoint"));
+            dto.setContextWindow(rs.getObject("context_window") != null ? rs.getInt("context_window") : null);
+            dto.setInputPricePer1k(rs.getObject("input_price_per_1k") != null ? rs.getDouble("input_price_per_1k") : null);
+            dto.setOutputPricePer1k(rs.getObject("output_price_per_1k") != null ? rs.getDouble("output_price_per_1k") : null);
+            dto.setIsDefault(rs.getString("is_default"));
+            dto.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
+            dto.setCreateUser(rs.getString("create_user"));
+            dto.setCreateUserName(rs.getString("create_user_name"));
+            dto.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
+            dto.setUpdateUser(rs.getString("update_user"));
+            return dto;
+        });
+
+        return JdbcQueryHelper.toPage(jdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
     }
 
     @Override
@@ -129,12 +169,10 @@ public class LLMModelServiceImpl implements LLMModelService {
         }
 
         LLMModel model = optionalModel.get();
-        if (!LLMModel.ModelStatus.ACTIVE.equals(model.getStatus())) {
-            throw new RuntimeException("只能将激活状态的模型设为默认模型");
-        }
 
         // 重置所有模型的默认标志
-        resetDefaultModel();
+        // 仅重置与当前模型相同类型的默认标志
+        resetDefaultModel(model.getType());
 
         // 设置当前模型为默认
         model.setIsDefault("1");
@@ -144,11 +182,16 @@ public class LLMModelServiceImpl implements LLMModelService {
     /**
      * 重置所有模型的默认标志
      */
-    private void resetDefaultModel() {
+    /**
+     * 重置指定类型模型的默认标志
+     */
+    private void resetDefaultModel(LLMModel.ModelType type) {
         List<LLMModel> models = modelRepository.findAll();
         for (LLMModel model : models) {
-            model.setIsDefault("0");
-            modelRepository.save(model);
+            if (model.getType() == type) {
+                model.setIsDefault("0");
+                modelRepository.save(model);
+            }
         }
     }
 

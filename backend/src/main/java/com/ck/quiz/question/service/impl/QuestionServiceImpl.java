@@ -5,6 +5,11 @@ import com.ck.quiz.knowledge.dto.KnowledgeDto;
 import com.ck.quiz.knowledge.entity.Knowledge;
 import com.ck.quiz.knowledge.repository.KnowledgeRepository;
 import com.ck.quiz.knowledge.service.KnowledgeService;
+import com.ck.quiz.llmmodel.dto.LLMModelDto;
+import com.ck.quiz.llmmodel.dto.LLMModelQueryDto;
+import com.ck.quiz.llmmodel.entity.LLMModel;
+import com.ck.quiz.llmmodel.repository.LLMModelRepository;
+import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.question.dto.QuestionCreateDto;
@@ -20,6 +25,9 @@ import com.ck.quiz.utils.JdbcQueryHelper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -56,10 +64,10 @@ public class QuestionServiceImpl implements QuestionService {
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    private ChatClient.Builder chatBuilder;
+    private PromptTemplateService promptTemplateService;
 
     @Autowired
-    private PromptTemplateService promptTemplateService;
+    private LLMModelRepository llmModelRepository;
 
     @Override
     @Transactional
@@ -75,7 +83,8 @@ public class QuestionServiceImpl implements QuestionService {
         String categoryId = questionCreateDto.getCategoryId();
 
         // 将题目内容作为知识点存储
-        if (StringUtils.hasText(subjectId) && StringUtils.hasText(categoryId) && StringUtils.hasText(questionCreateDto.getKnowledge())) {
+        if (StringUtils.hasText(subjectId) && StringUtils.hasText(categoryId)
+                && StringUtils.hasText(questionCreateDto.getKnowledge())) {
             String knowledgeName = questionCreateDto.getKnowledge();
 
             // 检查是否已存在相同名称的知识点
@@ -84,8 +93,7 @@ public class QuestionServiceImpl implements QuestionService {
             Knowledge knowledge;
             if (!existingKnowledge.isPresent()) {
                 // 创建新的知识点
-                KnowledgeCreateDto knowledgeCreateDto =
-                        new KnowledgeCreateDto();
+                KnowledgeCreateDto knowledgeCreateDto = new KnowledgeCreateDto();
                 knowledgeCreateDto.setName(knowledgeName);
                 knowledgeCreateDto.setSubjectId(subjectId);
                 knowledgeCreateDto.setCategoryId(categoryId);
@@ -171,16 +179,16 @@ public class QuestionServiceImpl implements QuestionService {
         StringBuilder sql = new StringBuilder(
                 "SELECT q.question_id AS id, q.type, q.content, q.options, q.answer, q.explanation, " +
                         "q.create_date, q.create_user, q.update_date, q.update_user, u.user_name create_user_name " +
-                        "FROM question q left join user u on u.user_id = q.create_user "
-        );
+                        "FROM question q left join user u on u.user_id = q.create_user ");
 
         StringBuilder countSql = new StringBuilder(
-                "SELECT COUNT(1) FROM question q "
-        );
+                "SELECT COUNT(1) FROM question q ");
 
         if (queryDto.getCategoryIds() != null || queryDto.getSubjectId() != null) {
-            sql.append(" LEFT JOIN question_knowledge_rela r on q.question_id = r.question_id LEFT JOIN knowledge k on k.knowledge_id = r.knowledge_id ");
-            countSql.append(" LEFT JOIN question_knowledge_rela r on q.question_id = r.question_id LEFT JOIN knowledge k on k.knowledge_id = r.knowledge_id ");
+            sql.append(
+                    " LEFT JOIN question_knowledge_rela r on q.question_id = r.question_id LEFT JOIN knowledge k on k.knowledge_id = r.knowledge_id ");
+            countSql.append(
+                    " LEFT JOIN question_knowledge_rela r on q.question_id = r.question_id LEFT JOIN knowledge k on k.knowledge_id = r.knowledge_id ");
         }
 
         sql.append(" WHERE 1=1 ");
@@ -193,23 +201,27 @@ public class QuestionServiceImpl implements QuestionService {
             JdbcQueryHelper.equals("type", queryDto.getType().name(), " AND q.type = :type ", params, sql, countSql);
         }
 
-        JdbcQueryHelper.in("categoryIds", queryDto.getCategoryIds(), " AND k.category_id in (:categoryIds) ", params, sql, countSql);
+        JdbcQueryHelper.in("categoryIds", queryDto.getCategoryIds(), " AND k.category_id in (:categoryIds) ", params,
+                sql, countSql);
 
-        JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(), " AND k.subject_id = :subjectId ", params, sql, countSql);
+        JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(), " AND k.subject_id = :subjectId ", params, sql,
+                countSql);
 
-        JdbcQueryHelper.lowerLike("keyWord", queryDto.getContent(), " AND LOWER(q.content) LIKE :keyWord ", params, jdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("keyWord", queryDto.getContent(), " AND LOWER(q.content) LIKE :keyWord ", params,
+                jdbcTemplate, sql, countSql);
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
-            JdbcQueryHelper.equals("createUser", authentication.getName(), " AND q.create_user = :createUser ", params, sql, countSql);
+            JdbcQueryHelper.equals("createUser", authentication.getName(), " AND q.create_user = :createUser ", params,
+                    sql, countSql);
         }
-
 
         // 添加排序
         JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
 
         // 分页查询
-        String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
+        String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(),
+                queryDto.getPageSize());
 
         List<QuestionDto> list = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
             QuestionDto dto = new QuestionDto();
@@ -219,10 +231,12 @@ public class QuestionServiceImpl implements QuestionService {
             dto.setOptions(rs.getString("options"));
             dto.setAnswer(rs.getString("answer"));
             dto.setExplanation(rs.getString("explanation"));
-            dto.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
+            dto.setCreateDate(
+                    rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             dto.setCreateUser(rs.getString("create_user"));
             dto.setCreateUserName(rs.getString("create_user_name"));
-            dto.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
+            dto.setUpdateDate(
+                    rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;
         });
@@ -284,12 +298,26 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public List<QuestionCreateDto> generateQuestions(String knowledgeDescr, int num) {
-        ChatClient chat = chatBuilder.build();
+    public List<QuestionCreateDto> generateQuestions(String knowledgeDescr, int num, String modelName) {
+        // 查询模型配置
+        LLMModelDto model = resolveModel(modelName);
+        if (model == null) {
+            throw new RuntimeException("未找到指定的文本模型，请先在模型管理中配置模型");
+        }
+        OpenAiApi openAiApi = OpenAiApi.builder().apiKey("").baseUrl(model.getApiEndpoint())
+                .build();
+        OpenAiChatOptions options = OpenAiChatOptions.builder().model(model.getName())
+                .build();
+        OpenAiChatModel chatModel = OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
+        ChatClient chat = ChatClient.builder(chatModel).build();
+
         ObjectMapper objectMapper = new ObjectMapper();
 
-        int maxRetries = 3;          // 最大重试次数
-        long retryDelayMs = 1000L;   // 重试间隔 1 秒
+        int maxRetries = 3; // 最大重试次数
+        long retryDelayMs = 1000L; // 重试间隔 1 秒
         int attempt = 0;
 
         while (true) {
@@ -303,7 +331,7 @@ public class QuestionServiceImpl implements QuestionService {
                     throw new RuntimeException("生成题目失败，重试次数已达上限", e);
                 }
                 try {
-                    Thread.sleep(retryDelayMs);  // 等待后再重试
+                    Thread.sleep(retryDelayMs); // 等待后再重试
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException("重试被中断", ie);
@@ -311,6 +339,21 @@ public class QuestionServiceImpl implements QuestionService {
             }
         }
     }
+
+    /**
+     * 解析模型配置
+     * 
+     * @param modelName 模型名称（可选）
+     * @return 模型配置，如果未指定模型名则返回默认模型
+     */
+    private LLMModel resolveModel(String modelName) {
+        if (StringUtils.hasText(modelName)) {
+            return llmModelRepository.findByName(modelName).orElse(null);
+        } else {
+            return llmModelRepository.findByTypeAndIsDefault(LLMModel.ModelType.TEXT, "1").orElse(null);
+        }
+    }
+
 
     @Override
     public List<QuestionDto> createQuestions(List<QuestionCreateDto> questionCreateDtos) {
@@ -418,10 +461,10 @@ public class QuestionServiceImpl implements QuestionService {
                 """;
 
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
-                    String subjectName = rs.getString("subject_name");
-                    Long count = rs.getLong("count");
-                    return Map.entry(subjectName, count);
-                }).stream().filter(entry -> entry.getKey() != null)
+            String subjectName = rs.getString("subject_name");
+            Long count = rs.getLong("count");
+            return Map.entry(subjectName, count);
+        }).stream().filter(entry -> entry.getKey() != null)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 

@@ -64,7 +64,6 @@ public class WxUserMappingServiceImpl implements WxUserMappingService {
     @Override
     @Transactional
     public WxLoginRespDto bind(WxBindDto dto) {
-        String appId = dto.getAppId();
         String openId = dto.getOpenId();
         // 1. 查找 Web 用户
         User user = userRepository.findByUserId(dto.getUserId())

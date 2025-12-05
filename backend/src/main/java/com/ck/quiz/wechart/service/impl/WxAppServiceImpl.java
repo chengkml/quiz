@@ -60,6 +60,7 @@ public class WxAppServiceImpl implements WxAppService {
 
     @Override
     public boolean deleteWxApp(String appId) {
+        Objects.requireNonNull(appId, "appId 不能为空");
         if (!wxAppRepository.existsById(appId)) {
             return false;
         }

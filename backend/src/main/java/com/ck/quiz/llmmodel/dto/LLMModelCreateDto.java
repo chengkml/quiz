@@ -68,13 +68,4 @@ public class LLMModelCreateDto {
     @NotNull(message = "输出token单价不能为空")
     private Double outputPricePer1k;
 
-    /**
-     * 是否为默认模型
-     */
-    private Boolean isDefault = false;
-
-    /**
-     * 配置信息（JSON格式）
-     */
-    private String config;
 }

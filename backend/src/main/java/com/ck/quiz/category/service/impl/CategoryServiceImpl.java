@@ -17,6 +17,8 @@ import com.ck.quiz.thpool.CommonPool;
 import com.ck.quiz.utils.HumpHelper;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
+
+import io.micrometer.common.lang.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -109,7 +111,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
-    public void deleteCategory(String id) {
+    public void deleteCategory(@Nullable String id) {
         log.info("删除分类: {}", id);
 
         // 检查分类是否存在
@@ -382,6 +384,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     public void initCategoryQuestions(String userId, String categoryId, int questionNum) {
         try {
+            Objects.requireNonNull(categoryId, "categoryId 不能为空");
             Optional<Category> op = categoryRepository.findById(categoryId);
             List<String> knowledges = knowledgeService.generateKnowledges(op.get().getName());
             knowledges.forEach(knowledge -> {

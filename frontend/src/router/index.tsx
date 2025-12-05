@@ -28,7 +28,7 @@ import MindMapPage from '@/pages/MindMap';
 import MindMapEditPage from '@/pages/MindMap/Edit';
 import { UserProvider } from '@/contexts/UserContext';
 import { MenuTreeDto, MenuType } from '@/types/menu';
-import Model from "@/pages/Model";
+import Model from "@/pages/LlmModel";
 import FuncDocManager from '@/pages/FuncDoc';
 import FuncDocDetail from '@/pages/FuncDoc/Detail';
 import FuncDocFeatures from '@/pages/FuncDoc/Features';

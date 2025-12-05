@@ -30,14 +30,9 @@ public class LLMModelQueryDto {
     private LLMModel.ModelType type;
 
     /**
-     * 模型状态
-     */
-    private LLMModel.ModelStatus status;
-
-    /**
      * 是否为默认模型
      */
-    private Boolean isDefault;
+    private String isDefault;
 
     /**
      * 页码

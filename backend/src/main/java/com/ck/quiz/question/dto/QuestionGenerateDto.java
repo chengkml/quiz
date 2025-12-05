@@ -7,4 +7,5 @@ public class QuestionGenerateDto {
 
     private String knowledgeDescr;
     private int num = 3;
+    private String modelName;
 }

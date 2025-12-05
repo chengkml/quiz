@@ -4,9 +4,9 @@ import com.ck.quiz.llmmodel.dto.LLMModelCreateDto;
 import com.ck.quiz.llmmodel.dto.LLMModelDto;
 import com.ck.quiz.llmmodel.dto.LLMModelQueryDto;
 import com.ck.quiz.llmmodel.dto.LLMModelUpdateDto;
-import org.springframework.data.domain.Page;
+import com.ck.quiz.llmmodel.entity.LLMModel;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
 
 /**
  * 大语言模型管理服务接口
@@ -49,26 +49,12 @@ public interface LLMModelService {
     LLMModelDto getModelById(String modelId);
 
     /**
-     * 获取默认模型
-     *
-     * @return 默认模型信息
-     */
-    LLMModelDto getDefaultModel();
-
-    /**
      * 分页查询模型
      *
      * @param queryDto 查询条件
      * @return 分页查询结果
      */
     Page<LLMModelDto> searchModels(LLMModelQueryDto queryDto);
-
-    /**
-     * 获取所有激活状态的模型列表
-     *
-     * @return 激活状态的模型列表
-     */
-    List<LLMModelDto> getActiveModels();
 
     /**
      * 设置默认模型

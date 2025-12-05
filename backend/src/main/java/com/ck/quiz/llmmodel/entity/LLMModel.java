@@ -92,20 +92,6 @@ public class LLMModel {
     private String isDefault = "0";
 
     /**
-     * 模型状态：ACTIVE, INACTIVE
-     */
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 20, nullable = false)
-    private ModelStatus status;
-
-    /**
-     * 配置信息（JSON格式）
-     */
-    @Lob
-    @Column(name = "config", columnDefinition = "LONGTEXT")
-    private String config;
-
-    /**
      * 创建时间
      */
     @Column(name = "create_date")
@@ -134,17 +120,8 @@ public class LLMModel {
      */
     public enum ModelType {
         TEXT,
-        CHAT,
-        EMBEDDING,
-        MULTIMODAL
-    }
-
-    /**
-     * 模型状态枚举
-     */
-    public enum ModelStatus {
-        ACTIVE,
-        INACTIVE
+        VISION,
+        VOICE
     }
 
     @PrePersist

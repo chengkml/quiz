@@ -77,7 +77,7 @@ public class CronTaskService {
             dtoList.add(dto);
         }
 
-        return JdbcQueryHelper.toPage(jt, countSql.toString(), params, dtoList, pageNum, pageSize);
+        return (Page<CronTaskDto>) JdbcQueryHelper.toPage(jt, countSql.toString(), params, dtoList, pageNum, pageSize);
     }
 
 

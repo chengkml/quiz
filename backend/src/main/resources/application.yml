@@ -34,13 +34,6 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: false
-  ai:
-    openai:
-      base-url: https://api.siliconflow.cn
-      api-key: sk-wiljwnkqhwubaiajzfsfjdlcaqewstqaifvpgccbquemimpe
-      chat:
-        options:
-          model: Pro/deepseek-ai/DeepSeek-V3.2-Exp
 
 # 日志配置
 logging:

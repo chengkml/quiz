@@ -64,12 +64,7 @@ public class LLMModelDto {
     /**
      * 是否为默认模型
      */
-    private Boolean isDefault;
-
-    /**
-     * 模型状态
-     */
-    private LLMModel.ModelStatus status;
+    private String isDefault;
 
     /**
      * 配置信息（JSON格式）

@@ -1,6 +1,5 @@
 package com.ck.quiz.llmmodel.dto;
 
-import com.ck.quiz.llmmodel.entity.LLMModel;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -55,16 +54,6 @@ public class LLMModelUpdateDto {
      * 输出token单价（分/千token）
      */
     private Double outputPricePer1k;
-
-    /**
-     * 是否为默认模型
-     */
-    private Boolean isDefault;
-
-    /**
-     * 模型状态
-     */
-    private LLMModel.ModelStatus status;
 
     /**
      * 配置信息（JSON格式）
