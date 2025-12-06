@@ -32,6 +32,7 @@ import {
     getCategoriesBySubjectId,
     getQuestionList,
     getSubjectCategoryTree,
+    getModelsByType,
     updateQuestion,
 } from './api';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
@@ -65,6 +66,9 @@ function QuestionManager() {
     const [knowledge, setKnowledge] = useState('');
     const [knowledgeDescrDisabled, setKnowledgeDescrDisabled] = useState(false);
     const [editKnowledgeDescrDisabled, setEditKnowledgeDescrDisabled] = useState(false);
+    // 文本模型列表（用于AI生成题目时选择模型）
+    const [textModels, setTextModels] = useState([]);
+    const [modelsLoading, setModelsLoading] = useState(false);
 
     // 查看详情相关状态
     const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -370,6 +374,23 @@ function QuestionManager() {
             Message.error('获取学科列表失败');
         } finally {
             setSubjectsLoading(false);
+        }
+    };
+
+    // 获取文本模型列表（返回原始模型对象数组）
+    const fetchTextModels = async () => {
+        try {
+            setModelsLoading(true);
+            const resp = await getModelsByType('TEXT');
+            const list = resp?.data || [];
+            setTextModels(list);
+            return list;
+        } catch (e) {
+            console.error('获取文本模型列表失败', e);
+            setTextModels([]);
+            return [];
+        } finally {
+            setModelsLoading(false);
         }
     };
 
@@ -1092,13 +1113,36 @@ function QuestionManager() {
                     onCancel={() => setGenerateModalVisible(false)}
                     afterOpen={() => {
                         if (currentTreeNode && generateFormRef.current) {
-                            setTimeout(() => {
+                            setTimeout(async () => {
                                 if (generateFormRef.current) {
                                     generateFormRef.current.setFieldValue('subjectId', currentTreeNode.subjectId);
                                     setKnowledgeDescrDisabled(false);
 
                                     // 加载分类
                                     fetchCategoriesBySubject(currentTreeNode.subjectId);
+
+                                    // 加载文本模型列表并设置默认模型
+                                    try {
+                                        const list = await fetchTextModels();
+                                        const defaultModel = list.find(m => m.isDefault === '1' || m.isDefault === 1);
+                                        if (defaultModel) {
+                                            generateFormRef.current.setFieldValue('modelName', defaultModel.name);
+                                        }
+                                    } catch (e) {
+                                        // ignore
+                                    }
+                                }
+                            }, 0);
+                        } else {
+                            // 若未在树上选择，仍尝试加载模型以便用户选择
+                            setTimeout(async () => {
+                                try {
+                                    const list = await fetchTextModels();
+                                    const defaultModel = list.find(m => m.isDefault === '1' || m.isDefault === 1);
+                                    if (defaultModel && generateFormRef.current) {
+                                        generateFormRef.current.setFieldValue('modelName', defaultModel.name);
+                                    }
+                                } catch (e) {
                                 }
                             }, 0);
                         }
@@ -1172,6 +1216,17 @@ function QuestionManager() {
                                         placeholder="请输入知识点描述，AI将根据此描述生成相关题目"
                                         rows={4}
                                         disabled={knowledgeDescrDisabled}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="模型"
+                                    field="modelName"
+                                >
+                                    <Select
+                                        placeholder="请选择文本生成模型"
+                                        options={textModels.map(m => ({label: m.name, value: m.name}))}
+                                        loading={modelsLoading}
+                                        allowClear
                                     />
                                 </Form.Item>
                                 <Form.Item

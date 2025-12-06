@@ -41,6 +41,9 @@ const getCategoriesBySubjectId = (subjectId) => axios.get(`${base}/api/categorie
 // 获取学科分类树
 const getSubjectCategoryTree = () => axios.get(`${base}/api/categories/subject/category/tree`);
 
+// 根据模型类型获取模型列表（例如 TEXT）
+const getModelsByType = (type) => axios.get(`${base}/api/model/list/${type}`);
+
 export {
   getQuestionList,
   getQuestionById,
@@ -54,5 +57,6 @@ export {
   getQuestionKnowledge,
   getAllSubjects,
   getCategoriesBySubjectId,
-  getSubjectCategoryTree
+  getSubjectCategoryTree,
+  getModelsByType
 };
