@@ -74,6 +74,20 @@ const LogDetails = (props: LogDetailsProps) => {
     };
   }, [jobId]);
 
+  // 当 value 更新时，自动滚动到最底部
+  useEffect(() => {
+    if (editorContainerRef.current) {
+      // 等待 CodeMirror 渲染到 DOM
+      setTimeout(() => {
+        try {
+          editorContainerRef.current!.scrollTop = editorContainerRef.current!.scrollHeight;
+        } catch (e) {
+          // ignore
+        }
+      }, 0);
+    }
+  }, [value]);
+
   return (
       <div
           ref={editorContainerRef}

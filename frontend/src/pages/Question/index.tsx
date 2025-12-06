@@ -28,6 +28,7 @@ import {
     batchCreateQuestion,
     deleteQuestion,
     generateQuestions,
+    generateQuestionsStreamUrl,
     getAllSubjects,
     getCategoriesBySubjectId,
     getQuestionList,
@@ -47,7 +48,7 @@ const {Row, Col} = Grid;
 
 function QuestionManager() {
     // 状态管理
-    const [tableData, setTableData] = useState([]);
+    const [tableData, setTableData] = useState<any[]>([]);
     const [tableLoading, setTableLoading] = useState(false);
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
 
@@ -55,11 +56,11 @@ function QuestionManager() {
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [generateModalVisible, setGenerateModalVisible] = useState(false);
-    const [currentRecord, setCurrentRecord] = useState(null);
+    const [currentRecord, setCurrentRecord] = useState<any>(null);
 
     // AI生成题目相关状态
-    const [generatedQuestions, setGeneratedQuestions] = useState([]);
-    const [selectedQuestions, setSelectedQuestions] = useState([]);
+    const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
+    const [selectedQuestions, setSelectedQuestions] = useState<any[]>([]);
     const [showGeneratedQuestions, setShowGeneratedQuestions] = useState(false);
     const [generateLoading, setGenerateLoading] = useState(false);
     const [saveLoading, setSaveLoading] = useState(false);
@@ -67,38 +68,110 @@ function QuestionManager() {
     const [knowledgeDescrDisabled, setKnowledgeDescrDisabled] = useState(false);
     const [editKnowledgeDescrDisabled, setEditKnowledgeDescrDisabled] = useState(false);
     // 文本模型列表（用于AI生成题目时选择模型）
-    const [textModels, setTextModels] = useState([]);
+    const [textModels, setTextModels] = useState<any[]>([]);
     const [modelsLoading, setModelsLoading] = useState(false);
+    // 流式生成过程中的内容展示
+    const [streamingContent, setStreamingContent] = useState('');
+    const [isStreamingComplete, setIsStreamingComplete] = useState(false);
+    // 控制生成日志是否在题目展示时可见（默认展示，生成结束后自动隐藏）
+    const [showStreamLogVisible, setShowStreamLogVisible] = useState(true);
+    // 回看日志的弹窗
+    const [streamLogModalVisible, setStreamLogModalVisible] = useState(false);
+    const streamingContainerRef = useRef<HTMLDivElement | null>(null);
+    const generatedListRef = useRef<HTMLDivElement | null>(null);
+
+    // 当流式内容更新时，自动滚动到底部
+    useEffect(() => {
+        if (streamingContainerRef.current) {
+            // 等待 DOM 更新
+            setTimeout(() => {
+                try {
+                    streamingContainerRef.current!.scrollTop = streamingContainerRef.current!.scrollHeight;
+                } catch (e) {
+                    // ignore
+                }
+            }, 0);
+        }
+    }, [streamingContent]);
+
+    // 转义 HTML，防止注入；并将换行转为 <br/>
+    const escapeHtml = (unsafe: string) => {
+        if (!unsafe) return '';
+        return unsafe.replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    const formatDataToHtml = (data: string) => {
+        if (!data) return '';
+        const trimmed = data.trim();
+        if (trimmed.startsWith('[RETRY]')) {
+            // 用红色强调重试起始信息
+            const rest = trimmed.substring('[RETRY]'.length);
+            const html = '<span style="color:#ff4d4f;font-weight:600">' + escapeHtml('[RETRY]' + rest) + '</span>';
+            // 保留原始换行
+            return html + '<br/>';
+        }
+        // 普通流式内容，转义并保留换行
+        return escapeHtml(data).replace(/\n/g, '<br/>');
+    };
+
+    // 当生成的题目列表更新时，自动滚动列表到底部
+    useEffect(() => {
+        if (generatedListRef.current) {
+            setTimeout(() => {
+                try {
+                    generatedListRef.current!.scrollTop = generatedListRef.current!.scrollHeight;
+                } catch (e) {
+                    // ignore
+                }
+            }, 0);
+        }
+    }, [generatedQuestions]);
+
+    // 当流式解析阶段完成并且已收到至少一道题目时，自动隐藏生成日志
+    useEffect(() => {
+        if (isStreamingComplete && generatedQuestions && generatedQuestions.length > 0) {
+            setShowStreamLogVisible(false);
+        }
+    }, [isStreamingComplete, generatedQuestions]);
 
     // 查看详情相关状态
     const [detailModalVisible, setDetailModalVisible] = useState(false);
-    const [detailRecord, setDetailRecord] = useState(null);
+    const [detailRecord, setDetailRecord] = useState<any>(null);
 
     // 学科和分类相关状态
-    const [subjects, setSubjects] = useState([]);
-    const [categories, setCategories] = useState([]);
+    const [subjects, setSubjects] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
     const [subjectsLoading, setSubjectsLoading] = useState(false);
     // 知识点下拉选项（按学科/分类过滤）
     const [categoriesLoading, setCategoriesLoading] = useState(false);
 
     // 左侧树相关状态
-    const [treeData, setTreeData] = useState([]);
-    const [filteredTreeData, setFilteredTreeData] = useState([]);
+    const [treeData, setTreeData] = useState<any[]>([]);
+    const [filteredTreeData, setFilteredTreeData] = useState<any[]>([]);
     const [treeLoading, setTreeLoading] = useState(false);
-    const [selectedTreeNode, setSelectedTreeNode] = useState(null);
-    const [expandedKeys, setExpandedKeys] = useState([]);
+    const [selectedTreeNode, setSelectedTreeNode] = useState<any>(null);
+    const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
     const [searchKeyword, setSearchKeyword] = useState('');
 
-    const [currentTreeNode, setCurrentTreeNode] = useState(null);
+    const [currentTreeNode, setCurrentTreeNode] = useState<any>(null);
 
     // AI生成时选择的学科和分类信息
-    const [selectedSubjectForGenerate, setSelectedSubjectForGenerate] = useState(null);
-    const [selectedCategoryForGenerate, setSelectedCategoryForGenerate] = useState(null);
+    const [selectedSubjectForGenerate, setSelectedSubjectForGenerate] = useState<any>(null);
+    const [selectedCategoryForGenerate, setSelectedCategoryForGenerate] = useState<any>(null);
 
     // 表单引用
-    const filterFormRef = useRef();
-    const editFormRef = useRef();
-    const generateFormRef = useRef();
+    const filterFormRef = useRef<any>();
+    const editFormRef = useRef<any>();
+    const generateFormRef = useRef<any>();
+    const generateEventSourceRef = useRef<EventSource | null>(null);
+    // 缓存流式生成过程中的最后一次错误（中间重试不直接展示）
+    const lastStreamErrorRef = useRef<string | null>(null);
+    // 标记是否至少收到过一道解析成功的题目
+    const hasReceivedQuestionRef = useRef<boolean>(false);
 
     // 动态表单数据状态
     const [editDynamicFormData, setEditDynamicFormData] = useState({options: {}, answer: {}});
@@ -276,6 +349,20 @@ function QuestionManager() {
         fetchTableData();
         fetchSubjects();
         fetchSubjectCategoryTree();
+    }, []);
+
+    // 组件卸载时关闭可能未关闭的 SSE 连接
+    useEffect(() => {
+        return () => {
+            if (generateEventSourceRef.current) {
+                try {
+                    generateEventSourceRef.current.close();
+                } catch (e) {
+                    // ignore
+                }
+                generateEventSourceRef.current = null;
+            }
+        };
     }, []);
 
     const fetchSubjectCategoryTree = async () => {
@@ -573,19 +660,114 @@ function QuestionManager() {
             setSelectedSubjectForGenerate(values.subjectId);
             setSelectedCategoryForGenerate(values.categoryId);
 
-            const response = await generateQuestions(values);
-            if (response.data && response.data.length > 0) {
-                setGeneratedQuestions(response.data);
-                setSelectedQuestions([]);
-                setShowGeneratedQuestions(true);
-                setGenerateModalVisible(false);
-                generateFormRef.current?.resetFields();
-                Message.success(`成功生成${response.data.length}道题目，请选择要保存的题目`);
-            } else {
-                Message.warning('未生成任何题目');
+            // 清空之前的生成结果
+            setGeneratedQuestions([]);
+            setSelectedQuestions([]);
+            setStreamingContent('');
+            setIsStreamingComplete(false);
+
+            // 构造 SSE URL 并建立连接
+            const url = generateQuestionsStreamUrl(values);
+            if (generateEventSourceRef.current) {
+                generateEventSourceRef.current.close();
+                generateEventSourceRef.current = null;
             }
+            const es = new EventSource(url);
+            generateEventSourceRef.current = es;
+
+            let isParsingResult = false; // 标记是否开始解析最终结果
+            let parseResultBuffer = ''; // 缓冲区，用于处理可能分散的 [PARSE_RESULT] 分隔符
+
+            // 重置本次生成的临时状态
+            lastStreamErrorRef.current = null;
+            hasReceivedQuestionRef.current = false;
+            // 生成开始时强制显示日志区
+            setShowStreamLogVisible(true);
+            setStreamLogModalVisible(false);
+
+            es.onmessage = (event) => {
+                const data = event.data;
+
+                // 如果还未进入解析阶段，检查是否收到分隔符
+                if (!isParsingResult) {
+                    // 检查是否包含 [PARSE_RESULT]
+                    if (data.includes('[PARSE_RESULT]')) {
+                        isParsingResult = true;
+                        setIsStreamingComplete(true); // 标记流式内容已完成，开始接收解析结果
+                        // 如果分隔符后还有内容，则该内容为题目数据
+                        const parseIndex = data.indexOf('[PARSE_RESULT]');
+                        const afterSeparator = data.substring(parseIndex + '[PARSE_RESULT]'.length).trim();
+                        if (afterSeparator && afterSeparator.startsWith('[QUESTION]')) {
+                            // 处理该题目数据
+                            const jsonStr = afterSeparator.substring('[QUESTION]'.length);
+                            if (jsonStr) {
+                                try {
+                                    const item = JSON.parse(jsonStr);
+                                    // 记录已成功接收到题目，供最终错误判断使用
+                                    hasReceivedQuestionRef.current = true;
+                                    setGeneratedQuestions(prev => [...prev, item]);
+                                } catch (e) {
+                                    console.error('Failed to parse question JSON:', jsonStr, e);
+                                }
+                            }
+                        }
+                        return;
+                    } else {
+                            // 在解析前，接收的是流式内容（token 级别），实时累积显示
+                            setStreamingContent(prev => prev + formatDataToHtml(data));
+                    }
+                } else {
+                    // 已进入解析阶段，接收 [QUESTION]... 格式的完整题目对象
+                    const trimmedData = data.trim();
+                        if (trimmedData) {
+                        if (trimmedData.startsWith('[QUESTION]')) {
+                            const jsonStr = trimmedData.substring('[QUESTION]'.length);
+                            try {
+                                const item = JSON.parse(jsonStr);
+                                // 记录已成功接收到题目，供错误展示判断使用
+                                hasReceivedQuestionRef.current = true;
+                                setGeneratedQuestions(prev => [...prev, item]);
+                            } catch (e) {
+                                console.error('Failed to parse question JSON:', jsonStr, e);
+                            }
+                        } else if (trimmedData.startsWith('[ERROR]')) {
+                            // 缓存错误信息，但不在中间重试阶段展示；仅在最终失败时展示
+                            const errorMsg = trimmedData.substring('[ERROR]'.length);
+                            console.error('Backend error (buffered):', errorMsg);
+                            lastStreamErrorRef.current = errorMsg;
+                        }
+                    }
+                }
+            };
+
+            es.onerror = (err) => {
+                console.error('SSE error:', err);
+                // 连接错误或服务端结束时关闭连接
+                try {
+                    es.close();
+                } catch (e) {
+                    // ignore
+                }
+                generateEventSourceRef.current = null;
+
+                // 只有在未成功接收到任何题目时，才展示最终失败信息
+                setTimeout(() => {
+                    if (!hasReceivedQuestionRef.current) {
+                        const finalMsg = lastStreamErrorRef.current ? ('生成失败: ' + lastStreamErrorRef.current) : '生成题目失败';
+                        Message.error(finalMsg);
+                    }
+                }, 50);
+            };
+
+            setShowGeneratedQuestions(true);
+            setGenerateModalVisible(false);
+            generateFormRef.current?.resetFields();
         } catch (error) {
             Message.error('生成题目失败');
+            if (generateEventSourceRef.current) {
+                generateEventSourceRef.current.close();
+                generateEventSourceRef.current = null;
+            }
         } finally {
             setGenerateLoading(false);
         }
@@ -716,6 +898,8 @@ function QuestionManager() {
         setShowGeneratedQuestions(false);
         setSelectedSubjectForGenerate(null);
         setSelectedCategoryForGenerate(null);
+        setStreamingContent('');
+        setIsStreamingComplete(false);
     };
 
     // 渲染题目选项
@@ -1109,6 +1293,7 @@ function QuestionManager() {
 
                 <Modal
                     title="AI生成题目"
+                    style={{width: '50%'}}
                     visible={generateModalVisible}
                     onCancel={() => setGenerateModalVisible(false)}
                     afterOpen={() => {
@@ -1248,11 +1433,12 @@ function QuestionManager() {
                 </Modal>
 
                 {/* AI生成题目展示 */}
-                {showGeneratedQuestions && generatedQuestions.length > 0 && (
+                {showGeneratedQuestions && (
                     <Modal
                         title={`AI生成的题目 (${generatedQuestions.length}道)`}
                         visible={showGeneratedQuestions}
                         onCancel={handleCancelSave}
+                        style={{width: '50%'}}
                         footer={
                             <div style={{textAlign: 'right'}}>
                                 <Button onClick={handleCancelSave} style={{marginRight: 8}}>
@@ -1261,7 +1447,7 @@ function QuestionManager() {
                                 <Button
                                     type="primary"
                                     onClick={handleSaveSelectedQuestions}
-                                    disabled={selectedQuestions.length === 0}
+                                    disabled={selectedQuestions.length === 0 || !isStreamingComplete}
                                     loading={saveLoading}
                                 >
                                     保存选中题目 ({selectedQuestions.length})
@@ -1296,83 +1482,134 @@ function QuestionManager() {
                             </div>
                         )}
 
-                        <div style={{marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #f0f0f0'}}>
-                            <Checkbox
-                                checked={selectedQuestions.length === generatedQuestions.length}
-                                indeterminate={selectedQuestions.length > 0 && selectedQuestions.length < generatedQuestions.length}
-                                onChange={handleSelectAll}
-                            >
-                                全选
-                            </Checkbox>
-                        </div>
-                        <div style={{maxHeight: '60vh', overflowY: 'auto'}}>
-                            <Collapse
-                                defaultActiveKey={generatedQuestions.map((_, index) => index.toString())}
-                            >
-                                {generatedQuestions.map((question, index) => {
-                                    const typeMap = {
-                                        'SINGLE': '单选题',
-                                        'MULTIPLE': '多选题'
-                                    };
+                        {/* 生成完成后提供回看入口（生成过程中不显示此入口） */}
+                        {!showStreamLogVisible && (streamingContent || lastStreamErrorRef.current) && (
+                            <div style={{marginBottom: 8, textAlign: 'right'}}>
+                                <Button type="text" onClick={() => setStreamLogModalVisible(true)}>
+                                    查看生成日志
+                                </Button>
+                            </div>
+                        )}
 
-                                    return (
-                                        <Collapse.Item
-                                            key={index}
-                                            name={index.toString()}
-                                            header={
-                                                <div style={{display: 'flex', alignItems: 'center', width: '100%'}}>
-                                                    <Checkbox
-                                                        checked={selectedQuestions.includes(index)}
-                                                        onChange={(checked) => handleQuestionSelect(index, checked)}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        style={{marginRight: 12}}
-                                                    />
-                                                    <Tag color="blue" style={{marginRight: 8}} bordered>
-                                                        {typeMap[question.type] || question.type}
-                                                    </Tag>
-                                                    <Tooltip content={question.content}>
-                                                    <span style={{
-                                                        flex: 1,
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        whiteSpace: 'nowrap'
-                                                    }}>
-                                                        {question.content}
-                                                    </span>
-                                                    </Tooltip>
-                                                </div>
-                                            }
-                                        >
-                                            <div style={{padding: '0 16px'}}>
-                                                <div style={{marginBottom: 12}}>
-                                                    <strong>题干:</strong>
-                                                    <div style={{
-                                                        marginTop: 4,
-                                                        padding: '8px 12px',
-                                                        backgroundColor: '#f7f8fa',
-                                                        borderRadius: 4
-                                                    }}>
-                                                        {question.content}
-                                                    </div>
-                                                </div>
+                        {/* 流式内容展示区 */}
+                        {showStreamLogVisible && !isStreamingComplete && streamingContent && (
+                            <div ref={streamingContainerRef} style={{
+                                marginBottom: 16,
+                                padding: 12,
+                                backgroundColor: '#f0f9ff',
+                                borderRadius: 6,
+                                border: '1px solid #b6e3ff',
+                                maxHeight: 200,
+                                overflowY: 'auto'
+                            }}>
+                                <div style={{
+                                    fontSize: 12,
+                                    color: '#666',
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word',
+                                    fontFamily: 'monospace'
+                                }} dangerouslySetInnerHTML={{__html: streamingContent}}>
+                                </div>
+                            </div>
+                        )}
 
-                                                {question.options && renderQuestionOptions(question.options, question.type)}
-                                                {question.answer && renderQuestionAnswer(question.answer)}
+                        {/* 生成日志回看弹窗 */}
+                        <Modal
+                            title="生成日志"
+                            visible={streamLogModalVisible}
+                            style={{width: '50%'}}
+                            onCancel={() => setStreamLogModalVisible(false)}
+                            footer={null}
+                        >
+                            <div style={{maxHeight: '60vh', overflowY: 'auto', padding: 12, background: '#fafafa'}}>
+                                <div style={{fontSize: 12, color: '#666', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace'}}
+                                     dangerouslySetInnerHTML={{__html: streamingContent}}>
+                                </div>
+                            </div>
+                        </Modal>
 
-                                                {question.explanation && (
-                                                    <div style={{marginTop: 8}}>
-                                                        <strong>解析:</strong>
-                                                        <div style={{marginTop: 4, color: '#666'}}>
-                                                            {question.explanation}
+                        {/* 题目列表 */}
+                        {generatedQuestions.length > 0 && (
+                            <>
+                                <div style={{marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #f0f0f0'}}>
+                                    <Checkbox
+                                        checked={selectedQuestions.length === generatedQuestions.length}
+                                        indeterminate={selectedQuestions.length > 0 && selectedQuestions.length < generatedQuestions.length}
+                                        onChange={handleSelectAll}
+                                    >
+                                        全选 ({generatedQuestions.length}道)
+                                    </Checkbox>
+                                </div>
+                                <div ref={generatedListRef} style={{maxHeight: '60vh', overflowY: 'auto'}}>
+                                    <Collapse
+                                        defaultActiveKey={generatedQuestions.map((_, index) => index.toString())}
+                                    >
+                                        {generatedQuestions.map((question, index) => {
+                                            const typeMap = {
+                                                'SINGLE': '单选题',
+                                                'MULTIPLE': '多选题'
+                                            };
+
+                                            return (
+                                                <Collapse.Item
+                                                    key={index}
+                                                    name={index.toString()}
+                                                    header={
+                                                        <div style={{display: 'flex', alignItems: 'center', width: '100%'}}>
+                                                            <Checkbox
+                                                                checked={selectedQuestions.includes(index)}
+                                                                onChange={(checked) => handleQuestionSelect(index, checked)}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                style={{marginRight: 12}}
+                                                            />
+                                                            <Tag color="blue" style={{marginRight: 8}} bordered>
+                                                                {typeMap[question.type as keyof typeof typeMap] || question.type}
+                                                            </Tag>
+                                                            <Tooltip content={question.content}>
+                                                            <span style={{
+                                                                flex: 1,
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap'
+                                                            }}>
+                                                                {question.content}
+                                                            </span>
+                                                            </Tooltip>
                                                         </div>
+                                                    }
+                                                >
+                                                    <div style={{padding: '0 16px'}}>
+                                                        <div style={{marginBottom: 12}}>
+                                                            <strong>题干:</strong>
+                                                            <div style={{
+                                                                marginTop: 4,
+                                                                padding: '8px 12px',
+                                                                backgroundColor: '#f7f8fa',
+                                                                borderRadius: 4
+                                                            }}>
+                                                                {question.content}
+                                                            </div>
+                                                        </div>
+
+                                                        {question.options && renderQuestionOptions(question.options, question.type)}
+                                                        {question.answer && renderQuestionAnswer(question.answer)}
+
+                                                        {question.explanation && (
+                                                            <div style={{marginTop: 8}}>
+                                                                <strong>解析:</strong>
+                                                                <div style={{marginTop: 4, color: '#666'}}>
+                                                                    {question.explanation}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
-                                            </div>
-                                        </Collapse.Item>
-                                    );
-                                })}
-                            </Collapse>
-                        </div>
+                                                </Collapse.Item>
+                                            );
+                                        })}
+                                    </Collapse>
+                                </div>
+                            </>
+                        )}
                     </Modal>
                 )}
 

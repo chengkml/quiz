@@ -20,8 +20,17 @@ const updateQuestion = params => axios.put(`${base}/api/question/update`, params
 // 删除题目
 const deleteQuestion = id => axios.delete(`${base}/api/question/${id}`);
 
-// 根据知识点生成题目
+// 根据知识点生成题目（一次性返回）
 const generateQuestions = params => axios.post(`${base}/api/question/generate`, params);
+
+// 根据知识点流式生成题目（SSE） - 前端通过 EventSource 连接该地址
+const generateQuestionsStreamUrl = (params: any) => {
+  const qs = [];
+  if (params.knowledgeDescr !== undefined) qs.push(`knowledgeDescr=${encodeURIComponent(params.knowledgeDescr)}`);
+  if (params.num !== undefined) qs.push(`num=${encodeURIComponent(params.num)}`);
+  if (params.modelName !== undefined) qs.push(`modelName=${encodeURIComponent(params.modelName)}`);
+  return `${base}/api/question/generate/stream?${qs.join('&')}`;
+}
 
 // 为问题关联知识点
 const associateKnowledge = params => axios.post(`${base}/api/question/${params.questionId}/associate-knowledge`, params.knowledgeIds);
@@ -52,6 +61,7 @@ export {
   updateQuestion,
   deleteQuestion,
   generateQuestions,
+  generateQuestionsStreamUrl,
   associateKnowledge,
   disassociateKnowledge,
   getQuestionKnowledge,

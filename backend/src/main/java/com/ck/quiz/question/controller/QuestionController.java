@@ -79,6 +79,16 @@ public class QuestionController {
         );
     }
 
+        @Operation(summary = "流式生成题目（SSE）", description = "根据知识点描述调用大模型流式生成题目，逐条推送")
+        @GetMapping(path = "/generate/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+        public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamGenerateQuestions(
+            @RequestParam String knowledgeDescr,
+            @RequestParam(defaultValue = "1") int num,
+            @RequestParam(required = false) String modelName
+        ) {
+        return questionService.streamGenerateQuestions(knowledgeDescr, num, modelName);
+        }
+
     @Operation(summary = "关联知识点", description = "为题目关联知识点")
     @PostMapping("/{id}/associate-knowledge")
     public ResponseEntity associateKnowledge(

@@ -38,6 +38,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 题目管理服务实现类
@@ -115,6 +116,182 @@ public class QuestionServiceImpl implements QuestionService {
 
         Question savedQuestion = questionRepository.save(question);
         return convertToDto(savedQuestion);
+    }
+
+    @Override
+    public SseEmitter streamGenerateQuestions(String knowledgeDescr, int num, String modelName) {
+        SseEmitter emitter = new SseEmitter(0L);
+        // 在新线程中执行生成并实时流式发送
+        new Thread(() -> {
+            ObjectMapper objectMapper = new ObjectMapper();
+            try {
+                // 查询模型配置
+                LLMModel model = resolveModel(modelName);
+                if (model == null) {
+                    try {
+                        emitter.send("[ERROR]未找到指定的文本模型，请先在模型管理中配置模型");
+                    } catch (Exception ex) {
+                        // ignore
+                    }
+                    emitter.completeWithError(new RuntimeException("未找到指定的文本模型，请先在模型管理中配置模型"));
+                    return;
+                }
+
+                OpenAiApi openAiApi = OpenAiApi.builder()
+                        .apiKey(model.getApiKey())
+                        .baseUrl(model.getApiEndpoint())
+                        .build();
+                OpenAiChatOptions options = OpenAiChatOptions.builder()
+                        .model(model.getName())
+                        .build();
+                OpenAiChatModel chatModel = OpenAiChatModel.builder()
+                        .openAiApi(openAiApi)
+                        .defaultOptions(options)
+                        .build();
+                ChatClient chat = ChatClient.builder(chatModel).build();
+
+                // 使用流式 API 调用大模型，实时推送内容到前端
+                StringBuilder fullContent = new StringBuilder();
+                int maxRetries = 3;
+                long retryDelayMs = 1000L;
+                int attempt = 0;
+                Exception lastException = null;
+
+                while (attempt < maxRetries) {
+                    boolean finished = false;
+                    try {
+                        attempt++;
+                        // 每次重试前清空之前累积的内容
+                        fullContent.setLength(0);
+                        String prompt = buildPrompt(knowledgeDescr, num);
+
+                        // 推送重试日志到前端（仅重试时推送，首次不推）
+                        if (attempt > 1) {
+                            try {
+                                emitter.send("[RETRY]第" + attempt + "次重试AI生成题目...");
+                            } catch (Exception e) {
+                                // ignore
+                            }
+                        }
+
+                        // 使用流式调用
+                        chat.prompt()
+                                .user(prompt)
+                                .stream()
+                                .content()  // 流式获取内容
+                                .doOnNext(chunk -> {
+                                    try {
+                                        // 实时推送流式内容（token/chunk）到前端
+                                        emitter.send(chunk);
+                                        // 同时累积完整内容用于最后解析
+                                        fullContent.append(chunk);
+                                    } catch (Exception e) {
+                                        // 推送失败时记录但继续接收流
+                                        System.err.println("Failed to send chunk: " + e.getMessage());
+                                    }
+                                })
+                                .blockLast();  // 阻塞等待流完成
+
+                        // 流式内容接收完毕后，尝试解析最终的 JSON 结果
+                        String content = fullContent.toString().trim();
+
+                        try {
+                            // 尝试解析 JSON（假设模型最后输出的是 JSON 数组）
+                            List<QuestionCreateDto> list = objectMapper.readValue(content, new TypeReference<>() {
+                            });
+
+                            // 解析成功后，推送一个分隔符，告诉前端开始解析最终结果
+                            try {
+                                emitter.send("\n\n[PARSE_RESULT]\n");
+                            } catch (Exception e) {
+                                // ignore
+                            }
+
+                            // 逐条推送解析结果
+                            for (QuestionCreateDto item : list) {
+                                try {
+                                    String json = objectMapper.writeValueAsString(item);
+                                    // 使用特殊前缀标记这是解析完毕的完整题目对象
+                                    emitter.send("[QUESTION]" + json);
+                                    Thread.sleep(50);
+                                } catch (Exception sendEx) {
+                                    // 忽略单条发送错误，继续发送下一条
+                                }
+                            }
+
+                            emitter.complete();
+                            finished = true;
+                            break;  // 成功完成，退出重试循环
+                        } catch (Exception parseEx) {
+                            // 将 JSON 解析失败视为一次失败，记录异常用于最终上报
+                            lastException = parseEx;
+                            // 如果还可以重试，则发送重试日志并继续重试（不要关闭 emitter）
+                            if (attempt < maxRetries) {
+                                try {
+                                    emitter.send("[RETRY]解析 JSON 失败，第" + (attempt + 1) + "次重试...");
+                                } catch (Exception e) {
+                                    // ignore
+                                }
+                                try {
+                                    Thread.sleep(retryDelayMs);
+                                } catch (InterruptedException ie) {
+                                    Thread.currentThread().interrupt();
+                                    try {
+                                        emitter.send("[ERROR]重试被中断: " + ie.getMessage());
+                                    } catch (Exception ex) {
+                                        // ignore
+                                    }
+                                    emitter.completeWithError(new RuntimeException("重试被中断", ie));
+                                    return;
+                                }
+                                // 继续下一次重试循环
+                                continue;
+                            } else {
+                                // 最后一次重试且解析失败，走到外层统一处理
+                            }
+                        }
+                    } catch (Exception e) {
+                        lastException = e;
+                        // 只要不是最后一次重试，不能关闭emitter
+                        if (attempt < maxRetries) {
+                            try {
+                                Thread.sleep(retryDelayMs);
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                try {
+                                    emitter.send("[ERROR]重试被中断: " + ie.getMessage());
+                                } catch (Exception ex) {
+                                    // ignore
+                                }
+                                emitter.completeWithError(new RuntimeException("重试被中断", ie));
+                                return;
+                            }
+                        }
+                    }
+                }
+                // 只有所有重试都失败时才关闭emitter并推送错误
+                if (attempt >= maxRetries) {
+                    try {
+                        emitter.send("[ERROR]生成题目失败，重试次数已达上限: " + (lastException != null ? lastException.getMessage() : "未知错误"));
+                    } catch (Exception ex) {
+                        // ignore
+                    }
+                    emitter.completeWithError(new RuntimeException("生成题目失败，重试次数已达上限", lastException));
+                }
+            } catch (Exception e) {
+                try {
+                    emitter.send("[ERROR]服务异常: " + e.getMessage());
+                } catch (Exception ex) {
+                    // ignore
+                }
+                try {
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    // ignore
+                }
+            }
+        }).start();
+        return emitter;
     }
 
     @Override

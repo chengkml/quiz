@@ -76,6 +76,9 @@ public interface QuestionService {
      */
     List<QuestionCreateDto> generateQuestions(String knowledgeDescr, int num, String modelName);
 
+    // 流式生成题目，返回 SSE 以逐条推送生成结果
+    org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamGenerateQuestions(String knowledgeDescr, int num, String modelName);
+
     List<QuestionDto> createQuestions(List<QuestionCreateDto> questionCreateDtos);
 
     /**
