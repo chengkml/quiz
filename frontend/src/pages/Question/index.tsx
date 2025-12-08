@@ -77,6 +77,8 @@ function QuestionManager() {
     const [showStreamLogVisible, setShowStreamLogVisible] = useState(true);
     // 回看日志的弹窗
     const [streamLogModalVisible, setStreamLogModalVisible] = useState(false);
+    // 标记是否已收到第一条SSE消息（用于显示初始loading）
+    const [sseFirstMessageReceived, setSseFirstMessageReceived] = useState(false);
     const streamingContainerRef = useRef<HTMLDivElement | null>(null);
     const generatedListRef = useRef<HTMLDivElement | null>(null);
 
@@ -665,6 +667,7 @@ function QuestionManager() {
             setSelectedQuestions([]);
             setStreamingContent('');
             setIsStreamingComplete(false);
+            setSseFirstMessageReceived(false);
 
             // 构造 SSE URL 并建立连接
             const url = generateQuestionsStreamUrl(values);
@@ -687,6 +690,11 @@ function QuestionManager() {
 
             es.onmessage = (event) => {
                 const data = event.data;
+                
+                // 标记已收到第一条消息
+                if (!sseFirstMessageReceived) {
+                    setSseFirstMessageReceived(true);
+                }
 
                 // 如果还未进入解析阶段，检查是否收到分隔符
                 if (!isParsingResult) {
@@ -900,6 +908,7 @@ function QuestionManager() {
         setSelectedCategoryForGenerate(null);
         setStreamingContent('');
         setIsStreamingComplete(false);
+        setSseFirstMessageReceived(false);
     };
 
     // 渲染题目选项
@@ -1492,8 +1501,8 @@ function QuestionManager() {
                         )}
 
                         {/* 流式内容展示区 */}
-                        {showStreamLogVisible && !isStreamingComplete && streamingContent && (
-                            <div ref={streamingContainerRef} style={{
+                        {showStreamLogVisible && !isStreamingComplete && (
+                            <div style={{
                                 marginBottom: 16,
                                 padding: 12,
                                 backgroundColor: '#f0f9ff',
@@ -1502,14 +1511,27 @@ function QuestionManager() {
                                 maxHeight: 200,
                                 overflowY: 'auto'
                             }}>
-                                <div style={{
-                                    fontSize: 12,
-                                    color: '#666',
-                                    whiteSpace: 'pre-wrap',
-                                    wordBreak: 'break-word',
-                                    fontFamily: 'monospace'
-                                }} dangerouslySetInnerHTML={{__html: streamingContent}}>
-                                </div>
+                                {!sseFirstMessageReceived ? (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: '20px',
+                                        color: '#165DFF'
+                                    }}>
+                                        <Spin />
+                                        <span style={{marginLeft: 12}}>正在连接AI模型，准备生成题目...</span>
+                                    </div>
+                                ) : streamingContent ? (
+                                    <div ref={streamingContainerRef} style={{
+                                        fontSize: 12,
+                                        color: '#666',
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word',
+                                        fontFamily: 'monospace'
+                                    }} dangerouslySetInnerHTML={{__html: streamingContent}}>
+                                    </div>
+                                ) : null}
                             </div>
                         )}
 
