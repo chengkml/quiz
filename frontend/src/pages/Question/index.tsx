@@ -915,9 +915,10 @@ function QuestionManager() {
     const renderQuestionOptions = (options, questionType) => {
         if (!options || options === '') return null;
 
-        // 如果是字符串格式的选项（如 "A. 选项1;B. 选项2"）
-        if (typeof options === 'string' && options.includes(';')) {
-            const optionsList = options.split(';').map(opt => opt.trim());
+        // 如果是字符串格式的选项（如 "A. 选项1;B. 选项2" 或 "A. 选项1；B. 选项2"）
+        if (typeof options === 'string' && (options.includes(';') || options.includes('；'))) {
+            // 支持中英文分号分隔
+            const optionsList = options.split(/[;；]/).map(opt => opt.trim()).filter(Boolean);
             return (
                 <div style={{marginTop: 8}}>
                     <strong>选项:</strong>
@@ -942,7 +943,7 @@ function QuestionManager() {
                         <div style={{marginTop: 4, paddingLeft: 16}}>
                             {Object.entries(optionsObj).map(([key, value]) => (
                                 <div key={key} style={{marginBottom: 4}}>
-                                    <strong>{key}:</strong> {value}
+                                    <strong>{key}:</strong> {String(value)}
                                 </div>
                             ))}
                         </div>
