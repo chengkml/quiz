@@ -4,7 +4,8 @@
   background: var(--background-color-base);
   height: 100%;
 
-  .arco-layout {
+  // 主布局区域
+  .ocr-layout {
     margin: 10px;
     background-color: #fff;
     border-radius: 8px;
@@ -12,132 +13,348 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     height: calc(100% - 20px);
     width: calc(100% - 20px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    
+    .arco-layout-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .arco-row {
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    .arco-col {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
   }
 
-  .arco-form-item-wrapper {
-    height: calc(100% - 22px);
-    .arco-form-item-control-wrapper {
-      height: 100%;
-      .arco-form-item-control {
-        height: 100%;
-      }
+  // 卡片通用样式
+  .upload-card, .result-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.3s ease;
+    overflow: hidden;
+    
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     }
-    .arco-form-item-control-children {
-      height: 100%;
+    
+    .arco-card-header {
+      flex-shrink: 0;
     }
+    
+    .arco-card-body {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  .upload-card {
+    .arco-upload {
+      width: 100%;
+    }
+  }
+
+  // 卡片操作按钮
+  .card-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
   }
 
   // 图片预览样式
   .image-preview {
-    margin-top: 20px;
-    padding: 10px;
-    border: 1px solid var(--color-neutral-2);
-    border-radius: 4px;
+    padding: 16px;
+    border: 2px dashed var(--color-border-2);
+    border-radius: 8px;
     background-color: var(--color-fill-2);
+    text-align: center;
+    transition: all 0.3s ease;
     
-    h3 {
-      margin: 0 0 10px 0;
-      font-size: 16px;
-      color: var(--color-text-1);
+    &:hover {
+      border-color: var(--color-primary-light-3);
+      background-color: var(--color-primary-light-1);
     }
     
-    .preview-img {
+    .arco-image {
       max-width: 100%;
       max-height: 400px;
-      object-fit: contain;
-      border-radius: 4px;
+      
+      img {
+        max-width: 100%;
+        max-height: 400px;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+      }
     }
   }
 
-  // OCR结果区域样式
-  .ocr-result-header {
+  // 操作按钮区域
+  .result-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+    gap: 8px;
     
-    h3 {
-      margin: 0;
-      font-size: 18px;
-      color: var(--color-text-1);
-    }
-    
-    .result-actions {
-      display: flex;
-      gap: 8px;
+    .arco-btn {
+      transition: all 0.2s ease;
+      
+      &:hover:not(:disabled) {
+        transform: translateY(-1px);
+      }
     }
   }
 
+  // OCR结果内容区域
   .ocr-result-content {
-    background-color: var(--color-fill-2);
-    border: 1px solid var(--color-neutral-2);
-    border-radius: 4px;
-    padding: 16px;
-    height: calc(100% - 60px);
-    overflow: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     position: relative;
   }
 
-  .result-text {
-    margin: 0;
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-family: var(--font-family-mono);
-    line-height: 1.6;
-    color: var(--color-text-1);
-  }
-
-  .loading {
+  // 加载状态
+  .loading-state {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    height: 200px;
-    color: var(--color-text-3);
-    font-size: 16px;
+    justify-content: flex-start;
+    flex: 1;
+    padding: 40px 20px;
+    overflow-y: auto;
+    
+    .loading-text {
+      margin-top: 20px;
+      font-size: 16px;
+      color: var(--color-text-2);
+    }
+    
+    .streaming-result {
+      margin-top: 24px;
+      width: 100%;
+      padding: 16px;
+      background: var(--color-fill-2);
+      border-radius: 8px;
+      border-left: 3px solid var(--color-primary-6);
+      animation: fadeIn 0.3s ease;
+      overflow-x: hidden;
+      
+      .result-text {
+        word-wrap: break-word;
+        word-break: break-all;
+        overflow-wrap: break-word;
+      }
+    }
   }
 
-  .error {
-    color: var(--color-danger-5);
-    padding: 20px;
+  // 错误状态
+  .error-state {
+    padding: 32px;
     text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow-y: auto;
+    
+    .error-message {
+      color: var(--color-danger-6);
+      font-size: 16px;
+      margin-bottom: 16px;
+      padding: 12px 20px;
+      background: var(--color-danger-light-1);
+      border-radius: 8px;
+      border-left: 4px solid var(--color-danger-6);
+    }
+    
+    .error-detail {
+      margin: 16px 0 0 0;
+      padding: 16px;
+      background: var(--color-fill-2);
+      border-radius: 8px;
+      text-align: left;
+      font-size: 13px;
+      color: var(--color-text-3);
+      max-height: 300px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
   }
 
+  // 成功状态
+  .success-state {
+    animation: fadeIn 0.4s ease;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    
+    .result-text {
+      margin: 0;
+      padding: 20px;
+      background: var(--color-fill-2);
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: var(--font-family-mono);
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--color-text-1);
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid var(--color-border-2);
+      transition: all 0.3s ease;
+      
+      &:hover {
+        border-color: var(--color-primary-light-3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+    }
+    
+    .result-stats {
+      display: flex;
+      gap: 24px;
+      margin-top: 16px;
+      padding: 12px 20px;
+      background: var(--color-fill-2);
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--color-text-2);
+      flex-shrink: 0;
+      
+      span {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        &:before {
+          content: '•';
+          color: var(--color-primary-6);
+          font-size: 20px;
+        }
+      }
+    }
+  }
+
+  // 空状态
   .empty-state {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    height: 200px;
+    justify-content: center;
+    flex: 1;
     color: var(--color-text-3);
-    font-size: 16px;
+    
+    .empty-text {
+      margin-top: 20px;
+      font-size: 18px;
+      color: var(--color-text-2);
+      font-weight: 500;
+    }
+    
+    .empty-hint {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--color-text-3);
+    }
   }
 
-  .confidence-info, .language-info {
-    margin-top: 16px;
-    font-size: 14px;
-    color: var(--color-text-2);
+  // 动画效果
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 
   // 响应式设计
+  @media screen and (max-width: 1200px) {
+    .ocr-layout {
+      padding: 16px;
+    }
+  }
+
   @media screen and (max-width: 768px) {
-    .arco-layout {
-      margin: 5px;
-      padding: 5px;
-      width: calc(100% - 10px);
-      height: calc(100% - 10px);
+    .ocr-layout {
+      padding: 12px;
+      
+      .arco-col {
+        height: auto;
+        margin-bottom: 16px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
     }
     
-    .ocr-result-header {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 10px;
+    .upload-card, .result-card {
+      flex: none;
+      height: auto;
+      max-height: none;
+    }
+    
+    .result-actions {
+      flex-direction: row;
+      flex-wrap: wrap;
       
-      .result-actions {
-        justify-content: center;
+      .arco-btn {
+        flex: 1;
+        min-width: 80px;
       }
     }
     
     .image-preview .preview-img {
       max-height: 300px;
+    }
+    
+    .success-state .result-text {
+      font-size: 13px;
+      padding: 16px;
+    }
+    
+    .ocr-result-content {
+      min-height: 300px;
+    }
+    
+    .result-stats {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+
+  @media screen and (max-width: 576px) {
+    .empty-state {
+      .empty-text {
+        font-size: 16px;
+      }
     }
   }
 }

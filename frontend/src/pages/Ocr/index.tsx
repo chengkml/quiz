@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
-import {Button, Form, Grid, Layout, Message, Upload} from '@arco-design/web-react';
-import {IconDownload} from '@arco-design/web-react/icon';
+import {Button, Card, Form, Grid, Image, Layout, Message, Spin, Upload} from '@arco-design/web-react';
+import {IconCopy, IconDelete, IconImage, IconRefresh} from '@arco-design/web-react/icon';
 import {Content} from 'antd/es/layout/layout';
 import './index.less';
 
@@ -27,6 +27,7 @@ const OcrPage: React.FC = () => {
     const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [errorDetail, setErrorDetail] = useState<string | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     // 处理图片上传
@@ -34,6 +35,7 @@ const OcrPage: React.FC = () => {
         const file = option.file as File;
         setLoading(true);
         setError(null);
+        setErrorDetail(null);
         setOcrResult(null);
 
         // 检查文件类型
@@ -62,33 +64,122 @@ const OcrPage: React.FC = () => {
             setPreviewImage(e.target?.result as string);
         };
         reader.readAsDataURL(file);
-
-        // 模拟OCR识别（实际项目中应调用后端API）
+        // 调用后端 SSE 接口进行流式识别
         try {
-            // 在实际项目中，这里应该发送文件到后端进行OCR识别
-            // 这里使用模拟数据进行演示
-            setTimeout(() => {
-                setOcrResult({
-                    text: '这是一个OCR识别结果示例文本。在实际应用中，这里将显示从图片中识别出的文字内容。',
-                    confidence: 0.95,
-                    language: 'zh-CN'
-                });
+            const formData = new FormData();
+            formData.append('image', file);
+            // 如需指定模型，可 append('model', 'modelName')
 
-                // 更新上传文件列表
-                setUploadedFiles(prev => [{
-                    uid: `file-${Date.now()}`,
-                    name: file.name,
-                    status: 'done',
-                    url: URL.createObjectURL(file)
-                }]);
+            const resp = await fetch('/quiz/api/ocr/recognize', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'text/event-stream'
+                }
+            });
 
-                Message.success(`成功识别图片文本`);
-                option.onSuccess && option.onSuccess({});
-                setLoading(false);
-            }, 1500);
+            if (!resp.ok || !resp.body) {
+                const text = await resp.text();
+                setErrorDetail(text || `HTTP ${resp.status}`);
+                throw new Error(text || `HTTP ${resp.status}`);
+            }
+
+            // 把流式响应逐步读取并按 SSE 格式解析（data: ...\n\n）
+            const reader = resp.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let done = false;
+            let buffer = '';
+            let accumulated = '';
+
+            // 标记上传文件为进行中
+            setUploadedFiles(prev => [{uid: `file-${Date.now()}`, name: file.name, status: 'uploading', url: URL.createObjectURL(file)}]);
+
+            while (!done) {
+                const {value, done: d} = await reader.read();
+                done = d;
+                if (value) {
+                    buffer += decoder.decode(value, {stream: true});
+
+                    // SSE event 以空行分隔，可能一次收到多个事件
+                    let idx;
+                    while ((idx = buffer.indexOf('\n\n')) !== -1) {
+                        const eventBlock = buffer.slice(0, idx);
+                        buffer = buffer.slice(idx + 2);
+
+                        // 解析 eventBlock 中的 data 行
+                        const lines = eventBlock.split(/\r?\n/);
+                        const dataLines: string[] = [];
+                        for (const line of lines) {
+                            if (line.startsWith('data:')) {
+                                dataLines.push(line.substring(5).trimStart());
+                            }
+                        }
+                        if (dataLines.length === 0) {
+                            continue;
+                        }
+                        const data = dataLines.join('\n');
+
+                        if (data.startsWith('[ERROR]')) {
+                            const errMsg = data.replace('[ERROR]', '').trim();
+                            setError(errMsg);
+                            setErrorDetail(errMsg);
+                            Message.error(errMsg);
+                            option.onError && option.onError(new Error(errMsg));
+                            setLoading(false);
+                            return;
+                        }
+
+                        if (data.trim() === '[PARSE_RESULT]') {
+                            // 服务端表示已解析完毕
+                            setUploadedFiles(prev => prev.map(f => ({...f, status: 'done'})));
+                            Message.success('OCR识别完成');
+                            option.onSuccess && option.onSuccess({});
+                            setLoading(false);
+                            // 继续处理剩余缓冲区（若有）
+                            continue;
+                        }
+
+                        // 正常数据片段，追加并显示
+                        accumulated += data;
+                        setOcrResult({text: accumulated});
+                    }
+                }
+            }
+
+            // 读取循环结束，如果还剩缓冲数据，处理一次
+            if (buffer.trim()) {
+                // 尝试直接提取 data: 前缀后的内容
+                const lines = buffer.split(/\r?\n/);
+                const dataLines: string[] = [];
+                for (const line of lines) {
+                    if (line.startsWith('data:')) {
+                        dataLines.push(line.substring(5).trimStart());
+                    }
+                }
+                const data = dataLines.join('\n') || buffer;
+                if (data.startsWith('[ERROR]')) {
+                    const errMsg = data.replace('[ERROR]', '').trim();
+                    setError(errMsg);
+                    setErrorDetail(errMsg);
+                    Message.error(errMsg);
+                    option.onError && option.onError(new Error(errMsg));
+                    setLoading(false);
+                    return;
+                }
+                if (data.trim() !== '[PARSE_RESULT]') {
+                    accumulated += data;
+                    setOcrResult({text: accumulated});
+                }
+            }
+
+            // 确保文件状态为完成
+            setUploadedFiles(prev => prev.map(f => ({...f, status: 'done'})));
+            setLoading(false);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'OCR识别失败';
             setError(errorMessage);
+            const detail = err instanceof Error ? (err.stack || err.message) : String(err);
+            setErrorDetail(detail);
             Message.error(errorMessage);
             option.onError && option.onError(err);
             setLoading(false);
@@ -104,6 +195,16 @@ const OcrPage: React.FC = () => {
         return true;
     };
 
+    // 清除图片
+    const handleClearImage = () => {
+        setSelectedImage(null);
+        setPreviewImage(null);
+        setOcrResult(null);
+        setError(null);
+        setErrorDetail(null);
+        setUploadedFiles([]);
+    };
+
     // 复制识别结果
     const handleCopyResult = () => {
         if (ocrResult?.text) {
@@ -115,81 +216,116 @@ const OcrPage: React.FC = () => {
         }
     };
 
-    // 下载识别结果
-    const handleDownloadResult = () => {
-        if (ocrResult?.text) {
-            const blob = new Blob([ocrResult.text], {type: 'text/plain;charset=utf-8'});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'ocr_result.txt';
-            link.click();
-            URL.revokeObjectURL(link.href);
-        }
-    };
-
     return (
         <div className="ocr-container">
-            <Layout>
+            
+            <Layout className="ocr-layout">
                 <Content>
-                    <Row style={{height: '100%'}}>
-                        <Col span={10} style={{padding: '20px', height: '100%'}}>
-                            <Form layout="vertical" autoComplete='off' style={{height: '100%'}}>
-                                <FormItem label="图片上传" rules={[{required: true}]} style={{height: '100%'}}>
+                    <Row gutter={20} style={{height: '100%'}}>
+                        <Col span={10}>
+                            <Card 
+                                className="upload-card" 
+                                title="上传图片" 
+                                bordered={false}
+                                extra={previewImage && (
+                                    <div className="card-actions">
+                                        <Upload
+                                            showUploadList={false}
+                                            customRequest={handleCustomUpload}
+                                            accept="image/*"
+                                        >
+                                            <Button type="text" size="small" icon={<IconRefresh/>}>
+                                                重新上传
+                                            </Button>
+                                        </Upload>
+                                        <Button
+                                            type="text"
+                                            size="small"
+                                            status="danger"
+                                            icon={<IconDelete/>}
+                                            onClick={handleClearImage}
+                                        >
+                                            删除
+                                        </Button>
+                                    </div>
+                                )}
+                            >
+                                {!previewImage ? (
                                     <Upload
-                                        multiple
-                                        imagePreview
-                                        listType='picture-card'
-                                        tip='支持JPG、PNG、GIF、BMP、WebP格式图片，文件最大10MB'
+                                        drag
+                                        limit={1}
+                                        showUploadList={false}
+                                        tip='拖拽图片到此区域，或点击上传'
                                         customRequest={handleCustomUpload}
-                                    >
-                                    </Upload>
-                                </FormItem>
-                            </Form>
+                                        accept="image/*"
+                                    />
+                                ) : (
+                                    <div className="image-preview">
+                                        <Image 
+                                            src={previewImage} 
+                                            alt="Preview" 
+                                            className="preview-img"
+                                            preview
+                                            width="100%"
+                                            height="auto"
+                                            style={{maxHeight: '400px', objectFit: 'contain'}}
+                                        />
+                                    </div>
+                                )}
+                            </Card>
                         </Col>
-                        <Col span={14}
-                             style={{padding: '20px', height: '100%', borderLeft: '1px solid var(--color-neutral-3)'}}>
-                            <Form layout="vertical" autoComplete='off' style={{height: '100%'}}>
-                                <div className="ocr-result-header">
-                                    <h3>OCR识别结果</h3>
-                                    <div className="result-actions">
-                                        <Button
-                                            type="primary"
-                                            icon={<IconDownload/>}
-                                            onClick={handleDownloadResult}
-                                            disabled={!ocrResult?.text}
-                                            style={{marginRight: 8}}
-                                        >
-                                            下载文本
-                                        </Button>
-                                        <Button
-                                            icon={<IconDownload/>}
-                                            onClick={handleCopyResult}
-                                            disabled={!ocrResult?.text}
-                                        >
-                                            复制文本
-                                        </Button>
-                                    </div>
-                                </div>
-                                <FormItem>
-                                    <div className="ocr-result-content">
-                                        {loading && <div className="loading">正在识别中...</div>}
-                                        {error && <div className="error">{error}</div>}
-                                        {!loading && !error && ocrResult?.text && (
+                        
+                        <Col span={14}>
+                            <Card 
+                                className="result-card" 
+                                title="识别结果"
+                                bordered={false}
+                                extra={ocrResult?.text && (
+                                    <Button
+                                        type="text"
+                                        size="small"
+                                        icon={<IconCopy/>}
+                                        onClick={handleCopyResult}
+                                        disabled={loading}
+                                    >
+                                        复制
+                                    </Button>
+                                )}
+                            >
+                                <div className="ocr-result-content">
+                                    {loading && (
+                                        <div className="loading-state">
+                                            <Spin size={40}/>
+                                            <div className="loading-text">正在识别图片中的文字...</div>
+                                            {ocrResult?.text && (
+                                                <div className="streaming-result">
+                                                    <pre className="result-text">{ocrResult.text}</pre>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {error && (
+                                        <div className="error-state">
+                                            <div className="error-message">{error}</div>
+                                            {errorDetail && (
+                                                <pre className="error-detail">{errorDetail}</pre>
+                                            )}
+                                        </div>
+                                    )}
+                                    {!loading && !error && ocrResult?.text && (
+                                        <div className="success-state">
                                             <pre className="result-text">{ocrResult.text}</pre>
-                                        )}
-                                        {!loading && !error && !ocrResult?.text && (
-                                            <div className="empty-state">上传图片以进行OCR识别</div>
-                                        )}
-                                        {ocrResult?.confidence && (
-                                            <div
-                                                className="confidence-info">识别置信度: {Math.round(ocrResult.confidence * 100)}%</div>
-                                        )}
-                                        {ocrResult?.language && (
-                                            <div className="language-info">识别语言: {ocrResult.language}</div>
-                                        )}
-                                    </div>
-                                </FormItem>
-                            </Form>
+                                        </div>
+                                    )}
+                                    {!loading && !error && !ocrResult?.text && (
+                                        <div className="empty-state">
+                                            <IconImage style={{fontSize: 64, color: 'var(--color-text-4)'}}/>
+                                            <div className="empty-text">上传图片开始识别</div>
+                                            <div className="empty-hint">支持中文、英文、数字等多种文字识别</div>
+                                        </div>
+                                    )}
+                                </div>
+                            </Card>
                         </Col>
                     </Row>
                 </Content>
