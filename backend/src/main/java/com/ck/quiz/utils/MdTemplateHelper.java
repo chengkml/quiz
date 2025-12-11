@@ -346,7 +346,7 @@ public class MdTemplateHelper {
         for (Node child : paragraph.getChildren()) {
             if (child instanceof Text) {
                 currentLine.append(child.getChars());
-            } else if (child instanceof SoftLineBreak) {
+            } else if (child instanceof SoftLineBreak || child instanceof HardLineBreak) {
                 String line = currentLine.toString().trim();
                 if (!line.isEmpty()) {
                     lines.add(line);

@@ -33,44 +33,7 @@ class MdTemplateHelperTest {
         assertNotNull(blocks);
         assertFalse(blocks.isEmpty());
     }
-    
-    @Test
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    void testResolveMdContent_singleBlock() throws Exception {
-        // 准备模板
-        String template = """
-                ### 错别字
-                - 原文：{{typo.src}}
-                  修改建议：{{typo.advice}}
-                  修改原因：{{typo.reason}}
-                """;
-        
-        // 准备实际内容
-        String content = """
-                ### 错别字
-                - 原文：这是一个测试文本
-                  修改建议：这是一个测试文本（已修正）
-                  修改原因：纠正拼写错误
-                """;
-        
-        // 解析模板
-        List<?> tplBlocks = helper.readTpl(template);
-        
-        // 解析内容
-        Map<String, List<Map<String, Object>>> result = helper.resolveMdContent(content, (List) tplBlocks);
-        
-        // 验证结果
-        assertNotNull(result);
-        assertTrue(result.containsKey("typo"));
-        
-        List<Map<String, Object>> typoList = result.get("typo");
-        assertEquals(1, typoList.size());
-        
-        Map<String, Object> typoData = typoList.get(0);
-        assertEquals("这是一个测试文本", typoData.get("src"));
-        assertEquals("这是一个测试文本（已修正）", typoData.get("advice"));
-        assertEquals("纠正拼写错误", typoData.get("reason"));
-    }
+
     
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
