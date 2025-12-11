@@ -37,6 +37,7 @@ import CronTask from '@/pages/CronTask';
 import FileDetector from '@/pages/FileDetector';
 import OcrPage from '@/pages/Ocr';
 import WxAppManager from '@/pages/WxApp';
+import MdResolvePage from '@/pages/MdResolve';
 
 /**
  * 检查用户是否有访问指定路径的权限
@@ -140,7 +141,8 @@ const protectedPages = [
     { path: 'cron', element: <CronTask />, requiredPath: 'cron' },
     { path: 'filedetector', element: <FileDetector />, requiredPath: 'filedetector' },
     { path: 'ocr', element: <OcrPage />, requiredPath: 'ocr' },
-  { path: 'wxapp', element: <WxAppManager />, requiredPath: 'wxapp' },
+    { path: 'mdresolve', element: <MdResolvePage />, requiredPath: 'mdresolve' },
+    { path: 'wxapp', element: <WxAppManager />, requiredPath: 'wxapp' },
 ];
 
 /**
