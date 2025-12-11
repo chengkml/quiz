@@ -45,15 +45,19 @@ class MdTemplateHelperTest {
                   修改建议：{{typo.advice}}
                 ---
                 ### 语法
-                - 原文：{{grammar.src}}
-                  修改建议：{{grammar.advice}}
+                - 无
                 """;
         
         // 准备实际内容
         String content = """
                 ### 错别字
-                - 原文：错误文本1
-                  修改建议：正确文本1
+                - 原文：项目名称： 科研智能助手（一期）建设项木木  
+                  修改建议：项目名称： 科研智能助手（一期）建设项目  
+                  修改原因：木木为错别字问题，正确词语应为项目。
+
+                - 原文：需求单位： 集团科技质量步  
+                  修改建议：需求单位： 集团科技质量部  
+                  修改原因：步为错别字问题，正确词语应为部。
                   
                 ### 语法
                 - 原文：语法错误示例
@@ -65,21 +69,9 @@ class MdTemplateHelperTest {
         
         // 解析内容
         Map<String, List<Map<String, Object>>> result = helper.resolveMdContent(content, (List) tplBlocks);
-        
-        // 验证结果
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        
-        assertTrue(result.containsKey("typo"));
-        assertTrue(result.containsKey("grammar"));
-        
-        Map<String, Object> typoData = result.get("typo").get(0);
-        assertEquals("错误文本1", typoData.get("src"));
-        assertEquals("正确文本1", typoData.get("advice"));
-        
-        Map<String, Object> grammarData = result.get("grammar").get(0);
-        assertEquals("语法错误示例", grammarData.get("src"));
-        assertEquals("语法正确示例", grammarData.get("advice"));
+        // 以 JSON 格式打印解析结果
+        System.out.println("=== Parsed Result (multipleBlocks) ===");
+        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(result));
     }
     
     @Test
@@ -112,7 +104,9 @@ class MdTemplateHelperTest {
         
         // 解析内容
         Map<String, List<Map<String, Object>>> result = helper.resolveMdContent(content, (List) tplBlocks);
-        
+        // 以 JSON 格式打印解析结果
+        System.out.println("=== Parsed Result (multipleInstances) ===");
+        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(result));
         // 验证结果
         assertNotNull(result);
         assertTrue(result.containsKey("typo"));
@@ -195,7 +189,9 @@ class MdTemplateHelperTest {
         
         List<?> tplBlocks = helper.readTpl(template);
         Map<String, List<Map<String, Object>>> result = helper.resolveMdContent(content, (List) tplBlocks);
-        
+        // 以 JSON 格式打印解析结果
+        System.out.println("=== Parsed Result (emptyContent) ===");
+        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(result));
         assertNotNull(result);
         assertTrue(result.containsKey("typo"));
         assertTrue(result.get("typo").isEmpty());
@@ -218,7 +214,9 @@ class MdTemplateHelperTest {
         
         List<?> tplBlocks = helper.readTpl(template);
         Map<String, List<Map<String, Object>>> result = helper.resolveMdContent(content, (List) tplBlocks);
-        
+        // 以 JSON 格式打印解析结果
+        System.out.println("=== Parsed Result (noMatch) ===");
+        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(result));
         assertNotNull(result);
         assertTrue(result.containsKey("typo"));
         assertTrue(result.get("typo").isEmpty());

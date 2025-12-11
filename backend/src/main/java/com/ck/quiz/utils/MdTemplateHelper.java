@@ -51,7 +51,12 @@ public class MdTemplateHelper {
         Map<String, List<Map<String, Object>>> result = new java.util.HashMap<>();
         for (BlockItem block : tplBlocks) {
             List<Map<String, Object>> resolved = resolveBlock(mdContent, block);
-            result.put(block.getBlockKey(), resolved);
+            String key = block.getBlockKey();
+            if (key == null) {
+                // 跳过未指定 key 的模板块，避免在结果 Map 中产生 null 键
+                continue;
+            }
+            result.put(key, resolved);
         }
         return result;
     }
@@ -87,17 +92,134 @@ public class MdTemplateHelper {
         // 将模板块的行项转换为匹配模式
         List<LinePattern> patterns = buildPatterns(block.getLines());
 
-        // 遍历内容行，查找匹配的块
-        for (int i = 0; i <= contentLines.size() - patterns.size(); i++) {
-            Map<String, Object> matchedData = tryMatchBlock(contentLines, i, patterns);
-            if (matchedData != null && !matchedData.isEmpty()) {
-                result.add(matchedData);
-                // 跳过已匹配的行
-                i += patterns.size() - 1;
+        if (patterns.isEmpty()) {
+            return result;
+        }
+
+        
+
+        // 如果第一个模式是标题（level 非空 且 为 text），则把后面的模式视为单个条目模板，
+        // 并在该标题下重复匹配该条目模板（以支持同一标题下多条列表项）。
+        LinePattern first = patterns.get(0);
+        if (first.level != null && !first.level.isEmpty() && "text".equals(first.type)) {
+            List<LinePattern> itemPatterns = patterns.subList(1, patterns.size());
+
+            for (int i = 0; i < contentLines.size(); i++) {
+                ParsedLine line = contentLines.get(i);
+                // 匹配标题
+                if (!first.level.equals(line.level) || !first.content.equals(line.text)) {
+                    continue;
+                }
+
+                // 在标题后连续匹配多个条目
+                int cursor = i + 1;
+                while (cursor < contentLines.size()) {
+                    MatchResult mr = tryMatchItem(contentLines, cursor, itemPatterns);
+                    if (mr == null) {
+                        // 如果未能在当前行匹配条目模板，尝试跳过直到下一个可能的条目起始行或下一个标题
+                        // 这样可以跳过诸如“修改原因”之类的额外行
+                        if (cursor < contentLines.size() && contentLines.get(cursor).level != null
+                                && !contentLines.get(cursor).level.isEmpty()
+                                && contentLines.get(cursor).level.startsWith("#")) {
+                            break; // 到了下一个标题，结束当前标题下的条目收集
+                        }
+                        cursor++;
+                        continue;
+                    }
+                    if (mr.data != null && !mr.data.isEmpty()) {
+                        result.add(mr.data);
+                    }
+                    cursor += mr.consumed;
+
+                    // 跳过条目内部或条目之间的非起始行，寻找下一个可能的条目起始行
+                    while (cursor < contentLines.size()) {
+                        ParsedLine next = contentLines.get(cursor);
+                        // 到了下一个标题则结束
+                        if (next.level != null && !next.level.isEmpty() && next.level.startsWith("#")) {
+                            break;
+                        }
+                        // 判断是否为下一个条目的起始行（匹配第一个模式）
+                        LinePattern firstItemPattern = itemPatterns.get(0);
+                        boolean levelOk = firstItemPattern.level == null || firstItemPattern.level.isEmpty()
+                                || firstItemPattern.level.equals(next.level);
+                        boolean prefixOk = true;
+                        if ("tpl".equals(firstItemPattern.type) && firstItemPattern.preffix != null
+                                && !firstItemPattern.preffix.isEmpty()) {
+                            prefixOk = next.text.startsWith(firstItemPattern.preffix);
+                        }
+                        if (levelOk && prefixOk) {
+                            break; // 找到下一个条目起始
+                        }
+                        cursor++;
+                    }
+                }
+
+                // 跳到标题后继续查找下一个同名标题/块
+            }
+        } else {
+            // 退回到原有的整体匹配逻辑（模板为连续行序列）
+            for (int i = 0; i <= contentLines.size() - patterns.size(); i++) {
+                Map<String, Object> matchedData = tryMatchBlock(contentLines, i, patterns);
+                if (matchedData != null && !matchedData.isEmpty()) {
+                    result.add(matchedData);
+                    // 跳过已匹配的行
+                    i += patterns.size() - 1;
+                }
             }
         }
 
         return result;
+    }
+
+    /**
+     * 单个条目匹配结果
+     */
+    private static class MatchResult {
+        Map<String, Object> data;
+        int consumed;
+    }
+
+    /**
+     * 尝试从指定位置匹配一个条目（由若干行模式组成），返回匹配数据及消耗的行数。
+     */
+    private MatchResult tryMatchItem(List<ParsedLine> lines, int startIndex, List<LinePattern> patterns) {
+        MatchResult mr = new MatchResult();
+        mr.data = new java.util.HashMap<>();
+        int lineIndex = startIndex;
+
+        for (LinePattern pattern : patterns) {
+            if (lineIndex >= lines.size()) {
+                return null; // 行不足，匹配失败
+            }
+
+            ParsedLine line = lines.get(lineIndex);
+
+            // 检查级别是否匹配
+            if (!pattern.level.isEmpty() && !pattern.level.equals(line.level)) {
+                return null;
+            }
+
+            if ("tpl".equals(pattern.type)) {
+                if (pattern.preffix != null && !pattern.preffix.isEmpty()) {
+                    if (!line.text.startsWith(pattern.preffix)) {
+                        return null;
+                    }
+                    String value = line.text.substring(pattern.preffix.length()).trim();
+                    mr.data.put(pattern.lineKey, value);
+                } else {
+                    mr.data.put(pattern.lineKey, line.text);
+                }
+            } else if ("text".equals(pattern.type)) {
+                if (!line.text.equals(pattern.content)) {
+                    return null;
+                }
+            }
+
+            lineIndex++;
+        }
+
+        mr.consumed = lineIndex - startIndex;
+        return mr;
     }
 
     /**
@@ -368,14 +490,27 @@ public class MdTemplateHelper {
         LineItem lineItem = new LineItem();
         lineItem.setLevel(level);
 
-        // 判断是否有模板语法
+        // 判断是否有模板语法（优先查找双大括号），若找不到则回退尝试单左大括号的情况（兼容编码或格式问题）
         int tplStart = text.indexOf("{{");
-        int tplEnd = text.indexOf("}}", tplStart);
+        int tplEnd = tplStart >= 0 ? text.indexOf("}}", tplStart) : -1;
+
+        if (!(tplStart >= 0 && tplEnd > tplStart)) {
+            // 尝试兼容单左大括号的情况，如 "{typo.src}}"
+            tplStart = text.indexOf('{');
+            tplEnd = tplStart >= 0 ? text.indexOf("}}", tplStart) : -1;
+        }
 
         if (tplStart >= 0 && tplEnd > tplStart) {
             lineItem.setType("tpl");
             lineItem.setPreffix(text.substring(0, tplStart).trim());
-            String tplContent = text.substring(tplStart + 2, tplEnd).trim();
+            int contentStart = tplStart;
+            // 如果是双大括号，则跳过两个字符，否则只跳过一个
+            if (tplStart + 1 < text.length() && text.charAt(tplStart + 1) == '{') {
+                contentStart = tplStart + 2;
+            } else {
+                contentStart = tplStart + 1;
+            }
+            String tplContent = text.substring(contentStart, tplEnd).trim();
             lineItem.setContent(tplContent);
 
             // 点号分隔内容
