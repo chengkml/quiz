@@ -19,7 +19,7 @@ import {
   IconRefresh,
   IconDownload,
 } from '@arco-design/web-react/icon';
-import { getDefaultTemplate, resolveMdContent } from '@/services/mdResolveService';
+import { getDefaultTemplate, resolveMdContent, calculateScore, exportDocx } from '@/services/mdResolveService';
 import './index.less';
 
 const { Content } = Layout;
@@ -41,6 +41,10 @@ const MdResolvePage: React.FC = () => {
   const [resolveResult, setResolveResult] = useState<ResolveResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false);
+  const [score, setScore] = useState<number | null>(null);
+  const [calculating, setCalculating] = useState(false);
+  const [grade, setGrade] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // 加载默认模板
   const handleLoadDefaultTemplate = async () => {
@@ -119,6 +123,66 @@ const MdResolvePage: React.FC = () => {
       }).catch(() => {
         Message.error('复制失败');
       });
+    }
+  };
+
+  // 计算分值
+  const handleCalculateScore = async () => {
+    if (!resolveResult?.success || !resolveResult.data) {
+      Message.warning('请先解析并生成结果再计算分值');
+      return;
+    }
+    setCalculating(true);
+    setScore(null);
+    setGrade(null);
+    try {
+      const resp = await calculateScore(resolveResult.data as Record<string, Array<Record<string, any>>>);
+      if (resp && resp.success && resp.data) {
+        setScore(resp.data.score);
+        setGrade(resp.data.grade);
+        Message.success(`分值计算完成：${resp.data.score} 分，评级：${resp.data.grade}`);
+      } else {
+        Message.error(resp?.message || '分值计算失败');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '分值计算异常';
+      Message.error(msg);
+    } finally {
+      setCalculating(false);
+    }
+  };
+
+  // 导出 DOCX
+  const handleExportDocx = async () => {
+    if (!resolveResult?.success || !resolveResult.data) {
+      Message.warning('请先解析并生成结果再导出');
+      return;
+    }
+    setExporting(true);
+    try {
+      const docName = '科研智能助手项目建议书';
+      const rank = grade || '';
+      const payload = {
+        items: resolveResult.data as Record<string, Array<Record<string, any>>>,
+        docName,
+        rank,
+      };
+      const arrayBuffer = await exportDocx(payload);
+      const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${docName}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      Message.success('DOCX 导出并下载完成');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '导出失败';
+      Message.error(msg);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -399,6 +463,24 @@ const MdResolvePage: React.FC = () => {
                       >
                         下载
                       </Button>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<IconRefresh />}
+                        onClick={handleCalculateScore}
+                        loading={calculating}
+                      >
+                        计算分值
+                      </Button>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<IconDownload />}
+                        onClick={handleExportDocx}
+                        loading={exporting}
+                      >
+                        导出 DOCX
+                      </Button>
                     </Space>
                   )
                 }
@@ -463,6 +545,11 @@ const MdResolvePage: React.FC = () => {
                           </pre>
                         </TabPane>
                       </Tabs>
+                      {score !== null && (
+                        <div style={{ marginTop: 12 }}>
+                          <Title heading={5}>得分: {score} 分 {grade ? `  档位: ${grade}` : ''}</Title>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -1,0 +1,38 @@
+[
+  {
+    "type": "typo",
+    "weight": 70,
+    "threshold": 4,
+    "deduct": 15
+  },
+  {
+    "type": "terminology",
+    "weight": 6,
+    "threshold": 0,
+    "deduct": 2
+  },
+  {
+    "type": "grammar",
+    "weight": 6,
+    "threshold": 0,
+    "deduct": 2
+  },
+  {
+    "type": "semantic",
+    "weight": 6,
+    "threshold": 0,
+    "deduct": 2
+  },
+  {
+    "type": "logic",
+    "weight": 6,
+    "threshold": 0,
+    "deduct": 2
+  },
+  {
+    "type": "fluency",
+    "weight": 6,
+    "threshold": 0,
+    "deduct": 2
+  }
+]

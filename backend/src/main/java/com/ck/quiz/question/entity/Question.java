@@ -20,7 +20,6 @@ import java.util.List;
         name = "question",
         indexes = {
                 @Index(name = "idx_question_type", columnList = "type"),
-                @Index(name = "idx_question_difficulty", columnList = "difficulty_level"),
                 @Index(name = "idx_question_create_date", columnList = "create_date")
         }
 )
