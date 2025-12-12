@@ -1,9 +1,10 @@
 import React, {useEffect, useState} from 'react';
-import {Button, DatePicker, Form, Input, Layout, Message, Modal, Select, Tag,} from '@arco-design/web-react';
-import {IconList, IconLeft, IconRight, IconPlus,} from '@arco-design/web-react/icon';
+import {Button, DatePicker, Form, Input, Layout, Message, Modal, Select, Switch, Tag, Tooltip,} from '@arco-design/web-react';
+import {IconLeft, IconRight, IconPlus, IconClockCircle, IconCheckCircle, IconCloseCircle} from '@arco-design/web-react/icon';
 import dayjs from 'dayjs';
 import './style/index.less';
 import {createSchedule, getSchedulesByDateRange, updateSchedule} from './api';
+import {formatLunarDate, getHolidays} from './utils/lunar';
 
 const {Content} = Layout;
 const {Option} = Select;
@@ -16,11 +17,43 @@ interface ScheduleItem {
     id: string;
     title: string;
     description: string;
+    location?: string;
     startTime: string;
     endTime: string;
-    color: string;
+    allDay?: boolean;
+    color?: string;
     status: string;
 }
+
+const statusColorMap: Record<string, string> = {
+    SCHEDULED: '#1677ff',
+    COMPLETED: '#52c41a',
+    CANCELLED: '#f5222d',
+};
+
+const statusLabelMap: Record<string, string> = {
+    SCHEDULED: '计划',
+    COMPLETED: '完成',
+    CANCELLED: '取消',
+};
+
+const statusBadgeColorMap: Record<string, 'blue' | 'green' | 'red'> = {
+    SCHEDULED: 'blue',
+    COMPLETED: 'green',
+    CANCELLED: 'red',
+};
+
+const toScheduleItem = (event: any): ScheduleItem => ({
+    id: event.id,
+    title: event.title,
+    description: event.description,
+    location: event.location,
+    startTime: event.startTime,
+    endTime: event.endTime,
+    allDay: event.allDay,
+    status: event.status,
+    color: statusColorMap[event.status] || '#165dff',
+});
 
 function ScheduleManager() {
     // 当前日期与视图状态
@@ -63,7 +96,9 @@ function ScheduleManager() {
             }
 
             const response = await getSchedulesByDateRange(startDate, endDate);
-            setSchedules(response.data || []);
+            const data = response?.data;
+            const list = Array.isArray(data) ? data : data?.content || [];
+            setSchedules(list.map(toScheduleItem));
         } catch (error) {
             Message.error('获取日程数据失败');
             // 模拟数据（如果API调用失败）
@@ -74,8 +109,8 @@ function ScheduleManager() {
                     description: '每周项目进度讨论',
                     startTime: dayjs(currentDate).format('YYYY-MM-DD') + 'T10:00:00',
                     endTime: dayjs(currentDate).format('YYYY-MM-DD') + 'T11:30:00',
-                    color: '#1677ff',
-                    status: 'COMPLETED'
+                    status: 'COMPLETED',
+                    color: statusColorMap.COMPLETED
                 },
                 {
                     id: '2',
@@ -83,8 +118,8 @@ function ScheduleManager() {
                     description: '团队活动日',
                     startTime: dayjs(currentDate).add(2, 'day').format('YYYY-MM-DD') + 'T14:00:00',
                     endTime: dayjs(currentDate).add(2, 'day').format('YYYY-MM-DD') + 'T17:00:00',
-                    color: '#52c41a',
-                    status: 'PENDING'
+                    status: 'SCHEDULED',
+                    color: statusColorMap.SCHEDULED
                 }
             ]);
         } finally {
@@ -129,7 +164,7 @@ function ScheduleManager() {
     const cardHeight = Math.floor(availableHeight / 6) - 16; // 减去间距
     
     // 确保高度合理，不小于最小高度
-    return Math.max(cardHeight, 80); // 最小高度80px
+    return Math.max(cardHeight, 110); // 最小高度从80px增加到100px
   };
 
     // 格式化当前日期显示
@@ -158,14 +193,23 @@ function ScheduleManager() {
                     description: schedule.description,
                     startTime: dayjs(schedule.startTime),
                     endTime: dayjs(schedule.endTime),
-                    color: schedule.color,
                     status: schedule.status,
+                    location: schedule.location,
+                    allDay: schedule.allDay ?? false,
                 });
             }, 50);
         } else {
             setCurrentSchedule(null);
             setIsEditMode(false);
-            setTimeout(() => formRef.current?.resetFields?.(), 50);
+            // 为新增日程设置默认值
+            setTimeout(() => {
+                formRef.current?.setFieldsValue?.({
+                    startTime: dayjs(),
+                    endTime: dayjs().add(1, 'hour'),
+                    status: 'SCHEDULED',
+                    allDay: false,
+                });
+            }, 50);
         }
         setModalVisible(true);
     };
@@ -174,11 +218,16 @@ function ScheduleManager() {
     const handleSave = async () => {
         try {
             const values = await formRef.current?.validate?.();
+            console.log('表单验证结果:', values);
             if (values) {
                 const payload = {
-                    ...values,
+                    title: values.title,
+                    description: values.description,
+                    location: values.location,
+                    status: values.status,
                     startTime: dayjs(values.startTime).format('YYYY-MM-DDTHH:mm:ss'),
                     endTime: dayjs(values.endTime).format('YYYY-MM-DDTHH:mm:ss'),
+                    allDay: values.allDay ?? false,
                 };
 
                 if (isEditMode && currentSchedule) {
@@ -192,6 +241,7 @@ function ScheduleManager() {
                 loadSchedules();
             }
         } catch (error) {
+            console.error('保存日程出错:', error);
             if (error?.fields) return;
             Message.error('操作失败');
         }
@@ -235,6 +285,9 @@ function ScheduleManager() {
 
             const isToday = currentDay.isSame(dayjs(), 'day');
             const isCurrentMonth = currentDay.month() === month;
+            const isWeekend = currentDay.day() === 0 || currentDay.day() === 6;
+            const holidays = getHolidays(currentDay.toDate());
+            const lunarDateStr = formatLunarDate(currentDay.toDate());
 
             calendarDays.push(
                 <div
@@ -243,6 +296,10 @@ function ScheduleManager() {
                         isToday ? 'calendar-cell-today' : ''
                     } ${
                         !isCurrentMonth ? 'calendar-cell-other-month' : ''
+                    } ${
+                        holidays.length > 0 ? 'calendar-cell-holiday' : ''
+                    } ${
+                        isWeekend && isCurrentMonth ? 'calendar-cell-weekend' : ''
                     }`}
                     style={{
                       height: viewType === 'month' ? `${calculateCardHeight()}px` : 'auto'
@@ -251,48 +308,59 @@ function ScheduleManager() {
                     title={currentDay.format('YYYY年MM月DD日')}
                 >
                     <div style={{
-                        marginBottom: '8px',
-                        fontWeight: isToday ? 600 : 400,
-                        fontSize: '14px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
+                        marginBottom: '6px',
+                        fontWeight: isToday ? 600 : 500,
+                        fontSize: '16px'
                     }}>
                         <span>{currentDay.date()}</span>
-                        {daySchedules.length > 0 && (
-                            <Tag
-                                color="primary"
-                                style={{fontSize: '10px', padding: '0 4px'}}
-                            >
-                                {daySchedules.length}
-                            </Tag>
-                        )}
                     </div>
-                    <div style={{maxHeight: '80px', overflow: 'auto'}}>
-                        {daySchedules.slice(0, 3).map(schedule => (
-                            <div
-                                key={schedule.id}
-                                className="schedule-item"
-                                style={{backgroundColor: schedule.color}}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    openModal(schedule);
-                                }}
-                                title={`${schedule.title}\n${dayjs(schedule.startTime).format('HH:mm')}-${dayjs(schedule.endTime).format('HH:mm')}`}
-                            >
-                                {dayjs(schedule.startTime).format('HH:mm')} {schedule.title}
-                            </div>
-                        ))}
-                        {daySchedules.length > 3 && (
-                            <div style={{
-                                fontSize: '11px',
-                                color: 'var(--color-text-3)',
-                                textAlign: 'center',
-                                marginTop: '2px'
-                            }}>
-                                还有 {daySchedules.length - 3} 个日程
-                            </div>
-                        )}
+                    {(lunarDateStr || holidays.length > 0) && (
+                        <div style={{
+                            fontSize: '11px',
+                            color: 'var(--color-text-3)',
+                            marginBottom: '4px',
+                            lineHeight: '1.2'
+                        }}>
+                            {lunarDateStr && <div>{lunarDateStr}</div>}
+                            {holidays.map((holiday, idx) => (
+                                <div key={idx} className="holiday-tag" style={{
+                                    display: 'inline-block',
+                                    backgroundColor: '#ffebe6',
+                                    color: '#d4380d',
+                                    padding: '2px 4px',
+                                    borderRadius: '2px',
+                                    fontSize: '10px',
+                                    marginRight: '2px',
+                                    marginTop: '1px'
+                                }}>
+                                    {holiday}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <div style={{maxHeight: '55px', overflow: 'auto', display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'flex-start', marginTop: '8px'}}>
+                        {['SCHEDULED', 'COMPLETED', 'CANCELLED'].map(status => {
+                            const count = daySchedules.filter(s => s.status === status).length;
+                            const iconMap = {
+                                SCHEDULED: <IconClockCircle style={{fontSize: '13px'}} />,
+                                COMPLETED: <IconCheckCircle style={{fontSize: '13px'}} />,
+                                CANCELLED: <IconCloseCircle style={{fontSize: '13px'}} />
+                            };
+                            return count > 0 ? (
+                                <Tag
+                                    key={status}
+                                    color={statusBadgeColorMap[status]}
+                                    className="schedule-count-badge"
+                                    style={{fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px', padding: '2px 6px', borderRadius: '4px', border: '1px solid'}}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                    }}
+                                >
+                                    {iconMap[status as keyof typeof iconMap]}
+                                    {count}
+                                </Tag>
+                            ) : null;
+                        })}
                     </div>
                 </div>
             );
@@ -364,30 +432,62 @@ function ScheduleManager() {
                 <div key={i} className="week-day-container">
                     <div className="week-day-header">
                         {currentDay.format('YYYY年MM月DD日')} {weekDayNames[currentDay.day()]}
-                        {isToday && <Tag color="primary" style={{marginLeft: '8px'}}>今天</Tag>}
+                        {isToday && <Tag style={{marginLeft: '8px', backgroundColor: '#91d5ff', color: '#0050b3', borderColor: '#69b1ff'}}>今天</Tag>}
                     </div>
-                    <div
-                        className={`calendar-cell ${
-                            isToday ? 'calendar-cell-today' : ''
-                        }`}
-                        onClick={() => openModal()}
-                        style={{minHeight: '150px'}}
-                    >
-                        {daySchedules.length > 0 ? (
-                            daySchedules.map(schedule => (
-                                <div
-                                    key={schedule.id}
-                                    className="schedule-item"
-                                    style={{backgroundColor: schedule.color}}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        openModal(schedule);
-                                    }}
-                                    title={`${schedule.title}\n${schedule.description || ''}\n${dayjs(schedule.startTime).format('HH:mm')}-${dayjs(schedule.endTime).format('HH:mm')}`}
-                                >
-                                    {dayjs(schedule.startTime).format('HH:mm')} {schedule.title}
-                                </div>
-                            ))
+                    {daySchedules.length > 0 ? (
+                            daySchedules.map(schedule => {
+                                const statusColors = {
+                                    SCHEDULED: { bg: 'linear-gradient(135deg, #e6f4ff 0%, #bae0ff 100%)', border: '#91caff', text: '#0050b3' },
+                                    COMPLETED: { bg: 'linear-gradient(135deg, #f0f9ff 0%, #bae6fd 100%)', border: '#7dd3fc', text: '#0369a1' },
+                                    CANCELLED: { bg: 'linear-gradient(135deg, #fff1f0 0%, #ffccc7 100%)', border: '#ffa39e', text: '#cf1322' }
+                                };
+                                const colorScheme = statusColors[schedule.status as keyof typeof statusColors] || statusColors.SCHEDULED;
+                                
+                                return (
+                                    <div
+                                        key={schedule.id}
+                                        className="schedule-item"
+                                        style={{
+                                            background: colorScheme.bg,
+                                            border: `1px solid ${colorScheme.border}`,
+                                            color: colorScheme.text,
+                                            padding: '10px 12px',
+                                            marginBottom: '8px',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            openModal(schedule);
+                                        }}
+                                        title={`${schedule.title}\n${schedule.description || ''}\n${dayjs(schedule.startTime).format('HH:mm')}-${dayjs(schedule.endTime).format('HH:mm')}`}
+                                    >
+                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px'}}>
+                                            <span style={{fontWeight: 600, fontSize: '13px'}}>{schedule.title}</span>
+                                            <Tag color={statusBadgeColorMap[schedule.status]} size="small" style={{fontSize: '11px'}}>
+                                                {statusLabelMap[schedule.status]}
+                                            </Tag>
+                                        </div>
+                                        <div style={{fontSize: '12px', opacity: 0.85, display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
+                                            <span>🕐 {dayjs(schedule.startTime).format('HH:mm')} - {dayjs(schedule.endTime).format('HH:mm')}</span>
+                                            {schedule.location && <span>📍 {schedule.location}</span>}
+                                        </div>
+                                        {schedule.description && (
+                                            <div style={{
+                                                fontSize: '12px',
+                                                opacity: 0.75,
+                                                marginTop: '4px',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap'
+                                            }}>
+                                                {schedule.description}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })
                         ) : (
                             <div style={{
                                 color: 'var(--color-text-3)',
@@ -398,7 +498,6 @@ function ScheduleManager() {
                                 暂无日程
                             </div>
                         )}
-                    </div>
                 </div>
             );
         }
@@ -481,8 +580,8 @@ function ScheduleManager() {
 
     return (
         <div className="schedule-manager">
-            <Layout>
-                <Content>
+            <Layout className="schedule-layout">
+                <Content style={{height: '100%'}}>
                     {/* 控制栏 */}
                     <div className="control-bar">
                         <div className="view-switcher">
@@ -547,11 +646,16 @@ function ScheduleManager() {
             {/* 新增/编辑模态框 */}
             <Modal
                 title={isEditMode ? '编辑日程' : '新增日程'}
-                open={modalVisible}
+                visible={modalVisible}
                 onOk={handleSave}
                 onCancel={() => setModalVisible(false)}
+                okText="保存"
+                cancelText="取消"
+                width={520}
+                maskClosable={false}
+                className="schedule-modal"
             >
-                <Form ref={formRef} layout="vertical">
+                <Form ref={formRef} layout="vertical" className="modal-form">
                     <Form.Item
                         label="标题"
                         field="title"
@@ -564,6 +668,12 @@ function ScheduleManager() {
                         field="description"
                     >
                         <Input.TextArea placeholder="请输入日程描述" rows={3}/>
+                    </Form.Item>
+                    <Form.Item
+                        label="地点"
+                        field="location"
+                    >
+                        <Input placeholder="请输入地点" />
                     </Form.Item>
                     <Form.Item
                         label="开始时间"
@@ -579,18 +689,8 @@ function ScheduleManager() {
                     >
                         <DatePicker showTime placeholder="请选择结束时间"/>
                     </Form.Item>
-                    <Form.Item
-                        label="颜色"
-                        field="color"
-                        rules={[{required: true, message: '请选择颜色'}]}
-                    >
-                        <Select placeholder="请选择日程颜色">
-                            <Option value="#1677ff">蓝色</Option>
-                            <Option value="#52c41a">绿色</Option>
-                            <Option value="#faad14">黄色</Option>
-                            <Option value="#f5222d">红色</Option>
-                            <Option value="#722ed1">紫色</Option>
-                        </Select>
+                    <Form.Item label="全天" field="allDay" triggerPropName="checked">
+                        <Switch />
                     </Form.Item>
                     <Form.Item
                         label="状态"
@@ -598,9 +698,9 @@ function ScheduleManager() {
                         rules={[{required: true, message: '请选择状态'}]}
                     >
                         <Select placeholder="请选择日程状态">
-                            <Option value="PENDING">待处理</Option>
-                            <Option value="IN_PROGRESS">进行中</Option>
+                            <Option value="SCHEDULED">已计划</Option>
                             <Option value="COMPLETED">已完成</Option>
+                            <Option value="CANCELLED">已取消</Option>
                         </Select>
                     </Form.Item>
                 </Form>
