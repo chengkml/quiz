@@ -73,19 +73,19 @@ public class UserController {
 
     @Operation(summary = "获取用户详情", description = "根据用户ID获取用户详细信息")
     @GetMapping("/{id}")
-    public ResponseEntity<UserDto> getUserById(@PathVariable String id) {
+    public ResponseEntity<UserDto> getUserById(@PathVariable("id") String id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
     @Operation(summary = "分页查询用户", description = "根据条件分页查询用户列表")
     @GetMapping("search")
     public ResponseEntity<Page<UserDto>> searchUsers(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String state,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "create_date") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "state", required = false) String state,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sortBy", defaultValue = "create_date") String sortBy,
+            @RequestParam(value = "sortDir", defaultValue = "desc") String sortDir) {
 
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         return ResponseEntity.ok(userService.searchUsers(name, state, sortBy, sortDir, page, size));
@@ -99,31 +99,31 @@ public class UserController {
 
     @Operation(summary = "管理员重置密码", description = "管理员为用户重置登录密码")
     @PutMapping("/{id}/reset/password")
-    public ResponseEntity<Boolean> resetPassword(@PathVariable String id, @RequestParam String newPassword) {
+    public ResponseEntity<Boolean> resetPassword(@PathVariable("id") String id, @RequestParam("newPassword") String newPassword) {
         return ResponseEntity.ok(userService.resetPassword(id, newPassword));
     }
 
     @Operation(summary = "启用用户", description = "启用指定的用户账号")
     @PostMapping("/{id}/enable")
-    public ResponseEntity enableUser(@PathVariable String id) {
+    public ResponseEntity enableUser(@PathVariable("id") String id) {
         return ResponseEntity.ok(userService.enableUser(id));
     }
 
     @Operation(summary = "禁用用户", description = "禁用指定的用户账号")
     @PostMapping("/{id}/disable")
-    public ResponseEntity disableUser(@PathVariable String id) {
+    public ResponseEntity disableUser(@PathVariable("id") String id) {
         return ResponseEntity.ok(userService.disableUser(id));
     }
 
     @Operation(summary = "检查用户ID", description = "检查指定的用户ID是否已存在")
     @GetMapping("/check/userId")
-    public ResponseEntity<Boolean> checkUserId(@RequestParam String userId) {
+    public ResponseEntity<Boolean> checkUserId(@RequestParam("userId") String userId) {
         return ResponseEntity.ok(userService.existsByUserId(userId));
     }
 
     @Operation(summary = "删除用户", description = "删除指定的用户账号")
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity deleteUser(@PathVariable String id) {
+    public ResponseEntity deleteUser(@PathVariable("id") String id) {
         return ResponseEntity.ok(userService.deleteUser(id));
     }
 }

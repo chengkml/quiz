@@ -55,14 +55,14 @@ public class LLMModelController {
     @Operation(summary = "分页查询模型", description = "根据条件分页查询模型列表")
     @GetMapping
     public ResponseEntity<Page<LLMModelDto>> searchModels(
-            @Parameter(description = "模型名称") @RequestParam(required = false) String name,
-            @Parameter(description = "模型提供商") @RequestParam(required = false) String provider,
-            @Parameter(description = "模型类型") @RequestParam(required = false) LLMModel.ModelType type,
-            @Parameter(description = "是否为默认模型") @RequestParam(required = false) String isDefault,
-            @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
-            @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") int pageSize,
-            @Parameter(description = "排序字段") @RequestParam(defaultValue = "create_date") String sortColumn,
-            @Parameter(description = "排序方向") @RequestParam(defaultValue = "desc") String sortType) {
+            @Parameter(description = "模型名称") @RequestParam(value = "name", required = false) String name,
+            @Parameter(description = "模型提供商") @RequestParam(value = "provider", required = false) String provider,
+            @Parameter(description = "模型类型") @RequestParam(value = "type", required = false) LLMModel.ModelType type,
+            @Parameter(description = "是否为默认模型") @RequestParam(value = "isDefault", required = false) String isDefault,
+            @Parameter(description = "页码") @RequestParam(value = "pageNum", defaultValue = "0") int pageNum,
+            @Parameter(description = "每页大小") @RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
+            @Parameter(description = "排序字段") @RequestParam(value = "sortColumn", defaultValue = "create_date") String sortColumn,
+            @Parameter(description = "排序方向") @RequestParam(value = "sortType", defaultValue = "desc") String sortType) {
         LLMModelQueryDto queryDto = new LLMModelQueryDto();
         queryDto.setName(name);
         queryDto.setProvider(provider);

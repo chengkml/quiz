@@ -38,33 +38,33 @@ public class RoleController {
     @Operation(summary = "删除角色", description = "删除指定角色")
     @DeleteMapping("/delete/{roleId}")
     public ResponseEntity deleteRole(
-            @Parameter(description = "角色ID", required = true) @PathVariable String roleId) {
+            @Parameter(description = "角色ID", required = true) @PathVariable("roleId") String roleId) {
         return ResponseEntity.ok(roleService.deleteRole(roleId));
     }
 
     @Operation(summary = "获取角色详情", description = "根据角色ID获取角色详细信息")
     @GetMapping("/{roleId}")
     public ResponseEntity getRoleById(
-            @Parameter(description = "角色ID", required = true) @PathVariable String roleId) {
+            @Parameter(description = "角色ID", required = true) @PathVariable("roleId") String roleId) {
         return ResponseEntity.ok(roleService.getRoleById(roleId));
     }
 
     @Operation(summary = "根据名称获取角色", description = "根据角色名称获取角色详细信息")
     @GetMapping("/name/{roleName}")
     public ResponseEntity getRoleByName(
-            @Parameter(description = "角色名称", required = true) @PathVariable String roleName) {
+            @Parameter(description = "角色名称", required = true) @PathVariable("roleName") String roleName) {
         return ResponseEntity.ok(roleService.getRoleByName(roleName));
     }
 
     @Operation(summary = "分页查询角色", description = "根据条件分页查询角色列表")
     @GetMapping
     public ResponseEntity getRoles(
-            @Parameter(description = "角色名称") @RequestParam(required = false) String roleName,
-            @Parameter(description = "角色状态") @RequestParam(required = false) UserRole.RoleState state,
-            @Parameter(description = "页码") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "每页大小") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "排序字段") @RequestParam(defaultValue = "create_date") String sortBy,
-            @Parameter(description = "排序方向") @RequestParam(defaultValue = "desc") String sortDir) {
+            @Parameter(description = "角色名称") @RequestParam(value = "roleName", required = false) String roleName,
+            @Parameter(description = "角色状态") @RequestParam(value = "state", required = false) UserRole.RoleState state,
+            @Parameter(description = "页码") @RequestParam(value = "page", defaultValue = "0") int page,
+            @Parameter(description = "每页大小") @RequestParam(value = "size", defaultValue = "10") int size,
+            @Parameter(description = "排序字段") @RequestParam(value = "sortBy", defaultValue = "create_date") String sortBy,
+            @Parameter(description = "排序方向") @RequestParam(value = "sortDir", defaultValue = "desc") String sortDir) {
         RoleQueryDto queryDto = new RoleQueryDto();
         queryDto.setName(roleName);
         queryDto.setState(state);
@@ -84,22 +84,22 @@ public class RoleController {
     @Operation(summary = "启用角色", description = "启用指定角色")
     @PostMapping("/{roleId}/enable")
     public ResponseEntity enableRole(
-            @Parameter(description = "角色ID", required = true) @PathVariable String roleId) {
+            @Parameter(description = "角色ID", required = true) @PathVariable("roleId") String roleId) {
         return ResponseEntity.ok(roleService.enableRole(roleId));
     }
 
     @Operation(summary = "禁用角色", description = "禁用指定角色")
     @PostMapping("/{roleId}/disable")
     public ResponseEntity disableRole(
-            @Parameter(description = "角色ID", required = true) @PathVariable String roleId) {
+            @Parameter(description = "角色ID", required = true) @PathVariable("roleId") String roleId) {
         return ResponseEntity.ok(roleService.disableRole(roleId));
     }
 
     @Operation(summary = "检查角色名称", description = "检查角色名称是否已存在")
     @GetMapping("/check/name")
     public ResponseEntity checkRoleName(
-            @Parameter(description = "角色名称", required = true) @RequestParam String roleName,
-            @Parameter(description = "排除的角色ID") @RequestParam(required = false) String excludeRoleId) {
+            @Parameter(description = "角色名称", required = true) @RequestParam("roleName") String roleName,
+            @Parameter(description = "排除的角色ID") @RequestParam(value = "excludeRoleId", required = false) String excludeRoleId) {
         return ResponseEntity.ok(roleService.isRoleNameExists(roleName, excludeRoleId));
     }
 }

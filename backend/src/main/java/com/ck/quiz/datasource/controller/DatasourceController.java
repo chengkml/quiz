@@ -60,12 +60,12 @@ public class DatasourceController {
     @Operation(summary = "分页查询数据源", description = "根据条件分页查询数据源列表")
     @GetMapping
     public ResponseEntity searchDatasources(
-            @Parameter(description = "名称关键字") @RequestParam(required = false) String name,
-            @Parameter(description = "是否启用") @RequestParam(required = false) Boolean active,
-            @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
-            @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") int pageSize,
-            @Parameter(description = "排序字段") @RequestParam(defaultValue = "create_date") String sortColumn,
-            @Parameter(description = "排序方向") @RequestParam(defaultValue = "desc") String sortType) {
+            @Parameter(description = "名称关键字") @RequestParam(value = "name", required = false) String name,
+            @Parameter(description = "是否启用") @RequestParam(value = "active", required = false) Boolean active,
+            @Parameter(description = "页码") @RequestParam(value = "pageNum", defaultValue = "0") int pageNum,
+            @Parameter(description = "每页大小") @RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
+            @Parameter(description = "排序字段") @RequestParam(value = "sortColumn", defaultValue = "create_date") String sortColumn,
+            @Parameter(description = "排序方向") @RequestParam(value = "sortType", defaultValue = "desc") String sortType) {
         DatasourceQueryDto queryDto = new DatasourceQueryDto();
         queryDto.setName(name);
         queryDto.setActive(active);
@@ -87,7 +87,7 @@ public class DatasourceController {
     @GetMapping("/{id}/schema")
     public ResponseEntity collectSchema(
             @Parameter(description = "数据源ID", required = true) @PathVariable String id,
-            @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(required = false) String schema) {
+            @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema) {
         if (schema == null || schema.isEmpty()) {
             return ResponseEntity.ok(datasourceService.collectSchema(id));
         }
@@ -98,7 +98,7 @@ public class DatasourceController {
     @GetMapping("/{id}/schema/export")
     public ResponseEntity<byte[]> exportSchema(
             @Parameter(description = "数据源ID", required = true) @PathVariable String id,
-            @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(required = false) String schema) throws Exception {
+            @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema) throws Exception {
         DatabaseSchemaDto dto = (schema == null || schema.isEmpty())
                 ? datasourceService.collectSchema(id)
                 : datasourceService.collectSchema(id, schema);
@@ -121,7 +121,7 @@ public class DatasourceController {
     @GetMapping("/{id}/schema/export/excel")
     public ResponseEntity<byte[]> exportSchemaExcel(
             @Parameter(description = "数据源ID", required = true) @PathVariable String id,
-            @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(required = false) String schema) {
+            @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema) {
         DatabaseSchemaDto dto = (schema == null || schema.isEmpty())
                 ? datasourceService.collectSchema(id)
                 : datasourceService.collectSchema(id, schema);
@@ -199,7 +199,7 @@ public class DatasourceController {
     public ResponseEntity<Integer> generateRemarks(
             @Parameter(description = "数据源ID", required = true) @PathVariable String id,
             @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
-            @RequestParam(required = false) String schema) {
+            @RequestParam(value = "schema", required = false) String schema) {
 
         Integer count = datasourceService.generateRemarks(id, schema);
         return ResponseEntity.ok(count);
@@ -210,7 +210,7 @@ public class DatasourceController {
     public ResponseEntity<Integer> selectGroup(
             @Parameter(description = "数据源ID", required = true) @PathVariable String id,
             @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
-            @RequestParam(required = false) String schema) {
+            @RequestParam(value = "schema", required = false) String schema) {
 
         Integer count = datasourceService.selectGroup(id, schema);
         return ResponseEntity.ok(count);
@@ -221,7 +221,7 @@ public class DatasourceController {
     public void exportSchemaExcelV2(
             @Parameter(description = "数据源ID", required = true) @PathVariable String id,
             @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
-            @RequestParam(required = false) String schema,
+            @RequestParam(value = "schema", required = false) String schema,
             HttpServletResponse response) {
         try {
             // 调用服务层方法直接生成并写入Excel

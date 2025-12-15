@@ -46,7 +46,7 @@ public class TodoController {
     @DeleteMapping("/{todoId}")
     public ResponseEntity<Void> deleteTodo(
             @Parameter(description = "待办ID", required = true)
-            @PathVariable String todoId) {
+            @PathVariable("todoId") String todoId) {
         todoService.deleteTodo(todoId);
         return ResponseEntity.ok().build();
     }
@@ -55,7 +55,7 @@ public class TodoController {
     @GetMapping("/{todoId}")
     public ResponseEntity<TodoDto> getTodoById(
             @Parameter(description = "待办ID", required = true)
-            @PathVariable String todoId) {
+            @PathVariable("todoId") String todoId) {
         return ResponseEntity.ok(todoService.getTodoById(todoId));
     }
 
@@ -70,7 +70,7 @@ public class TodoController {
     @PostMapping("/{todoId}/init-mindmap")
     public ResponseEntity<MindMapDto> initMindMap(
             @Parameter(description = "待办ID", required = true)
-            @PathVariable String todoId) {
+            @PathVariable("todoId") String todoId) {
         return ResponseEntity.ok(todoService.initMindMap(todoId));
     }
 }

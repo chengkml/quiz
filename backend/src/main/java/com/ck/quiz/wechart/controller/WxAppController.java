@@ -39,14 +39,14 @@ public class WxAppController {
 
     @Operation(summary = "删除小程序 App", description = "根据 appId 删除小程序 App 配置")
     @DeleteMapping("/delete/{appId}")
-    public ResponseEntity<Boolean> delete(@PathVariable String appId) {
+    public ResponseEntity<Boolean> delete(@PathVariable("appId") String appId) {
         boolean result = wxAppService.deleteWxApp(appId);
         return ResponseEntity.ok(result);
     }
 
     @Operation(summary = "获取小程序 App 详情", description = "根据 appId 查询小程序 App 配置")
     @GetMapping("/{appId}")
-    public ResponseEntity<WxAppDto> getById(@PathVariable String appId) {
+    public ResponseEntity<WxAppDto> getById(@PathVariable("appId") String appId) {
         Optional<WxAppDto> optional = wxAppService.getWxAppById(appId);
         return optional.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -60,7 +60,7 @@ public class WxAppController {
 
     @Operation(summary = "获取已登录用户列表", description = "根据 appId 查询小程序已绑定或已登录的用户列表")
     @GetMapping("/{appId}/users")
-    public ResponseEntity<List<WxAppUserDto>> listLoginUsers(@PathVariable String appId) {
+    public ResponseEntity<List<WxAppUserDto>> listLoginUsers(@PathVariable("appId") String appId) {
         List<WxAppUserDto> list = wxAppService.listLoginUsers(appId);
         return ResponseEntity.ok(list);
     }

@@ -28,9 +28,9 @@ public class JobQueueController {
 
     @GetMapping("/search")
     @Operation(summary = "搜索队列数据")
-    public ResponseEntity<Object> searchQueues(@Parameter(description = "每页数量") @RequestParam(required = false, defaultValue = "20") int limit,
-                                 @Parameter(description = "偏移量") @RequestParam(required = false, defaultValue = "0") int offset,
-                                 @Parameter(description = "关键词") @RequestParam(required = false, defaultValue = "") String keyWord) {
+    public ResponseEntity<Object> searchQueues(@Parameter(description = "每页数量") @RequestParam(value = "limit", required = false, defaultValue = "20") int limit,
+                                 @Parameter(description = "偏移量") @RequestParam(value = "offset", required = false, defaultValue = "0") int offset,
+                                 @Parameter(description = "关键词") @RequestParam(value = "keyWord", required = false, defaultValue = "") String keyWord) {
         return ResponseEntity.ok(jobQueueService.searchQueues(limit, offset, keyWord));
     }
 
@@ -42,8 +42,8 @@ public class JobQueueController {
 
     @GetMapping("/check/uniq")
     @Operation(summary = "队列名唯一性检查")
-    public ResponseEntity<Object> checkUniq(@Parameter(description = "队列ID") @RequestParam(required = false) String id,
-                              @Parameter(description = "队列名称") @RequestParam String name) {
+    public ResponseEntity<Object> checkUniq(@Parameter(description = "队列ID") @RequestParam(value = "id", required = false) String id,
+                              @Parameter(description = "队列名称") @RequestParam("name") String name) {
         return ResponseEntity.ok(jobQueueService.checkQueueNameUniq(id, name));
     }
 

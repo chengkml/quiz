@@ -165,8 +165,8 @@ public class CategoryController {
     @GetMapping("/check-name")
     @Operation(summary = "检查分类名称", description = "检查分类名称是否已存在")
     public ResponseEntity<Boolean> checkCategoryNameExists(
-            @Parameter(description = "分类名称") @RequestParam String name,
-            @Parameter(description = "排除的分类ID") @RequestParam(required = false) String excludeId) {
+            @Parameter(description = "分类名称") @RequestParam("name") String name,
+            @Parameter(description = "排除的分类ID") @RequestParam(value = "excludeId", required = false) String excludeId) {
         boolean exists = categoryService.checkCategoryNameExists(name, excludeId);
         return ResponseEntity.ok(exists);
     }

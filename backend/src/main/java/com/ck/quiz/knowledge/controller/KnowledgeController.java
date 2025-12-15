@@ -120,8 +120,8 @@ public class KnowledgeController {
     @GetMapping("/check-name")
     @Operation(summary = "检查知识点名称", description = "检查知识点名称是否已存在")
     public ResponseEntity<Boolean> checkKnowledgeNameExists(
-            @Parameter(description = "知识点名称") @RequestParam String name,
-            @Parameter(description = "排除的知识点ID") @RequestParam(required = false) String excludeId) {
+            @Parameter(description = "知识点名称") @RequestParam("name") String name,
+            @Parameter(description = "排除的知识点ID") @RequestParam(value = "excludeId", required = false) String excludeId) {
         boolean exists = knowledgeService.checkKnowledgeNameExists(name, excludeId);
         return ResponseEntity.ok(exists);
     }

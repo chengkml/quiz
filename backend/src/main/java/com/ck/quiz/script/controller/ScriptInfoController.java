@@ -148,7 +148,7 @@ public class ScriptInfoController {
 
     @PostMapping("/delete/job/{jobId}")
     @Operation(summary = "删除作业")
-    public ResponseEntity<Object> deleteJob(@Parameter(description = "作业ID") @PathVariable String jobId) {
+    public ResponseEntity<Object> deleteJob(@Parameter(description = "作业ID") @PathVariable("jobId") String jobId) {
         scriptInfoService.deleteJob(jobId);
         return ResponseEntity.ok("删除成功");
     }

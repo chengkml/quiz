@@ -21,11 +21,11 @@ public class CronTaskController {
 
     @GetMapping("/getCronTaskList")
     @Operation(summary = "获取列表数据")
-    public ResponseEntity<Object> getCronTaskList(@Parameter(description = "每页数量") @RequestParam(required = false, defaultValue = "20") int limit,
-                                  @Parameter(description = "偏移量") @RequestParam(required = false, defaultValue = "0") int offset,
-                                  @Parameter(description = "队列名称") @RequestParam(required = false, defaultValue = "") String queueName,
-                                  @Parameter(description = "状态") @RequestParam(required = false, defaultValue = "") String state,
-                                  @Parameter(description = "关键词") @RequestParam(required = false, defaultValue = "") String keyWord) {
+    public ResponseEntity<Object> getCronTaskList(@Parameter(description = "每页数量") @RequestParam(value = "limit", required = false, defaultValue = "20") int limit,
+                                  @Parameter(description = "偏移量") @RequestParam(value = "offset", required = false, defaultValue = "0") int offset,
+                                  @Parameter(description = "队列名称") @RequestParam(value = "queueName", required = false, defaultValue = "") String queueName,
+                                  @Parameter(description = "状态") @RequestParam(value = "state", required = false, defaultValue = "") String state,
+                                  @Parameter(description = "关键词") @RequestParam(value = "keyWord", required = false, defaultValue = "") String keyWord) {
         return ResponseEntity.ok(cronTaskService.getCronTaskList(offset, limit, queueName, state, keyWord));
     }
 

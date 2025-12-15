@@ -41,32 +41,32 @@ public class SubjectController {
     @Operation(summary = "删除学科", description = "删除指定学科")
     @DeleteMapping("/delete/{subjectId}")
     public ResponseEntity deleteSubject(
-            @Parameter(description = "学科ID", required = true) @PathVariable String subjectId) {
+            @Parameter(description = "学科ID", required = true) @PathVariable("subjectId") String subjectId) {
         return ResponseEntity.ok(subjectService.deleteSubject(subjectId));
     }
 
     @Operation(summary = "获取学科详情", description = "根据学科ID获取学科详细信息")
     @GetMapping("/{subjectId}")
     public ResponseEntity getSubjectById(
-            @Parameter(description = "学科ID", required = true) @PathVariable String subjectId) {
+            @Parameter(description = "学科ID", required = true) @PathVariable("subjectId") String subjectId) {
         return ResponseEntity.ok(subjectService.getSubjectById(subjectId));
     }
 
     @Operation(summary = "根据名称获取学科", description = "根据学科名称获取学科详细信息")
     @GetMapping("/name/{subjectName}")
     public ResponseEntity getSubjectByName(
-            @Parameter(description = "学科名称", required = true) @PathVariable String subjectName) {
+            @Parameter(description = "学科名称", required = true) @PathVariable("subjectName") String subjectName) {
         return ResponseEntity.ok(subjectService.getSubjectByName(subjectName));
     }
 
     @Operation(summary = "分页查询学科", description = "根据条件分页查询学科列表")
     @GetMapping
     public ResponseEntity getSubjects(
-            @Parameter(description = "学科名称") @RequestParam(required = false) String subjectName,
-            @Parameter(description = "页码") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "每页大小") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "排序字段") @RequestParam(defaultValue = "create_date") String sortBy,
-            @Parameter(description = "排序方向") @RequestParam(defaultValue = "desc") String sortDir) {
+            @Parameter(description = "学科名称") @RequestParam(value = "subjectName", required = false) String subjectName,
+            @Parameter(description = "页码") @RequestParam(value = "page", defaultValue = "0") int page,
+            @Parameter(description = "每页大小") @RequestParam(value = "size", defaultValue = "10") int size,
+            @Parameter(description = "排序字段") @RequestParam(value = "sortBy", defaultValue = "create_date") String sortBy,
+            @Parameter(description = "排序方向") @RequestParam(value = "sortDir", defaultValue = "desc") String sortDir) {
         SubjectQueryDto queryDto = new SubjectQueryDto();
         queryDto.setName(subjectName);
         queryDto.setPageNum(page);
@@ -92,8 +92,8 @@ public class SubjectController {
     @Operation(summary = "检查学科名称", description = "检查学科名称是否已存在")
     @GetMapping("/check/name")
     public ResponseEntity checkSubjectName(
-            @Parameter(description = "学科名称", required = true) @RequestParam String subjectName,
-            @Parameter(description = "排除的学科ID") @RequestParam(required = false) String excludeSubjectId) {
+            @Parameter(description = "学科名称", required = true) @RequestParam("subjectName") String subjectName,
+            @Parameter(description = "排除的学科ID") @RequestParam(value = "excludeSubjectId", required = false) String excludeSubjectId) {
         return ResponseEntity.ok(subjectService.isSubjectNameExists(subjectName, excludeSubjectId));
     }
 
@@ -112,8 +112,8 @@ public class SubjectController {
     @Operation(summary = "学科知识问题初始化", description = "生成学科知识和问题")
     @GetMapping("/init/questions")
     public ResponseEntity initSubjectQuestions(
-            @Parameter(description = "学科ID", required = true) @RequestParam String subjectId,
-            @Parameter(description = "问题数", required = true) @RequestParam int questionNum) {
+            @Parameter(description = "学科ID", required = true) @RequestParam("subjectId") String subjectId,
+            @Parameter(description = "问题数", required = true) @RequestParam("questionNum") int questionNum) {
         subjectService.initSubjectQuestions(subjectId, questionNum);
         return ResponseEntity.ok().build();
     }

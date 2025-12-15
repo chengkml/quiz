@@ -34,14 +34,14 @@ public class UserRoleController {
     @GetMapping("/{id}/roles")
     public ResponseEntity<List<RoleDto>> getUserRoles(
             @Parameter(description = "用户ID", required = true, example = "admin")
-            @PathVariable String id) {
+            @PathVariable("id") String id) {
         return ResponseEntity.ok(userRoleRelaService.getUserRoles(id));
     }
 
     @Operation(summary = "替换用户角色", description = "替换指定用户的所有角色")
     @PostMapping("/{id}/replace")
     public ResponseEntity replaceUserRoles(
-            @Parameter(description = "用户ID", required = true) @PathVariable String id,
+            @Parameter(description = "用户ID", required = true) @PathVariable("id") String id,
             @Parameter(description = "角色ID列表", required = true) @RequestBody List<String> roleIds) {
         return ResponseEntity.ok(userRoleRelaService.replaceUserRoles(id, roleIds));
     }

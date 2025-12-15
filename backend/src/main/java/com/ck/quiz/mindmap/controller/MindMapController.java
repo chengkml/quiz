@@ -65,11 +65,11 @@ public class MindMapController {
     @Operation(summary = "分页查询思维导图", description = "根据条件分页查询思维导图列表")
     @GetMapping
     public ResponseEntity searchMindMaps(
-            @Parameter(description = "导图名称") @RequestParam(required = false) String mapName,
-            @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
-            @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") int pageSize,
-            @Parameter(description = "排序字段") @RequestParam(defaultValue = "create_date") String sortColumn,
-            @Parameter(description = "排序方向") @RequestParam(defaultValue = "desc") String sortType) {
+            @Parameter(description = "导图名称") @RequestParam(value = "mapName", required = false) String mapName,
+            @Parameter(description = "页码") @RequestParam(value = "pageNum", defaultValue = "0") int pageNum,
+            @Parameter(description = "每页大小") @RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
+            @Parameter(description = "排序字段") @RequestParam(value = "sortColumn", defaultValue = "create_date") String sortColumn,
+            @Parameter(description = "排序方向") @RequestParam(value = "sortType", defaultValue = "desc") String sortType) {
         MindMapQueryDto queryDto = new MindMapQueryDto();
         queryDto.setMapName(mapName);
         queryDto.setPageNum(pageNum);

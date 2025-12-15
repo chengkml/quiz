@@ -54,6 +54,10 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.3'
     implementation 'com.xfvape.uid:uid-generator:0.0.4-RELEASE'
 
+    // HTML to PDF conversion - using iText
+    implementation 'com.itextpdf:itextpdf:5.5.13.3'
+    implementation 'com.itextpdf.tool:xmlworker:5.5.13.3'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
@@ -89,3 +93,7 @@ task copyDependencies(type: Copy) {
 
 // 让 build 自动包含依赖复制步骤
 build.dependsOn(copyDependencies)
+
+compileJava {
+    options.compilerArgs = ['-parameters']
+}

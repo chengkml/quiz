@@ -38,6 +38,7 @@ import FileDetector from '@/pages/FileDetector';
 import OcrPage from '@/pages/Ocr';
 import WxAppManager from '@/pages/WxApp';
 import MdResolvePage from '@/pages/MdResolve';
+import MdConvertPage from '@/pages/MdConvert';
 
 /**
  * 检查用户是否有访问指定路径的权限
@@ -142,6 +143,7 @@ const protectedPages = [
     { path: 'filedetector', element: <FileDetector />, requiredPath: 'filedetector' },
     { path: 'ocr', element: <OcrPage />, requiredPath: 'ocr' },
     { path: 'mdresolve', element: <MdResolvePage />, requiredPath: 'mdresolve' },
+    { path: 'mdconvert', element: <MdConvertPage />, requiredPath: 'mdconvert' },
     { path: 'wxapp', element: <WxAppManager />, requiredPath: 'wxapp' },
 ];
 

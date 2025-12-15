@@ -55,12 +55,12 @@ public class ExamController {
     @Operation(summary = "分页查询试卷", description = "根据条件分页查询试卷列表")
     @GetMapping
     public ResponseEntity searchExams(
-            @Parameter(description = "试卷名称") @RequestParam(required = false) String keyWord,
-            @Parameter(description = "试卷状态") @RequestParam(required = false) Exam.ExamPaperStatus status,
-            @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
-            @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") int pageSize,
-            @Parameter(description = "排序字段") @RequestParam(defaultValue = "create_date") String sortColumn,
-            @Parameter(description = "排序方向") @RequestParam(defaultValue = "desc") String sortType) {
+            @Parameter(description = "试卷名称") @RequestParam(value = "keyWord", required = false) String keyWord,
+            @Parameter(description = "试卷状态") @RequestParam(value = "status", required = false) Exam.ExamPaperStatus status,
+            @Parameter(description = "页码") @RequestParam(value = "pageNum", defaultValue = "0") int pageNum,
+            @Parameter(description = "每页大小") @RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
+            @Parameter(description = "排序字段") @RequestParam(value = "sortColumn", defaultValue = "create_date") String sortColumn,
+            @Parameter(description = "排序方向") @RequestParam(value = "sortType", defaultValue = "desc") String sortType) {
         
         ExamQueryDto queryDto = new ExamQueryDto();
         queryDto.setKeyWord(keyWord);
@@ -98,10 +98,10 @@ public class ExamController {
     @Operation(summary = "添加题目到试卷", description = "为试卷添加新的题目")
     @PostMapping("/{id}/questions")
     public ResponseEntity addQuestionToExam(
-            @Parameter(description = "试卷ID", required = true) @PathVariable String id,
-            @Parameter(description = "题目ID", required = true) @RequestParam String questionId,
-            @Parameter(description = "题目顺序", required = true) @RequestParam Integer orderNo,
-            @Parameter(description = "分值", required = true) @RequestParam Integer score) {
+            @Parameter(description = "试卷ID", required = true) @PathVariable("id") String id,
+            @Parameter(description = "题目ID", required = true) @RequestParam("questionId") String questionId,
+            @Parameter(description = "题目顺序", required = true) @RequestParam("orderNo") Integer orderNo,
+            @Parameter(description = "分值", required = true) @RequestParam("score") Integer score) {
         examService.addQuestionToExam(id, questionId, orderNo, score);
         return ResponseEntity.ok().build();
     }
@@ -131,8 +131,8 @@ public class ExamController {
     public ResponseEntity updateExamQuestion(
             @Parameter(description = "试卷ID", required = true) @PathVariable String id,
             @Parameter(description = "题目ID", required = true) @PathVariable String questionId,
-            @Parameter(description = "题目顺序") @RequestParam(required = false) Integer orderNo,
-            @Parameter(description = "分值") @RequestParam(required = false) Integer score) {
+            @Parameter(description = "题目顺序") @RequestParam(value = "orderNo", required = false) Integer orderNo,
+            @Parameter(description = "分值") @RequestParam(value = "score", required = false) Integer score) {
         examService.updateExamQuestion(id, questionId, orderNo, score);
         return ResponseEntity.ok().build();
     }
@@ -148,8 +148,8 @@ public class ExamController {
     @Operation(summary = "查询用户历史答卷", description = "根据用户ID（可选试卷ID）查询历史答卷列表")
     @GetMapping("/results")
     public ResponseEntity<Page<ExamResultHistoryItemDto>> listUserResults(
-            @Parameter(description = "页码") @RequestParam(defaultValue = "0") int pageNum,
-            @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") int pageSize) {
+            @Parameter(description = "页码") @RequestParam(value = "pageNum", defaultValue = "0") int pageNum,
+            @Parameter(description = "每页大小") @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return ResponseEntity.ok(examService.listUserResults(authentication.getName(), pageNum, pageSize));
     }

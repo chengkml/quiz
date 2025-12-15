@@ -25,16 +25,16 @@ public class CronJobController {
      */
     @GetMapping("/search")
     @Operation(summary = "搜索作业")
-    public ResponseEntity<Object> searchJobs(@Parameter(description = "每页数量") @RequestParam(required = false, defaultValue = "20") int limit,
-                                             @Parameter(description = "偏移量") @RequestParam(required = false, defaultValue = "0") int offset,
-                                             @Parameter(description = "状态") @RequestParam(required = false, defaultValue = "") String state,
-                                             @Parameter(description = "任务类名") @RequestParam(required = false, defaultValue = "") String taskClass,
-                                             @Parameter(description = "队列名称") @RequestParam(required = false, defaultValue = "") String queueName,
-                                             @Parameter(description = "触发类型") @RequestParam(required = false, defaultValue = "") String triggerType,
-                                             @Parameter(description = "开始时间小于") @RequestParam(required = false, defaultValue = "") String startTimeLt,
-                                             @Parameter(description = "开始时间大于") @RequestParam(required = false, defaultValue = "") String startTimeGt,
-                                             @Parameter(description = "任务ID") @RequestParam(required = false, defaultValue = "") String taskId,
-                                             @Parameter(description = "关键词") @RequestParam(required = false, defaultValue = "") String keyWord) {
+    public ResponseEntity<Object> searchJobs(@Parameter(description = "每页数量") @RequestParam(value = "limit", required = false, defaultValue = "20") int limit,
+                                             @Parameter(description = "偏移量") @RequestParam(value = "offset", required = false, defaultValue = "0") int offset,
+                                             @Parameter(description = "状态") @RequestParam(value = "state", required = false, defaultValue = "") String state,
+                                             @Parameter(description = "任务类名") @RequestParam(value = "taskClass", required = false, defaultValue = "") String taskClass,
+                                             @Parameter(description = "队列名称") @RequestParam(value = "queueName", required = false, defaultValue = "") String queueName,
+                                             @Parameter(description = "触发类型") @RequestParam(value = "triggerType", required = false, defaultValue = "") String triggerType,
+                                             @Parameter(description = "开始时间小于") @RequestParam(value = "startTimeLt", required = false, defaultValue = "") String startTimeLt,
+                                             @Parameter(description = "开始时间大于") @RequestParam(value = "startTimeGt", required = false, defaultValue = "") String startTimeGt,
+                                             @Parameter(description = "任务ID") @RequestParam(value = "taskId", required = false, defaultValue = "") String taskId,
+                                             @Parameter(description = "关键词") @RequestParam(value = "keyWord", required = false, defaultValue = "") String keyWord) {
         return ResponseEntity.ok(jobService.searchJobs(offset, limit, state, taskClass, queueName, triggerType, startTimeLt, startTimeGt, taskId, keyWord));
     }
 
@@ -52,11 +52,11 @@ public class CronJobController {
      */
     @GetMapping("/queue/search")
     @Operation(summary = "搜索排队作业")
-    public ResponseEntity<Object> searchQueueJobs(@Parameter(description = "每页数量") @RequestParam(required = false, defaultValue = "20") int limit,
-                                                  @Parameter(description = "偏移量") @RequestParam(required = false, defaultValue = "0") int offset,
-                                                  @Parameter(description = "队列名称") @RequestParam(required = false, defaultValue = "") String queueName,
-                                                  @Parameter(description = "任务ID") @RequestParam(required = false, defaultValue = "") String taskId,
-                                                  @Parameter(description = "关键词") @RequestParam(required = false, defaultValue = "") String keyWord) {
+    public ResponseEntity<Object> searchQueueJobs(@Parameter(description = "每页数量") @RequestParam(value = "limit", required = false, defaultValue = "20") int limit,
+                                                  @Parameter(description = "偏移量") @RequestParam(value = "offset", required = false, defaultValue = "0") int offset,
+                                                  @Parameter(description = "队列名称") @RequestParam(value = "queueName", required = false, defaultValue = "") String queueName,
+                                                  @Parameter(description = "任务ID") @RequestParam(value = "taskId", required = false, defaultValue = "") String taskId,
+                                                  @Parameter(description = "关键词") @RequestParam(value = "keyWord", required = false, defaultValue = "") String keyWord) {
         return ResponseEntity.ok(jobService.searchQueueJobs(offset, limit, queueName, taskId, keyWord));
     }
 
@@ -100,8 +100,8 @@ public class CronJobController {
     @GetMapping("/logs/{jobId}")
     @Operation(summary = "获取作业日志")
     public ResponseEntity<Object> getLogs(@Parameter(description = "作业ID") @PathVariable String jobId,
-                                          @Parameter(description = "每页数量") @RequestParam(required = false, defaultValue = "20") int limit,
-                                          @Parameter(description = "偏移量") @RequestParam(required = false, defaultValue = "0") int offset
+                                          @Parameter(description = "每页数量") @RequestParam(value = "limit", required = false, defaultValue = "20") int limit,
+                                          @Parameter(description = "偏移量") @RequestParam(value = "offset", required = false, defaultValue = "0") int offset
     ) {
         return ResponseEntity.ok(jobService.getLogs(jobId, limit, offset));
     }
