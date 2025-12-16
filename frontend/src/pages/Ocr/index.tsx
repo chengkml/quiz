@@ -70,7 +70,7 @@ const OcrPage: React.FC = () => {
             formData.append('image', file);
             // 如需指定模型，可 append('model', 'modelName')
 
-            const resp = await fetch('/quiz/ocr/recognize', {
+            const resp = await fetch('/api/ocr/recognize', {
                 method: 'POST',
                 body: formData,
                 headers: {
