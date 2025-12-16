@@ -35,7 +35,7 @@ export const exportLogs = (jobId: string) => axios.post(`/cron/job/download/logs
 
 // 实时获取作业日志（SSE）
 export const streamLogs = (jobId: string) => {
-  const url = `/cron/job/logs/stream/${jobId}`;
+  const url = `/api/cron/job/logs/stream/${jobId}`;
   return new EventSource(url);
 };
 

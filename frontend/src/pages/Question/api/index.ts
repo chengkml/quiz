@@ -27,7 +27,7 @@ const generateQuestionsStreamUrl = (params: any) => {
   if (params.knowledgeDescr !== undefined) qs.push(`knowledgeDescr=${encodeURIComponent(params.knowledgeDescr)}`);
   if (params.num !== undefined) qs.push(`num=${encodeURIComponent(params.num)}`);
   if (params.modelName !== undefined) qs.push(`modelName=${encodeURIComponent(params.modelName)}`);
-  return `/question/generate/stream?${qs.join('&')}`;
+  return `/api/question/generate/stream?${qs.join('&')}`;
 }
 
 // 为问题关联知识点
