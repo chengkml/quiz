@@ -65,7 +65,7 @@ public class CronJobController {
      */
     @PostMapping("/stop/{jobId}")
     @Operation(summary = "停止作业")
-    public ResponseEntity<Object> stopJob(@Parameter(description = "作业ID") @PathVariable String jobId) {
+    public ResponseEntity<Object> stopJob(@Parameter(description = "作业ID") @PathVariable("jobId") String jobId) {
         return ResponseEntity.ok(jobService.stopJob(jobId));
     }
 
@@ -74,7 +74,7 @@ public class CronJobController {
      */
     @PostMapping("/retry/{jobId}")
     @Operation(summary = "重试作业")
-    public ResponseEntity<Object> retryJob(@Parameter(description = "作业ID") @PathVariable String jobId) {
+    public ResponseEntity<Object> retryJob(@Parameter(description = "作业ID") @PathVariable("jobId") String jobId) {
         return ResponseEntity.ok(jobService.retryJob(jobId));
     }
 
@@ -86,7 +86,7 @@ public class CronJobController {
 
     @PostMapping("/delete/job/{jobId}")
     @Operation(summary = "删除作业")
-    public ResponseEntity<Object> deleteJob(@Parameter(description = "作业ID") @PathVariable String jobId) {
+    public ResponseEntity<Object> deleteJob(@Parameter(description = "作业ID") @PathVariable("jobId") String jobId) {
         jobService.deleteJob(jobId);
         return ResponseEntity.ok("删除成功");
     }
@@ -99,7 +99,7 @@ public class CronJobController {
 
     @GetMapping("/logs/{jobId}")
     @Operation(summary = "获取作业日志")
-    public ResponseEntity<Object> getLogs(@Parameter(description = "作业ID") @PathVariable String jobId,
+    public ResponseEntity<Object> getLogs(@Parameter(description = "作业ID") @PathVariable("jobId") String jobId,
                                           @Parameter(description = "每页数量") @RequestParam(value = "limit", required = false, defaultValue = "20") int limit,
                                           @Parameter(description = "偏移量") @RequestParam(value = "offset", required = false, defaultValue = "0") int offset
     ) {
@@ -109,14 +109,14 @@ public class CronJobController {
     @PostMapping("/download/logs/{jobId}")
     @Operation(summary = "导出作业日志")
     public void exportExcel(
-            @Parameter(description = "作业ID") @PathVariable String jobId,
+            @Parameter(description = "作业ID") @PathVariable("jobId") String jobId,
             HttpServletResponse response) {
         jobService.exportLogs(jobId, response);
     }
 
     @GetMapping(path = "/logs/stream/{jobId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "实时获取作业日志（SSE）")
-    public SseEmitter streamLogs(@PathVariable String jobId) {
+    public SseEmitter streamLogs(@PathVariable("jobId") String jobId) {
         return jobService.streamLogs(jobId);
     }
 

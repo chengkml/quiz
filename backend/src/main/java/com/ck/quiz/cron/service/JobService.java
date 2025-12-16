@@ -530,7 +530,7 @@ public class JobService {
         return jobId;
     }
 
-    public SseEmitter streamLogs(@PathVariable String jobId) {
+    public SseEmitter streamLogs(@PathVariable("jobId") String jobId) {
         Optional<Job> optional = jobRepository.findById(jobId);
         if (!optional.isPresent()) {
             throw new RuntimeException("作业不存在");

@@ -43,7 +43,7 @@ public class CronTaskController {
 
     @PostMapping("/trigger/{id}")
     @Operation(summary = "触发")
-    public ResponseEntity<Object> triggerById(@Parameter(description = "任务ID") @PathVariable String id) {
+    public ResponseEntity<Object> triggerById(@Parameter(description = "任务ID") @PathVariable("id") String id) {
         return ResponseEntity.ok(cronTaskService.triggerById(id));
     }
 

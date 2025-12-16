@@ -36,7 +36,7 @@ public class JobQueueController {
 
     @PostMapping("/delete/{id}")
     @Operation(summary = "删除队列")
-    public ResponseEntity<Object> deleteQueue(@Parameter(description = "队列ID") @PathVariable String id) {
+    public ResponseEntity<Object> deleteQueue(@Parameter(description = "队列ID") @PathVariable("id") String id) {
         return ResponseEntity.ok(jobQueueService.deleteQueue(id));
     }
 
@@ -55,19 +55,19 @@ public class JobQueueController {
 
     @PostMapping("/disable/{id}")
     @Operation(summary = "失效队列")
-    public ResponseEntity<Object> disableQueue(@Parameter(description = "队列ID") @PathVariable String id) {
+    public ResponseEntity<Object> disableQueue(@Parameter(description = "队列ID") @PathVariable("id") String id) {
         return ResponseEntity.ok(jobQueueService.disableQueue(id));
     }
 
     @PostMapping("/enable/{id}")
     @Operation(summary = "生效队列")
-    public ResponseEntity<Object> enableQueue(@Parameter(description = "队列ID") @PathVariable String id) {
+    public ResponseEntity<Object> enableQueue(@Parameter(description = "队列ID") @PathVariable("id") String id) {
         return ResponseEntity.ok(jobQueueService.enableQueue(id));
     }
 
     @PostMapping("/update/{id}/size")
     @Operation(summary = "修改队列大小")
-    public ResponseEntity<Object> updateQueueSize(@Parameter(description = "队列ID") @PathVariable String id, @Parameter(description = "包含size的请求体") @RequestBody Map<String, Object> body) {
+    public ResponseEntity<Object> updateQueueSize(@Parameter(description = "队列ID") @PathVariable("id") String id, @Parameter(description = "包含size的请求体") @RequestBody Map<String, Object> body) {
         int size = MapUtils.getIntValue(body, "size");
         return ResponseEntity.ok(jobQueueService.updateQueueSize(id, size));
     }

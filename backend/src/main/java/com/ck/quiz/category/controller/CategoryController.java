@@ -66,7 +66,7 @@ public class CategoryController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除分类", description = "根据ID删除分类")
     public ResponseEntity<Void> deleteCategory(
-            @Parameter(description = "分类ID") @PathVariable String id) {
+            @Parameter(description = "分类ID") @PathVariable("id") String id) {
         categoryService.deleteCategory(id);
         return ResponseEntity.ok().build();
     }
@@ -80,7 +80,7 @@ public class CategoryController {
     @GetMapping("/{id}")
     @Operation(summary = "获取分类详情", description = "根据ID获取分类详细信息")
     public ResponseEntity<CategoryDto> getCategoryById(
-            @Parameter(description = "分类ID") @PathVariable String id) {
+            @Parameter(description = "分类ID") @PathVariable("id") String id) {
         CategoryDto category = categoryService.getCategoryById(id);
         return ResponseEntity.ok(category);
     }
@@ -94,7 +94,7 @@ public class CategoryController {
     @GetMapping("/name/{name}")
     @Operation(summary = "根据名称获取分类", description = "根据分类名称获取分类信息")
     public ResponseEntity<CategoryDto> getCategoryByName(
-            @Parameter(description = "分类名称") @PathVariable String name) {
+            @Parameter(description = "分类名称") @PathVariable("name") String name) {
         CategoryDto category = categoryService.getCategoryByName(name);
         return ResponseEntity.ok(category);
     }
@@ -134,7 +134,7 @@ public class CategoryController {
     @GetMapping("/subject/{subjectId}")
     @Operation(summary = "根据学科获取分类", description = "根据学科ID获取该学科下的所有分类")
     public ResponseEntity<List<CategoryDto>> getCategoriesBySubjectId(
-            @Parameter(description = "学科ID") @PathVariable String subjectId) {
+            @Parameter(description = "学科ID") @PathVariable("subjectId") String subjectId) {
         List<CategoryDto> categories = categoryService.getCategoriesBySubjectId(subjectId);
         return ResponseEntity.ok(categories);
     }
@@ -148,7 +148,7 @@ public class CategoryController {
     @GetMapping("/parent/{parentId}")
     @Operation(summary = "获取子分类", description = "根据父分类ID获取子分类列表")
     public ResponseEntity<List<CategoryDto>> getCategoriesByParentId(
-            @Parameter(description = "父分类ID") @PathVariable String parentId) {
+            @Parameter(description = "父分类ID") @PathVariable("parentId") String parentId) {
         List<CategoryDto> categories = categoryService.getCategoriesByParentId(parentId);
         return ResponseEntity.ok(categories);
     }
