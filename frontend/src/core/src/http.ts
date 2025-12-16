@@ -34,8 +34,9 @@ http.interceptors.response.use(
       localStorage.removeItem('userInfo');
       localStorage.removeItem('menuInfo');
       localStorage.removeItem('username');
-      // 跳转到登录页面
-      window.location.href = '/login';
+      // 触发未授权事件，由顶层路由器处理登录页跳转
+      const event = new CustomEvent('unauthorized');
+      window.dispatchEvent(event);
     }
     return Promise.reject(error);
   }

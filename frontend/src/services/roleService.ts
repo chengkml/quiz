@@ -26,15 +26,16 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('API Error:', error);
-    // 处理401错误，跳转到登录页面
+    // 处理401错误，触发未授权事件
     if (error.response && error.response.status === 401) {
       // 处理未授权错误 - 清除所有用户相关信息
       localStorage.removeItem('token');
       localStorage.removeItem('userInfo');
       localStorage.removeItem('menuInfo');
       localStorage.removeItem('username');
-      // 跳转到登录页面
-      window.location.href = '/login';
+      // 触发未授权事件，由顶层路由器处理登录页跳转
+      const event = new CustomEvent('unauthorized');
+      window.dispatchEvent(event);
     }
     return Promise.reject(error);
   }

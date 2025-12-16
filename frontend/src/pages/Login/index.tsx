@@ -186,11 +186,10 @@ class appLogin extends React.Component<LoginProps> {
                 this.props.onLoginSuccess(userInfo.userName);
             }
 
-            // 跳转到默认页面 - 现在由LoginWrapper处理菜单加载后的跳转
-            // 暂时跳转到主页面，具体路由将由菜单数据决定
-            setTimeout(() => {
-                window.location.href = '/frame';
-            }, 100);
+            // 触发登录成功事件，由App或顶层路由器处理跳转
+            // 发送自定义事件以通知全局状态管理器
+            const event = new CustomEvent('loginSuccess', { detail: { userInfo } });
+            window.dispatchEvent(event);
         } else {
             this.setState({isUserPassword: false});
             if (this.loginForm) {

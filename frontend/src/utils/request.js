@@ -65,9 +65,13 @@ request.interceptors.response.use(
           break;
         case 401:
           errorMessage = '未授权，请重新登录';
-          // 可以在这里处理登录跳转
+          // 清除token并触发未授权事件
           localStorage.removeItem('token');
-          window.location.href = '/login';
+          localStorage.removeItem('userInfo');
+          localStorage.removeItem('menuInfo');
+          localStorage.removeItem('username');
+          const event = new CustomEvent('unauthorized');
+          window.dispatchEvent(event);
           break;
         case 403:
           errorMessage = '权限不足，无法访问';

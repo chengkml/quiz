@@ -138,7 +138,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     localStorage.removeItem('menuInfo');
     localStorage.removeItem('token');
     localStorage.removeItem('username');
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   const value = {
