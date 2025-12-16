@@ -1,22 +1,20 @@
 import axios from '@/core/src/http';
 import { MindMapData } from '../types';
 
-const base = '/quiz';
-
 // 获取思维导图列表（分页查询）
-const getMindMapList = params => axios.get(`${base}/api/mindmap`, {params});
+const getMindMapList = params => axios.get('/mindmap', {params});
 
 // 获取思维导图详情
-const getMindMapById = id => axios.get(`${base}/api/mindmap/${id}`);
+const getMindMapById = id => axios.get(`/mindmap/${id}`);
 
 // 创建思维导图
-const createMindMap = params => axios.post(`${base}/api/mindmap/create`, params);
+const createMindMap = params => axios.post('/mindmap/create', params);
 
 // 更新思维导图基本信息（名称和描述）
-const updateMindMapBasicInfo = params => axios.put(`${base}/api/mindmap/update-basic-info`, params);
+const updateMindMapBasicInfo = params => axios.put('/mindmap/update-basic-info', params);
 
 // 更新思维导图数据
-const updateMindMapData = params => axios.put(`${base}/api/mindmap/update-data`, params);
+const updateMindMapData = params => axios.put('/mindmap/update-data', params);
 
 // 更新思维导图（兼容旧接口）
 const updateMindMap = async (params) => {
@@ -36,7 +34,7 @@ const updateMindMap = async (params) => {
 const deleteMindMap = async id => {
   console.log('调用删除接口，ID:', id);
   try {
-    const response = await axios.delete(`${base}/api/mindmap/${id}`);
+    const response = await axios.delete(`/mindmap/${id}`);
     console.log('删除接口响应:', response);
     return response;
   } catch (error) {
@@ -46,10 +44,10 @@ const deleteMindMap = async id => {
 };
 
 // 获取当前用户的思维导图列表
-const getUserMindMaps = () => axios.get(`${base}/api/mindmap/user/mine`);
+const getUserMindMaps = () => axios.get('/mindmap/user/mine');
 
 // 获取共享的思维导图列表
-const getSharedMindMaps = () => axios.get(`${base}/api/mindmap/shared`);
+const getSharedMindMaps = () => axios.get('/mindmap/shared');
 
 // 解析思维导图数据
 const parseMindMapData = (mapData: string): MindMapData => {

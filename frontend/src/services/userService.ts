@@ -14,7 +14,7 @@ import {
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: '/quiz/api',
+  baseURL: '/quiz',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

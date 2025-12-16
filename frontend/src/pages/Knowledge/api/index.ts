@@ -1,42 +1,40 @@
 import axios from '@/core/src/http';
 
-const base = '/quiz';
-
 // 获取知识点列表（分页查询）
-const getKnowledgeList = params => axios.post(`${base}/api/knowledge/search`, params);
+const getKnowledgeList = params => axios.post('/knowledge/search', params);
 
 // 获取知识点详情
-const getKnowledgeById = id => axios.get(`${base}/api/knowledge/${id}`);
+const getKnowledgeById = id => axios.get(`/knowledge/${id}`);
 
 // 根据名称获取知识点
-const getKnowledgeByName = name => axios.get(`${base}/api/knowledge/name/${name}`);
+const getKnowledgeByName = name => axios.get(`/knowledge/name/${name}`);
 
 // 创建知识点
-const createKnowledge = params => axios.post(`${base}/api/knowledge`, params);
+const createKnowledge = params => axios.post('/knowledge', params);
 
 // 更新知识点
-const updateKnowledge = params => axios.put(`${base}/api/knowledge`, params);
+const updateKnowledge = params => axios.put('/knowledge', params);
 
 // 删除知识点
-const deleteKnowledge = id => axios.delete(`${base}/api/knowledge/${id}`);
+const deleteKnowledge = id => axios.delete(`/knowledge/${id}`);
 
 // 检查知识点名称是否存在
-const checkKnowledgeNameExists = params => axios.get(`${base}/api/knowledge/check-name`, {params});
+const checkKnowledgeNameExists = params => axios.get('/knowledge/check-name', {params});
 
 // 获取所有分类列表
-const getAllCategories = () => axios.get(`${base}/api/categories/all`);
+const getAllCategories = () => axios.get('/categories/all');
 
 // 获取所有学科列表
-const getAllSubjects = () => axios.get(`${base}/api/subject/list/all`);
+const getAllSubjects = () => axios.get('/subject/list/all');
 
 // 获取学科分类树
-const getSubjectCategoryTree = () => axios.get(`${base}/api/categories/subject/category/tree`);
+const getSubjectCategoryTree = () => axios.get('/categories/subject/category/tree');
 
 // 根据学科ID获取分类列表
-const getCategoriesBySubjectId = (subjectId) => axios.get(`${base}/api/categories/subject/${subjectId}`);
+const getCategoriesBySubjectId = (subjectId) => axios.get(`/categories/subject/${subjectId}`);
 
 // 获取知识点关联的问题列表
-const getKnowledgeQuestions = knowledgeId => axios.get(`${base}/api/knowledge/${knowledgeId}/questions`);
+const getKnowledgeQuestions = knowledgeId => axios.get(`/knowledge/${knowledgeId}/questions`);
 
 export {
   getKnowledgeList,

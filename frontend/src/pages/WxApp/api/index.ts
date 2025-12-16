@@ -1,7 +1,5 @@
 import axios from '@/core/src/http';
 
-const base = '/quiz';
-
 // 定义接口类型 - 与后端WxAppQueryDto匹配
 export interface WxAppQueryParams {
   offset?: number;
@@ -55,22 +53,22 @@ export interface WxAppUserResponse {
 }
 
 // 分页查询微信小程序信息（POST search）
-export const getWxAppList = (params: WxAppQueryParams) => axios.post(`${base}/api/wx/app/search`, params);
+export const getWxAppList = (params: WxAppQueryParams) => axios.post('/wx/app/search', params);
 
 // 获取微信小程序详情 - 使用appId作为路径参数
-export const getWxAppById = (appId: string) => axios.get(`${base}/api/wx/app/${appId}`);
+export const getWxAppById = (appId: string) => axios.get(`/wx/app/${appId}`);
 
 // 创建微信小程序
-export const createWxApp = (params: WxAppCreateParams) => axios.post(`${base}/api/wx/app/create`, params);
+export const createWxApp = (params: WxAppCreateParams) => axios.post('/wx/app/create', params);
 
 // 更新微信小程序 - 使用PUT方法
-export const updateWxApp = (params: WxAppUpdateParams) => axios.put(`${base}/api/wx/app/update`, params);
+export const updateWxApp = (params: WxAppUpdateParams) => axios.put('/wx/app/update', params);
 
 // 删除微信小程序 - 使用DELETE方法和appId作为路径参数
-export const deleteWxApp = (appId: string) => axios.delete(`${base}/api/wx/app/delete/${appId}`);
+export const deleteWxApp = (appId: string) => axios.delete(`/wx/app/delete/${appId}`);
 
 // 获取小程序用户列表 - 使用appId作为路径参数
-export const getWxAppUsers = (appId: string) => axios.get(`${base}/api/wx/app/${appId}/users`);
+export const getWxAppUsers = (appId: string) => axios.get(`/wx/app/${appId}/users`);
 
 export default {
   getWxAppList,

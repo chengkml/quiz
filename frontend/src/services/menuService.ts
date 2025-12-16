@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '@/core/src/http';
 import {
   MenuDto,
   MenuTreeDto,
@@ -14,7 +14,7 @@ import {
 
 // 菜单服务类
 class MenuService {
-  private baseURL = '/quiz/api/menu';
+  private baseURL = '/menu';
 
   // ==================== 基础CRUD操作 ====================
 
@@ -188,7 +188,7 @@ class MenuService {
    * 获取用户的菜单树
    */
   async getUserMenuTree(userId: string): Promise<ApiResponse<MenuTreeDto[]>> {
-    const response = await axios.get(`/quiz/api/role/menu/rela/user/${userId}/tree`);
+    const response = await axios.get(`/role/menu/rela/user/${userId}/tree`);
     return response.data;
   }
 

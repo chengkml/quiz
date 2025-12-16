@@ -8,7 +8,7 @@ import {
 } from '../types/team';
 
 class TeamService {
-  private baseURL = '/quiz/api/team';
+  private baseURL = '/quiz/team';
 
   // 获取团队树
   async getTeamTree(): Promise<ApiResponse<TeamDto[]>> {

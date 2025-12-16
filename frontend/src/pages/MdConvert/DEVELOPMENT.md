@@ -75,9 +75,9 @@ convertMarkdownToPdf(data: MdConvertRequest): Promise<ArrayBuffer>
 
 REST API 端点：
 
-- `POST /api/md-convert/to-html` - 转换为 HTML
-- `POST /api/md-convert/to-word` - 转换为 Word
-- `POST /api/md-convert/to-pdf` - 转换为 PDF
+- `POST /md-convert/to-html` - 转换为 HTML
+- `POST /md-convert/to-word` - 转换为 Word
+- `POST /md-convert/to-pdf` - 转换为 PDF
 
 ### 4. 后端服务层 (MdConvertService.java)
 

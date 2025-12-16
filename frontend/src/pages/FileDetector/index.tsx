@@ -39,7 +39,7 @@ const FileCheck: React.FC = () => {
             formData.append('file', file);
             formData.append('type', detectorType);
 
-            const response = await fetch('/quiz/api/file/detector/upload', {
+            const response = await fetch('/quiz/file/detector/upload', {
                 method: 'POST',
                 body: formData,
             });

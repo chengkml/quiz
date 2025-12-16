@@ -11,7 +11,7 @@ import {
 
 // 配置axios实例
 const api = axios.create({
-  baseURL: '/quiz/api',
+  baseURL: '/quiz',
   timeout: 10000,
 });
 

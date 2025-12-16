@@ -52,5 +52,8 @@ module.exports = {
     new webpack.DefinePlugin({
       __APP_BASE_PATH__: JSON.stringify(process.env.APP_BASE_PATH || '/'),
     }),
+    new webpack.DefinePlugin({
+      __API_BASE_PATH__: JSON.stringify('/api'),
+    }),
   ],
 };

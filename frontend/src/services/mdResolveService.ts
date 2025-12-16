@@ -1,7 +1,5 @@
 import axios from '@/core/src/http';
 
-const base = '/quiz';
-
 export interface MdResolveRequest {
   mdContent: string;
   mdTemplate?: string;
@@ -23,7 +21,7 @@ export interface DefaultTemplateResponse {
  * 解析 Markdown 内容
  */
 export const resolveMdContent = async (data: MdResolveRequest): Promise<MdResolveResponse> => {
-  const response = await axios.post(`${base}/api/md-resolve/parse`, data);
+  const response = await axios.post('/md-resolve/parse', data);
   return response.data;
 };
 
@@ -31,7 +29,7 @@ export const resolveMdContent = async (data: MdResolveRequest): Promise<MdResolv
  * 获取默认模板
  */
 export const getDefaultTemplate = async (): Promise<DefaultTemplateResponse> => {
-  const response = await axios.get(`${base}/api/md-resolve/default-template`);
+  const response = await axios.get('/md-resolve/default-template');
   return response.data;
 };
 
@@ -46,7 +44,7 @@ export interface CalculateScoreResponse {
 }
 
 export const calculateScore = async (items: Record<string, Array<Record<string, any>>>): Promise<CalculateScoreResponse> => {
-  const response = await axios.post(`${base}/api/md-resolve/calculate`, items);
+  const response = await axios.post('/md-resolve/calculate', items);
   return response.data;
 };
 
@@ -55,6 +53,6 @@ export const calculateScore = async (items: Record<string, Array<Record<string, 
  * @param payload 包含 items/docName/rank
  */
 export const exportDocx = async (payload: { items: Record<string, Array<Record<string, any>>>; docName?: string; rank?: string; }): Promise<ArrayBuffer> => {
-  const response = await axios.post(`${base}/api/md-resolve/export-docx`, payload, { responseType: 'arraybuffer' });
+  const response = await axios.post('/md-resolve/export-docx', payload, { responseType: 'arraybuffer' });
   return response.data;
 };

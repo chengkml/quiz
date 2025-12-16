@@ -1,8 +1,19 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+} from 'axios';
 
-// 创建axios实例
+/**
+ * 全局 API 前缀
+ * 由 webpack DefinePlugin 注入
+ * 例如：'/api'
+ */
+declare const __API_BASE_PATH__: string;
+
+// 创建 axios 实例
 const http: AxiosInstance = axios.create({
-  baseURL: process.env.NODE_ENV === 'development' ? '' : '',
+  baseURL: __API_BASE_PATH__, // ✅ 统一从这里走
   timeout: 300000,
   headers: {
     'Content-Type': 'application/json',
@@ -12,31 +23,31 @@ const http: AxiosInstance = axios.create({
 // 请求拦截器
 http.interceptors.request.use(
   (config: AxiosRequestConfig) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        Authorization: token,
+      };
+    }
     return config;
   },
-  (error) => {
-    // 对请求错误做些什么
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // 响应拦截器
 http.interceptors.response.use(
-  (response: AxiosResponse) => {
-    // 对响应数据做点什么
-    return response;
-  },
+  (response: AxiosResponse) => response,
   (error) => {
-    // 对响应错误做点什么
     if (error.response?.status === 401) {
-      // 处理未授权错误 - 清除所有用户相关信息
+      // 清理登录状态
       localStorage.removeItem('token');
       localStorage.removeItem('userInfo');
       localStorage.removeItem('menuInfo');
       localStorage.removeItem('username');
-      // 触发未授权事件，由顶层路由器处理登录页跳转
-      const event = new CustomEvent('unauthorized');
-      window.dispatchEvent(event);
+
+      // 通知应用层（Router / Layout）
+      window.dispatchEvent(new CustomEvent('unauthorized'));
     }
     return Promise.reject(error);
   }

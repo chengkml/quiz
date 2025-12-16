@@ -1,36 +1,34 @@
 import axios from '@/core/src/http';
 
-const base = '/quiz';
-
 // 获取分类列表（分页查询）
-const getCategoryList = params => axios.post(`${base}/api/categories/search`, params);
+const getCategoryList = params => axios.post('/categories/search', params);
 
 // 获取分类详情
-const getCategoryById = id => axios.get(`${base}/api/categories/${id}`);
+const getCategoryById = id => axios.get(`/categories/${id}`);
 
 // 根据名称获取分类
-const getCategoryByName = name => axios.get(`${base}/api/categories/name/${name}`);
+const getCategoryByName = name => axios.get(`/categories/name/${name}`);
 
 // 创建分类
-const createCategory = params => axios.post(`${base}/api/categories`, params);
+const createCategory = params => axios.post('/categories', params);
 
 // 更新分类
-const updateCategory = params => axios.put(`${base}/api/categories`, params);
+const updateCategory = params => axios.put('/categories', params);
 
 // 删除分类
-const deleteCategory = id => axios.delete(`${base}/api/categories/${id}`);
+const deleteCategory = id => axios.delete(`/categories/${id}`);
 
 // 获取所有分类
-const getAllCategories = () => axios.get(`${base}/api/categories/all`);
+const getAllCategories = () => axios.get('/categories/all');
 
 // 根据学科ID获取分类
-const getCategoriesBySubjectId = subjectId => axios.get(`${base}/api/categories/subject/${subjectId}`);
+const getCategoriesBySubjectId = subjectId => axios.get(`/categories/subject/${subjectId}`);
 
 // 根据父分类ID获取子分类
-const getCategoriesByParentId = parentId => axios.get(`${base}/api/categories/parent/${parentId}`);
+const getCategoriesByParentId = parentId => axios.get(`/categories/parent/${parentId}`);
 
 // 根据层级获取分类
-const getCategoriesByLevel = level => axios.get(`${base}/api/categories/level/${level}`);
+const getCategoriesByLevel = level => axios.get(`/categories/level/${level}`);
 
 // 检查分类名称是否存在
 const checkCategoryNameExists = (name, excludeId = null) => {
@@ -38,7 +36,7 @@ const checkCategoryNameExists = (name, excludeId = null) => {
   if (excludeId) {
     params.excludeId = excludeId;
   }
-  return axios.get(`${base}/api/categories/check-name`, { params });
+  return axios.get('/categories/check-name', { params });
 };
 
 export {

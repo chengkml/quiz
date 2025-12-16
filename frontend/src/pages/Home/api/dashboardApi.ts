@@ -1,7 +1,5 @@
 import axios from '@/core/src/http';
 
-const base = '/quiz';
-
 // 定义接口返回类型
 export interface DashboardStats {
   totalQuestions: number;
@@ -32,16 +30,16 @@ export interface SubjectCountData {
 }
 
 // 获取仪表盘统计数据
-export const getDashboardStats = () => axios.get(`${base}/api/statistics/dashboard`);
+export const getDashboardStats = () => axios.get('/statistics/dashboard');
 
 // 获取统计数据
-export const getStatistics = () => axios.get(`${base}/api/statistics`);
+export const getStatistics = () => axios.get('/statistics');
 
 // 获取近七天题目增加量
-export const getQuestionCountByLastSevenDays = () => axios.get(`${base}/api/question/statistics/last-seven-days`);
+export const getQuestionCountByLastSevenDays = () => axios.get('/question/statistics/last-seven-days');
 
 // 获取各学科题目量
-export const getQuestionCountBySubject = () => axios.get(`${base}/api/question/statistics/by-subject`);
+export const getQuestionCountBySubject = () => axios.get('/question/statistics/by-subject');
 
 // 获取近一个月题目增加量
-export const getQuestionCountByLastMonth = () => axios.get(`${base}/api/question/statistics/last-month`);
+export const getQuestionCountByLastMonth = () => axios.get('/question/statistics/last-month');
