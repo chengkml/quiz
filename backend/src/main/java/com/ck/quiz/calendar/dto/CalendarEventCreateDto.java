@@ -29,11 +29,6 @@ public class CalendarEventCreateDto {
     private String description;
 
     /**
-     * 地点
-     */
-    private String location;
-
-    /**
      * 状态（可选，默认SCHEDULED）
      */
     private CalendarEvent.Status status = CalendarEvent.Status.SCHEDULED;

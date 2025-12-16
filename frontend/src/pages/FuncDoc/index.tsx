@@ -316,12 +316,12 @@ function DocInfoManager() {
                 <Dropdown
                     droplist={
                         <Menu>
-                            <Menu.Item key="detail" onClick={() => navigate(`/quiz/frame/funcDoc/detail/${record.id}`)}>
+                            <Menu.Item key="detail" onClick={() => navigate(`/frame/funcDoc/detail/${record.id}`)}>
                                 <IconFile style={{marginRight: 8}}/>
                                 查看详情
                             </Menu.Item>
                             <Menu.Item key="features"
-                                       onClick={() => navigate(`/quiz/frame/funcDoc/features/${record.id}`)}>
+                                       onClick={() => navigate(`/frame/funcDoc/features/${record.id}`)}>
                                 <IconSearch style={{marginRight: 8}}/>
                                 查看功能点
                             </Menu.Item>

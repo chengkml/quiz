@@ -240,7 +240,7 @@ function TodoManager() {
             if (response.data) {
                 const mindMap = response.data;
                 // 导航到思维导图编辑页面
-                navigate(`/quiz/frame/mindmap/edit/${mindMap.id}`);
+                navigate(`/frame/mindmap/edit/${mindMap.id}`);
             }
         } catch (error) {
             Message.error('思维导图初始化失败');

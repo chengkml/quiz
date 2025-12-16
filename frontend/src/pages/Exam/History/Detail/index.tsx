@@ -381,7 +381,7 @@ const ExamHistoryDetailPage: React.FC = () => {
                                     marginTop: 8
                                 }}>
                                     <Space direction='vertical' style={{width: '100%'}}>
-                                        <Button onClick={() => navigate('/quiz/frame/history')}
+                                        <Button onClick={() => navigate('/frame/history')}
                                                 style={{width: '100%'}}>返回列表</Button>
                                     </Space>
                                 </div>

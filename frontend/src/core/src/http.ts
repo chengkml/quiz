@@ -35,7 +35,7 @@ http.interceptors.response.use(
       localStorage.removeItem('menuInfo');
       localStorage.removeItem('username');
       // 跳转到登录页面
-      window.location.href = '/quiz/login';
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

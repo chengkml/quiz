@@ -222,7 +222,7 @@ function ExamHistoryManager() {
         e.stopPropagation();
         switch (key) {
             case 'detail':
-                navigate(`/quiz/frame/history/result/${record.resultId}`);
+                navigate(`/frame/history/result/${record.resultId}`);
                 break;
             case 'delete':
                 handleDelete(record);
@@ -269,7 +269,7 @@ function ExamHistoryManager() {
             const lastSubmittedResultId = sessionStorage.getItem('lastSubmittedResultId');
             if (lastSubmittedResultId) {
                 // 跳转到详情页
-                navigate(`/quiz/frame/history/result/${lastSubmittedResultId}`);
+                navigate(`/frame/history/result/${lastSubmittedResultId}`);
                 // 清除sessionStorage中的记录，避免下次进入时再次自动打开
                 sessionStorage.removeItem('lastSubmittedResultId');
             }

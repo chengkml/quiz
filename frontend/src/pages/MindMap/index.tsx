@@ -185,7 +185,7 @@ const MindMapListPage: React.FC = () => {
 
     // 处理绘图（导航到绘图页面）
     const handleDraw = (record: MindMapDto) => {
-        navigate(`/quiz/frame/mindmap/edit/${record.id}`);
+        navigate(`/frame/mindmap/edit/${record.id}`);
     };
 
     // 编辑表单

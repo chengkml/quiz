@@ -28,6 +28,13 @@ export const getSchedulesByDateRange = (startDate: string, endDate: string) =>
     sortType: 'asc',
   });
 
+// 流式生成日程 - 前端通过 EventSource 连接该地址
+export const streamGenerateEventUrl = (params: any) => {
+  const qs = [];
+  if (params.descr !== undefined) qs.push(`descr=${encodeURIComponent(params.descr)}`);
+  return `${base}/api/calendar/generate/stream?${qs.join('&')}`;
+};
+
 export default {
   getScheduleList,
   getScheduleById,
@@ -35,4 +42,5 @@ export default {
   updateSchedule,
   deleteSchedule,
   getSchedulesByDateRange,
+  streamGenerateEventUrl,
 };

@@ -216,7 +216,7 @@ const ExamTakePage: React.FC = () => {
             // 保存resultId到sessionStorage，以便历史记录页面自动打开详情
             sessionStorage.setItem('lastSubmittedResultId', result.resultId);
             // 跳转到历史记录页
-            navigate(`/quiz/frame/history`);
+            navigate(`/frame/history`);
         } catch (e) {
             Message.error('提交考试失败');
         } finally {
@@ -466,7 +466,7 @@ const ExamTakePage: React.FC = () => {
                                     marginTop: 8
                                 }}>
                                     <Space direction='vertical' style={{width: '100%'}}>
-                                        <Button onClick={() => navigate('/quiz/frame/exam')} style={{width: '100%'}}>取消</Button>
+                                        <Button onClick={() => navigate('/frame/exam')} style={{width: '100%'}}>取消</Button>
                                         <Button type='primary' loading={submitting} onClick={handleSubmit} style={{width: '100%'}}>提交试卷</Button>
                                     </Space>
                                 </div>

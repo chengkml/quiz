@@ -1,13 +1,14 @@
-import React, {useEffect, useState} from 'react';
-import {Button, DatePicker, Form, Input, Layout, Message, Modal, Select, Switch, Tag, Tooltip,} from '@arco-design/web-react';
+import React, {useEffect, useRef, useState} from 'react';
+import {Button, DatePicker, Form, Input, Layout, Message, Modal, Select, Space, Spin, Switch, Tag, Tooltip,} from '@arco-design/web-react';
 import {IconLeft, IconRight, IconPlus, IconClockCircle, IconCheckCircle, IconCloseCircle} from '@arco-design/web-react/icon';
 import dayjs from 'dayjs';
 import './style/index.less';
-import {createSchedule, getSchedulesByDateRange, updateSchedule} from './api';
+import {createSchedule, getSchedulesByDateRange, updateSchedule, streamGenerateEventUrl} from './api';
 import {formatLunarDate, getHolidays} from './utils/lunar';
 
 const {Content} = Layout;
 const {Option} = Select;
+const {TextArea} = Input;
 
 // 视图类型枚举
 type ViewType = 'month' | 'week' | 'year';
@@ -17,7 +18,6 @@ interface ScheduleItem {
     id: string;
     title: string;
     description: string;
-    location?: string;
     startTime: string;
     endTime: string;
     allDay?: boolean;
@@ -47,7 +47,6 @@ const toScheduleItem = (event: any): ScheduleItem => ({
     id: event.id,
     title: event.title,
     description: event.description,
-    location: event.location,
     startTime: event.startTime,
     endTime: event.endTime,
     allDay: event.allDay,
@@ -68,6 +67,16 @@ function ScheduleManager() {
 
     // 表单引用
     const formRef = React.useRef<any>(null);
+
+    // AI 生成相关状态
+    const [showGeneratePanel, setShowGeneratePanel] = useState(false);
+    const [generateDescription, setGenerateDescription] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [streamingContent, setStreamingContent] = useState('');
+    const [generatedEventData, setGeneratedEventData] = useState<any>(null);
+    const [showStreamLog, setShowStreamLog] = useState(true);
+    const streamingContainerRef = useRef<HTMLDivElement | null>(null);
+    const generateEventSourceRef = useRef<EventSource | null>(null);
 
     // 加载日程数据
     const loadSchedules = async () => {
@@ -182,11 +191,25 @@ function ScheduleManager() {
         }
     };
 
+    // 当流式内容更新时，自动滚动到底部
+    useEffect(() => {
+        if (streamingContainerRef.current) {
+            setTimeout(() => {
+                try {
+                    streamingContainerRef.current!.scrollTop = streamingContainerRef.current!.scrollHeight;
+                } catch (e) {
+                    // ignore
+                }
+            }, 0);
+        }
+    }, [streamingContent]);
+
     // 打开新增/编辑模态框
     const openModal = (schedule?: ScheduleItem) => {
         if (schedule) {
             setCurrentSchedule(schedule);
             setIsEditMode(true);
+            setShowGeneratePanel(false);
             setTimeout(() => {
                 formRef.current?.setFieldsValue?.({
                     title: schedule.title,
@@ -194,13 +217,16 @@ function ScheduleManager() {
                     startTime: dayjs(schedule.startTime),
                     endTime: dayjs(schedule.endTime),
                     status: schedule.status,
-                    location: schedule.location,
                     allDay: schedule.allDay ?? false,
                 });
             }, 50);
         } else {
             setCurrentSchedule(null);
             setIsEditMode(false);
+            setShowGeneratePanel(true);
+            setGenerateDescription('');
+            setGeneratedEventData(null);
+            setStreamingContent('');
             // 为新增日程设置默认值
             setTimeout(() => {
                 formRef.current?.setFieldsValue?.({
@@ -214,6 +240,141 @@ function ScheduleManager() {
         setModalVisible(true);
     };
 
+    // 流式生成日程
+    const handleStreamGenerateEvent = async () => {
+        if (!generateDescription.trim()) {
+            Message.error('请输入日程描述');
+            return;
+        }
+
+        try {
+            setIsGenerating(true);
+            setStreamingContent('');
+            setGeneratedEventData(null);
+            setShowStreamLog(true);
+
+            if (generateEventSourceRef.current) {
+                generateEventSourceRef.current.close();
+                generateEventSourceRef.current = null;
+            }
+
+            const url = streamGenerateEventUrl({descr: generateDescription});
+            const es = new EventSource(url);
+            generateEventSourceRef.current = es;
+
+            let isParsingResult = false;
+
+            es.onmessage = (event) => {
+                const data = event.data;
+
+                if (!isParsingResult) {
+                    if (data.includes('[PARSE_RESULT]')) {
+                        isParsingResult = true;
+                        const parseIndex = data.indexOf('[PARSE_RESULT]');
+                        const afterSeparator = data.substring(parseIndex + '[PARSE_RESULT]'.length).trim();
+                        if (afterSeparator && afterSeparator.startsWith('[EVENT]')) {
+                            const jsonStr = afterSeparator.substring('[EVENT]'.length);
+                            if (jsonStr) {
+                                try {
+                                    const eventData = JSON.parse(jsonStr);
+                                    setGeneratedEventData(eventData);
+                                    // 自动填充表单
+                                    fillFormWithGeneratedData(eventData);
+                                    setShowStreamLog(false);
+                                } catch (e) {
+                                    console.error('Failed to parse event JSON:', jsonStr, e);
+                                }
+                            }
+                        }
+                        return;
+                    } else {
+                        setStreamingContent(prev => prev + data);
+                    }
+                } else {
+                    const trimmedData = data.trim();
+                    if (trimmedData && trimmedData.startsWith('[EVENT]')) {
+                        const jsonStr = trimmedData.substring('[EVENT]'.length);
+                        try {
+                            const eventData = JSON.parse(jsonStr);
+                            setGeneratedEventData(eventData);
+                            fillFormWithGeneratedData(eventData);
+                            setShowStreamLog(false);
+                        } catch (e) {
+                            console.error('Failed to parse event JSON:', jsonStr, e);
+                        }
+                    } else if (trimmedData && trimmedData.startsWith('[ERROR]')) {
+                        const errorMsg = trimmedData.substring('[ERROR]'.length);
+                        console.error('Backend error:', errorMsg);
+                    }
+                }
+            };
+
+            es.onerror = (err) => {
+                console.error('SSE error:', err);
+                try {
+                    es.close();
+                } catch (e) {
+                    // ignore
+                }
+                generateEventSourceRef.current = null;
+                setIsGenerating(false);
+
+                if (!generatedEventData) {
+                    Message.error('生成日程失败');
+                }
+            };
+        } catch (error) {
+            console.error('开始生成失败:', error);
+            Message.error('开始生成失败');
+            setIsGenerating(false);
+            if (generateEventSourceRef.current) {
+                generateEventSourceRef.current.close();
+                generateEventSourceRef.current = null;
+            }
+        }
+    };
+
+    // 使用生成的数据填充表单
+    const fillFormWithGeneratedData = (eventData: any) => {
+        const formData: any = {};
+
+        if (eventData.title) {
+            formData.title = eventData.title;
+        }
+        if (eventData.description) {
+            formData.description = eventData.description;
+        }
+        if (eventData.startTime) {
+            formData.startTime = dayjs(eventData.startTime);
+        }
+        if (eventData.endTime) {
+            formData.endTime = dayjs(eventData.endTime);
+        }
+        if (eventData.status) {
+            formData.status = eventData.status;
+        }
+        if (eventData.allDay !== undefined) {
+            formData.allDay = eventData.allDay;
+        }
+
+        setTimeout(() => {
+            formRef.current?.setFieldsValue?.(formData);
+        }, 50);
+    };
+
+    // 取消生成
+    const handleCancelGenerate = () => {
+        if (generateEventSourceRef.current) {
+            generateEventSourceRef.current.close();
+            generateEventSourceRef.current = null;
+        }
+        setIsGenerating(false);
+        setShowGeneratePanel(false);
+        setGenerateDescription('');
+        setGeneratedEventData(null);
+        setStreamingContent('');
+    };
+
     // 保存日程
     const handleSave = async () => {
         try {
@@ -223,7 +384,6 @@ function ScheduleManager() {
                 const payload = {
                     title: values.title,
                     description: values.description,
-                    location: values.location,
                     status: values.status,
                     startTime: dayjs(values.startTime).format('YYYY-MM-DDTHH:mm:ss'),
                     endTime: dayjs(values.endTime).format('YYYY-MM-DDTHH:mm:ss'),
@@ -242,7 +402,7 @@ function ScheduleManager() {
             }
         } catch (error) {
             console.error('保存日程出错:', error);
-            if (error?.fields) return;
+            if ((error as any)?.fields) return;
             Message.error('操作失败');
         }
     };
@@ -304,7 +464,12 @@ function ScheduleManager() {
                     style={{
                       height: viewType === 'month' ? `${calculateCardHeight()}px` : 'auto'
                     }}
-                    onClick={() => isCurrentMonth && openModal()}
+                    onClick={() => {
+                        if (isCurrentMonth) {
+                            setCurrentDate(currentDay.toDate());
+                            setViewType('week');
+                        }
+                    }}
                     title={currentDay.format('YYYY年MM月DD日')}
                 >
                     <div style={{
@@ -367,7 +532,7 @@ function ScheduleManager() {
         }
 
         // 星期标题样式
-        const weekHeaderStyle = {
+        const weekHeaderStyle: React.CSSProperties = {
             textAlign: 'center',
             padding: '12px 8px',
             fontWeight: 600,
@@ -471,7 +636,6 @@ function ScheduleManager() {
                                         </div>
                                         <div style={{fontSize: '12px', opacity: 0.85, display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
                                             <span>🕐 {dayjs(schedule.startTime).format('HH:mm')} - {dayjs(schedule.endTime).format('HH:mm')}</span>
-                                            {schedule.location && <span>📍 {schedule.location}</span>}
                                         </div>
                                         {schedule.description && (
                                             <div style={{
@@ -648,13 +812,74 @@ function ScheduleManager() {
                 title={isEditMode ? '编辑日程' : '新增日程'}
                 visible={modalVisible}
                 onOk={handleSave}
-                onCancel={() => setModalVisible(false)}
+                onCancel={() => {
+                    setModalVisible(false);
+                    handleCancelGenerate();
+                }}
                 okText="保存"
                 cancelText="取消"
-                width={520}
+                wrapClassName={isEditMode || generatedEventData ? 'schedule-modal-normal' : 'schedule-modal-wide'}
                 maskClosable={false}
                 className="schedule-modal"
             >
+                {!isEditMode && (
+                    <div style={{marginBottom: '20px'}}>
+                        {showGeneratePanel && !generatedEventData ? (
+                            <div style={{
+                                border: '1px solid var(--color-border)',
+                                borderRadius: '4px',
+                                padding: '16px',
+                                backgroundColor: 'var(--color-bg-2)',
+                                marginBottom: '16px'
+                            }}>
+                                <div style={{marginBottom: '12px', fontWeight: 600}}>🤖 AI 生成日程</div>
+                                <div style={{marginBottom: '12px'}}>
+                                    <TextArea
+                                        placeholder="请描述要生成的日程，例如：明天下午3点开会，会议时间持续2小时"
+                                        value={generateDescription}
+                                        onChange={(value) => setGenerateDescription(value)}
+                                        rows={3}
+                                        disabled={isGenerating}
+                                    />
+                                </div>
+                                <Space>
+                                    <Button
+                                        type="primary"
+                                        onClick={handleStreamGenerateEvent}
+                                        loading={isGenerating}
+                                        disabled={isGenerating}
+                                    >
+                                        生成日程
+                                    </Button>
+                                    <Button onClick={handleCancelGenerate} disabled={isGenerating}>
+                                        手动输入
+                                    </Button>
+                                </Space>
+
+                                {isGenerating && (
+                                    <div style={{
+                                        marginTop: '12px',
+                                        padding: '12px',
+                                        backgroundColor: 'var(--color-bg-1)',
+                                        borderRadius: '4px',
+                                        maxHeight: '200px',
+                                        overflow: 'auto'
+                                    }} ref={streamingContainerRef}>
+                                        {showStreamLog && (
+                                            <div style={{color: 'var(--color-text-2)', fontSize: '12px', whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>
+                                                {streamingContent || '正在生成中...'}
+                                            </div>
+                                        )}
+                                        {!showStreamLog && generatedEventData && (
+                                            <div style={{color: 'var(--color-text-1)'}}>✅ 日程已生成，表单已自动填充</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ) : null}
+                    </div>
+                )}
+
                 <Form ref={formRef} layout="vertical" className="modal-form">
                     <Form.Item
                         label="标题"
@@ -668,12 +893,6 @@ function ScheduleManager() {
                         field="description"
                     >
                         <Input.TextArea placeholder="请输入日程描述" rows={3}/>
-                    </Form.Item>
-                    <Form.Item
-                        label="地点"
-                        field="location"
-                    >
-                        <Input placeholder="请输入地点" />
                     </Form.Item>
                     <Form.Item
                         label="开始时间"

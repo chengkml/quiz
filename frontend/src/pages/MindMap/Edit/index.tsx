@@ -194,7 +194,7 @@ const MindMapEditPage: React.FC = () => {
         }
     };
 
-    const handleBack = () => navigate('/quiz/frame/mindmap');
+    const handleBack = () => navigate('/frame/mindmap');
 
     /** 导出为图片 */
     const handleExportImage = async () => {
@@ -377,7 +377,7 @@ const MindMapEditPage: React.FC = () => {
 
     /** 导出菜单 */
     const exportMenu = (
-        <Menu>
+        <Menu className="mindmap-dropdown-menu">
             <Menu.Item key='png' onClick={handleExportImage}>
                 导出为图片 (PNG)
             </Menu.Item>
@@ -392,7 +392,7 @@ const MindMapEditPage: React.FC = () => {
 
     /** 主题菜单 */
     const themeMenu = (
-        <Menu>
+        <Menu className="mindmap-dropdown-menu">
             <Menu.Item key='default' onClick={() => handleThemeChange('default')}>
                 默认主题
             </Menu.Item>
@@ -407,7 +407,7 @@ const MindMapEditPage: React.FC = () => {
 
     return (
         <Layout style={{height: 'calc(100% - 20px)'}}>
-            <Content style={{
+            <Content className="mindmap-edit-page" style={{
                 margin: '10px',
                 padding: '10px',
                 background: '#fff',

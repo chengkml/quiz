@@ -138,6 +138,79 @@ public class MdConvertService {
     }
 
     /**
+     * 将Word文档转换为PDF
+     * 
+     * @param wordBytes Word文档的字节数组
+     * @param fileName  文件名（不含扩展名）
+     * @return PDF文件的字节数组
+     */
+    public byte[] convertWordToPdf(byte[] wordBytes, String fileName) {
+        try {
+            // 读取Word文档
+            XWPFDocument wordDocument = new XWPFDocument(new java.io.ByteArrayInputStream(wordBytes));
+            
+            // 创建PDF文档
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Document pdfDocument = new Document(PageSize.A4, 50, 50, 50, 50);
+            PdfWriter.getInstance(pdfDocument, baos);
+            pdfDocument.open();
+
+            // 设置字体（支持中文）
+            BaseFont bfChinese = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
+            Font font = new Font(bfChinese, 11, Font.NORMAL);
+            Font titleFont = new Font(bfChinese, 16, Font.BOLD);
+            Font heading1Font = new Font(bfChinese, 18, Font.BOLD);
+            Font heading2Font = new Font(bfChinese, 14, Font.BOLD);
+            
+            // 添加标题
+            Paragraph title = new Paragraph(fileName, titleFont);
+            title.setAlignment(Paragraph.ALIGN_CENTER);
+            title.setSpacingAfter(20);
+            pdfDocument.add(title);
+
+            // 遍历Word文档中的所有段落
+            for (XWPFParagraph paragraph : wordDocument.getParagraphs()) {
+                String text = paragraph.getText();
+                if (text == null || text.trim().isEmpty()) {
+                    pdfDocument.add(new Paragraph());
+                    continue;
+                }
+
+                Paragraph pdfParagraph = new Paragraph();
+                
+                // 根据Word段落样式设置PDF段落格式
+                String style = paragraph.getStyle();
+                if (style != null) {
+                    if (style.equals("Heading1")) {
+                        pdfParagraph = new Paragraph(text, heading1Font);
+                        pdfParagraph.setSpacingBefore(10);
+                        pdfParagraph.setSpacingAfter(10);
+                    } else if (style.equals("Heading2")) {
+                        pdfParagraph = new Paragraph(text, heading2Font);
+                        pdfParagraph.setSpacingBefore(8);
+                        pdfParagraph.setSpacingAfter(8);
+                    } else {
+                        pdfParagraph = new Paragraph(text, font);
+                    }
+                } else {
+                    pdfParagraph = new Paragraph(text, font);
+                }
+
+                pdfDocument.add(pdfParagraph);
+            }
+
+            // 关闭文档
+            pdfDocument.close();
+            wordDocument.close();
+            
+            return baos.toByteArray();
+        } catch (Exception e) {
+            log.error("Word转PDF异常", e);
+            throw new RuntimeException("Word转PDF失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * 去除HTML标签，用于简化处理
      * 
      * @param html HTML内容

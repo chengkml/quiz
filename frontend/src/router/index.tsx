@@ -74,7 +74,7 @@ const hasMenuPermission = (path: string, menuTree: MenuTreeDto[]): boolean => {
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const token = localStorage.getItem('token');
     if (!token) {
-        return <Navigate to="/quiz/login" replace />;
+        return <Navigate to="/login" replace />;
     }
     return <>{children}</>;
 };
@@ -89,14 +89,14 @@ const MenuPermissionRoute: React.FC<{
 }> = ({ children, requiredPath }) => {
   const token = localStorage.getItem('token');
   if (!token) {
-    return <Navigate to="/quiz/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // 获取用户菜单信息
   const menuInfoStr = localStorage.getItem('menuInfo');
   if (!menuInfoStr) {
     // 如果没有菜单信息，跳转到NotFound页面
-    return <Navigate to="/quiz/frame" replace />;
+    return <Navigate to="/frame" replace />;
   }
 
   try {
@@ -104,13 +104,13 @@ const MenuPermissionRoute: React.FC<{
     
     // 检查是否有访问权限
     if (!hasMenuPermission(requiredPath, menuTree)) {
-      return <Navigate to="/quiz/frame/notfound" replace />;
+      return <Navigate to="/frame/notfound" replace />;
     }
 
     return <>{children}</>;
   } catch (error) {
     console.error('Failed to parse menu info:', error);
-    return <Navigate to="/quiz/frame/notfound" replace />;
+    return <Navigate to="/frame/notfound" replace />;
   }
 };
 
@@ -153,7 +153,7 @@ const protectedPages = [
 export const router = createBrowserRouter([
     // 登录页
     {
-        path: '/quiz/login',
+        path: '/login',
         element: (
             <UserProvider>
                 <Login />
@@ -163,7 +163,7 @@ export const router = createBrowserRouter([
 
     // 主框架 + 内嵌页面
     {
-        path: '/quiz/frame',
+        path: '/frame',
         element: (
             <UserProvider>
                 <ProtectedRoute>

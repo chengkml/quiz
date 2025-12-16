@@ -6,10 +6,10 @@ import com.ck.quiz.question.dto.QuestionQueryDto;
 import com.ck.quiz.question.dto.QuestionUpdateDto;
 import com.ck.quiz.question.entity.Question;
 import org.springframework.data.domain.Page;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Date;
 
 /**
  * 题目管理服务接口
@@ -76,9 +76,21 @@ public interface QuestionService {
      */
     List<QuestionCreateDto> generateQuestions(String knowledgeDescr, int num, String modelName);
 
-    // 流式生成题目，返回 SSE 以逐条推送生成结果
-    org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamGenerateQuestions(String knowledgeDescr, int num, String modelName);
+    /**
+     * 流式生成题目
+     * @param knowledgeDescr
+     * @param num
+     * @param modelName
+     * @return
+     */
+    SseEmitter streamGenerateQuestions(String knowledgeDescr, int num, String modelName);
 
+    /**
+     * 批量创建题目
+     *
+     * @param questionCreateDtos 题目创建信息列表
+     * @return 创建成功后的题目信息列表
+     */
     List<QuestionDto> createQuestions(List<QuestionCreateDto> questionCreateDtos);
 
     /**

@@ -6,6 +6,7 @@ import com.ck.quiz.calendar.dto.CalendarEventQueryDto;
 import com.ck.quiz.calendar.dto.CalendarEventUpdateDto;
 import com.ck.quiz.calendar.entity.CalendarEvent;
 import org.springframework.data.domain.Page;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 日程管理服务接口
@@ -16,6 +17,11 @@ public interface CalendarEventService {
      * 创建事件
      */
     CalendarEventDto createEvent(CalendarEventCreateDto createDto);
+
+    /**
+     * 流式生成事件内容
+     */
+    SseEmitter streamGenerateEvent(String descr);
 
     /**
      * 更新事件
@@ -41,4 +47,5 @@ public interface CalendarEventService {
      * 实体转 DTO
      */
     CalendarEventDto convertToDto(CalendarEvent calendarEvent);
+    
 }

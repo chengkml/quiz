@@ -292,7 +292,7 @@ const {Row, Col} = Grid;
 
         switch (key) {
             case 'detail':
-                navigate(`/quiz/frame/exam/detail/${record.id}`);
+                navigate(`/frame/exam/detail/${record.id}`);
                 break;
             case 'questions':
                 handleManageQuestions(record);
@@ -304,7 +304,7 @@ const {Row, Col} = Grid;
                 await handleArchive(record);
                 break;
             case 'start':
-                navigate(`/quiz/frame/exam/take/${record.id}`);
+                navigate(`/frame/exam/take/${record.id}`);
                 break;
             case 'delete':
                 setDeleteModalVisible(true);

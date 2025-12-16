@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 日程管理接口
@@ -63,5 +64,12 @@ public class CalendarController {
     public ResponseEntity<Page<CalendarEventDto>> searchEvents(
             @Parameter(description = "查询条件") @Valid @RequestBody CalendarEventQueryDto queryDto) {
         return ResponseEntity.ok(calendarEventService.searchEvents(queryDto));
+    }
+
+    @Operation(summary = "流式生成日程（SSE）", description = "根据日程描述调用大模型流式生成日程信息")
+    @GetMapping(path = "/generate/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamGenerateEvent(
+            @Parameter(description = "日程描述") @RequestParam("descr") String descr) {
+        return calendarEventService.streamGenerateEvent(descr);
     }
 }

@@ -60,7 +60,7 @@ const AppLayout: React.FC = () => {
     const handleMenuClick = (key: string) => {
         const menu = findMenuByKey(menuTree, key);
         if (menu && menu.url) {
-            navigate(`/quiz/frame/${menu.url}`);
+            navigate(`/frame/${menu.url}`);
         }
     };
 

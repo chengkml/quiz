@@ -33,11 +33,6 @@ public class CalendarEventUpdateDto {
     private String description;
 
     /**
-     * 地点
-     */
-    private String location;
-
-    /**
      * 状态
      */
     private CalendarEvent.Status status;

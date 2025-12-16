@@ -45,12 +45,6 @@ public class CalendarEvent {
     private String description;
 
     /**
-     * 地点
-     */
-    @Column(name = "location", length = 256)
-    private String location;
-
-    /**
      * 状态：SCHEDULED, COMPLETED, CANCELLED
      */
     @Enumerated(EnumType.STRING)

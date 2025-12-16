@@ -349,7 +349,7 @@ const ExamDetailPage: React.FC = () => {
                                     marginTop: 8
                                 }}>
                                     <Space direction='vertical' style={{width: '100%'}}>
-                                        <Button onClick={() => navigate('/quiz/frame/exam')} style={{width: '100%'}}>返回列表</Button>
+                                        <Button onClick={() => navigate('/frame/exam')} style={{width: '100%'}}>返回列表</Button>
                                     </Space>
                                 </div>
                             </div>
