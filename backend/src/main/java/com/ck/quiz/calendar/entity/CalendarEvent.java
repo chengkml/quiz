@@ -93,6 +93,12 @@ public class CalendarEvent {
     @Column(name = "update_user", length = 64)
     private String updateUser;
 
+    /**
+     * 完成时间
+     */
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
     @PrePersist
     public void prePersist() {
         this.createDate = LocalDateTime.now();

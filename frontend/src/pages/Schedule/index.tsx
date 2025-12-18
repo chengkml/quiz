@@ -3,7 +3,7 @@ import {Button, DatePicker, Form, Input, Layout, Message, Modal, Select, Space, 
 import {IconLeft, IconRight, IconPlus, IconClockCircle, IconCheckCircle, IconCloseCircle} from '@arco-design/web-react/icon';
 import dayjs from 'dayjs';
 import './style/index.less';
-import {createSchedule, getSchedulesByDateRange, updateSchedule, streamGenerateEventUrl} from './api';
+import {createSchedule, getSchedulesByDateRange, updateSchedule, streamGenerateEventUrl, completeSchedule} from './api';
 import {formatLunarDate, getHolidays} from './utils/lunar';
 
 const {Content} = Layout;
@@ -23,6 +23,7 @@ interface ScheduleItem {
     allDay?: boolean;
     color?: string;
     status: string;
+    completedAt?: string;
 }
 
 const statusColorMap: Record<string, string> = {
@@ -51,6 +52,7 @@ const toScheduleItem = (event: any): ScheduleItem => ({
     endTime: event.endTime,
     allDay: event.allDay,
     status: event.status,
+    completedAt: event.completedAt,
     color: statusColorMap[event.status] || '#165dff',
 });
 
@@ -64,9 +66,13 @@ function ScheduleManager() {
   const [currentSchedule, setCurrentSchedule] = useState<ScheduleItem | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+  const [completeModalVisible, setCompleteModalVisible] = useState(false);
+  const [completingSchedule, setCompletingSchedule] = useState<ScheduleItem | null>(null);
+  const [customCompletedTime, setCustomCompletedTime] = useState(false);
 
     // 表单引用
     const formRef = React.useRef<any>(null);
+    const completeFormRef = React.useRef<any>(null);
 
     // AI 生成相关状态
     const [showGeneratePanel, setShowGeneratePanel] = useState(false);
@@ -407,6 +413,41 @@ function ScheduleManager() {
         }
     };
 
+    // 打开完成日程对话框
+    const openCompleteModal = (schedule: ScheduleItem) => {
+        setCompletingSchedule(schedule);
+        setCustomCompletedTime(false);
+        setCompleteModalVisible(true);
+        setTimeout(() => {
+            completeFormRef.current?.setFieldsValue?.({
+                completedAt: dayjs(),
+            });
+        }, 50);
+    };
+
+    // 完成日程
+    const handleComplete = async () => {
+        try {
+            const values = await completeFormRef.current?.validate?.();
+            if (values && completingSchedule) {
+                const payload: any = {
+                    id: completingSchedule.id,
+                };
+                if (customCompletedTime) {
+                    payload.completedAt = dayjs(values.completedAt).format('YYYY-MM-DDTHH:mm:ss');
+                }
+                await completeSchedule(payload);
+                Message.success('日程已完成');
+                setCompleteModalVisible(false);
+                loadSchedules();
+            }
+        } catch (error) {
+            console.error('完成日程出错:', error);
+            if ((error as any)?.fields) return;
+            Message.error('操作失败');
+        }
+    };
+
     // 渲染月视图
     const renderMonthView = () => {
         const date = dayjs(currentDate);
@@ -630,12 +671,29 @@ function ScheduleManager() {
                                     >
                                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px'}}>
                                             <span style={{fontWeight: 600, fontSize: '13px'}}>{schedule.title}</span>
-                                            <Tag color={statusBadgeColorMap[schedule.status]} size="small" style={{fontSize: '11px'}}>
-                                                {statusLabelMap[schedule.status]}
-                                            </Tag>
                                         </div>
-                                        <div style={{fontSize: '12px', opacity: 0.85, display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
-                                            <span>🕐 {dayjs(schedule.startTime).format('HH:mm')} - {dayjs(schedule.endTime).format('HH:mm')}</span>
+                                        <div style={{fontSize: '12px', opacity: 0.85, display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center'}}>
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap'}}>
+                                                <Tag color={statusBadgeColorMap[schedule.status]} size="small" style={{fontSize: '11px'}}>
+                                                    {statusLabelMap[schedule.status]}
+                                                </Tag>
+                                                <span>🕐 {dayjs(schedule.startTime).format('HH:mm')} - {dayjs(schedule.endTime).format('HH:mm')}</span>
+                                            </div>
+                                            {schedule.status === 'SCHEDULED' && (
+                                                <Button
+                                                    type="primary"
+                                                    status="success"
+                                                    size="mini"
+                                                    className="complete-btn"
+                                                    icon={<IconCheckCircle />}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openCompleteModal(schedule);
+                                                    }}
+                                                >
+                                                    完成
+                                                </Button>
+                                            )}
                                         </div>
                                         {schedule.description && (
                                             <div style={{
@@ -647,6 +705,11 @@ function ScheduleManager() {
                                                 whiteSpace: 'nowrap'
                                             }}>
                                                 {schedule.description}
+                                            </div>
+                                        )}
+                                        {schedule.completedAt && (
+                                            <div style={{fontSize: '11px', opacity: 0.7, marginTop: '4px'}}>
+                                                ✅ 完成于: {dayjs(schedule.completedAt).format('YYYY-MM-DD HH:mm')}
                                             </div>
                                         )}
                                     </div>
@@ -922,6 +985,50 @@ function ScheduleManager() {
                             <Option value="CANCELLED">已取消</Option>
                         </Select>
                     </Form.Item>
+                    {isEditMode && currentSchedule?.completedAt && (
+                        <Form.Item label="完成时间">
+                            <div style={{color: 'var(--color-text-2)'}}>
+                                {dayjs(currentSchedule.completedAt).format('YYYY-MM-DD HH:mm:ss')}
+                            </div>
+                        </Form.Item>
+                    )}
+                </Form>
+            </Modal>
+
+            {/* 完成日程模态框 */}
+            <Modal
+                title="完成日程"
+                visible={completeModalVisible}
+                onOk={handleComplete}
+                onCancel={() => setCompleteModalVisible(false)}
+                okText="确认完成"
+                cancelText="取消"
+            >
+                <div style={{marginBottom: '16px'}}>
+                    <div style={{fontWeight: 600, marginBottom: '8px'}}>日程: {completingSchedule?.title}</div>
+                    <div style={{fontSize: '14px', color: 'var(--color-text-3)'}}>
+                        {completingSchedule?.description}
+                    </div>
+                </div>
+                <Form ref={completeFormRef} layout="vertical">
+                    <Form.Item label="指定完成时间" style={{marginBottom: '12px'}}>
+                        <Switch 
+                            checked={customCompletedTime}
+                            onChange={setCustomCompletedTime}
+                        />
+                        <div style={{fontSize: '12px', color: 'var(--color-text-3)', marginTop: '4px'}}>
+                            {customCompletedTime ? '可以指定完成时间' : '将使用当前时间作为完成时间'}
+                        </div>
+                    </Form.Item>
+                    {customCompletedTime && (
+                        <Form.Item
+                            label="完成时间"
+                            field="completedAt"
+                            rules={[{required: true, message: '请选择完成时间'}]}
+                        >
+                            <DatePicker showTime placeholder="请选择完成时间" style={{width: '100%'}} />
+                        </Form.Item>
+                    )}
                 </Form>
             </Modal>
         </div>

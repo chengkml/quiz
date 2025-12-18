@@ -193,6 +193,30 @@
     }
   }
 
+  .complete-btn {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    padding: 0 10px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .complete-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(22, 163, 74, 0.45);
+  }
+
+  .complete-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 8px rgba(22, 163, 74, 0.35);
+  }
+
   .schedule-item:hover {
     transform: translateX(3px) translateY(-1px) scale(1.02);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);

@@ -34,6 +34,11 @@ public interface CalendarEventService {
     CalendarEventDto deleteEvent(String eventId);
 
     /**
+     * 完成事件
+     */
+    CalendarEventDto completeEvent(String eventId, java.time.LocalDateTime completedAt);
+
+    /**
      * 获取事件详情
      */
     CalendarEventDto getEventById(String eventId);

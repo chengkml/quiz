@@ -15,6 +15,10 @@ export const updateSchedule = (params) => axios.put('/calendar/update', params);
 // 删除日程
 export const deleteSchedule = (id: string) => axios.delete(`/calendar/${id}`);
 
+// 完成日程
+export const completeSchedule = (params: { id: string; completedAt?: string }) => 
+  axios.post('/calendar/complete', params);
+
 // 根据日期范围获取日程（使用查询接口限定时间范围）
 export const getSchedulesByDateRange = (startDate: string, endDate: string) =>
   axios.post('/calendar/search', {
@@ -39,6 +43,7 @@ export default {
   createSchedule,
   updateSchedule,
   deleteSchedule,
+  completeSchedule,
   getSchedulesByDateRange,
   streamGenerateEventUrl,
 };

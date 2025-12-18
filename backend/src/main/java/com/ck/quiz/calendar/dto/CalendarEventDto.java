@@ -74,4 +74,9 @@ public class CalendarEventDto {
      * 更新人
      */
     private String updateUser;
+
+    /**
+     * 完成时间
+     */
+    private LocalDateTime completedAt;
 }

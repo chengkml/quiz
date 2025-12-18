@@ -1,5 +1,6 @@
 package com.ck.quiz.calendar.controller;
 
+import com.ck.quiz.calendar.dto.CalendarEventCompleteDto;
 import com.ck.quiz.calendar.dto.CalendarEventCreateDto;
 import com.ck.quiz.calendar.dto.CalendarEventDto;
 import com.ck.quiz.calendar.dto.CalendarEventQueryDto;
@@ -49,6 +50,14 @@ public class CalendarController {
             @PathVariable String eventId) {
         calendarEventService.deleteEvent(eventId);
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "完成日程", description = "标记日程为已完成，并记录完成时间")
+    @PostMapping("/complete")
+    public ResponseEntity<CalendarEventDto> completeEvent(
+            @Parameter(description = "日程完成信息", required = true)
+            @Valid @RequestBody CalendarEventCompleteDto dto) {
+        return ResponseEntity.ok(calendarEventService.completeEvent(dto.getId(), dto.getCompletedAt()));
     }
 
     @Operation(summary = "获取日程详情", description = "根据ID获取日程事件详细信息")

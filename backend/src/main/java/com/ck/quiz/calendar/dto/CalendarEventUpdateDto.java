@@ -51,4 +51,9 @@ public class CalendarEventUpdateDto {
      * 是否全天
      */
     private Boolean allDay;
+
+    /**
+     * 完成时间
+     */
+    private LocalDateTime completedAt;
 }

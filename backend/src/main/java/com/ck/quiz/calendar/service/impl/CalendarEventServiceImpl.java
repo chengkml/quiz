@@ -96,6 +96,9 @@ public class CalendarEventServiceImpl implements CalendarEventService {
         if (updateDto.getAllDay() != null) {
             event.setAllDay(updateDto.getAllDay());
         }
+        if (updateDto.getCompletedAt() != null) {
+            event.setCompletedAt(updateDto.getCompletedAt());
+        }
 
         validateTimeRange(event.getStartTime(), event.getEndTime());
 
@@ -116,6 +119,20 @@ public class CalendarEventServiceImpl implements CalendarEventService {
     }
 
     @Override
+    @Transactional
+    public CalendarEventDto completeEvent(String eventId, LocalDateTime completedAt) {
+        Optional<CalendarEvent> optionalEvent = calendarEventRepository.findById(eventId);
+        if (optionalEvent.isEmpty()) {
+            throw new RuntimeException("事件不存在，ID: " + eventId);
+        }
+        CalendarEvent event = optionalEvent.get();
+        event.setStatus(CalendarEvent.Status.COMPLETED);
+        event.setCompletedAt(completedAt != null ? completedAt : LocalDateTime.now());
+        CalendarEvent saved = calendarEventRepository.save(event);
+        return convertToDto(saved);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public CalendarEventDto getEventById(String eventId) {
         Optional<CalendarEvent> optionalEvent = calendarEventRepository.findById(eventId);
@@ -130,7 +147,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
     public Page<CalendarEventDto> searchEvents(CalendarEventQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
                 "SELECT e.event_id AS id, e.title, e.description, e.status, e.start_time, e.end_time, e.all_day, " +
-                        "e.create_date, e.create_user, e.update_date, e.update_user, u.user_name create_user_name " +
+                        "e.create_date, e.create_user, e.update_date, e.update_user, e.completed_at, u.user_name create_user_name " +
                         "FROM calendar_event e LEFT JOIN user u ON u.user_id = e.create_user "
         );
 
@@ -184,6 +201,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
             dto.setCreateUserName(rs.getString("create_user_name"));
             dto.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
             dto.setUpdateUser(rs.getString("update_user"));
+            dto.setCompletedAt(rs.getTimestamp("completed_at") != null ? rs.getTimestamp("completed_at").toLocalDateTime() : null);
             return dto;
         });
 
