@@ -69,6 +69,7 @@ function ScheduleManager() {
   const [completeModalVisible, setCompleteModalVisible] = useState(false);
   const [completingSchedule, setCompletingSchedule] = useState<ScheduleItem | null>(null);
   const [customCompletedTime, setCustomCompletedTime] = useState(false);
+    const [showEditForm, setShowEditForm] = useState(false);
 
     // 表单引用
     const formRef = React.useRef<any>(null);
@@ -216,6 +217,7 @@ function ScheduleManager() {
             setCurrentSchedule(schedule);
             setIsEditMode(true);
             setShowGeneratePanel(false);
+            setShowEditForm(true);
             setTimeout(() => {
                 formRef.current?.setFieldsValue?.({
                     title: schedule.title,
@@ -230,18 +232,11 @@ function ScheduleManager() {
             setCurrentSchedule(null);
             setIsEditMode(false);
             setShowGeneratePanel(true);
+            setShowEditForm(false);
             setGenerateDescription('');
             setGeneratedEventData(null);
             setStreamingContent('');
-            // 为新增日程设置默认值
-            setTimeout(() => {
-                formRef.current?.setFieldsValue?.({
-                    startTime: dayjs(),
-                    endTime: dayjs().add(1, 'hour'),
-                    status: 'SCHEDULED',
-                    allDay: false,
-                });
-            }, 50);
+            // 生成模式下不展示表单，等待生成完成后再编辑
         }
         setModalVisible(true);
     };
@@ -258,6 +253,7 @@ function ScheduleManager() {
             setStreamingContent('');
             setGeneratedEventData(null);
             setShowStreamLog(true);
+            setShowEditForm(false);
 
             if (generateEventSourceRef.current) {
                 generateEventSourceRef.current.close();
@@ -287,8 +283,17 @@ function ScheduleManager() {
                                     // 自动填充表单
                                     fillFormWithGeneratedData(eventData);
                                     setShowStreamLog(false);
+                                    setIsGenerating(false);
+                                    // 直接显示编辑表单，不显示预览
+                                    setShowEditForm(true);
+                                    setShowGeneratePanel(false);
+                                    Message.success('日程生成成功，请确认并保存');
+                                    // 成功接收到数据后关闭连接
+                                    es.close();
+                                    generateEventSourceRef.current = null;
                                 } catch (e) {
                                     console.error('Failed to parse event JSON:', jsonStr, e);
+                                    Message.error('解析生成结果失败，请重新生成');
                                 }
                             }
                         }
@@ -305,12 +310,26 @@ function ScheduleManager() {
                             setGeneratedEventData(eventData);
                             fillFormWithGeneratedData(eventData);
                             setShowStreamLog(false);
+                            setIsGenerating(false);
+                            // 直接显示编辑表单，不显示预览
+                            setShowEditForm(true);
+                            setShowGeneratePanel(false);
+                            Message.success('日程生成成功，请确认并保存');
+                            // 成功接收到数据后关闭连接
+                            es.close();
+                            generateEventSourceRef.current = null;
                         } catch (e) {
                             console.error('Failed to parse event JSON:', jsonStr, e);
+                            Message.error('解析生成结果失败，请重新生成');
                         }
                     } else if (trimmedData && trimmedData.startsWith('[ERROR]')) {
                         const errorMsg = trimmedData.substring('[ERROR]'.length);
                         console.error('Backend error:', errorMsg);
+                        Message.error('生成失败: ' + errorMsg);
+                        setIsGenerating(false);
+                    } else if (trimmedData && trimmedData.startsWith('[RETRY]')) {
+                        const retryMsg = trimmedData.substring('[RETRY]'.length);
+                        setStreamingContent(prev => prev + '\n' + retryMsg);
                     }
                 }
             };
@@ -323,9 +342,10 @@ function ScheduleManager() {
                     // ignore
                 }
                 generateEventSourceRef.current = null;
-                setIsGenerating(false);
-
+                
+                // 只有在没有成功生成数据的情况下才设置错误状态和显示错误消息
                 if (!generatedEventData) {
+                    setIsGenerating(false);
                     Message.error('生成日程失败');
                 }
             };
@@ -379,10 +399,15 @@ function ScheduleManager() {
         setGenerateDescription('');
         setGeneratedEventData(null);
         setStreamingContent('');
+        setShowEditForm(true);
     };
 
     // 保存日程
     const handleSave = async () => {
+        if (!isEditMode && !showEditForm) {
+            Message.warning('请先点击“编辑”后再保存');
+            return;
+        }
         try {
             const values = await formRef.current?.validate?.();
             console.log('表单验证结果:', values);
@@ -910,13 +935,19 @@ function ScheduleManager() {
                                         type="primary"
                                         onClick={handleStreamGenerateEvent}
                                         loading={isGenerating}
-                                        disabled={isGenerating}
+                                        disabled={isGenerating || !generateDescription.trim()}
                                     >
-                                        生成日程
+                                        {isGenerating ? '生成中...' : '生成日程'}
                                     </Button>
-                                    <Button onClick={handleCancelGenerate} disabled={isGenerating}>
-                                        手动输入
-                                    </Button>
+                                    {isGenerating ? (
+                                        <Button onClick={handleCancelGenerate} status="danger">
+                                            取消生成
+                                        </Button>
+                                    ) : (
+                                        <Button onClick={handleCancelGenerate}>
+                                            手动输入
+                                        </Button>
+                                    )}
                                 </Space>
 
                                 {isGenerating && (
@@ -926,23 +957,102 @@ function ScheduleManager() {
                                         backgroundColor: 'var(--color-bg-1)',
                                         borderRadius: '4px',
                                         maxHeight: '200px',
-                                        overflow: 'auto'
+                                        overflow: 'auto',
+                                        border: '1px solid var(--color-border-2)'
                                     }} ref={streamingContainerRef}>
                                         {showStreamLog && (
-                                            <div style={{color: 'var(--color-text-2)', fontSize: '12px', whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>
-                                                {streamingContent || '正在生成中...'}
+                                            <div style={{color: 'var(--color-text-2)', fontSize: '12px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: '1.6'}}>
+                                                <Spin size={12} style={{marginRight: '8px'}} />
+                                                {streamingContent || '正在连接AI服务，请稍候...'}
                                             </div>
                                         )}
                                         {!showStreamLog && generatedEventData && (
-                                            <div style={{color: 'var(--color-text-1)'}}>✅ 日程已生成，表单已自动填充</div>
+                                            <div style={{color: 'var(--color-success-6)'}}>✅ 日程已生成</div>
                                         )}
                                     </div>
                                 )}
                             </div>
                         ) : null}
+
+                        {generatedEventData && !showEditForm && (
+                            <div style={{
+                                border: '1px solid var(--color-border)',
+                                borderRadius: '6px',
+                                padding: '16px',
+                                backgroundColor: 'var(--color-bg-1)'
+                            }}>
+                                <div style={{fontWeight: 700, fontSize: '16px', marginBottom: '10px'}}>📋 生成结果预览</div>
+                                <div style={{marginBottom: '8px'}}>
+                                    <div style={{fontWeight: 600}}>标题</div>
+                                    <div>{generatedEventData.title || '-'}</div>
+                                </div>
+                                <div style={{marginBottom: '8px'}}>
+                                    <div style={{fontWeight: 600}}>时间</div>
+                                    <div>
+                                        {generatedEventData.startTime ? dayjs(generatedEventData.startTime).format('YYYY-MM-DD HH:mm') : '-'}
+                                        {' '}~{' '}
+                                        {generatedEventData.endTime ? dayjs(generatedEventData.endTime).format('YYYY-MM-DD HH:mm') : '-'}
+                                    </div>
+                                </div>
+                                <div style={{marginBottom: '8px'}}>
+                                    <div style={{fontWeight: 600}}>状态 / 全天</div>
+                                    <div>
+                                        <Tag color={statusBadgeColorMap[generatedEventData.status || 'SCHEDULED']} size="small" style={{fontSize: '11px'}}>
+                                            {statusLabelMap[generatedEventData.status || 'SCHEDULED']}
+                                        </Tag>
+                                        {' '}
+                                        {generatedEventData.allDay ? <Tag color="blue" size="small">全天</Tag> : null}
+                                    </div>
+                                </div>
+                                {generatedEventData.description && (
+                                    <div style={{marginBottom: '8px'}}>
+                                        <div style={{fontWeight: 600}}>描述</div>
+                                        <div style={{whiteSpace: 'pre-wrap'}}>{generatedEventData.description}</div>
+                                    </div>
+                                )}
+                                <Space>
+                                    <Button
+                                        type="primary"
+                                        onClick={() => setShowEditForm(true)}
+                                    >
+                                        编辑
+                                    </Button>
+                                    <Button onClick={handleStreamGenerateEvent} disabled={isGenerating}>
+                                        重新生成
+                                    </Button>
+                                </Space>
+                            </div>
+                        )}
                     </div>
                 )}
-
+                {(isEditMode || showEditForm) && (
+                <>
+                {!isEditMode && generatedEventData && (
+                    <div style={{
+                        marginBottom: '12px',
+                        padding: '8px 12px',
+                        backgroundColor: 'var(--color-success-light-1)',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                    }}>
+                        <span style={{color: 'var(--color-success-6)', fontSize: '13px'}}>
+                            ✨ AI已为您生成日程，可直接保存或修改后保存
+                        </span>
+                        <Button 
+                            size="mini" 
+                            type="text"
+                            onClick={() => {
+                                setShowEditForm(false);
+                                setShowGeneratePanel(true);
+                                setGeneratedEventData(null);
+                            }}
+                        >
+                            重新生成
+                        </Button>
+                    </div>
+                )}
                 <Form ref={formRef} layout="vertical" className="modal-form">
                     <Form.Item
                         label="标题"
@@ -993,6 +1103,8 @@ function ScheduleManager() {
                         </Form.Item>
                     )}
                 </Form>
+                </>
+                )}
             </Modal>
 
             {/* 完成日程模态框 */}

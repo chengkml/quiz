@@ -121,7 +121,8 @@ public class LLMModel {
     public enum ModelType {
         TEXT,
         VISION,
-        VOICE
+        VOICE,
+        IMAGE
     }
 
     @PrePersist

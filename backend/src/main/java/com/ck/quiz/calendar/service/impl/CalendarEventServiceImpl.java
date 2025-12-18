@@ -14,6 +14,8 @@ import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -40,6 +42,8 @@ import java.util.Optional;
  */
 @Service
 public class CalendarEventServiceImpl implements CalendarEventService {
+
+    private static final Logger log = LoggerFactory.getLogger(CalendarEventServiceImpl.class);
 
     @Autowired
     private CalendarEventRepository calendarEventRepository;
@@ -236,8 +240,10 @@ public class CalendarEventServiceImpl implements CalendarEventService {
     }
 
     private String buildEventPrompt(String eventDescription) {
-        PromptTemplateDto promptTemplateDto = promptTemplateService.getPromptTemplateByName("eventGenerate");
+        PromptTemplateDto promptTemplateDto = promptTemplateService.getPromptTemplateByName("calendarEventGenerate");
         String targetPrompt = promptTemplateDto.getContent().replace("{{eventDescr}}", eventDescription);
+        String dateTime = LocalDateTime.now().toString();
+        targetPrompt = targetPrompt.replace("{{currentDateTime}}", dateTime);
         return targetPrompt;
     }
 
@@ -247,6 +253,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
         // 在新线程中执行生成并实时流式发送
         new Thread(() -> {
             ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.findAndRegisterModules(); // 自动注册所有可用的模块，包括 JavaTimeModule
             try {
                 // 查询模型配置
                 LLMModel model = resolveModel(null);
@@ -254,7 +261,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
                     try {
                         emitter.send("[ERROR]未找到指定的文本模型，请先在模型管理中配置模型");
                     } catch (Exception ex) {
-                        // ignore
+                        log.error("发送错误消息失败", ex);
                     }
                     emitter.completeWithError(new RuntimeException("未找到指定的文本模型，请先在模型管理中配置模型"));
                     return;
@@ -293,7 +300,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
                             try {
                                 emitter.send("[RETRY]第" + attempt + "次重试AI生成日程...");
                             } catch (Exception e) {
-                                // ignore
+                                log.error("发送重试消息失败", e);
                             }
                         }
 
@@ -326,7 +333,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
                             try {
                                 emitter.send("\n\n[PARSE_RESULT]\n");
                             } catch (Exception e) {
-                                // ignore
+                                log.error("发送解析结果分隔符失败", e);
                             }
 
                             // 推送解析结果
@@ -335,7 +342,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
                                 // 使用特殊前缀标记这是解析完毕的完整日程对象
                                 emitter.send("[EVENT]" + json);
                             } catch (Exception sendEx) {
-                                // 忽略发送错误
+                                log.error("发送解析结果失败", sendEx);
                             }
 
                             emitter.complete();
@@ -349,7 +356,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
                                 try {
                                     emitter.send("[RETRY]解析 JSON 失败，第" + (attempt + 1) + "次重试...");
                                 } catch (Exception e) {
-                                    // ignore
+                                    log.error("发送JSON解析失败重试消息失败", e);
                                 }
                                 try {
                                     Thread.sleep(retryDelayMs);
@@ -358,7 +365,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
                                     try {
                                         emitter.send("[ERROR]重试被中断: " + ie.getMessage());
                                     } catch (Exception ex) {
-                                        // ignore
+                                        log.error("发送重试被中断错误消息失败", ex);
                                     }
                                     emitter.completeWithError(new RuntimeException("重试被中断", ie));
                                     return;
@@ -380,7 +387,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
                                 try {
                                     emitter.send("[ERROR]重试被中断: " + ie.getMessage());
                                 } catch (Exception ex) {
-                                    // ignore
+                                    log.error("发送重试被中断错误消息失败", ex);
                                 }
                                 emitter.completeWithError(new RuntimeException("重试被中断", ie));
                                 return;
@@ -393,20 +400,21 @@ public class CalendarEventServiceImpl implements CalendarEventService {
                     try {
                         emitter.send("[ERROR]生成日程失败，重试次数已达上限: " + (lastException != null ? lastException.getMessage() : "未知错误"));
                     } catch (Exception ex) {
-                        // ignore
+                        log.error("发送重试次数达上限错误消息失败", ex);
                     }
                     emitter.completeWithError(new RuntimeException("生成日程失败，重试次数已达上限", lastException));
                 }
             } catch (Exception e) {
+                log.error("生成日程服务异常", e);
                 try {
                     emitter.send("[ERROR]服务异常: " + e.getMessage());
                 } catch (Exception ex) {
-                    // ignore
+                    log.error("发送服务异常错误消息失败", ex);
                 }
                 try {
                     emitter.completeWithError(e);
                 } catch (Exception ex) {
-                    // ignore
+                    log.error("完成SSE发送并返回错误失败", ex);
                 }
             }
         }).start();

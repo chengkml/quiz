@@ -1,6 +1,8 @@
 package com.ck.quiz.calendar.dto;
 
 import com.ck.quiz.calendar.entity.CalendarEvent;
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -37,12 +39,14 @@ public class CalendarEventCreateDto {
      * 开始时间
      */
     @NotNull(message = "开始时间不能为空")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime startTime;
 
     /**
      * 结束时间
      */
     @NotNull(message = "结束时间不能为空")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endTime;
 
     /**
