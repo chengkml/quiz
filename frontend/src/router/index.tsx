@@ -39,6 +39,7 @@ import OcrPage from "@/pages/Ocr";
 import WxAppManager from "@/pages/WxApp";
 import MdResolvePage from "@/pages/MdResolve";
 import MdConvertPage from "@/pages/MdConvert";
+import NotificationPage from "@/pages/Notification/Page";
 import { registerNavigationCallback, setupNavigationListeners } from "@/utils/navigationManager";
 import { useEffect } from "react";
 
@@ -204,6 +205,7 @@ const protectedPages = [
   { path: "mdresolve", element: <MdResolvePage />, requiredPath: "mdresolve" },
   { path: "mdconvert", element: <MdConvertPage />, requiredPath: "mdconvert" },
   { path: "wxapp", element: <WxAppManager />, requiredPath: "wxapp" },
+  { path: "notification", element: <NotificationPage />, requiredPath: "notification" },
 ];
 
 /**

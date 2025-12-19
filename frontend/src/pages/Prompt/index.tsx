@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {Button, Dropdown, Form, Grid, Input, Layout, Menu, Message, Popconfirm, Space, Table} from '@arco-design/web-react';
+import {Button, Dropdown, Form, Grid, Input, Layout, Menu, Message, Popconfirm, Space, Table, Pagination} from '@arco-design/web-react';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import {deletePromptTemplate, getPromptTemplateList} from './api';
 import AddPromptTemplateModal from './components/AddPromptTemplateModal';
@@ -13,23 +13,28 @@ const PromptTemplateManagement: React.FC = () => {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({
-        current: 1,
-        pageSize: 10,
-        total: 0
-    });
+            current: 1,
+            pageSize: 20,
+            total: 0,
+            showTotal: true,
+            showJumper: true,
+            showPageSize: true,
+        });
+    // 表格高度自适应
+    const [tableScrollHeight, setTableScrollHeight] = useState(420);
     const filterFormRef = useRef(null);
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [currentRecord, setCurrentRecord] = useState<any>(null);
 
     // 获取提示词模板列表
-    const fetchData = useCallback(async (params = {}) => {
+    const fetchData = useCallback(async (params = {}, page?: number, pageSize?: number) => {
         try {
             setLoading(true);
             const queryParams = {
                 ...params,
-                page: pagination.current,
-                pageSize: pagination.pageSize
+                page: page ?? pagination.current,
+                pageSize: pageSize ?? pagination.pageSize
             };
 
             const response = await getPromptTemplateList(queryParams);
@@ -37,6 +42,8 @@ const PromptTemplateManagement: React.FC = () => {
             setData(response.data?.content || response.data?.items || []);
             setPagination(prev => ({
                 ...prev,
+                current: queryParams.page,
+                pageSize: queryParams.pageSize,
                 total: response.data?.totalElements || response.data?.total || 0
             }));
         } catch (error) {
@@ -51,22 +58,29 @@ const PromptTemplateManagement: React.FC = () => {
         fetchData();
     }, [fetchData]);
 
-    // 处理分页变化
-    const handlePaginationChange = (page: number, pageSize: number) => {
-        setPagination(prev => ({
-            ...prev,
-            current: page,
-            pageSize
-        }));
-        // 获取过滤条件
+    // 高度自适应
+    useEffect(() => {
+        const calculateTableHeight = () => {
+            const windowHeight = window.innerHeight;
+            const otherElementsHeight = 250; // 预留顶部筛选等区域高度
+            const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+            setTableScrollHeight(newHeight);
+        };
+        calculateTableHeight();
+        const handleResize = () => calculateTableHeight();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // 处理分页变化（独立分页组件）
+    const handlePageChange = (page: number, pageSize: number) => {
         const formValues = filterFormRef.current?.getFieldsValue?.() || {};
-        fetchData(formValues);
+        fetchData(formValues, page, pageSize);
     };
 
     // 搜索表格数据
     const searchTableData = (params) => {
-        setPagination(prev => ({...prev, current: 1}));
-        fetchData(params);
+        fetchData(params, 1, pagination.pageSize);
     };
 
 
@@ -197,7 +211,7 @@ const PromptTemplateManagement: React.FC = () => {
     return (
         <div className="prompt-template-manager">
             <div className="content-wrapper">
-                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginBottom: 16}} onValuesChange={() => {
+                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
                     const values = filterFormRef.current?.getFieldsValue?.() || {};
                     searchTableData(values);
                 }}>
@@ -231,13 +245,17 @@ const PromptTemplateManagement: React.FC = () => {
                     columns={columns}
                     data={data}
                     loading={loading}
-                    pagination={{
-                        ...pagination,
-                        onChange: handlePaginationChange,
-                        showTotal: true
-                    }}
+                    scroll={{ y: tableScrollHeight }}
+                    pagination={false}
                     rowKey="id"
                 />
+                <div className="pagination-wrapper">
+                    <Pagination
+                        {...pagination}
+                        onChange={handlePageChange}
+                        showTotal
+                    />
+                </div>
             </div>
             <AddPromptTemplateModal
                 visible={addModalVisible}

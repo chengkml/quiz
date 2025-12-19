@@ -1,0 +1,53 @@
+.notification-page {
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+
+  .notification-container {
+    width: 100%;
+    max-width: 1080px;
+  }
+
+  .notification-card {
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .channel-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--color-fill-2);
+      color: var(--color-text-2);
+    }
+
+    .notification-form {
+      .arco-form-item-label {
+        font-weight: 500;
+      }
+      .arco-upload-list {
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .section-title {
+        display: inline-block;
+        margin-bottom: 8px;
+        color: var(--color-text-2);
+      }
+    }
+
+    .actions {
+      margin-top: 8px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+  }
+}
