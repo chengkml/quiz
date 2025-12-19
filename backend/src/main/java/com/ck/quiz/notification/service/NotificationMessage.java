@@ -14,4 +14,6 @@ public class NotificationMessage {
     private String to; // 手机号 / email / userId / URL
     private String title; // 邮件/浏览器消息标题
     private String content; // 渲染后的内容（短信内容等）
+    private String type;
+    private String senderId;
 }

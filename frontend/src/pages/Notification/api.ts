@@ -1,4 +1,4 @@
-import { request } from '@/utils/request';
+import axios from '@/core/src/http';
 
 export interface SendNotificationPayload {
   channel: 'SMS' | 'BROWSER' | 'EMAIL';
@@ -12,6 +12,19 @@ export interface SendNotificationPayload {
   attachments?: File[];
 }
 
+export interface UserOption {
+  userId: string;
+  userName: string;
+  email?: string;
+  phone?: string;
+  state?: string;
+}
+
+// 获取用户列表
+export const getUserList = (params?: { name?: string; state?: string; page?: number; size?: number }) => 
+  axios.get('/user/search', { params: { ...params, page: params?.page || 0, size: params?.size || 100 } }).then(res => res.data);
+
+// 发送通知
 export const sendNotification = (data: SendNotificationPayload) => {
   // 如果包含附件，使用 multipart/form-data
   if (data.attachments && data.attachments.length > 0) {
@@ -25,10 +38,10 @@ export const sendNotification = (data: SendNotificationPayload) => {
     if (data.cc) formData.append('cc', JSON.stringify(data.cc));
     if (data.bcc) formData.append('bcc', JSON.stringify(data.bcc));
     data.attachments.forEach((file) => formData.append('files', file));
-    return request.post('/notification/send', formData, {
+    return axios.post('/notification/send', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    }).then(res => res.data);
   }
   // 默认走 JSON
-  return request.post('/notification/send', data);
+  return axios.post('/notification/send', data).then(res => res.data);
 };

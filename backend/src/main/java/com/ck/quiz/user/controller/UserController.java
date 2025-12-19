@@ -86,8 +86,6 @@ public class UserController {
             @RequestParam(value = "size", defaultValue = "10") int size,
             @RequestParam(value = "sortBy", defaultValue = "create_date") String sortBy,
             @RequestParam(value = "sortDir", defaultValue = "desc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         return ResponseEntity.ok(userService.searchUsers(name, state, sortBy, sortDir, page, size));
     }
 

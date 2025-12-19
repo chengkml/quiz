@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Button, Dropdown, Layout, Menu, Message} from '@arco-design/web-react';
+import {Button, Dropdown, Layout, Menu, Message, Badge, Modal, List, Spin, Empty, Space, Tooltip, Avatar} from '@arco-design/web-react';
 import {Outlet, useLocation, useNavigate} from 'react-router-dom';
 import * as ArcoIcons from '@arco-design/web-react/icon';
 import {
@@ -13,11 +13,13 @@ import {
     IconSettings,
     IconStorage,
     IconUser,
+    IconEmail,
 } from '@arco-design/web-react/icon';
 import {MenuTreeDto} from '../../types/menu';
 import {useUser} from '@/contexts/UserContext';
 import {clearUserInfo} from '@/utils/userUtils';
 import {logoutUser} from '@/pages/User/api';
+import {getUnreadCount, getUnreadMessages, SystemMessageDto} from '@/pages/Notification/systemMessageApi';
 import './style.less';
 
 const {Content, Header, Sider} = Layout;
@@ -31,6 +33,10 @@ const AppLayout: React.FC = () => {
     const [collapsed, setCollapsed] = useState(false);
     const {user, logout, menuTree, loadMenuFromServer} = useUser();
     const [loading, setLoading] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [messageModalVisible, setMessageModalVisible] = useState(false);
+    const [messageList, setMessageList] = useState<SystemMessageDto[]>([]);
+    const [messageLoading, setMessageLoading] = useState(false);
 
     // 组件挂载时加载菜单（始终从服务器获取最新数据）
     useEffect(() => {
@@ -51,6 +57,25 @@ const AppLayout: React.FC = () => {
 
         loadUserMenus();
     }, [user?.userId, loadMenuFromServer]);
+
+    // 加载未读消息计数（无轮询）
+    useEffect(() => {
+        if (!user?.userId) {
+            setUnreadCount(0);
+            return;
+        }
+
+        const loadUnreadCount = async () => {
+            try {
+                const data = await getUnreadCount();
+                setUnreadCount(data?.unreadCount || 0);
+            } catch (error) {
+                console.error('Failed to load unread count:', error);
+            }
+        };
+
+        loadUnreadCount();
+    }, [user?.userId]);
 
     useEffect(() => {
         setOpenKeys(getOpenKeys());
@@ -245,6 +270,32 @@ const AppLayout: React.FC = () => {
         }
     };
 
+    // 处理消息按钮点击
+    const handleMessageClick = () => {
+        setMessageModalVisible(true);
+        loadUnreadMessages();
+    };
+
+    // 加载未读消息列表
+    const loadUnreadMessages = async () => {
+        setMessageLoading(true);
+        try {
+            const response = await getUnreadMessages(0, 10);
+            setMessageList(response?.content || []);
+        } catch (error) {
+            console.error('Failed to load unread messages:', error);
+            Message.error('加载消息失败');
+        } finally {
+            setMessageLoading(false);
+        }
+    };
+
+    // 查看全部消息
+    const handleViewAll = () => {
+        setMessageModalVisible(false);
+        navigate('/frame/systemmessage');
+    };
+
     // 处理修改密码
     const handleChangePassword = () => {
         Message.info('修改密码功能');
@@ -282,24 +333,115 @@ const AppLayout: React.FC = () => {
 
     return (
         <Layout className='app-layout'>
-            <Header style={{
+            <Header className="app-header" style={{
                 backgroundColor: '#fff',
                 padding: '10px 24px',
                 borderBottom: '1px solid #f0f0f0',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'flex-end'
+                justifyContent: 'space-between'
             }}>
-                <Dropdown droplist={userDropdownMenu} position="br">
-                    <Button
-                        type="text"
-                        icon={<IconUser/>}
-                        style={{display: 'flex', alignItems: 'center'}}
-                    >
-                        <span style={{marginLeft: 8}}>{user?.userName}</span>
-                    </Button>
-                </Dropdown>
+                <div></div>
+                <Space size={12} align="center" className="header-actions">
+                    <Tooltip content="系统消息" position="bottom">
+                        <Badge className="message-badge" count={unreadCount} maxCount={99} offset={[2, -2]}>
+                            <Button
+                                className="header-action-btn message-btn"
+                                type="text"
+                                icon={<IconEmail />}
+                                onClick={handleMessageClick}
+                            />
+                        </Badge>
+                    </Tooltip>
+                    <Tooltip position="bottom">
+                        <Dropdown droplist={userDropdownMenu} position="br">
+                            <Button className="header-action-btn user-btn" type="text">
+                                <Space size={8} align="center">
+                                    <Avatar size={24} shape="circle">
+                                        {(user?.userName || '?').charAt(0).toUpperCase()}
+                                    </Avatar>
+                                    <span className="user-name">{user?.userName}</span>
+                                </Space>
+                            </Button>
+                        </Dropdown>
+                    </Tooltip>
+                </Space>
             </Header>
+            
+            {/* 消息提醒Modal */}
+            <Modal
+                title="系统消息"
+                visible={messageModalVisible}
+                onOk={handleViewAll}
+                onCancel={() => setMessageModalVisible(false)}
+                okText="查看全部"
+                cancelText="关闭"
+            >
+                <Spin loading={messageLoading}>
+                    {messageList && messageList.length > 0 ? (
+                        <List
+                            dataSource={messageList}
+                            render={(item: SystemMessageDto) => (
+                                <List.Item key={item.id}>
+                                    <List.Item.Meta
+                                        title={
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span>{item.title}</span>
+                                                <span
+                                                    style={{
+                                                        display: 'inline-block',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '4px',
+                                                        fontSize: '12px',
+                                                        backgroundColor:
+                                                            item.type === 'SUCCESS'
+                                                                ? '#f6ffed'
+                                                                : item.type === 'WARNING'
+                                                                ? '#fffbe6'
+                                                                : item.type === 'ERROR'
+                                                                ? '#fff1f0'
+                                                                : '#f0f5ff',
+                                                        color:
+                                                            item.type === 'SUCCESS'
+                                                                ? '#52c41a'
+                                                                : item.type === 'WARNING'
+                                                                ? '#faad14'
+                                                                : item.type === 'ERROR'
+                                                                ? '#ff4d4f'
+                                                                : '#1890ff',
+                                                    }}
+                                                >
+                                                    {item.type}
+                                                </span>
+                                            </div>
+                                        }
+                                        description={
+                                            <div>
+                                                <div
+                                                    style={{
+                                                        color: '#999',
+                                                        fontSize: '12px',
+                                                        marginTop: '4px',
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                    }}
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: item.content?.substring(0, 100) || '',
+                                                    }}
+                                                />
+                                            </div>
+                                        }
+                                    />
+                                </List.Item>
+                            )}
+                        />
+                    ) : (
+                        <Empty description="暂无未读消息" />
+                    )}
+                </Spin>
+            </Modal>
+            
             <Layout style={{height:'calc(100% - 60px)'}}>
                 <Sider
                     collapsed={collapsed}

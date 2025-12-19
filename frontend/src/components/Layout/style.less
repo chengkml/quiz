@@ -33,3 +33,50 @@
     font-size: 14px;
   }
 }
+
+.app-header {
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-action-btn {
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    transition: background-color .2s ease;
+  }
+
+  .header-action-btn:hover {
+    background-color: var(--color-fill-2);
+  }
+
+  .message-btn .arco-icon {
+    font-size: 18px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .message-badge .arco-badge-number {
+    box-shadow: none;
+  }
+
+  .user-btn .user-name {
+    margin-left: 8px;
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 768px) {
+    .user-btn .user-name {
+      display: none;
+    }
+  }
+}
