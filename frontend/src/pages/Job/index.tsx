@@ -165,7 +165,7 @@ function JobManager() {
                         droplist={
                             <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}
                                   className="handle-dropdown-menu">
-                                {record.state !== 'SUCCESS' && record.state !== 'STOPPED' && record.state !== 'FAILED' && (
+                                {record.state === 'RUNNING' && (
                                     <Menu.Item key="stop">
                                         <IconStop style={{marginRight: 5}}/>
                                         停止
@@ -327,8 +327,8 @@ function JobManager() {
     useEffect(() => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
-            const otherElementsHeight = 240;
-            const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+            const otherElementsHeight = 250;
+            const newHeight = Math.max(100, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
         calculateTableHeight();

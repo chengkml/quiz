@@ -267,8 +267,8 @@ function CronTaskManager() {
   useEffect(() => {
     const calculateTableHeight = () => {
       const windowHeight = window.innerHeight;
-      const otherElementsHeight = 200;
-      const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+      const otherElementsHeight = 250;
+      const newHeight = Math.max(100, windowHeight - otherElementsHeight);
       setTableScrollHeight(newHeight);
     };
 

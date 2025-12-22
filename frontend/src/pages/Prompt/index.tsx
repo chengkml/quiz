@@ -63,7 +63,7 @@ const PromptTemplateManagement: React.FC = () => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
             const otherElementsHeight = 250; // 预留顶部筛选等区域高度
-            const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+            const newHeight = Math.max(100, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
         calculateTableHeight();

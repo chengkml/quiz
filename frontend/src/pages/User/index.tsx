@@ -503,8 +503,8 @@ function UserManager() {
     // 计算表格高度
     const calculateTableHeight = () => {
         const windowHeight = window.innerHeight;
-        const otherElementsHeight = 240;
-        const newHeight = Math.max(200, windowHeight - otherElementsHeight);
+        const otherElementsHeight = 250;
+        const newHeight = Math.max(100, windowHeight - otherElementsHeight);
         setTableScrollHeight(newHeight);
     };
 
