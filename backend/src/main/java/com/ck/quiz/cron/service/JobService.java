@@ -294,6 +294,7 @@ public class JobService {
         // 保存到 job
         Job job = new Job();
         job.setId(jobId);
+        jobDto.setId(jobId);
         job.setTaskClass(jobDto.getTaskClass());
         job.setTaskParams(jobDto.getTaskParams());
         job.setQueueName(jobDto.getQueueName());
@@ -301,6 +302,7 @@ public class JobService {
         job.setState("PENDING"); // 初始状态
         job.setCreateTime(LocalDateTime.now());
         jobRepository.save(job);
+        jobRepository.flush();
         if (StringUtils.isNotBlank(jobDto.getQueueName())) {
             // 保存到 pending_job
             PendingJob pendingJob = new PendingJob();
@@ -578,21 +580,11 @@ public class JobService {
             if (logFile.exists() && logFile.isFile()) {
                 // 异步线程读取日志并推送
                 CommonPool.cachedPool.execute(() -> {
-                    try (RandomAccessFile raf = new RandomAccessFile(logFile, "r")) {
-                        long pointer = 0;
-                        long fileLength = raf.length();
-                        if (fileLength < pointer) {
-                            // 文件被截断或重新生成，重置指针
-                            pointer = 0;
-                        }
-                        if (fileLength > pointer) {
-                            raf.seek(pointer);
-                            String line;
-                            while ((line = raf.readLine()) != null) {
-                                // 处理编码
-                                line = new String(line.getBytes("ISO-8859-1"), "UTF-8");
-                                logPushService.appendEmitterLog(emitter, line);
-                            }
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(new FileInputStream(logFile), "UTF-8"))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            logPushService.appendEmitterLog(emitter, line);
                         }
                     } catch (Exception e) {
                         log.error("实时推送日志异常 jobId={}：{}", jobId, ExceptionUtils.getStackTrace(e));

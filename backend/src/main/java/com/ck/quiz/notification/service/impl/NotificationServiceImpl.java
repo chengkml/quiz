@@ -33,7 +33,6 @@ public class NotificationServiceImpl implements NotificationService {
     public JobDto sendMessage(String userId, String title, String content, String type){
         JobDto job = new JobDto();
         job.setTaskClass("com.ck.quiz.cron.exec.NotificationJob");
-        job.setQueueName("msg_notification");
         Map<String, Object> jobParams = new HashMap<>();
         jobParams.put("channelType", "BROWSER");
         jobParams.put("to", userId);
@@ -50,6 +49,7 @@ public class NotificationServiceImpl implements NotificationService {
             throw new RuntimeException("转换任务参数为JSON失败", e);
         }
         job.setTaskParams(taskParamsJson);
+
         try {
             jobService.addJob(job);
         } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException

@@ -33,7 +33,7 @@ fi
 
 # 启动新进程（考虑依赖目录）
 echo "[$(date)] Starting $MAIN_CLASS on port $PORT ..."
-nohup java -cp "$JAR_FILE:$LIB_DIR/*" "$MAIN_CLASS" --server.port="$PORT" >> "$LOG_FILE" 2>&1 &
+nohup java -Dfile.encoding=UTF-8 -cp "$JAR_FILE:$LIB_DIR/*" "$MAIN_CLASS" --server.port="$PORT" >> "$LOG_FILE" 2>&1 &
 
 # 写入 PID 文件
 echo $! > "$PID_FILE"

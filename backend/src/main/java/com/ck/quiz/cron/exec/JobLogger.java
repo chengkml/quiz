@@ -36,6 +36,7 @@ public class JobLogger {
 
     static {
         LAYOUT_ENCODER.setPattern("%d{yyyy-MM-dd HH:mm:ss} %-5level%msg%n");
+        LAYOUT_ENCODER.setCharset(java.nio.charset.StandardCharsets.UTF_8);
         LAYOUT_ENCODER.setContext(((Logger) log).getLoggerContext());
         LAYOUT_ENCODER.start();
     }

@@ -95,3 +95,13 @@ export const deleteAllMessages = () =>
  */
 export const sendSystemMessage = (payload: SendSystemMessagePayload) =>
   axios.post('/api/system-message/send', payload).then(res => res.data);
+
+/**
+ * 实时获取消息发送日志（SSE）
+ */
+export const streamSendLogs = (jobId: string) => {
+  const token = localStorage.getItem('token');
+  const base = `/api/cron/job/logs/stream/${jobId}`;
+  const url = token ? `${base}?token=${encodeURIComponent(token)}` : base;
+  return new EventSource(url, { withCredentials: true });
+};

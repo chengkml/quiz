@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
-import { streamLogs, getLogs } from '../../api';
-import qs from "qs";
+import { streamSendLogs } from '../systemMessageApi';
 
-interface LogDetailsProps {
+interface LogViewerProps {
   jobId: string;
 }
 
-const LogDetails = (props: LogDetailsProps) => {
+const LogViewer: React.FC<LogViewerProps> = (props) => {
   const { jobId } = props;
-  const [value, setValue] = useState(''); // 初始内容
+  const [value, setValue] = useState(''); // 日志内容
   const eventSourceRef = useRef<EventSource | null>(null);
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -23,7 +22,7 @@ const LogDetails = (props: LogDetailsProps) => {
     }
 
     // 建立新的SSE连接
-    const eventSource = streamLogs(jobId);
+    const eventSource = streamSendLogs(jobId);
     eventSourceRef.current = eventSource;
 
     // 监听SSE事件
@@ -31,12 +30,12 @@ const LogDetails = (props: LogDetailsProps) => {
       try {
         const logs = JSON.parse(event.data);
         if (Array.isArray(logs)) {
-          const targetLogs = [];
-          logs.forEach(log=>{
-            if(log.endsWith('\n')) {
+          const targetLogs: string[] = [];
+          logs.forEach(log => {
+            if (log.endsWith('\n')) {
               targetLogs.push(log);
-            }else{
-              targetLogs.push(log+'\n');
+            } else {
+              targetLogs.push(log + '\n');
             }
           });
           // 如果是字符串数组，逐行追加
@@ -55,20 +54,13 @@ const LogDetails = (props: LogDetailsProps) => {
       console.error('SSE连接错误:', error);
       eventSource.close();
       eventSourceRef.current = null;
-      // 回退：拉取一次最新日志
-      // getLogs(jobId, { limit: 200, offset: 0 })
-      //   .then((res) => {
-      //     const logs = res?.data || res || [];
-      //     if (Array.isArray(logs)) {
-      //       setValue(logs.map((l) => (l.endsWith('\n') ? l : l + '\n')).join(''));
-      //     }
-      //   })
-      //   .catch(() => {});
     };
   };
 
   // 当jobId变化时，重新建立SSE连接
   useEffect(() => {
+    if (!jobId) return;
+    
     // 清空日志内容
     setValue('');
     // 建立新的连接
@@ -98,22 +90,22 @@ const LogDetails = (props: LogDetailsProps) => {
   }, [value]);
 
   return (
-      <div
-          ref={editorContainerRef}
-          style={{
-            height: '100%',
-            overflowY: 'auto',
-            border: '1px solid #ccc',
-          }}
-      >
-        <CodeMirror
-            value={value}
-            height="100%"
-            extensions={[javascript()]}
-            editable={false} // 只读
-        />
-      </div>
+    <div
+      ref={editorContainerRef}
+      style={{
+        height: '100%',
+        overflowY: 'auto',
+        border: '1px solid #ccc',
+      }}
+    >
+      <CodeMirror
+        value={value}
+        height="100%"
+        extensions={[javascript()]}
+        editable={false} // 只读
+      />
+    </div>
   );
 };
 
-export default LogDetails;
+export default LogViewer;

@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class JobDto {
 
+    private String id;
+
     @NotBlank(message = "任务执行类不能为空")
     private String taskClass;
 
