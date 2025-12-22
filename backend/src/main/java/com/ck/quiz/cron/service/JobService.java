@@ -4,14 +4,20 @@ import com.ck.quiz.cron.domain.Job;
 import com.ck.quiz.cron.domain.PendingJob;
 import com.ck.quiz.cron.dto.JobDto;
 import com.ck.quiz.cron.exec.AbstractAsyncJob;
+import com.ck.quiz.cron.exec.AbstractCronTask;
 import com.ck.quiz.cron.exec.AbstractJob;
 import com.ck.quiz.cron.exec.LocalScriptExecJob;
+import com.ck.quiz.cron.exec.NotificationJob;
 import com.ck.quiz.cron.exec.RemoteScriptExecJob;
 import com.ck.quiz.cron.repository.JobRepository;
 import com.ck.quiz.cron.repository.PendingJobRepository;
 import com.ck.quiz.seq.service.SeqService;
 import com.ck.quiz.thpool.CommonPool;
 import com.ck.quiz.utils.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
@@ -66,10 +72,12 @@ public class JobService {
     /**
      * 分页查询作业
      */
-    public Page<Map<String, Object>> searchJobs(int offset, int limit, String state, String taskClass, String queueName, String triggerType, String startTimeLt, String startTimeGt, String taskId, String keyWord) {
+    public Page<Map<String, Object>> searchJobs(int offset, int limit, String state, String taskClass, String queueName,
+            String triggerType, String startTimeLt, String startTimeGt, String taskId, String keyWord) {
         Map<String, Object> params = new HashMap<>();
 
-        StringBuilder listSql = new StringBuilder("select j.*,q.queue_label from job j left join job_queue q on j.queue_name = q.queue_name where 1=1 ");
+        StringBuilder listSql = new StringBuilder(
+                "select j.*,q.queue_label from job j left join job_queue q on j.queue_name = q.queue_name where 1=1 ");
         StringBuilder countSql = new StringBuilder("select count(*) from job j where 1=1 ");
 
         // 状态过滤
@@ -79,12 +87,14 @@ public class JobService {
 
         JdbcQueryHelper.equals("queueName", queueName, "and j.queue_name = :queueName ", params, listSql, countSql);
 
-        JdbcQueryHelper.equals("triggerType", triggerType, "and j.trigger_type = :triggerType ", params, listSql, countSql);
+        JdbcQueryHelper.equals("triggerType", triggerType, "and j.trigger_type = :triggerType ", params, listSql,
+                countSql);
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         if (StringUtils.isNotBlank(startTimeLt) && StringUtils.isNotBlank(startTimeGt)) {
             try {
-                JdbcQueryHelper.datetimeBetween("j.start_time", "startTimeGt", sdf.parse(startTimeGt), "startTimeLt", sdf.parse(startTimeLt), params, jt, listSql, countSql);
+                JdbcQueryHelper.datetimeBetween("j.start_time", "startTimeGt", sdf.parse(startTimeGt), "startTimeLt",
+                        sdf.parse(startTimeLt), params, jt, listSql, countSql);
             } catch (ParseException e) {
                 log.error("日期转换异常：{}", ExceptionUtils.getStackTrace(e));
             }
@@ -123,7 +133,6 @@ public class JobService {
     public Map<String, Object> getStatistics() {
         Map<String, Object> statistics = new HashMap<>();
 
-
         // 总作业数
         long totalJobs = jobRepository.count();
         statistics.put("totalJobs", totalJobs);
@@ -149,8 +158,7 @@ public class JobService {
                 "create_time",
                 "startTimeGt", startOfDay,
                 "startTimeLt", startOfNextDay,
-                params, jt, countSql, countSql
-        );
+                params, jt, countSql, countSql);
         Long todayJobs = jt.queryForObject(countSql.toString(), params, Long.class);
         statistics.put("todayJobs", todayJobs != null ? todayJobs : 0L);
 
@@ -184,7 +192,8 @@ public class JobService {
     /**
      * 分页查询排队作业
      */
-    public Page<Map<String, Object>> searchQueueJobs(int offset, int limit, String queueName, String taskId, String keyWord) {
+    public Page<Map<String, Object>> searchQueueJobs(int offset, int limit, String queueName, String taskId,
+            String keyWord) {
         Map<String, Object> params = new HashMap<>();
 
         StringBuilder listSql = new StringBuilder("select * from pending_job where 1=1 ");
@@ -197,7 +206,9 @@ public class JobService {
         JdbcQueryHelper.equals("taskId", taskId, "and task_id = :taskId ", params, listSql, countSql);
 
         // 关键字搜索
-        JdbcQueryHelper.lowerLike("keyWord", keyWord, "and (lower(task_id) like :keyWord or lower(queue_name) like :keyWord) ", params, jt, listSql, countSql);
+        JdbcQueryHelper.lowerLike("keyWord", keyWord,
+                "and (lower(task_id) like :keyWord or lower(queue_name) like :keyWord) ", params, jt, listSql,
+                countSql);
 
         // 排序
         listSql.append(" order by priority desc, push_time asc ");
@@ -237,7 +248,8 @@ public class JobService {
         job.setState("STOPPED");
         job.setEndTime(LocalDateTime.now());
         if (job.getStartTime() != null) {
-            job.setDurationMs(job.getEndTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - job.getStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            job.setDurationMs(job.getEndTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    - job.getStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         }
         jobRepository.save(job);
 
@@ -270,7 +282,8 @@ public class JobService {
     }
 
     @Transactional
-    public String addJob(JobDto jobDto) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public String addJob(JobDto jobDto)
+            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         Class<?> clazz = Class.forName(jobDto.getTaskClass());
         Object bean = SpringContextUtil.getBean(clazz);
         Method method = clazz.getMethod("getJobPreffix");
@@ -288,39 +301,58 @@ public class JobService {
         job.setState("PENDING"); // 初始状态
         job.setCreateTime(LocalDateTime.now());
         jobRepository.save(job);
-
-        // 保存到 pending_job
-        PendingJob pendingJob = new PendingJob();
-        pendingJob.setId(jobId); // 和 job 共用同一个 id
-        pendingJob.setTaskClass(jobDto.getTaskClass());
-        pendingJob.setTaskParams(jobDto.getTaskParams());
-        pendingJob.setTriggerType("HAND");
-        pendingJob.setPriority(jobDto.getPriority());
-        pendingJob.setQueueName(jobDto.getQueueName());
-        pendingJob.setPushTime(LocalDateTime.now());
-        pendingJobRepository.save(pendingJob);
+        if (StringUtils.isNotBlank(jobDto.getQueueName())) {
+            // 保存到 pending_job
+            PendingJob pendingJob = new PendingJob();
+            pendingJob.setId(jobId); // 和 job 共用同一个 id
+            pendingJob.setTaskClass(jobDto.getTaskClass());
+            pendingJob.setTaskParams(jobDto.getTaskParams());
+            pendingJob.setTriggerType("HAND");
+            pendingJob.setPriority(jobDto.getPriority());
+            pendingJob.setQueueName(jobDto.getQueueName());
+            pendingJob.setPushTime(LocalDateTime.now());
+            pendingJobRepository.save(pendingJob);
+        } else {
+            DynamicCronTaskScheduler.executor.execute(() -> {
+                try {
+                    // 更新任务表为RUNNING
+                    Map<String, Object> runningParams = new HashMap<>();
+                    runningParams.put("id", jobId);
+                    runningParams.put("state", "RUNNING");
+                    runningParams.put("startTime", new Date());
+                    jt.update("update job set state = :state, start_time = :startTime where id = :id", runningParams);
+                    Method fireMethod = clazz.getMethod("fire", String.class);
+                    fireMethod.invoke(bean, jobId);
+                } catch (Exception e) {
+                    log.error("定时任务反射异常:{}", ExceptionUtils.getStackTrace(e));
+                }
+            });
+        }
 
         return jobId;
     }
 
-    public List<Map<String, String>> getJobOptions() {
-        return Arrays.stream(new Class[]{LocalScriptExecJob.class, RemoteScriptExecJob.class})
-                .filter(clazz -> AbstractJob.class.isAssignableFrom(clazz) || AbstractAsyncJob.class.isAssignableFrom(clazz)) // 必须继承 AbstractJob
+    public List<Map<String, Object>> getJobOptions() {
+        return Arrays.stream(new Class[] { NotificationJob.class, LocalScriptExecJob.class, RemoteScriptExecJob.class })
+                .filter(clazz -> AbstractJob.class.isAssignableFrom(clazz)
+                        || AbstractAsyncJob.class.isAssignableFrom(clazz)) // 必须继承 AbstractJob
                 .filter(clazz -> !Modifier.isAbstract(clazz.getModifiers())) // 排除抽象类
                 .map(clazz -> {
                     try {
                         Object instance = clazz.getDeclaredConstructor().newInstance();
                         if (instance instanceof AbstractAsyncJob) {
                             AbstractAsyncJob job = (AbstractAsyncJob) instance;
-                            Map<String, String> option = new HashMap<>();
+                            Map<String, Object> option = new HashMap<>();
                             option.put("label", job.getJobLabel());
                             option.put("value", clazz.getName());
+                            option.put("paramDef", job.getParamDef());
                             return option;
                         }
                         AbstractJob job = (AbstractJob) instance;
-                        Map<String, String> option = new HashMap<>();
+                        Map<String, Object> option = new HashMap<>();
                         option.put("label", job.getJobLabel());
                         option.put("value", clazz.getName());
+                        option.put("paramDef", job.getParamDef());
                         return option;
                     } catch (Exception e) {
                         throw new RuntimeException("Failed to instantiate job class: " + clazz.getName(), e);
@@ -330,8 +362,9 @@ public class JobService {
     }
 
     public Map<String, String> getJobLabelMap() {
-        return Arrays.stream(new Class[]{})
-                .filter(clazz -> AbstractJob.class.isAssignableFrom(clazz) || AbstractAsyncJob.class.isAssignableFrom(clazz))
+        return Arrays.stream(new Class[] {})
+                .filter(clazz -> AbstractJob.class.isAssignableFrom(clazz)
+                        || AbstractAsyncJob.class.isAssignableFrom(clazz))
                 .filter(clazz -> !Modifier.isAbstract(clazz.getModifiers()))
                 .map(clazz -> {
                     try {
@@ -349,7 +382,6 @@ public class JobService {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-
     /**
      * 获取作业日志
      *
@@ -362,8 +394,10 @@ public class JobService {
         if (StringUtils.isBlank(jobId)) {
             throw new IllegalArgumentException("jobId 不能为空");
         }
-        if (limit <= 0) limit = 100;
-        if (offset < 0) offset = 0;
+        if (limit <= 0)
+            limit = 100;
+        if (offset < 0)
+            offset = 0;
 
         // 根据 jobId 查询 Job 实体，获取 logPath
         Optional<Job> optionalJob = jobRepository.findById(jobId);
@@ -397,7 +431,8 @@ public class JobService {
             // 读取 limit 行
             for (int i = 0; i < limit; i++) {
                 String line = reader.readLine();
-                if (line == null) break;
+                if (line == null)
+                    break;
                 result.add(line);
             }
         } catch (IOException e) {
@@ -406,7 +441,6 @@ public class JobService {
 
         return result;
     }
-
 
     /**
      * 导出作业日志到临时文件
@@ -451,7 +485,7 @@ public class JobService {
 
         // 拷贝日志内容到临时文件
         try (InputStream in = new FileInputStream(logFile);
-             OutputStream out = new FileOutputStream(tempFile)) {
+                OutputStream out = new FileOutputStream(tempFile)) {
             FileCopyUtils.copy(in, out);
         } catch (IOException e) {
             log.error("写入临时日志文件失败 jobId={}：{}", jobId, ExceptionUtils.getStackTrace(e));
@@ -460,8 +494,6 @@ public class JobService {
 
         return tempFile.getAbsolutePath();
     }
-
-
 
     public void exportLogs(String jobId, HttpServletResponse response) {
         String tempFilePath = exportLogsToFile(jobId);
@@ -481,7 +513,7 @@ public class JobService {
         response.setContentLengthLong(file.length());
 
         try (InputStream in = new BufferedInputStream(new FileInputStream(file));
-             OutputStream out = response.getOutputStream()) {
+                OutputStream out = response.getOutputStream()) {
             FileCopyUtils.copy(in, out);
             out.flush();
         } catch (IOException e) {
@@ -564,13 +596,13 @@ public class JobService {
                         }
                     } catch (Exception e) {
                         log.error("实时推送日志异常 jobId={}：{}", jobId, ExceptionUtils.getStackTrace(e));
-                    }finally {
-                        if(Arrays.asList("SUCCESS", "FAILED", "STOPPED").contains(job.getState())) {
+                    } finally {
+                        if (Arrays.asList("SUCCESS", "FAILED", "STOPPED").contains(job.getState())) {
                             try {
                                 Thread.sleep(1000);
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);
-                            }finally {
+                            } finally {
                                 logPushService.complete(jobId);
                             }
                         }
@@ -581,13 +613,12 @@ public class JobService {
                 logPushService.complete(jobId);
                 log.warn("日志文件不存在 jobId={}, path={}", jobId, logPath);
             }
-        }else{
+        } else {
             logPushService.complete(jobId);
         }
 
         // 2. 返回给前端
         return emitter;
     }
-
 
 }

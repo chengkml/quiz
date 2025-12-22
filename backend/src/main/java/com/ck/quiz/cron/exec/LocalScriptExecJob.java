@@ -94,4 +94,22 @@ public class LocalScriptExecJob extends AbstractJob {
 
         log.info("脚本执行成功，exitCode={}", exitCode);
     }
+
+    @Override
+    public Map<String, Object> getParamDef() {
+        return Map.of(
+                "cmd", Map.of(
+                        "label", "执行命令",
+                        "type", "string",
+                        "required", true,
+                        "placeholder", "请输入要执行的本地脚本命令，如 /path/to/script.sh"
+                ),
+                "args", Map.of(
+                        "label", "命令参数",
+                        "type", "array",
+                        "required", false,
+                        "placeholder", "请输入命令参数列表，如 [\"arg1\", \"arg2\"]"
+                )
+        );
+    }
 }

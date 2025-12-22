@@ -28,6 +28,8 @@ public abstract class AbstractAsyncJob {
 
     public abstract String getJobLabel();
 
+    public abstract Map<String, Object> getParamDef();
+
     public void fire(String jobId) {
         NamedParameterJdbcTemplate jt = SpringContextUtil.getBean(NamedParameterJdbcTemplate.class);
 

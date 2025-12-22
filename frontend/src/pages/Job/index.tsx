@@ -53,6 +53,9 @@ function JobManager() {
     const [logModalVisible, setLogModalVisible] = useState(false);
     const [currentJobId, setCurrentJobId] = useState<string>('');
 
+    // 动态参数定义
+    const [selectedParamDef, setSelectedParamDef] = useState<Record<string, any>>({});
+
     // 表单引用
     const addFormRef = useRef<any>(null);
     const filterFormRef = useRef<any>(null);
@@ -269,7 +272,48 @@ function JobManager() {
     const handleAddConfirm = async () => {
         try {
             const values = addFormRef.current?.getFieldsValue?.() || {};
-            await addJob(values);
+            const { taskClass, queueName, priority, ...rest } = values;
+
+            // 组装 taskParams
+            const paramObj: Record<string, any> = {};
+            Object.keys(selectedParamDef || {}).forEach((key) => {
+                const def = selectedParamDef[key] || {};
+                const fieldName = `params_${key}`;
+                let val = rest[fieldName];
+
+                if (def.type === 'number' && val !== undefined && val !== null && val !== '') {
+                    val = Number(val);
+                }
+
+                if (def.type === 'array') {
+                    if (Array.isArray(val)) {
+                        paramObj[key] = val;
+                    } else if (typeof val === 'string' && val.trim()) {
+                        try {
+                            const parsed = JSON.parse(val);
+                            paramObj[key] = Array.isArray(parsed) ? parsed : [parsed];
+                        } catch (e) {
+                            paramObj[key] = val
+                                .split(/[,\n]/)
+                                .map((s: string) => s.trim())
+                                .filter(Boolean);
+                        }
+                    } else {
+                        paramObj[key] = [];
+                    }
+                } else if (val !== undefined) {
+                    paramObj[key] = val;
+                }
+            });
+
+            const payload = {
+                taskClass,
+                queueName,
+                priority: priority ?? 0,
+                taskParams: JSON.stringify(paramObj || {}),
+            };
+
+            await addJob(payload);
             Message.success('新增作业成功');
             setAddModalVisible(false);
             // 刷新表格
@@ -277,6 +321,19 @@ function JobManager() {
             searchTableData(filterValues);
         } catch (error) {
             Message.error('新增作业失败');
+        }
+    };
+
+    const handleTaskClassChange = (value: string) => {
+        const option = jobOptions.find((opt: any) => opt.value === value);
+        setSelectedParamDef(option?.paramDef || {});
+
+        if (addFormRef.current) {
+            const resetValues: Record<string, any> = { taskClass: value };
+            Object.keys(selectedParamDef || {}).forEach((key) => {
+                resetValues[`params_${key}`] = undefined;
+            });
+            addFormRef.current.setFieldsValue(resetValues);
         }
     };
 
@@ -462,12 +519,12 @@ function JobManager() {
                         <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
                             <Form ref={addFormRef} layout="vertical" className="modal-form">
                                 <Form.Item
-                                    label="任务类名"
+                                    label="任务类型"
                                     field="taskClass"
-                                    rules={[{required: true, message: '请选择任务类名'}]}
+                                    rules={[{required: true, message: '请选择任务类型'}]}
                                 >
-                                    <Select placeholder="请选择任务类名">
-                                        {jobOptions.map(opt => (
+                                    <Select placeholder="请选择任务类型" onChange={handleTaskClassChange} allowClear>
+                                        {jobOptions.map((opt: any) => (
                                             <Option key={opt.value} value={opt.value}>{opt.label}</Option>
                                         ))}
                                     </Select>
@@ -475,21 +532,65 @@ function JobManager() {
                                 <Form.Item
                                     label="队列名称"
                                     field="queueName"
-                                    rules={[{required: true, message: '请选择队列'}]}
                                 >
-                                    <Select placeholder="请选择队列">
+                                    <Select placeholder="请选择队列" allowClear>
                                         {queueOptions.map(opt => (
                                             <Option key={opt.id}
                                                     value={opt.queueName}>{opt.queueLabel || opt.queueName}</Option>
                                         ))}
                                     </Select>
                                 </Form.Item>
-                                <Form.Item label="参数" field="taskParams">
-                                    <TextArea placeholder="请输入作业参数（JSON格式）"
-                                              autoSize={{minRows: 3, maxRows: 6}}/>
-                                </Form.Item>
-                                <Form.Item label="优先级" field="priority">
-                                    <InputNumber style={{width: '100%'}} min={0} max={10} defaultValue={0}/>
+                                {Object.keys(selectedParamDef || {}).map((key) => {
+                                    const def = selectedParamDef[key] || {};
+                                    const fieldName = `params_${key}`;
+                                    const requiredRule = def.required
+                                        ? [{ required: true, message: `请输入${def.label || key}` }]
+                                        : [];
+                                    if (def.type === 'number') {
+                                        return (
+                                            <Form.Item
+                                                key={key}
+                                                label={def.label || key}
+                                                field={fieldName}
+                                                rules={requiredRule}
+                                                initialValue={def.default}
+                                            >
+                                                <InputNumber
+                                                    style={{width: '100%'}}
+                                                    placeholder={def.placeholder || '请输入数字'}
+                                                />
+                                            </Form.Item>
+                                        );
+                                    }
+                                    if (def.type === 'array') {
+                                        return (
+                                            <Form.Item
+                                                key={key}
+                                                label={def.label || key}
+                                                field={fieldName}
+                                                rules={requiredRule}
+                                            >
+                                                <TextArea
+                                                    placeholder={def.placeholder || '请输入数组，支持JSON或逗号/换行分隔'}
+                                                    autoSize={{ minRows: 3, maxRows: 6 }}
+                                                />
+                                            </Form.Item>
+                                        );
+                                    }
+                                    return (
+                                        <Form.Item
+                                            key={key}
+                                            label={def.label || key}
+                                            field={fieldName}
+                                            rules={requiredRule}
+                                            initialValue={def.default}
+                                        >
+                                            <Input placeholder={def.placeholder || '请输入内容'} />
+                                        </Form.Item>
+                                    );
+                                })}
+                                <Form.Item label="优先级" field="priority" initialValue={0}>
+                                    <InputNumber style={{width: '100%'}} min={0} max={10}/>
                                 </Form.Item>
                             </Form>
                         </div>

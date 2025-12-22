@@ -124,4 +124,47 @@ public class RemoteScriptExecJob extends AbstractJob {
             }
         }
     }
+
+    @Override
+    public Map<String, Object> getParamDef() {
+        return Map.of(
+            "host", Map.of(
+                "label", "主机地址",
+                "type", "string",
+                "required", true,
+                "placeholder", "请输入远程主机地址，例如 192.168.1.100"
+            ),
+            "port", Map.of(
+                "label", "端口",
+                "type", "number",
+                "required", false,
+                "default", 22,
+                "placeholder", "SSH 端口，默认 22"
+            ),
+            "username", Map.of(
+                "label", "用户名",
+                "type", "string",
+                "required", true,
+                "placeholder", "请输入 SSH 登录用户名"
+            ),
+            "password", Map.of(
+                "label", "密码",
+                "type", "string",
+                "required", true,
+                "placeholder", "请输入 SSH 登录密码"
+            ),
+            "cmd", Map.of(
+                "label", "执行命令",
+                "type", "string",
+                "required", true,
+                "placeholder", "请输入要执行的远程命令，如 /path/to/script.sh"
+            ),
+            "args", Map.of(
+                "label", "命令参数",
+                "type", "array",
+                "required", false,
+                "placeholder", "请输入命令参数列表，如 [\"arg1\", \"arg2\"]"
+            )
+        );
+    }
 }
