@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Button, Grid, Layout, Message, Select, Spin } from '@arco-design/web-react';
-import { IconRefresh, IconCopy, IconDownload } from '@arco-design/web-react/icon';
+import { IconRefresh, IconCopy, IconDownload, IconFullscreen, IconShrink } from '@arco-design/web-react/icon';
 import mermaid from 'mermaid';
 import './index.less';
 
@@ -98,9 +98,12 @@ const MermaidEditor: React.FC = () => {
   const [code, setCode] = useState<string>(defaultExamples.flowchart);
   const [chartType, setChartType] = useState<string>('flowchart');
   const [downloadFormat, setDownloadFormat] = useState<string>('svg');
+  const [exportScale, setExportScale] = useState<number>(3);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editorHeight, setEditorHeight] = useState(420);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -165,6 +168,14 @@ const MermaidEditor: React.FC = () => {
 
   // 切换图表类型
   const handleChartTypeChange = (value: string) => {
+  // 监听全屏状态变化
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
     setChartType(value);
     setCode(defaultExamples[value as keyof typeof defaultExamples] || '');
   };
@@ -195,6 +206,33 @@ const MermaidEditor: React.FC = () => {
       return;
     }
 
+    // 计算图表尺寸，避免导出 JPG/PNG 时被裁剪
+    const resolveSvgSize = (svg: SVGSVGElement) => {
+      const widthAttr = svg.getAttribute('width');
+      const heightAttr = svg.getAttribute('height');
+      const viewBoxAttr = svg.getAttribute('viewBox');
+
+      let width = widthAttr ? parseFloat(widthAttr) : 0;
+      let height = heightAttr ? parseFloat(heightAttr) : 0;
+
+      if (viewBoxAttr) {
+        const [, , vbWidth, vbHeight] = viewBoxAttr.split(/\s+/).map(Number);
+        if (!width && vbWidth) width = vbWidth;
+        if (!height && vbHeight) height = vbHeight;
+      }
+
+      if ((!width || !height) && typeof svg.getBBox === 'function') {
+        const bbox = svg.getBBox();
+        width = width || bbox.width;
+        height = height || bbox.height;
+      }
+
+      return {
+        width: Math.max(Math.ceil(width), 1),
+        height: Math.max(Math.ceil(height), 1)
+      };
+    };
+
     if (downloadFormat === 'svg') {
       // 下载 SVG
       const svgData = new XMLSerializer().serializeToString(svgElement);
@@ -215,46 +253,71 @@ const MermaidEditor: React.FC = () => {
         return;
       }
 
-      const svgData = new XMLSerializer().serializeToString(svgElement);
-      // 使用 data URL 而不是 Blob URL 避免跨域问题
+      // 复制一份 SVG，补齐尺寸信息，避免输出时裁剪
+      const { width, height } = resolveSvgSize(svgElement);
+      const paddedWidth = width + 24; // 给导出图片增加适当留白
+      const paddedHeight = height + 24;
+      const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
+      clonedSvg.setAttribute('width', `${paddedWidth}`);
+      clonedSvg.setAttribute('height', `${paddedHeight}`);
+      if (!clonedSvg.getAttribute('viewBox')) {
+        clonedSvg.setAttribute('viewBox', `0 0 ${paddedWidth} ${paddedHeight}`);
+      }
+
+      const svgData = new XMLSerializer().serializeToString(clonedSvg);
+      // 使用 data URL 而不是 blob URL 避免 Canvas 污染
       const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
       const img = new Image();
 
       img.onload = () => {
-        // 设置画布大小（2倍分辨率以获得更好的质量）
-        canvas.width = img.width * 2;
-        canvas.height = img.height * 2;
-        ctx.scale(2, 2);
+        const scale = exportScale; // 提升导出清晰度
+        canvas.width = paddedWidth * scale;
+        canvas.height = paddedHeight * scale;
+        ctx.scale(scale, scale);
 
-        // 如果是 JPG，先填充白色背景
         if (downloadFormat === 'jpg') {
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, paddedWidth, paddedHeight);
 
-        // 转换为对应格式并下载
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            Message.error('图片生成失败');
-            return;
-          }
-          const downloadUrl = URL.createObjectURL(blob);
+        try {
+          const imageDataUrl = canvas.toDataURL(
+            `image/${downloadFormat === 'jpg' ? 'jpeg' : downloadFormat}`,
+            0.95
+          );
           const link = document.createElement('a');
-          link.href = downloadUrl;
+          link.href = imageDataUrl;
           link.download = `mermaid-${chartType}-${Date.now()}.${downloadFormat}`;
           link.click();
-          URL.revokeObjectURL(downloadUrl);
           Message.success(`${downloadFormat.toUpperCase()} 已下载`);
-        }, `image/${downloadFormat === 'jpg' ? 'jpeg' : downloadFormat}`, 0.95);
+        } catch (err) {
+          Message.error('导出失败：' + (err instanceof Error ? err.message : '未知错误'));
+        }
       };
 
       img.onerror = () => {
-        Message.error('图片生成失败');
+        Message.error('图片渲染失败，请尝试使用 SVG 格式导出');
       };
 
       img.src = dataUrl;
+    }
+  };
+
+  // 切换全屏
+  const handleToggleFullscreen = () => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+
+    if (!document.fullscreenElement) {
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else {
+        Message.warning('当前浏览器不支持全屏');
+      }
+    } else {
+      document.exitFullscreen?.();
     }
   };
 
@@ -345,12 +408,36 @@ const MermaidEditor: React.FC = () => {
                     ]}
                     style={{ width: 80 }}
                   />
+                  <Select
+                    size="small"
+                    value={exportScale}
+                    onChange={(val) => setExportScale(Number(val))}
+                    options={[
+                      { label: '1x', value: 1 },
+                      { label: '2x', value: 2 },
+                      { label: '3x', value: 3 },
+                      { label: '4x', value: 4 }
+                    ]}
+                    style={{ width: 80 }}
+                  />
+                  <Button
+                    size="small"
+                    type="outline"
+                    icon={isFullscreen ? <IconShrink /> : <IconFullscreen />}
+                    onClick={handleToggleFullscreen}
+                  >
+                    {isFullscreen ? '退出全屏' : '全屏'}
+                  </Button>
                   <Button size="small" type="primary" icon={<IconDownload />} onClick={handleDownload}>
                     下载
                   </Button>
                 </div>
               </div>
-              <div className="mermaid-preview-wrapper" style={{ height: editorHeight, flex: 1 }}>
+              <div
+                ref={previewContainerRef}
+                className={`mermaid-preview-wrapper ${isFullscreen ? 'fullscreen' : ''}`}
+                style={{ height: isFullscreen ? '100vh' : editorHeight, flex: 1 }}
+              >
                 <Spin loading={loading} style={{ display: 'block' }}>
                   <div 
                     ref={previewRef} 

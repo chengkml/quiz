@@ -17,6 +17,9 @@ import com.ck.quiz.utils.JdbcQueryHelper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+
+import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.ai.chat.client.ChatClient;
@@ -42,6 +45,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
 
+@Slf4j
 @Service
 public class DatasourceServiceImpl implements DatasourceService {
 
@@ -657,15 +661,38 @@ public class DatasourceServiceImpl implements DatasourceService {
                     }
 
                     // 填充 sheet
-                    Map<String, String> staticSource = new HashMap<>();
-                    List<Map<String, Object>> dynamicList = new ArrayList<>();
-                    Map<String, Object> dynamic = new HashMap<>();
-                    dynamic.put("loopId", "loop"); // 模板循环关键字
-                    dynamic.put("dataList", loopData);
-                    dynamicList.add(dynamic);
+                    if (sheet.getPhysicalNumberOfRows() == 0) {
+                        // 模板中不存在对应分类的 sheet，直接按键名输出简单表格，避免空 sheet 触发 NPE
+                        if (!loopData.isEmpty()) {
+                            // 表头
+                            Map<String, Object> headerSource = loopData.get(0);
+                            XSSFRow headerRow = sheet.createRow(0);
+                            int ci = 0;
+                            for (String key : headerSource.keySet()) {
+                                headerRow.createCell(ci++).setCellValue(key);
+                            }
 
-                    ExcelTemplateHelper.handleSheet(sheet, staticSource, dynamicList,
-                            ExcelTemplateHelper.getBorderStyle(workbook));
+                            // 数据行
+                            int ri = 1;
+                            for (Map<String, Object> rowData : loopData) {
+                                XSSFRow row = sheet.createRow(ri++);
+                                int cj = 0;
+                                for (Object val : rowData.values()) {
+                                    row.createCell(cj++).setCellValue(val == null ? "" : String.valueOf(val));
+                                }
+                            }
+                        }
+                    } else {
+                        Map<String, String> staticSource = new HashMap<>();
+                        List<Map<String, Object>> dynamicList = new ArrayList<>();
+                        Map<String, Object> dynamic = new HashMap<>();
+                        dynamic.put("loopId", "loop"); // 模板循环关键字
+                        dynamic.put("dataList", loopData);
+                        dynamicList.add(dynamic);
+
+                        ExcelTemplateHelper.handleSheet(sheet, staticSource, dynamicList,
+                                ExcelTemplateHelper.getBorderStyle(workbook));
+                    }
                 }
 
                 // 输出到响应
@@ -682,6 +709,7 @@ public class DatasourceServiceImpl implements DatasourceService {
             }
 
         } catch (Exception e) {
+            log.error("导出 Excel 文件失败", e);
             throw new RuntimeException("导出 Excel 文件失败: " + e.getMessage(), e);
         }
     }
