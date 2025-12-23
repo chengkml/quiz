@@ -43,7 +43,8 @@ public class NotificationController {
             jobs = notificationService.sendMessageToAll(
                     dto.getTitle(),
                     dto.getContent(),
-                    dto.getType()
+                    dto.getType(),
+                    dto.getChannel()
             );
         } else {
             // 发送给指定用户
@@ -51,7 +52,8 @@ public class NotificationController {
                     dto.getUserIds(),
                     dto.getTitle(),
                     dto.getContent(),
-                    dto.getType()
+                    dto.getType(),
+                    dto.getChannel()
             );
         }
         

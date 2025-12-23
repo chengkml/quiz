@@ -74,23 +74,30 @@ const defaultExamples = {
     "其他" : 64`,
   
   er: `erDiagram
-    用户 ||--o{ 订单 : 下单
-    订单 ||--|{ 订单明细 : 包含
-    订单明细 }o--|| 商品 : 关联
+    USER ||--o{ ORDER : places
+    ORDER ||--|{ ORDER_DETAIL : contains
+    ORDER_DETAIL }o--|| PRODUCT : references
     
-    用户 {
-        string id
-        string 姓名
-        string 邮箱
+    USER {
+        string id PK
+        string name "姓名"
+        string email "邮箱"
     }
-    订单 {
-        string 订单号
-        date 创建时间
+    ORDER {
+        string orderNo PK "订单号"
+        date createTime "创建时间"
+        string userId FK
     }
-    商品 {
-        string 商品编号
-        string 商品名称
-        float 价格
+    PRODUCT {
+        string productCode PK "商品编号"
+        string productName "商品名称"
+        float price "价格"
+    }
+    ORDER_DETAIL {
+        string id PK
+        string orderId FK
+        string productId FK
+        int quantity "数量"
     }`
 };
 
@@ -166,8 +173,6 @@ const MermaidEditor: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 切换图表类型
-  const handleChartTypeChange = (value: string) => {
   // 监听全屏状态变化
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -176,6 +181,9 @@ const MermaidEditor: React.FC = () => {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  // 切换图表类型
+  const handleChartTypeChange = (value: string) => {
     setChartType(value);
     setCode(defaultExamples[value as keyof typeof defaultExamples] || '');
   };

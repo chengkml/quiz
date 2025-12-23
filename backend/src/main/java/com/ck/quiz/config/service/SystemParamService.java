@@ -34,19 +34,9 @@ public interface SystemParamService {
     SystemParamDto getParamById(String id);
 
     /**
-     * 根据参数键查询参数
+     * 根据参数名查询参数
      */
-    SystemParamDto getParamByKey(String paramKey);
-
-    /**
-     * 根据参数键获取参数值
-     */
-    String getParamValue(String paramKey);
-
-    /**
-     * 根据参数键获取参数值，如果不存在返回默认值
-     */
-    String getParamValue(String paramKey, String defaultValue);
+    SystemParamDto getParamByName(String paramName);
 
     /**
      * 分页查询参数

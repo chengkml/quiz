@@ -24,7 +24,6 @@ export enum ParamStatus {
  */
 export interface SystemParamDto {
   id: string;
-  paramKey: string;
   paramName: string;
   paramValue: string;
   defaultValue: string;
@@ -45,7 +44,6 @@ export interface SystemParamDto {
  * 系统参数创建DTO
  */
 export interface SystemParamCreateDto {
-  paramKey: string;
   paramName: string;
   paramValue?: string;
   defaultValue?: string;
@@ -78,7 +76,6 @@ export interface SystemParamUpdateDto {
  * 系统参数查询参数
  */
 export interface SystemParamQueryDto {
-  paramKey?: string;
   paramName?: string;
   category?: string;
   status?: ParamStatus;

@@ -5,20 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * 系统参数数据访问层
  */
 @Repository
 public interface SystemParamRepository extends JpaRepository<SystemParam, String> {
-
-    /**
-     * 根据参数键查询
-     * @param paramKey 参数键
-     * @return 参数实体
-     */
-    Optional<SystemParam> findByParamKey(String paramKey);
 
     /**
      * 根据分类查询
@@ -41,4 +33,11 @@ public interface SystemParamRepository extends JpaRepository<SystemParam, String
      * @return 参数列表
      */
     List<SystemParam> findByCategoryAndStatus(String category, SystemParam.ParamStatus status);
+
+    /**
+     * 根据参数名查询
+     * @param paramName 参数名称
+     * @return 参数对象
+     */
+    java.util.Optional<SystemParam> findByParamName(String paramName);
 }

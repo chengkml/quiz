@@ -40,6 +40,7 @@ const NotificationPage: React.FC = () => {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [jobs, setJobs] = useState<JobInfo[]>([]);
   const [activeTab, setActiveTab] = useState<string>('');
+  const [channel, setChannel] = useState<string>('SYSTEM');
 
   // 获取用户列表
   useEffect(() => {
@@ -70,6 +71,7 @@ const NotificationPage: React.FC = () => {
         title: values.title || "",
         content: values.content || "",
         type: values.type || "INFO",
+        channel: values.channel || "SYSTEM",
       };
 
       setSending(true);
@@ -133,15 +135,38 @@ const NotificationPage: React.FC = () => {
                   <Divider style={{ margin: "12px 0" }} />
 
                   <Typography.Text className="section-title">
+                    发送渠道
+                  </Typography.Text>
+                  <Form.Item
+                    label="通知渠道"
+                    field="channel"
+                    initialValue="SYSTEM"
+                    rules={[{ required: true, message: "请选择通知渠道" }]}
+                  >
+                    <Select 
+                      placeholder="请选择通知渠道"
+                      onChange={(value) => setChannel(value)}
+                    >
+                      <Select.Option value="SYSTEM">系统消息</Select.Option>
+                      <Select.Option value="EMAIL">邮件</Select.Option>
+                      <Select.Option value="SMS">短信</Select.Option>
+                      <Select.Option value="WECHAT">微信</Select.Option>
+                    </Select>
+                  </Form.Item>
+
+                  <Divider style={{ margin: "12px 0" }} />
+
+                  <Typography.Text className="section-title">
                     接收人
                   </Typography.Text>
                   <Form.Item
-                    label="接收用户（留空表示发送给所有用户）"
+                    label={channel === 'SYSTEM' ? '接收用户（留空表示发送给所有用户）' : '接收用户'}
                     field="userIds"
+                    rules={channel !== 'SYSTEM' ? [{ required: true, message: "请选择接收用户" }] : []}
                   >
                     <Select
                       mode="multiple"
-                      placeholder="请选择接收用户，不选择则发送给所有用户"
+                      placeholder={channel === 'SYSTEM' ? '请选择接收用户，不选择则发送给所有用户' : '请选择接收用户'}
                       loading={loadingUsers}
                       showSearch
                       filterOption={(inputValue, option) => {
@@ -158,11 +183,24 @@ const NotificationPage: React.FC = () => {
                       }}
                       allowClear
                     >
-                      {userList.map((user) => (
-                        <Select.Option key={user.userId} value={user.userId}>
-                          {user.userName} ({user.userId})
-                        </Select.Option>
-                      ))}
+                      {userList
+                        .filter((user) => {
+                          // 根据渠道过滤用户：EMAIL渠道只显示有邮箱的用户，SMS渠道只显示有电话的用户
+                          if (channel === 'EMAIL') {
+                            return user.email && user.email.trim() !== '';
+                          }
+                          if (channel === 'SMS') {
+                            return user.phone && user.phone.trim() !== '';
+                          }
+                          return true;
+                        })
+                        .map((user) => (
+                          <Select.Option key={user.userId} value={user.userId}>
+                            {user.userName} ({user.userId})
+                            {channel === 'EMAIL' && user.email && ` - ${user.email}`}
+                            {channel === 'SMS' && user.phone && ` - ${user.phone}`}
+                          </Select.Option>
+                        ))}
                     </Select>
                   </Form.Item>
 

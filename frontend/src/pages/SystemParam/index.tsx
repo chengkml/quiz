@@ -13,13 +13,16 @@ import {
     Pagination,
     Select,
     Space,
+    Spin,
     Switch,
     Table,
     Tag,
+    Tree,
 } from '@arco-design/web-react';
 import {
     IconDelete,
     IconEdit,
+    IconList,
     IconPlus,
     IconRefresh,
     IconSearch,
@@ -34,6 +37,7 @@ import {
     resetParamToDefault,
 } from './api';
 import { SystemParamDto, ParamType, ParamStatus } from '@/types/systemParam';
+import Sider from '@arco-design/web-react/es/Layout/sider';
 
 const { Content } = Layout;
 const { TextArea } = Input;
@@ -53,6 +57,14 @@ function SystemParamManager() {
         showPageSize: true,
     });
     const [tableScrollHeight, setTableScrollHeight] = useState(420);
+
+    // 左侧树相关状态
+    const [categoryTree, setCategoryTree] = useState<any[]>([]);
+    const [filteredCategoryTree, setFilteredCategoryTree] = useState<any[]>([]);
+    const [treeLoading, setTreeLoading] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
+    const [searchKeyword, setSearchKeyword] = useState('');
 
     // 当前记录与弹窗
     const [currentRecord, setCurrentRecord] = useState<SystemParamDto | null>(null);
@@ -106,12 +118,6 @@ function SystemParamManager() {
     // 表格列定义
     const columns = [
         {
-            title: '参数键',
-            dataIndex: 'paramKey',
-            width: 200,
-            ellipsis: true,
-        },
-        {
             title: '参数名称',
             dataIndex: 'paramName',
             width: 200,
@@ -130,33 +136,23 @@ function SystemParamManager() {
             },
         },
         {
-            title: '类型',
-            dataIndex: 'paramType',
-            width: 100,
-            align: 'center',
-            render: (type: string) => {
-                const map: Record<string, { label: string; color: string }> = {
-                    STRING: { label: '字符串', color: 'blue' },
-                    NUMBER: { label: '数字', color: 'green' },
-                    BOOLEAN: { label: '布尔', color: 'purple' },
-                    JSON: { label: 'JSON', color: 'orange' },
-                    LIST: { label: '列表', color: 'cyan' },
-                };
-                const item = map[type] || { label: type, color: 'gray' };
-                return <Tag color={item.color} bordered>{item.label}</Tag>;
-            },
-        },
-        {
             title: '分类',
             dataIndex: 'category',
             width: 120,
             ellipsis: true,
         },
         {
+            title: '描述',
+            dataIndex: 'description',
+            width: 250,
+            ellipsis: true,
+            render: (value: string) => value || '-',
+        },
+        {
             title: '状态',
             dataIndex: 'status',
             width: 100,
-            align: 'center',
+            align: 'center' as const,
             render: (status: string) => {
                 const map: Record<string, { label: string; color: string }> = {
                     ACTIVE: { label: '启用', color: 'green' },
@@ -167,52 +163,49 @@ function SystemParamManager() {
             },
         },
         {
-            title: '只读',
-            dataIndex: 'isReadonly',
-            width: 80,
-            align: 'center',
-            render: (readonly: boolean) => readonly ? <Tag color="red">是</Tag> : <Tag>否</Tag>,
-        },
-        {
-            title: '更新时间',
-            dataIndex: 'updateDate',
-            width: 180,
-            render: (value: string) => formatDateTime(value),
-        },
-        {
             title: '操作',
             width: 100,
-            align: 'center',
+            align: 'center' as const,
             fixed: 'right' as any,
             render: (_: any, record: SystemParamDto) => (
-                <Space size="large" className="table-btn-group">
-                    <Dropdown
-                        position="bl"
-                        droplist={
-                            <Menu onClickMenuItem={(key) => handleMenuClick(key, _, record)}>
-                                {!record.isReadonly && (
-                                    <Menu.Item key="edit">
-                                        <IconEdit /> 编辑
-                                    </Menu.Item>
-                                )}
-                                {!record.isReadonly && (
-                                    <Menu.Item key="reset">
-                                        <IconUndo /> 重置
-                                    </Menu.Item>
-                                )}
-                                {!record.isReadonly && (
-                                    <Menu.Item key="delete">
-                                        <IconDelete /> 删除
-                                    </Menu.Item>
-                                )}
-                            </Menu>
-                        }
+                <Dropdown
+                    position="bl"
+                    droplist={
+                        <Menu 
+                            onClickMenuItem={(key) => handleMenuClick(key, _, record)}
+                            className="handle-dropdown-menu"
+                        >
+                            {!record.isReadonly && (
+                                <Menu.Item key="edit">
+                                    <IconEdit style={{ marginRight: '5px' }} />
+                                    编辑
+                                </Menu.Item>
+                            )}
+                            {!record.isReadonly && (
+                                <Menu.Item key="reset">
+                                    <IconUndo style={{ marginRight: '5px' }} />
+                                    重置
+                                </Menu.Item>
+                            )}
+                            {!record.isReadonly && (
+                                <Menu.Item key="delete">
+                                    <IconDelete style={{ marginRight: '5px' }} />
+                                    删除
+                                </Menu.Item>
+                            )}
+                        </Menu>
+                    }
+                >
+                    <Button
+                        type="text"
+                        className="more-btn"
+                        onClick={e => {
+                            e.stopPropagation();
+                        }}
                     >
-                        <Button type="text" size="small">
-                            操作
-                        </Button>
-                    </Dropdown>
-                </Space>
+                        <IconList />
+                    </Button>
+                </Dropdown>
             ),
         },
     ];
@@ -222,8 +215,15 @@ function SystemParamManager() {
         setCurrentRecord(record);
         switch (key) {
             case 'edit':
-                editFormRef.current?.setFieldsValue(record);
+                // 使用 setTimeout 确保 modal 打开后再设置表单值
                 setEditModalVisible(true);
+                setTimeout(() => {
+                    editFormRef.current?.setFieldsValue({
+                        ...record,
+                        isEncrypted: record.isEncrypted,
+                        isReadonly: record.isReadonly,
+                    });
+                }, 0);
                 break;
             case 'reset':
                 Modal.confirm({
@@ -269,12 +269,16 @@ function SystemParamManager() {
         try {
             setTableLoading(true);
             const response = await searchParams(params);
-            setTableData(response.content || []);
+            console.log('API Response:', response);
+            const data = response.data || response; // 兼容不同的响应格式
+            console.log('Table Data:', data.content);
+            setTableData(data.content || []);
             setPagination(prev => ({
                 ...prev,
-                total: response.totalElements || 0,
+                total: data.totalElements || 0,
             }));
         } catch (error) {
+            console.error('获取参数数据失败:', error);
             Message.error('获取参数数据失败');
         } finally {
             setTableLoading(false);
@@ -292,6 +296,70 @@ function SystemParamManager() {
             page: 0,
             size: pagination.pageSize,
         });
+    };
+
+    // 构建分类树
+    const buildCategoryTree = (data: SystemParamDto[]) => {
+        const categoryMap = new Map<string, any>();
+        const allCategory = { key: 'all', title: '全部分类', children: [] };
+
+        data.forEach(item => {
+            if (item.category) {
+                if (!categoryMap.has(item.category)) {
+                    categoryMap.set(item.category, {
+                        key: item.category,
+                        title: item.category,
+                        count: 1,
+                    });
+                } else {
+                    const node = categoryMap.get(item.category);
+                    node.count++;
+                }
+            }
+        });
+
+        const treeData = [allCategory, ...Array.from(categoryMap.values())];
+        setCategoryTree(treeData);
+        setFilteredCategoryTree(treeData);
+        setExpandedKeys(['all']);
+    };
+
+    // 搜索分类树
+    const handleSearchChange = (value: string) => {
+        setSearchKeyword(value);
+        if (!value) {
+            setFilteredCategoryTree(categoryTree);
+            return;
+        }
+
+        const filterTree = (nodes: any[]): any[] => {
+            return nodes.filter(node => {
+                const match = node.title.toLowerCase().includes(value.toLowerCase());
+                if (node.children) {
+                    node.children = filterTree(node.children);
+                    return match || node.children.length > 0;
+                }
+                return match;
+            });
+        };
+
+        setFilteredCategoryTree(filterTree([...categoryTree]));
+    };
+
+    // 获取所有分类用于构建树
+    const fetchAllParamsForTree = async () => {
+        setTreeLoading(true);
+        try {
+            const response = await searchParams({ page: 0, size: 1000 });
+            const data = response.data || response; // 兼容不同的响应格式
+            if (data.content) {
+                buildCategoryTree(data.content);
+            }
+        } catch (error) {
+            console.error('获取分类数据失败:', error);
+        } finally {
+            setTreeLoading(false);
+        }
     };
 
     // 新增按钮点击
@@ -357,7 +425,9 @@ function SystemParamManager() {
 
         // 默认查询所有参数
         const defaultParams = { page: 0, size: pagination.pageSize };
+        console.log('初始化加载，参数:', defaultParams);
         fetchTableData(defaultParams);
+        fetchAllParamsForTree();
 
         const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
@@ -367,6 +437,74 @@ function SystemParamManager() {
     return (
         <div className="system-param-manager">
             <Layout>
+                <Sider
+                    resizeDirections={['right']}
+                    style={{
+                        minWidth: 200,
+                        maxWidth: 400,
+                        height: '100%',
+                        backgroundColor: '#fff',
+                        borderRight: '1px solid #e5e6eb',
+                    }}
+                >
+                    <div style={{ padding: '12px', borderBottom: '1px solid #e5e6eb' }}>
+                        <Input.Search
+                            placeholder="搜索分类"
+                            allowClear
+                            style={{ width: '100%' }}
+                            value={searchKeyword}
+                            onChange={(value) => {
+                                handleSearchChange(value);
+                            }}
+                        />
+                    </div>
+                    <div style={{ padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto' }}>
+                        <Spin loading={treeLoading}>
+                            {filteredCategoryTree.length > 0 ? (
+                                <Tree
+                                    treeData={filteredCategoryTree}
+                                    expandedKeys={expandedKeys}
+                                    selectedKeys={selectedCategory ? [selectedCategory] : []}
+                                    onExpand={(keys) => {
+                                        setExpandedKeys(keys as string[]);
+                                    }}
+                                    onSelect={(selectedKeys) => {
+                                        if (selectedKeys.length > 0) {
+                                            const key = selectedKeys[0] as string;
+                                            setSelectedCategory(key);
+                                            const params = filterFormRef.current?.getFieldsValue?.() || {};
+                                            if (key === 'all') {
+                                                delete params.category;
+                                            } else {
+                                                params.category = key;
+                                            }
+                                            searchTableData(params);
+                                        } else {
+                                            setSelectedCategory(null);
+                                            const params = filterFormRef.current?.getFieldsValue?.() || {};
+                                            delete params.category;
+                                            searchTableData(params);
+                                        }
+                                    }}
+                                    blockNode
+                                    showLine
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                    }}
+                                />
+                            ) : (
+                                <div style={{
+                                    textAlign: 'center',
+                                    color: '#86909c',
+                                    padding: '20px 0',
+                                    fontSize: '14px'
+                                }}>
+                                    暂无数据
+                                </div>
+                            )}
+                        </Spin>
+                    </div>
+                </Sider>
                 <Content>
                     {/* 筛选表单 */}
                     <Form
@@ -377,12 +515,7 @@ function SystemParamManager() {
                     >
                         <Row gutter={16}>
                             <Col span={6}>
-                                <Form.Item field="paramKey" label="参数键">
-                                    <Input placeholder="请输入参数键" allowClear />
-                                </Form.Item>
-                            </Col>
-                            <Col span={6}>
-                                <Form.Item field="paramName" label="参数名称">
+                                <Form.Item field="paramName" label="名称">
                                     <Input placeholder="请输入参数名称" allowClear />
                                 </Form.Item>
                             </Col>
@@ -413,14 +546,17 @@ function SystemParamManager() {
                     </Form>
 
                     {/* 表格 */}
-                    <Table
-                        columns={columns}
-                        data={tableData}
-                        loading={tableLoading}
-                        pagination={false}
-                        scroll={{ y: tableScrollHeight }}
-                        rowKey="id"
-                    />
+                    <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                        {console.log('渲染表格，数据长度:', tableData.length, '数据:', tableData)}
+                        <Table
+                            columns={columns}
+                            data={tableData}
+                            loading={tableLoading}
+                            pagination={false}
+                            scroll={{ y: tableScrollHeight }}
+                            rowKey="id"
+                        />
+                    </div>
 
                     {/* 分页 */}
                     <div className="pagination-wrapper">
@@ -439,16 +575,10 @@ function SystemParamManager() {
                             setAddModalVisible(false);
                             addFormRef.current?.resetFields?.();
                         }}
-                        width={600}
+                        style={{width: '600px'}}
                     >
-                        <Form ref={addFormRef} layout="vertical" className="modal-form">
-                            <Form.Item
-                                label="参数键"
-                                field="paramKey"
-                                rules={[{ required: true, message: '请输入参数键' }]}
-                            >
-                                <Input placeholder="请输入参数键（唯一标识）" />
-                            </Form.Item>
+                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                            <Form ref={addFormRef} layout="vertical" className="modal-form">
                             <Form.Item
                                 label="参数名称"
                                 field="paramName"
@@ -503,6 +633,7 @@ function SystemParamManager() {
                                 <InputNumber style={{ width: '100%' }} min={0} />
                             </Form.Item>
                         </Form>
+                        </div>
                     </Modal>
 
                     {/* 编辑对话框 */}
@@ -511,9 +642,10 @@ function SystemParamManager() {
                         visible={editModalVisible}
                         onOk={handleEditConfirm}
                         onCancel={() => setEditModalVisible(false)}
-                        width={600}
+                        style={{width: '600px'}}
                     >
-                        <Form ref={editFormRef} layout="vertical" className="modal-form">
+                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+                            <Form ref={editFormRef} layout="vertical" className="modal-form">
                             <Form.Item
                                 label="参数名称"
                                 field="paramName"
@@ -535,12 +667,12 @@ function SystemParamManager() {
                             </Form.Item>
                             <Row gutter={16}>
                                 <Col span={12}>
-                                    <Form.Item label="是否加密" field="isEncrypted">
+                                    <Form.Item label="是否加密" field="isEncrypted" triggerPropName="checked">
                                         <Switch />
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>
-                                    <Form.Item label="是否只读" field="isReadonly">
+                                    <Form.Item label="是否只读" field="isReadonly" triggerPropName="checked">
                                         <Switch />
                                     </Form.Item>
                                 </Col>
@@ -556,6 +688,7 @@ function SystemParamManager() {
                                 <InputNumber style={{ width: '100%' }} min={0} />
                             </Form.Item>
                         </Form>
+                        </div>
                     </Modal>
 
                     {/* 删除确认 */}

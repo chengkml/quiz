@@ -30,12 +30,37 @@ public class NotificationServiceImpl implements NotificationService {
     private JobService jobService;
 
     @Override
-    public JobDto sendMessage(String userId, String title, String content, String type){
+    public JobDto sendMessage(String userId, String title, String content, String type, String channel){
         JobDto job = new JobDto();
         job.setTaskClass("com.ck.quiz.cron.exec.NotificationJob");
+        
+        // 根据channel类型获取正确的接收人信息
+        String to = userId;
+        if ("EMAIL".equals(channel) || "SMS".equals(channel)) {
+            var user = userRepository.findById(userId).orElse(null);
+            if (user != null) {
+                if ("EMAIL".equals(channel)) {
+                    to = user.getEmail();
+                    if (to == null || to.isEmpty()) {
+                        log.warn("用户 {} 没有邮箱地址，跳过发送", userId);
+                        return null;
+                    }
+                } else if ("SMS".equals(channel)) {
+                    to = user.getPhone();
+                    if (to == null || to.isEmpty()) {
+                        log.warn("用户 {} 没有电话号码，跳过发送", userId);
+                        return null;
+                    }
+                }
+            } else {
+                log.warn("用户 {} 不存在，跳过发送", userId);
+                return null;
+            }
+        }
+        
         Map<String, Object> jobParams = new HashMap<>();
-        jobParams.put("channelType", "BROWSER");
-        jobParams.put("to", userId);
+        jobParams.put("channelType", channel);
+        jobParams.put("to", to);
         jobParams.put("title", title);
         jobParams.put("content", content);
         jobParams.put("type", type);
@@ -61,21 +86,23 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public List<JobDto> sendMessageBatch(List<String> userIds, String title, String content, String type) {
+    public List<JobDto> sendMessageBatch(List<String> userIds, String title, String content, String type, String channel) {
         List<JobDto> jobs = new ArrayList<>();
         for (String userId : userIds) {
-            JobDto job = sendMessage(userId, title, content, type);
-            jobs.add(job);
+            JobDto job = sendMessage(userId, title, content, type, channel);
+            if (job != null) {
+                jobs.add(job);
+            }
         }
         return jobs;
     }
 
     @Override
-    public List<JobDto> sendMessageToAll(String title, String content, String type) {
+    public List<JobDto> sendMessageToAll(String title, String content, String type, String channel) {
         List<String> userIds = userRepository.findAll().stream()
                 .map(u -> u.getUserId())
                 .collect(Collectors.toList());
-        return sendMessageBatch(userIds, title, content, type);
+        return sendMessageBatch(userIds, title, content, type, channel);
     }
     
 }

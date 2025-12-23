@@ -72,29 +72,14 @@ public class SystemParamController {
     }
 
     /**
-     * 根据参数键查询参数
+     * 根据参数名查询参数
      */
-    @GetMapping("/key/{paramKey}")
-    public Map<String, Object> getParamByKey(@PathVariable String paramKey) {
-        SystemParamDto dto = paramService.getParamByKey(paramKey);
+    @GetMapping("/name/{paramName}")
+    public Map<String, Object> getParamByName(@PathVariable String paramName) {
+        SystemParamDto dto = paramService.getParamByName(paramName);
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         result.put("data", dto);
-        return result;
-    }
-
-    /**
-     * 根据参数键获取参数值
-     */
-    @GetMapping("/value/{paramKey}")
-    public Map<String, Object> getParamValue(@PathVariable String paramKey,
-                                             @RequestParam(required = false) String defaultValue) {
-        String value = defaultValue != null 
-                ? paramService.getParamValue(paramKey, defaultValue)
-                : paramService.getParamValue(paramKey);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("data", value);
         return result;
     }
 

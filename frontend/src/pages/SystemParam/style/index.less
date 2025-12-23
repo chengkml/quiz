@@ -1,49 +1,88 @@
 .system-param-manager {
-  padding: 16px;
-  background-color: #f7f8fa;
-  min-height: 100vh;
+  box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+  overflow: hidden;
+  background: var(--background-color-base);
+  height: 100%;
 
-  .filter-form {
-    background-color: #ffffff;
-    padding: 16px;
-    border-radius: 4px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
+  .arco-layout {
+        margin: 10px;
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        height: calc(100% - 20px);
+        width: calc(100% - 20px);
+        
+        .arco-layout-content {
+            overflow: hidden;
+            background-color: #fff;
+            border-radius: 8px;
+            padding-left: 10px;
+            height: 100%;
+            width: 100%;
+        }
+    }
 
-  .arco-table-wrapper {
-    background-color: #ffffff;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-
-  .pagination-wrapper {
+  // 操作按钮样式
+  .action-buttons {
     display: flex;
-    justify-content: flex-end;
-    padding: 16px;
-    background-color: #ffffff;
-    margin-top: 16px;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    gap: 8px;
+    align-items: center;
+    background: var(--color-white);
+    margin-bottom: 16px;
   }
 
   .table-btn-group {
-    .arco-btn-text {
-      padding: 0;
-      height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .pagination-wrapper {
+    padding: 12px 16px;
+    background: var(--color-white);
+    display: flex;
+    justify-content: flex-end;
+    z-index: 10;
+    position: absolute;
+    bottom: 13px;
+    right: 22px;
+  }
+
+  .handle-dropdown-menu {
+    min-width: 120px;
+    
+    .arco-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &:hover {
+        background-color: var(--color-fill-2);
+      }
     }
   }
 
+  .more-btn {
+    color: var(--color-text-3);
+
+    &:hover {
+      color: var(--color-primary-6);
+      background-color: var(--color-primary-light-1);
+    }
+  }
+
+  .arco-modal .arco-modal-title {
+    font-weight: 500;
+  }
+
   .modal-form {
-    .arco-form-item {
-      margin-bottom: 16px;
+    .arco-form-item-label {
+      font-weight: 400;
     }
   }
 
   .delete-modal {
-    padding: 20px 0;
-    text-align: center;
-    font-size: 14px;
-    color: #4e5969;
+    color: #e33b3b;
   }
 }

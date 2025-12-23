@@ -37,11 +37,6 @@ public class SystemParamServiceImpl implements SystemParamService {
 
     @Override
     public SystemParamDto createParam(SystemParamCreateDto createDto) {
-        // 检查参数键是否已存在
-        if (paramRepository.findByParamKey(createDto.getParamKey()).isPresent()) {
-            throw new RuntimeException("参数键已存在: " + createDto.getParamKey());
-        }
-
         SystemParam param = new SystemParam();
         BeanUtils.copyProperties(createDto, param);
         param.setId(IdHelper.genUuid());
@@ -126,25 +121,10 @@ public class SystemParamServiceImpl implements SystemParamService {
 
     @Override
     @Transactional(readOnly = true)
-    public SystemParamDto getParamByKey(String paramKey) {
-        SystemParam param = paramRepository.findByParamKey(paramKey)
-                .orElseThrow(() -> new RuntimeException("参数不存在: " + paramKey));
+    public SystemParamDto getParamByName(String paramName) {
+        SystemParam param = paramRepository.findByParamName(paramName)
+                .orElseThrow(() -> new RuntimeException("参数不存在: " + paramName));
         return convertToDto(param);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public String getParamValue(String paramKey) {
-        return paramRepository.findByParamKey(paramKey)
-                .map(SystemParam::getParamValue)
-                .orElse(null);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public String getParamValue(String paramKey, String defaultValue) {
-        String value = getParamValue(paramKey);
-        return value != null ? value : defaultValue;
     }
 
     @Override
@@ -154,10 +134,6 @@ public class SystemParamServiceImpl implements SystemParamService {
         Map<String, Object> params = new HashMap<>();
 
         // 构建查询条件
-        if (StringUtils.hasText(queryDto.getParamKey())) {
-            sql.append(" AND param_key LIKE :paramKey ");
-            params.put("paramKey", "%" + queryDto.getParamKey() + "%");
-        }
         if (StringUtils.hasText(queryDto.getParamName())) {
             sql.append(" AND param_name LIKE :paramName ");
             params.put("paramName", "%" + queryDto.getParamName() + "%");
@@ -186,7 +162,6 @@ public class SystemParamServiceImpl implements SystemParamService {
         List<SystemParamDto> list = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
             SystemParamDto dto = new SystemParamDto();
             dto.setId(rs.getString("id"));
-            dto.setParamKey(rs.getString("param_key"));
             dto.setParamName(rs.getString("param_name"));
             dto.setParamValue(rs.getString("param_value"));
             dto.setDefaultValue(rs.getString("default_value"));
@@ -208,9 +183,6 @@ public class SystemParamServiceImpl implements SystemParamService {
 
         // 构建分页结果
         StringBuilder countSql = new StringBuilder("SELECT COUNT(*) FROM system_param WHERE 1=1 ");
-        if (StringUtils.hasText(queryDto.getParamKey())) {
-            countSql.append(" AND param_key LIKE :paramKey ");
-        }
         if (StringUtils.hasText(queryDto.getParamName())) {
             countSql.append(" AND param_name LIKE :paramName ");
         }

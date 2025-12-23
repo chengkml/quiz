@@ -5,6 +5,7 @@ export interface SendNotificationPayload {
   title: string;
   content: string;
   type?: string;
+  channel?: string;
 }
 
 export interface UserOption {

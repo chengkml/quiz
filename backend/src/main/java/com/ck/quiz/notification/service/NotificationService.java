@@ -15,7 +15,7 @@ public interface NotificationService {
      * @param type 消息类型
      * @return 消息ID
      */
-    JobDto sendMessage(String userId, String title, String content, String type);
+    JobDto sendMessage(String userId, String title, String content, String type, String channel);
 
     /**
      * 发送系统消息给多个用户
@@ -26,7 +26,7 @@ public interface NotificationService {
      * @param type 消息类型
      * @return 消息ID列表
      */
-    List<JobDto> sendMessageBatch(List<String> userIds, String title, String content, String type);
+    List<JobDto> sendMessageBatch(List<String> userIds, String title, String content, String type, String channel);
 
     /**
      * 发送系统消息给所有用户
@@ -36,6 +36,6 @@ public interface NotificationService {
      * @param type 消息类型
      * @return 消息ID列表
      */
-    List<JobDto> sendMessageToAll(String title, String content, String type);
+    List<JobDto> sendMessageToAll(String title, String content, String type, String channel);
     
 }

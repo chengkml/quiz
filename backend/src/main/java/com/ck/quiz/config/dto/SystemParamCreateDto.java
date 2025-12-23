@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SystemParamCreateDto {
 
-    private String paramKey;
     private String paramName;
     private String paramValue;
     private String defaultValue;

@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 public class SystemParamDto {
 
     private String id;
-    private String paramKey;
     private String paramName;
     private String paramValue;
     private String defaultValue;

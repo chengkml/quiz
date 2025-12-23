@@ -1,5 +1,9 @@
 package com.ck.quiz.init;
 
+import com.ck.quiz.config.dto.SystemParamCreateDto;
+import com.ck.quiz.config.entity.SystemParam;
+import com.ck.quiz.config.repository.SystemParamRepository;
+import com.ck.quiz.config.service.SystemParamService;
 import com.ck.quiz.menu.entity.Menu;
 import com.ck.quiz.menu.repository.MenuRepository;
 import com.ck.quiz.role.entity.UserRole;
@@ -11,6 +15,7 @@ import com.ck.quiz.user.repository.UserRepository;
 import com.ck.quiz.user_role.entity.UserRoleRela;
 import com.ck.quiz.user_role.repository.UserRoleRelaRepository;
 import com.ck.quiz.utils.IdHelper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -24,6 +29,7 @@ import java.util.List;
 /**
  * 数据库数据初始化器
  */
+@Slf4j
 @Component
 public class DbDataInitializer implements CommandLineRunner {
 
@@ -44,6 +50,12 @@ public class DbDataInitializer implements CommandLineRunner {
 
     @Autowired
     private RoleMenuRelaRepository roleMenuRelaRepository;
+
+    @Autowired
+    private SystemParamRepository systemParamRepository;
+
+    @Autowired
+    private SystemParamService systemParamService;
 
     @Override
     public void run(String... args) {
@@ -72,6 +84,9 @@ public class DbDataInitializer implements CommandLineRunner {
         if (roleMenuRelaCount == 0) {
             initializeRoleMenuRela();
         }
+
+        // 初始化邮件配置参数
+        initializeMailConfig();
     }
 
     private void initializeMenu() {
@@ -189,7 +204,172 @@ public class DbDataInitializer implements CommandLineRunner {
         adminUser.setEmail("admin@asiainfo.com");
         adminUser.setPhone("12345678901");
         adminUser.setCreateUser("admin");
-        adminUser.setState(User.UserState.ENABLED); // 启用状态
+        adminUser.setState(User.UserState.ENABLED);
         userRepository.save(adminUser);
+    }
+
+    /**
+     * 初始化邮件配置参数
+     */
+    private void initializeMailConfig() {
+        log.info("开始检查并初始化邮件配置参数...");
+        List<MailConfigParam> mailParams = getMailConfigParams();
+        int insertedCount = 0;
+
+        for (MailConfigParam param : mailParams) {
+            try {
+                // 检查参数是否已存在
+                if (systemParamRepository.findByParamName(param.paramName).isEmpty()) {
+                    // 参数不存在，创建新参数
+                    SystemParamCreateDto createDto = new SystemParamCreateDto();
+                    createDto.setParamName(param.paramName);
+                    createDto.setParamValue(param.paramValue);
+                    createDto.setDefaultValue(param.defaultValue);
+                    createDto.setParamType(param.paramType);
+                    createDto.setCategory(param.category);
+                    createDto.setDescription(param.description);
+                    createDto.setIsEncrypted(param.isEncrypted);
+                    createDto.setIsReadonly(false);
+                    createDto.setStatus(SystemParam.ParamStatus.ACTIVE.name());
+                    createDto.setSortOrder(param.sortOrder);
+
+                    systemParamService.createParam(createDto);
+                    insertedCount++;
+                    log.info("已初始化邮件配置参数: {} = {}", param.paramName, param.paramValue);
+                }
+            } catch (Exception e) {
+                log.error("初始化邮件配置参数失败: {}", param.paramName, e);
+            }
+        }
+
+        if (insertedCount > 0) {
+            log.info("成功初始化 {} 个邮件配置参数", insertedCount);
+        } else {
+            log.info("邮件配置参数已存在，无需初始化");
+        }
+    }
+
+    /**
+     * 获取邮件配置参数列表
+     */
+    private List<MailConfigParam> getMailConfigParams() {
+        List<MailConfigParam> params = new ArrayList<>();
+
+        params.add(new MailConfigParam(
+                "mail.host",
+                "smtp.example.com",
+                "smtp.example.com",
+                "STRING",
+                "邮件配置",
+                "SMTP服务器地址（如：smtp.qq.com、smtp.163.com、smtp.gmail.com）",
+                false,
+                1
+        ));
+
+        params.add(new MailConfigParam(
+                "mail.port",
+                "587",
+                "587",
+                "NUMBER",
+                "邮件配置",
+                "SMTP服务器端口（常用端口：25、465、587）",
+                false,
+                2
+        ));
+
+        params.add(new MailConfigParam(
+                "mail.username",
+                "your-email@example.com",
+                "your-email@example.com",
+                "STRING",
+                "邮件配置",
+                "发件人邮箱地址",
+                false,
+                3
+        ));
+
+        params.add(new MailConfigParam(
+                "mail.password",
+                "your-password",
+                "your-password",
+                "STRING",
+                "邮件配置",
+                "邮箱密码或授权码（建议使用授权码）",
+                true,
+                4
+        ));
+
+        params.add(new MailConfigParam(
+                "mail.encoding",
+                "UTF-8",
+                "UTF-8",
+                "STRING",
+                "邮件配置",
+                "邮件编码格式",
+                false,
+                5
+        ));
+
+        params.add(new MailConfigParam(
+                "mail.smtp.auth",
+                "true",
+                "true",
+                "BOOLEAN",
+                "邮件配置",
+                "启用SMTP身份验证",
+                false,
+                6
+        ));
+
+        params.add(new MailConfigParam(
+                "mail.smtp.starttls.enable",
+                "true",
+                "true",
+                "BOOLEAN",
+                "邮件配置",
+                "启用STARTTLS加密传输",
+                false,
+                7
+        ));
+
+        params.add(new MailConfigParam(
+                "mail.smtp.starttls.required",
+                "true",
+                "true",
+                "BOOLEAN",
+                "邮件配置",
+                "要求必须使用STARTTLS",
+                false,
+                8
+        ));
+
+        return params;
+    }
+
+    /**
+     * 邮件配置参数内部类
+     */
+    private static class MailConfigParam {
+        String paramName;
+        String paramValue;
+        String defaultValue;
+        String paramType;
+        String category;
+        String description;
+        Boolean isEncrypted;
+        Integer sortOrder;
+
+        MailConfigParam(String paramName, String paramValue, String defaultValue,
+                        String paramType, String category, String description,
+                        Boolean isEncrypted, Integer sortOrder) {
+            this.paramName = paramName;
+            this.paramValue = paramValue;
+            this.defaultValue = defaultValue;
+            this.paramType = paramType;
+            this.category = category;
+            this.description = description;
+            this.isEncrypted = isEncrypted;
+            this.sortOrder = sortOrder;
+        }
     }
 }

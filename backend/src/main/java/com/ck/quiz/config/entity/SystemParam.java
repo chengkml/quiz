@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 @Table(
         name = "system_param",
         indexes = {
-                @Index(name = "idx_system_param_key", columnList = "param_key", unique = true),
                 @Index(name = "idx_system_param_category", columnList = "category"),
                 @Index(name = "idx_system_param_status", columnList = "status")
         }
@@ -34,12 +33,6 @@ public class SystemParam {
     @Id
     @Column(name = "id", length = 32, nullable = false)
     private String id;
-
-    /**
-     * 参数键（唯一标识）
-     */
-    @Column(name = "param_key", length = 100, nullable = false, unique = true)
-    private String paramKey;
 
     /**
      * 参数名称

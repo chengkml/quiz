@@ -30,6 +30,8 @@ public class SendNotificationDto {
      */
     private String type = "INFO";
 
+    private String channel;
+
     /**
      * 消息优先级：LOW, NORMAL, HIGH
      */

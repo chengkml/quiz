@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SystemParamQueryDto {
 
-    private String paramKey;
     private String paramName;
     private String category;
     private String status;
