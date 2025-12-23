@@ -41,14 +41,14 @@ public class LLMModelController {
     @Operation(summary = "删除模型", description = "根据ID删除指定模型")
     @DeleteMapping("/{id:\\d+}")
     public ResponseEntity<LLMModelDto> deleteModel(
-            @Parameter(description = "模型ID", required = true) @PathVariable String id) {
+            @Parameter(description = "模型ID", required = true) @PathVariable("id") String id) {
         return ResponseEntity.ok(modelService.deleteModel(id));
     }
 
     @Operation(summary = "获取模型详情", description = "根据ID获取模型详细信息")
     @GetMapping("/{id:\\d+}")
     public ResponseEntity<LLMModelDto> getModelById(
-            @Parameter(description = "模型ID", required = true) @PathVariable String id) {
+            @Parameter(description = "模型ID", required = true) @PathVariable("id") String id) {
         return ResponseEntity.ok(modelService.getModelById(id));
     }
 
@@ -78,14 +78,14 @@ public class LLMModelController {
     @Operation(summary = "按类型获取模型列表", description = "根据模型类型获取指定类型的模型列表")
     @GetMapping("/list/{type}")
     public ResponseEntity<List<LLMModelDto>> getModelsByType(
-            @Parameter(description = "模型类型", required = true) @PathVariable String type) {
+            @Parameter(description = "模型类型", required = true) @PathVariable("type") String type) {
         return ResponseEntity.ok(modelService.listModelsByType(LLMModel.ModelType.valueOf(type)));
     }
 
     @Operation(summary = "设置默认模型", description = "将指定模型设置为默认模型")
     @PutMapping("/{id:\\d+}/set-default")
     public ResponseEntity<Void> setDefaultModel(
-            @Parameter(description = "模型ID", required = true) @PathVariable String id) {
+            @Parameter(description = "模型ID", required = true) @PathVariable("id") String id) {
         modelService.setDefaultModel(id);
         return ResponseEntity.ok().build();
     }
