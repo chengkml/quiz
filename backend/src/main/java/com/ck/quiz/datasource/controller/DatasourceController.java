@@ -45,15 +45,15 @@ public class DatasourceController {
 
     @Operation(summary = "删除数据源", description = "根据ID删除指定数据源")
     @DeleteMapping("/{id}")
-    public ResponseEntity deleteDatasource(
-            @Parameter(description = "数据源ID", required = true) @PathVariable String id) {
+        public ResponseEntity deleteDatasource(
+            @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id) {
         return ResponseEntity.ok(datasourceService.deleteDatasource(id));
     }
 
     @Operation(summary = "获取数据源详情", description = "根据ID获取数据源详细信息")
     @GetMapping("/{id}")
-    public ResponseEntity getDatasourceById(
-            @Parameter(description = "数据源ID", required = true) @PathVariable String id) {
+        public ResponseEntity getDatasourceById(
+            @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id) {
         return ResponseEntity.ok(datasourceService.getDatasourceById(id));
     }
 
@@ -78,15 +78,15 @@ public class DatasourceController {
 
     @Operation(summary = "测试数据源连接", description = "根据ID测试数据源连接是否成功")
     @PostMapping("/{id}/test")
-    public ResponseEntity testConnection(
-            @Parameter(description = "数据源ID", required = true) @PathVariable String id) {
+        public ResponseEntity testConnection(
+            @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id) {
         return ResponseEntity.ok(datasourceService.testConnection(id));
     }
 
     @Operation(summary = "采集数据源表结构", description = "根据ID采集数据库的表结构信息")
     @GetMapping("/{id}/schema")
-    public ResponseEntity collectSchema(
-            @Parameter(description = "数据源ID", required = true) @PathVariable String id,
+        public ResponseEntity collectSchema(
+            @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
             @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema) {
         if (schema == null || schema.isEmpty()) {
             return ResponseEntity.ok(datasourceService.collectSchema(id));
@@ -96,8 +96,8 @@ public class DatasourceController {
 
     @Operation(summary = "导出指定schema的表结构", description = "根据ID与schema导出数据库表结构为JSON文件")
     @GetMapping("/{id}/schema/export")
-    public ResponseEntity<byte[]> exportSchema(
-            @Parameter(description = "数据源ID", required = true) @PathVariable String id,
+        public ResponseEntity<byte[]> exportSchema(
+            @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
             @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema) throws Exception {
         DatabaseSchemaDto dto = (schema == null || schema.isEmpty())
                 ? datasourceService.collectSchema(id)
@@ -119,8 +119,8 @@ public class DatasourceController {
 
     @Operation(summary = "导出表结构为Excel", description = "根据ID与可选schema导出数据库表结构为XLSX文件")
     @GetMapping("/{id}/schema/export/excel")
-    public ResponseEntity<byte[]> exportSchemaExcel(
-            @Parameter(description = "数据源ID", required = true) @PathVariable String id,
+        public ResponseEntity<byte[]> exportSchemaExcel(
+            @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
             @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema) {
         DatabaseSchemaDto dto = (schema == null || schema.isEmpty())
                 ? datasourceService.collectSchema(id)
@@ -189,15 +189,15 @@ public class DatasourceController {
 
     @Operation(summary = "获取可选schema列表", description = "根据ID获取数据库的schema（无schema则返回catalog）")
     @GetMapping("/{id}/schemas")
-    public ResponseEntity listSchemas(
-            @Parameter(description = "数据源ID", required = true) @PathVariable String id) {
+        public ResponseEntity listSchemas(
+            @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id) {
         return ResponseEntity.ok(datasourceService.listSchemas(id));
     }
 
     @Operation(summary = "自动生成表结构备注", description = "使用大模型为指定数据源与schema的表和字段自动生成中文备注")
     @GetMapping("/{id}/schema/generate-remarks")
-    public ResponseEntity<Integer> generateRemarks(
-            @Parameter(description = "数据源ID", required = true) @PathVariable String id,
+        public ResponseEntity<Integer> generateRemarks(
+            @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
             @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
             @RequestParam(value = "schema", required = false) String schema) {
 
@@ -207,8 +207,8 @@ public class DatasourceController {
 
     @Operation(summary = "自动对表进行分类", description = "使用大模型为指定数据源与schema的表自动分类（门户、文档库、知识编排、监控运营、数据接入、系统管理）")
     @GetMapping("/{id}/schema/select-group")
-    public ResponseEntity<Integer> selectGroup(
-            @Parameter(description = "数据源ID", required = true) @PathVariable String id,
+        public ResponseEntity<Integer> selectGroup(
+            @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
             @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
             @RequestParam(value = "schema", required = false) String schema) {
 
@@ -218,8 +218,8 @@ public class DatasourceController {
 
     @Operation(summary = "导出表结构为Excel（使用服务层）", description = "根据ID与可选schema导出数据库表结构为XLSX文件")
     @GetMapping("/{id}/schema/export/excel/v2")
-    public void exportSchemaExcelV2(
-            @Parameter(description = "数据源ID", required = true) @PathVariable String id,
+        public void exportSchemaExcelV2(
+            @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
             @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
             @RequestParam(value = "schema", required = false) String schema,
             HttpServletResponse response) {

@@ -1,0 +1,125 @@
+.mermaid-editor-container {
+    box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+    overflow: hidden;
+    background: var(--background-color-base);
+    height: 100%;
+
+    .arco-layout-content {
+        height: calc(100% - 40px);
+    }
+
+    .mermaid-textarea {
+        .arco-form-item-wrapper {
+            height: calc(100% - 30px);
+            overflow: auto;
+        }
+    }
+
+    .arco-layout {
+        margin: 10px;
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        height: calc(100% - 20px);
+        width: calc(100% - 20px);
+    }
+
+    .arco-form-item-label-col {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .arco-form-item-extra {
+        margin-top: 0;
+    }
+
+    // 代码编辑器样式
+    .mermaid-code-editor {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--color-neutral-3);
+        border-radius: 4px;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        resize: none;
+        outline: none;
+        background-color: #f8f9fa;
+        color: #333;
+        transition: border-color 0.3s;
+
+        &:focus {
+            border-color: rgb(var(--primary-6));
+            box-shadow: 0 0 0 2px rgba(var(--primary-6), 0.1);
+        }
+
+        &::placeholder {
+            color: var(--color-text-3);
+        }
+    }
+
+    // 预览区域样式
+    .mermaid-preview-wrapper {
+        border: 1px solid var(--color-neutral-3);
+        border-radius: 4px;
+        background-color: #fafafa;
+        overflow: auto;
+        padding: 20px;
+
+        .mermaid-preview {
+            width: 100%;
+
+            svg {
+                max-width: 100%;
+                height: auto;
+                display: block;
+                margin: 0 auto;
+            }
+
+            .error-message {
+                color: rgb(var(--danger-6));
+                background-color: rgb(var(--danger-1));
+                padding: 16px;
+                border-radius: 4px;
+                border: 1px solid rgb(var(--danger-3));
+                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                font-size: 13px;
+                line-height: 1.5;
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+        }
+    }
+
+    // 滚动条样式
+    .mermaid-code-editor,
+    .mermaid-preview-wrapper {
+        &::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: var(--color-fill-2);
+            border-radius: 4px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: var(--color-fill-4);
+            border-radius: 4px;
+
+            &:hover {
+                background: var(--color-fill-5);
+            }
+        }
+    }
+
+    // 按钮组样式调整
+    .arco-btn-size-small {
+        padding: 0 12px;
+        height: 28px;
+        font-size: 12px;
+    }
+}
