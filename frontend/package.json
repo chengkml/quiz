@@ -30,7 +30,7 @@
     "echarts": "^6.0.0",
     "handsontable": "^16.1.1",
     "lunar-calendar": "^0.1.4",
-    "mermaid": "^11.12.2",
+    "mermaid": "^10.9.1",
     "mind-elixir": "^5.3.4",
     "moment": "^2.30.1",
     "nearley": "^2.20.1",
