@@ -44,7 +44,7 @@ public class SystemParamServiceImpl implements SystemParamService {
 
         SystemParam param = new SystemParam();
         BeanUtils.copyProperties(createDto, param);
-        param.setId(IdHelper.uuid32());
+        param.setId(IdHelper.genUuid());
 
         // 设置参数类型枚举
         if (StringUtils.hasText(createDto.getParamType())) {

@@ -97,6 +97,7 @@ const defaultExamples = {
 const MermaidEditor: React.FC = () => {
   const [code, setCode] = useState<string>(defaultExamples.flowchart);
   const [chartType, setChartType] = useState<string>('flowchart');
+  const [downloadFormat, setDownloadFormat] = useState<string>('svg');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editorHeight, setEditorHeight] = useState(420);
@@ -184,7 +185,7 @@ const MermaidEditor: React.FC = () => {
     });
   };
 
-  // 下载 SVG
+  // 下载图表
   const handleDownload = () => {
     if (!previewRef.current) return;
     
@@ -194,15 +195,67 @@ const MermaidEditor: React.FC = () => {
       return;
     }
 
-    const svgData = new XMLSerializer().serializeToString(svgElement);
-    const blob = new Blob([svgData], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `mermaid-${chartType}-${Date.now()}.svg`;
-    link.click();
-    URL.revokeObjectURL(url);
-    Message.success('图表已下载');
+    if (downloadFormat === 'svg') {
+      // 下载 SVG
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      const blob = new Blob([svgData], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `mermaid-${chartType}-${Date.now()}.svg`;
+      link.click();
+      URL.revokeObjectURL(url);
+      Message.success('SVG 已下载');
+    } else {
+      // 下载为图片格式 (PNG/JPG)
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        Message.error('浏览器不支持 Canvas');
+        return;
+      }
+
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      // 使用 data URL 而不是 Blob URL 避免跨域问题
+      const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+      const img = new Image();
+
+      img.onload = () => {
+        // 设置画布大小（2倍分辨率以获得更好的质量）
+        canvas.width = img.width * 2;
+        canvas.height = img.height * 2;
+        ctx.scale(2, 2);
+
+        // 如果是 JPG，先填充白色背景
+        if (downloadFormat === 'jpg') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        ctx.drawImage(img, 0, 0);
+
+        // 转换为对应格式并下载
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            Message.error('图片生成失败');
+            return;
+          }
+          const downloadUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.download = `mermaid-${chartType}-${Date.now()}.${downloadFormat}`;
+          link.click();
+          URL.revokeObjectURL(downloadUrl);
+          Message.success(`${downloadFormat.toUpperCase()} 已下载`);
+        }, `image/${downloadFormat === 'jpg' ? 'jpeg' : downloadFormat}`, 0.95);
+      };
+
+      img.onerror = () => {
+        Message.error('图片生成失败');
+      };
+
+      img.src = dataUrl;
+    }
   };
 
   // 处理 Tab 键
@@ -280,9 +333,22 @@ const MermaidEditor: React.FC = () => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: '500', margin: 0 }}>预览</label>
-                <Button size="small" type="primary" icon={<IconDownload />} onClick={handleDownload}>
-                  下载 SVG
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Select
+                    size="small"
+                    value={downloadFormat}
+                    onChange={setDownloadFormat}
+                    options={[
+                      { label: 'SVG', value: 'svg' },
+                      { label: 'PNG', value: 'png' },
+                      { label: 'JPG', value: 'jpg' }
+                    ]}
+                    style={{ width: 80 }}
+                  />
+                  <Button size="small" type="primary" icon={<IconDownload />} onClick={handleDownload}>
+                    下载
+                  </Button>
+                </div>
               </div>
               <div className="mermaid-preview-wrapper" style={{ height: editorHeight, flex: 1 }}>
                 <Spin loading={loading} style={{ display: 'block' }}>
