@@ -61,7 +61,7 @@ const AppLayout: React.FC = () => {
     const {user, logout, menuTree, loadMenuFromServer} = useUser();
     const [loading, setLoading] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [messageModalVisible, setMessageModalVisible] = useState(false);
+    const [messageDropdownVisible, setMessageDropdownVisible] = useState(false);
     const [messageList, setMessageList] = useState<SystemMessageDto[]>([]);
     const [messageLoading, setMessageLoading] = useState(false);
 
@@ -323,10 +323,12 @@ const AppLayout: React.FC = () => {
         }
     };
 
-    // 处理消息按钮点击
-    const handleMessageClick = () => {
-        setMessageModalVisible(true);
-        loadUnreadMessages();
+    // 处理消息按钮点击（下拉）
+    const handleMessageDropdownVisible = (visible: boolean) => {
+        setMessageDropdownVisible(visible);
+        if (visible) {
+            loadUnreadMessages();
+        }
     };
 
     // 加载未读消息列表
@@ -345,7 +347,7 @@ const AppLayout: React.FC = () => {
 
     // 查看全部消息
     const handleViewAll = () => {
-        setMessageModalVisible(false);
+        setMessageDropdownVisible(false);
         navigate('/frame/systemmessage');
     };
 
@@ -395,26 +397,110 @@ const AppLayout: React.FC = () => {
                 justifyContent: 'space-between'
             }}>
                 <div></div>
-                <Space size={12} align="center" className="header-actions">
+                <Space size={6} align="center" className="header-actions">
                     <Tooltip content={theme === 'dark' ? '切换为亮色' : '切换为暗黑'} position="bottom">
-                        <Switch
-                            checked={theme === 'dark'}
-                            onChange={handleThemeChange}
-                            checkedIcon={<IconMoon />}
-                            uncheckedIcon={<IconSun />}
-                            style={{ marginRight: 8 }}
-                        />
+                        <button
+                            className="theme-toggle-btn"
+                            type="button"
+                            aria-label={theme === 'dark' ? '切换为亮色' : '切换为暗黑'}
+                            onClick={() => handleThemeChange(theme !== 'dark')}
+                        >
+                            {theme === 'dark' ? <IconSun /> : <IconMoon />}
+                        </button>
                     </Tooltip>
-                    <Tooltip content="系统消息" position="bottom" getPopupContainer={() => document.body}>
-                        <Badge className="message-badge" count={unreadCount} maxCount={99} offset={[2, -2]}>
-                            <Button
-                                className="header-action-btn message-btn"
-                                type="text"
-                                icon={<IconNotification />}
-                                onClick={handleMessageClick}
-                            />
-                        </Badge>
-                    </Tooltip>
+                    <Dropdown
+                        trigger={['click']}
+                        position="br"
+                        popupVisible={messageDropdownVisible}
+                        onVisibleChange={handleMessageDropdownVisible}
+                        droplist={
+                            <div className="system-message-dropdown" style={{ width: 340, maxHeight: 400, padding: 0 }}>
+                                <div style={{ padding: '12px 16px', fontWeight: 500, borderBottom: '1px solid #f0f0f0' }}>系统消息</div>
+                                <Spin loading={messageLoading} style={{ minHeight: 180 }}>
+                                    {messageList && messageList.length > 0 ? (
+                                        <List
+                                            dataSource={messageList}
+                                            style={{ maxHeight: 260, overflowY: 'auto', margin: 0, padding: 0 }}
+                                            render={(item: SystemMessageDto) => (
+                                                <List.Item key={item.id} style={{ padding: '10px 16px' }}>
+                                                    <List.Item.Meta
+                                                        title={
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <span>{item.title}</span>
+                                                                <span
+                                                                    style={{
+                                                                        display: 'inline-block',
+                                                                        padding: '2px 8px',
+                                                                        borderRadius: '4px',
+                                                                        fontSize: '12px',
+                                                                        backgroundColor:
+                                                                            item.type === 'SUCCESS'
+                                                                                ? '#f6ffed'
+                                                                                : item.type === 'WARNING'
+                                                                                ? '#fffbe6'
+                                                                                : item.type === 'ERROR'
+                                                                                ? '#fff1f0'
+                                                                                : '#f0f5ff',
+                                                                        color:
+                                                                            item.type === 'SUCCESS'
+                                                                                ? '#52c41a'
+                                                                                : item.type === 'WARNING'
+                                                                                ? '#faad14'
+                                                                                : item.type === 'ERROR'
+                                                                                ? '#ff4d4f'
+                                                                                : '#1890ff',
+                                                                    }}
+                                                                >
+                                                                    {item.type}
+                                                                </span>
+                                                            </div>
+                                                        }
+                                                        description={
+                                                            <div>
+                                                                <div
+                                                                    style={{
+                                                                        color: '#999',
+                                                                        fontSize: '12px',
+                                                                        marginTop: '4px',
+                                                                        whiteSpace: 'nowrap',
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis',
+                                                                    }}
+                                                                    dangerouslySetInnerHTML={{
+                                                                        __html: item.content?.substring(0, 100) || '',
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        }
+                                                    />
+                                                </List.Item>
+                                            )}
+                                        />
+                                    ) : (
+                                        <Empty description="暂无未读消息" style={{ margin: '32px 0' }} />
+                                    )}
+                                </Spin>
+                                <div style={{ borderTop: '1px solid #f0f0f0', padding: '8px 16px', textAlign: 'right' }}>
+                                    <Button type="text" size="small" onClick={handleViewAll}>
+                                        查看全部
+                                    </Button>
+                                </div>
+                            </div>
+                        }
+                    >
+                        <Tooltip content="系统消息" position="bottom" getPopupContainer={() => document.body}>
+                            <Badge className="message-badge" count={unreadCount} maxCount={99} offset={[2, -2]}>
+                                <button
+                                    className="message-icon-btn"
+                                    type="button"
+                                    aria-label="系统消息"
+                                    tabIndex={0}
+                                >
+                                    <IconNotification />
+                                </button>
+                            </Badge>
+                        </Tooltip>
+                    </Dropdown>
                     <Tooltip position="bottom" getPopupContainer={() => document.body}>
                         <Dropdown droplist={userDropdownMenu} position="br" getPopupContainer={() => document.body}>
                             <Button className="header-action-btn user-btn" type="text">
@@ -432,79 +518,7 @@ const AppLayout: React.FC = () => {
                 </Space>
             </Header>
             
-            {/* 消息提醒Modal */}
-            <Modal
-                title="系统消息"
-                visible={messageModalVisible}
-                onOk={handleViewAll}
-                onCancel={() => setMessageModalVisible(false)}
-                okText="查看全部"
-                cancelText="关闭"
-            >
-                <Spin loading={messageLoading}>
-                    {messageList && messageList.length > 0 ? (
-                        <List
-                            dataSource={messageList}
-                            render={(item: SystemMessageDto) => (
-                                <List.Item key={item.id}>
-                                    <List.Item.Meta
-                                        title={
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <span>{item.title}</span>
-                                                <span
-                                                    style={{
-                                                        display: 'inline-block',
-                                                        padding: '2px 8px',
-                                                        borderRadius: '4px',
-                                                        fontSize: '12px',
-                                                        backgroundColor:
-                                                            item.type === 'SUCCESS'
-                                                                ? '#f6ffed'
-                                                                : item.type === 'WARNING'
-                                                                ? '#fffbe6'
-                                                                : item.type === 'ERROR'
-                                                                ? '#fff1f0'
-                                                                : '#f0f5ff',
-                                                        color:
-                                                            item.type === 'SUCCESS'
-                                                                ? '#52c41a'
-                                                                : item.type === 'WARNING'
-                                                                ? '#faad14'
-                                                                : item.type === 'ERROR'
-                                                                ? '#ff4d4f'
-                                                                : '#1890ff',
-                                                    }}
-                                                >
-                                                    {item.type}
-                                                </span>
-                                            </div>
-                                        }
-                                        description={
-                                            <div>
-                                                <div
-                                                    style={{
-                                                        color: '#999',
-                                                        fontSize: '12px',
-                                                        marginTop: '4px',
-                                                        whiteSpace: 'nowrap',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                    }}
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: item.content?.substring(0, 100) || '',
-                                                    }}
-                                                />
-                                            </div>
-                                        }
-                                    />
-                                </List.Item>
-                            )}
-                        />
-                    ) : (
-                        <Empty description="暂无未读消息" />
-                    )}
-                </Spin>
-            </Modal>
+
             
             <Layout style={{height:'calc(100% - 60px)'}}>
                 <Sider

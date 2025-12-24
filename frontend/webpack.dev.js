@@ -5,30 +5,33 @@ const path = require("path");
 module.exports = merge(common, {
   mode: 'development',
   devtool: 'inline-source-map',
-  output: {
-    publicPath: '/',
-  },
   devServer: {
     port: process.env.PORT || 3004,
-    compress: false,
     historyApiFallback: true,
     hot: true,
-    open: true,
     proxy: {
+      // 1. 处理 API 请求
       '/api': {
-        target: 'http://localhost:8089/quiz/', // 后端API服务器地址
+        target: 'http://localhost:8089/quiz', // 建议不要在 target 末尾加斜杠
         changeOrigin: true,
-        secure: false, // 如果是https接口，需要配置这个参数
-        cookieDomainRewrite: 'localhost', // 重写cookie域名
-        cookiePathRewrite: '/', // 重写cookie路径
-      },
-      '/quiz': {
-        target: 'http://localhost:8089',
-        changeOrigin: true,
-        ws: true,
         secure: false,
-        pathRewrite: { '^/quiz': '/quiz' },
       },
+      // 2. 处理 WebSocket 请求
+      '/quiz-ws': {
+        target: 'http://localhost:8089/quiz',
+        ws: true,
+        changeOrigin: true,
+        pathRewrite: { '^/quiz-ws': '/quiz-ws' },
+        onError(err, req, res) {
+          console.error('Proxy Error:', err);
+        },
+        bypass: function(req) {
+          // 兼容 SockJS 的 info 轮询
+          if (req.url.startsWith('/quiz-ws/info')) {
+            req.url = req.url.replace(/^\/quiz-ws/, '/quiz-ws');
+          }
+        }
+      }
     },
   },
 });

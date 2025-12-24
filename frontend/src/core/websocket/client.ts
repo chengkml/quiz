@@ -10,8 +10,8 @@ interface SubscriptionRecord {
   stompSub?: StompSubscription;
 }
 
-// Backend STOMP endpoint is registered at /quiz/ws (behind context-path)
-const WS_ENDPOINT = '/quiz/ws';
+// Backend STOMP endpoint is registered at /ws (代理加/quiz)
+const WS_ENDPOINT = '/quiz-ws';
 
 const getToken = () => {
   try {

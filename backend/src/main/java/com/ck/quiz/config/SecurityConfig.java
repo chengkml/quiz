@@ -45,7 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/api/user/login", "/open/**").permitAll()
                         .requestMatchers("/api/wx/user/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/static/**", "/ws/**", "/**/*.html", "/**/*.css", "/**/*.js",
+                        .requestMatchers("/static/**", "/quiz-ws/**", "/**/*.html", "/**/*.css", "/**/*.js",
                                 "/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.gif", "/**/*.ico").permitAll()
                         .anyRequest().authenticated()
                 )

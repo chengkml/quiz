@@ -17,13 +17,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     /**
      * 注册 STOMP 端点
-     * 配置 WebSocket 连接的端点地址为 /ws
+     * 配置 WebSocket 连接的端点地址为 /quiz-ws
      * 允许所有源的跨域请求
      * 使用 SockJS 进行兼容性处理
      */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws")
+        registry.addEndpoint("/quiz-ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS(); // 使用 SockJS 提高浏览器兼容性
     }
