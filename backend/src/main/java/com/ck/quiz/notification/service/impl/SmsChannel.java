@@ -5,9 +5,19 @@ import org.springframework.stereotype.Component;
 import com.ck.quiz.notification.service.NotificationChannel;
 import com.ck.quiz.notification.service.NotificationChannelType;
 import com.ck.quiz.notification.service.NotificationMessage;
+import com.ck.quiz.notification.service.SmsResult;
+import com.ck.quiz.notification.service.SmsService;
+import com.ck.quiz.notification.service.SmsServiceFactory;
 
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 public class SmsChannel implements NotificationChannel {
+
+    @Resource
+    private SmsServiceFactory smsServiceFactory;
 
     @Override
     public NotificationChannelType getType() {
@@ -16,9 +26,31 @@ public class SmsChannel implements NotificationChannel {
 
     @Override
     public boolean send(NotificationMessage message) {
-        // 调对接短信服务商的 SDK
-        System.out.println("Sending SMS to " + message.getTo());
-        System.out.println("Content: " + message.getContent());
-        return true;
+        try {
+            // 默认使用阿里云，可通过配置指定使用其他服务商
+            String vendor = "aliyun";
+            
+            SmsService smsService = smsServiceFactory.getService(vendor);
+            
+            // 发送短信（简单内容发送）
+            SmsResult result = smsService.sendTemplate(
+                message.getTo(),
+                "notification",
+                java.util.Map.of("content", message.getContent())
+            );
+            
+            if (result.isSuccess()) {
+                log.info("短信发送成功 -> phone: {}, vendor: {}, requestId: {}", 
+                    message.getTo(), result.getVendor(), result.getRequestId());
+                return true;
+            } else {
+                log.warn("短信发送失败 -> phone: {}, vendor: {}, message: {}", 
+                    message.getTo(), result.getVendor(), result.getMessage());
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("短信发送异常 -> phone: {}, error: {}", message.getTo(), e.getMessage(), e);
+            return false;
+        }
     }
 }
