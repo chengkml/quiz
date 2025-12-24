@@ -42,11 +42,11 @@ public class SecurityConfig {
                     return config;
                 }))
                 .authorizeHttpRequests(auth -> auth
-                        // 2. 这里的路径匹配逻辑要覆盖 Nginx 转发后的 servletPath
-                        .requestMatchers("/login**", "/api/user/login**", "/open/**").permitAll()
+                        .requestMatchers("/login", "/api/user/login", "/open/**").permitAll()
                         .requestMatchers("/api/wx/user/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/static/**", "/ws/**").permitAll()
+                        .requestMatchers("/static/**", "/ws/**", "/**/*.html", "/**/*.css", "/**/*.js",
+                                "/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.gif", "/**/*.ico").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
