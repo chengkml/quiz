@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import UserAvatar from '@/components/UserAvatar';
 import {
     Button,
     Drawer,
@@ -168,7 +169,9 @@ function RoleManager() {
             dataIndex: 'createUserName',
             key: 'createUserName',
             width: 100,
-            render: (name) => name || '-',
+            render: (name, record) => (
+                <UserAvatar name={name || (record?.createUser ?? '')} showName />
+            ),
         },
         {
             title: '更新时间',

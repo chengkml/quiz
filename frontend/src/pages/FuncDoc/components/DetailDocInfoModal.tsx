@@ -1,4 +1,5 @@
 import React from 'react';
+import UserAvatar from '@/components/UserAvatar';
 import { Modal } from '@arco-design/web-react';
 
 interface DetailDocInfoModalProps {
@@ -67,7 +68,7 @@ const DetailDocInfoModal: React.FC<DetailDocInfoModalProps> = ({
           </div>
           <div className="detail-item">
             <label>创建用户：</label>
-            <span>{record.createUser || '--'}</span>
+            <span><UserAvatar name={record.createUser || ''} showName /></span>
           </div>
           <div className="detail-item">
             <label>创建时间：</label>
@@ -75,7 +76,7 @@ const DetailDocInfoModal: React.FC<DetailDocInfoModalProps> = ({
           </div>
           <div className="detail-item">
             <label>更新用户：</label>
-            <span>{record.updateUser || '--'}</span>
+            <span><UserAvatar name={record.updateUser || ''} showName /></span>
           </div>
           <div className="detail-item">
             <label>更新时间：</label>

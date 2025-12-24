@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import UserAvatar from '@/components/UserAvatar';
 import {useNavigate} from 'react-router-dom';
 import {
     Button,
@@ -265,6 +266,9 @@ const MindMapListPage: React.FC = () => {
             title: '创建人',
             dataIndex: 'createUserName',
             key: 'createUserName',
+            render: (name, record) => (
+                <UserAvatar name={name || (record?.createUser ?? '')} showName />
+            ),
         },
         {
             title: '创建时间',

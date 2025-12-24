@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import UserAvatar from '@/components/UserAvatar';
 import {
     Button,
     Dropdown,
@@ -114,7 +115,9 @@ function KnowledgeManager() {
             dataIndex: 'createUserName',
             width: 120,
             ellipsis: true,
-            render: (value) => value || '--',
+            render: (value, record) => (
+                <UserAvatar name={value || (record?.createUser ?? '')} showName />
+            ),
         },
         {
             title: '创建时间',

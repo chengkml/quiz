@@ -262,7 +262,6 @@ class appLogin extends React.Component<LoginProps> {
             })(this);
         } else {
             _self.loginForm.validate(async (errors, values) => {
-                console.log('values', values);
                 if (!errors) {
                     const [encUserId, encPwd] = await Promise.all([
                         _self.aesEncrypt(values.infoData.userId),

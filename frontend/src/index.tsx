@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import '@arco-design/web-react/dist/css/arco.css';
+import { ConfigProvider } from '@arco-design/web-react';
 
 // 抑制 ResizeObserver 警告
 const resizeObserverErrorHandler = (e: ErrorEvent) => {
@@ -37,5 +38,7 @@ const root = ReactDOM.createRoot(
 );
 
 root.render(
-  <App />
+  <ConfigProvider getPopupContainer={() => document.body}>
+    <App />
+  </ConfigProvider>
 );

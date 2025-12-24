@@ -42,12 +42,14 @@ public class SecurityConfig {
                     return config;
                 }))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/api/user/login", "/open/**").permitAll()
-                        .requestMatchers("/api/wx/user/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/static/**", "/**/*.html", "/**/*.css", "/**/*.js",
-                                "/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.gif", "/**/*.ico").permitAll()
-                        .anyRequest().authenticated()
+                    .requestMatchers("/login", "/api/user/login", "/open/**").permitAll()
+                    .requestMatchers("/api/wx/user/**").permitAll()
+                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                    // 静态资源
+                    .requestMatchers("/static/**").permitAll()
+                    // 放行 WebSocket/SockJS 端点（实际路径为 /quiz/ws，但此处不含 context-path）
+                    .requestMatchers("/ws/**").permitAll()
+                    .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)

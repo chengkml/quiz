@@ -21,7 +21,14 @@ module.exports = merge(common, {
         secure: false, // 如果是https接口，需要配置这个参数
         cookieDomainRewrite: 'localhost', // 重写cookie域名
         cookiePathRewrite: '/', // 重写cookie路径
-      }
+      },
+      '/quiz': {
+        target: 'http://localhost:8089',
+        changeOrigin: true,
+        ws: true,
+        secure: false,
+        pathRewrite: { '^/quiz': '/quiz' },
+      },
     },
   },
 });

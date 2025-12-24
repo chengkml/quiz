@@ -16,6 +16,7 @@ import {
     Table,
     Tag,
 } from '@arco-design/web-react';
+import UserAvatar from '@/components/UserAvatar';
 import './style/index.less';
 import {
     deleteUser,
@@ -200,6 +201,9 @@ function UserManager() {
             dataIndex: 'createUserName',
             key: 'createUserName',
             width: 100,
+            render: (_: any, record: any) => (
+                <UserAvatar name={record.createUserName || record.createUser || ''} showName />
+            ),
         },
         {
             title: '操作',

@@ -1,4 +1,5 @@
 import React from 'react';
+import UserAvatar from '@/components/UserAvatar';
 import { Modal } from '@arco-design/web-react';
 
 interface DetailPromptTemplateModalProps {
@@ -40,7 +41,7 @@ const DetailPromptTemplateModal: React.FC<DetailPromptTemplateModalProps> = ({
           </div>
           <div className="detail-item">
             <label>创建人：</label>
-            <span>{record.createUser || '--'}</span>
+            <span><UserAvatar name={record.createUser || ''} showName /></span>
           </div>
           <div className="detail-item">
             <label>创建时间：</label>
@@ -48,7 +49,7 @@ const DetailPromptTemplateModal: React.FC<DetailPromptTemplateModalProps> = ({
           </div>
           <div className="detail-item">
             <label>更新人：</label>
-            <span>{record.updateUser || '--'}</span>
+            <span><UserAvatar name={record.updateUser || ''} showName /></span>
           </div>
           <div className="detail-item">
             <label>更新时间：</label>

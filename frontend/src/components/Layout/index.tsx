@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react';
-import {Button, Dropdown, Layout, Menu, Message, Badge, Modal, List, Spin, Empty, Space, Tooltip, Avatar} from '@arco-design/web-react';
+import React, {useCallback, useEffect, useState} from 'react';
+import {Button, Dropdown, Layout, Menu, Message, Badge, Modal, List, Spin, Empty, Space, Tooltip} from '@arco-design/web-react';
 import {Outlet, useLocation, useNavigate} from 'react-router-dom';
 import * as ArcoIcons from '@arco-design/web-react/icon';
 import {
@@ -13,13 +13,15 @@ import {
     IconSettings,
     IconStorage,
     IconUser,
-    IconEmail,
+    IconNotification,
 } from '@arco-design/web-react/icon';
 import {MenuTreeDto} from '../../types/menu';
+import UserAvatar from '@/components/UserAvatar';
 import {useUser} from '@/contexts/UserContext';
 import {clearUserInfo} from '@/utils/userUtils';
 import {logoutUser} from '@/pages/User/api';
 import {getUnreadCount, getUnreadMessages, SystemMessageDto} from '@/pages/Notification/systemMessageApi';
+import {wsClient} from '@/core/websocket';
 import './style.less';
 
 const {Content, Header, Sider} = Layout;
@@ -59,27 +61,44 @@ const AppLayout: React.FC = () => {
     }, [user?.userId, loadMenuFromServer]);
 
     // 加载未读消息计数（无轮询）
-    useEffect(() => {
+    const loadUnreadCount = useCallback(async () => {
         if (!user?.userId) {
             setUnreadCount(0);
             return;
         }
-
-        const loadUnreadCount = async () => {
-            try {
-                const data = await getUnreadCount();
-                setUnreadCount(data?.unreadCount || 0);
-            } catch (error) {
-                console.error('Failed to load unread count:', error);
-            }
-        };
-
-        loadUnreadCount();
+        try {
+            const data = await getUnreadCount();
+            setUnreadCount(data?.unreadCount || 0);
+        } catch (error) {
+            console.error('Failed to load unread count:', error);
+        }
     }, [user?.userId]);
+
+    useEffect(() => {
+        loadUnreadCount();
+    }, [loadUnreadCount]);
 
     useEffect(() => {
         setOpenKeys(getOpenKeys());
     }, [location.pathname, menuTree]);
+
+    // 建立用户级 websocket 连接并更新未读消息
+    useEffect(() => {
+        if (!user?.userId) {
+            wsClient.disconnect();
+            return;
+        }
+
+        const unsubscribe = wsClient.subscribe('/user/queue/sys_msg', (payload, _ctx) => {
+            if (payload?.type === 'SYS_MSG_NEW') {
+                loadUnreadCount();
+            }
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, [user?.userId, loadUnreadCount]);
 
     // 处理菜单点击
     const handleMenuClick = (key: string) => {
@@ -343,23 +362,25 @@ const AppLayout: React.FC = () => {
             }}>
                 <div></div>
                 <Space size={12} align="center" className="header-actions">
-                    <Tooltip content="系统消息" position="bottom">
+                    <Tooltip content="系统消息" position="bottom" getPopupContainer={() => document.body}>
                         <Badge className="message-badge" count={unreadCount} maxCount={99} offset={[2, -2]}>
                             <Button
                                 className="header-action-btn message-btn"
                                 type="text"
-                                icon={<IconEmail />}
+                                icon={<IconNotification />}
                                 onClick={handleMessageClick}
                             />
                         </Badge>
                     </Tooltip>
-                    <Tooltip position="bottom">
-                        <Dropdown droplist={userDropdownMenu} position="br">
+                    <Tooltip position="bottom" getPopupContainer={() => document.body}>
+                        <Dropdown droplist={userDropdownMenu} position="br" getPopupContainer={() => document.body}>
                             <Button className="header-action-btn user-btn" type="text">
                                 <Space size={8} align="center">
-                                    <Avatar size={24} shape="circle">
-                                        {(user?.userName || '?').charAt(0).toUpperCase()}
-                                    </Avatar>
+                                    <UserAvatar
+                                        name={user?.userName || ''}
+                                        size={24}
+                                        style={{ backgroundColor: '#165DFF', color: '#fff' }}
+                                    />
                                     <span className="user-name">{user?.userName}</span>
                                 </Space>
                             </Button>

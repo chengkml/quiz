@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import UserAvatar from '@/components/UserAvatar';
 import {
     Button,
     Cascader,
@@ -1006,7 +1007,7 @@ function MenuManager() {
                         </div>
                         <div className="detail-item">
                             <span className="label">创建人：</span>
-                            <span className="value">{currentMenu.createUser || '-'}</span>
+                            <span className="value"><UserAvatar name={currentMenu.createUser || ''} showName /></span>
                         </div>
                         <div className="detail-item">
                             <span className="label">更新时间：</span>
@@ -1016,7 +1017,7 @@ function MenuManager() {
                         </div>
                         <div className="detail-item">
                             <span className="label">更新人：</span>
-                            <span className="value">{currentMenu.updateUser || '-'}</span>
+                            <span className="value"><UserAvatar name={currentMenu.updateUser || ''} showName /></span>
                         </div>
                     </div>
                 )}

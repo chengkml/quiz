@@ -150,7 +150,6 @@ const NotificationPage: React.FC = () => {
                       <Select.Option value="SYSTEM">系统消息</Select.Option>
                       <Select.Option value="EMAIL">邮件</Select.Option>
                       <Select.Option value="SMS">短信</Select.Option>
-                      <Select.Option value="WECHAT">微信</Select.Option>
                     </Select>
                   </Form.Item>
 

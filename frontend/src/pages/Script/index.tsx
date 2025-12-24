@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import UserAvatar from '@/components/UserAvatar';
 import {
     Button, Drawer,
     Dropdown,
@@ -639,7 +640,9 @@ function ScriptManager() {
             title: '创建人',
             dataIndex: 'createUserName',
             width: 140,
-            render: (_: any, record: any) => record.createUserName || record.createUser || '-',
+            render: (_: any, record: any) => (
+                <UserAvatar name={record.createUserName || record.createUser || ''} showName />
+            ),
         },
         {
             title: '创建时间',

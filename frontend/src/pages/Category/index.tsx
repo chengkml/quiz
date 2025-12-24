@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import UserAvatar from '@/components/UserAvatar';
 import {
     Button,
     Dropdown,
@@ -88,7 +89,9 @@ function CategoryManager() {
             dataIndex: 'createUserName',
             key: 'createUserName',
             width: 100,
-            render: (text) => text || '--',
+            render: (text, record) => (
+                <UserAvatar name={text || (record?.createUser ?? '')} showName />
+            ),
         },
         {
             title: '创建时间',

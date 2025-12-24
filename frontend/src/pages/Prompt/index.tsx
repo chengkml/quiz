@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Button, Dropdown, Form, Grid, Input, Layout, Menu, Message, Popconfirm, Space, Table, Pagination} from '@arco-design/web-react';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import {deletePromptTemplate, getPromptTemplateList} from './api';
+import UserAvatar from '@/components/UserAvatar';
 import AddPromptTemplateModal from './components/AddPromptTemplateModal';
 import EditPromptTemplateModal from './components/EditPromptTemplateModal';
 import './style/index.less';
@@ -162,7 +163,10 @@ const PromptTemplateManagement: React.FC = () => {
             title: '创建人',
             dataIndex: 'createUserName',
             key: 'createUserName',
-            ellipsis: true
+            ellipsis: true,
+            render: (name, record) => (
+                <UserAvatar name={name || (record?.createUser ?? '')} showName />
+            )
         },
         {
             title: '创建时间',

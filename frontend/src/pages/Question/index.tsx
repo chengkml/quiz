@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import UserAvatar from '@/components/UserAvatar';
 import {
     Button,
     Cascader,
@@ -220,6 +221,9 @@ function QuestionManager() {
             dataIndex: 'createUserName',
             width: 120,
             ellipsis: true,
+            render: (name, record) => (
+                <UserAvatar name={name || (record?.createUser ?? '')} showName />
+            ),
         },
         {
             title: '创建时间',
@@ -1693,7 +1697,7 @@ function QuestionManager() {
                                     color: '#86909c',
                                     fontSize: 14
                                 }}>
-                                    <span>创建人: {detailRecord.createUserName || '--'}</span>
+                                    <span>创建人: <UserAvatar name={detailRecord.createUserName || ''} showName /></span>
                                     <span>创建时间: {renderDate(detailRecord.createDate)}</span>
                                 </div>
                             </div>

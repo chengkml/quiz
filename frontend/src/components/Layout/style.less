@@ -67,11 +67,15 @@
   }
 
   .user-btn .user-name {
-    margin-left: 8px;
     max-width: 160px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  /* 头像文字颜色保持白色，背景色由组件内联样式按姓名分配 */
+  .user-avatar {
+    color: #fff;
   }
 
   @media (max-width: 768px) {

@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import UserAvatar from '@/components/UserAvatar';
 import {
     Button,
     DatePicker,
@@ -289,7 +290,9 @@ function LlmModelManager() {
             render: (v: any) => (v === '1' || v === 1 || v === true) ? <Tag color="green" bordered>默认</Tag> : <Tag color="gray" bordered>非默认</Tag>
         },
         { title: 'API 端点', dataIndex: 'apiEndpoint', width: 240, ellipsis: true },
-        { title: '创建人', dataIndex: 'createUserName', width: 140, render: (_: any, record: any) => record.createUserName || record.createUser || '-' },
+        { title: '创建人', dataIndex: 'createUserName', width: 140, render: (_: any, record: any) => (
+            <UserAvatar name={record.createUserName || record.createUser || ''} showName />
+        ) },
         { title: '创建时间', dataIndex: 'createDate', width: 180, render: (value: string) => formatDateTime(value) },
         {
             title: '操作',
