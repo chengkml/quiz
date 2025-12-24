@@ -46,9 +46,78 @@
 // 系统消息下拉菜单背景色
 .system-message-dropdown {
   background: #fff;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+  border-radius: 12px;
   padding: 0;
+  min-width: 320px;
+  max-width: 380px;
+  font-size: 15px;
+  .system-message-list {
+    max-height: 260px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+  }
+  .system-message-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 18px 10px 16px;
+    border-bottom: 1px solid #f3f4f7;
+    cursor: pointer;
+    background: transparent;
+    transition: background 0.18s;
+    position: relative;
+  }
+  .system-message-item:last-child {
+    border-bottom: none;
+  }
+  .system-message-item:hover {
+    background: #f6faff;
+  }
+  .system-message-title {
+    font-weight: 600;
+    color: #223;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .system-message-content {
+    color: #666;
+    font-size: 14px;
+    margin-top: 2px;
+    white-space: pre-line;
+    line-height: 1.7;
+    word-break: break-word;
+  }
+  .system-message-time {
+    color: #b0b0b0;
+    font-size: 12px;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .system-message-unread-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-danger-6, #ff4d4f);
+    display: inline-block;
+    margin-right: 6px;
+    box-shadow: 0 0 0 2px #fff;
+  }
+  .system-message-type-tag {
+    font-size: 12px;
+    border-radius: 8px;
+    padding: 1px 8px;
+    font-weight: 500;
+    background: #eaf3ff;
+    color: #3578e5;
+    margin-left: 2px;
+    line-height: 1.2;
+  }
 }
 .app-layout {
   height: 100%;
@@ -94,6 +163,11 @@
 
   .message-badge .arco-badge-number {
     box-shadow: none;
+    font-size: 12px;
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+    padding: 0 4px;
   }
 
   .user-btn .user-name {

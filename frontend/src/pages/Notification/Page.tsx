@@ -140,14 +140,14 @@ const NotificationPage: React.FC = () => {
                   <Form.Item
                     label="通知渠道"
                     field="channel"
-                    initialValue="SYSTEM"
+                    initialValue="BROWSER"
                     rules={[{ required: true, message: "请选择通知渠道" }]}
                   >
                     <Select 
                       placeholder="请选择通知渠道"
                       onChange={(value) => setChannel(value)}
                     >
-                      <Select.Option value="SYSTEM">系统消息</Select.Option>
+                      <Select.Option value="BROWSER">浏览器</Select.Option>
                       <Select.Option value="EMAIL">邮件</Select.Option>
                       <Select.Option value="SMS">短信</Select.Option>
                     </Select>

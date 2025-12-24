@@ -19,7 +19,7 @@ public interface SystemMessageService {
      * @param pageable 分页参数
      * @return 消息分页数据
      */
-    Page<?> getUserMessages(String userId, Pageable pageable);
+    Page<?> getUserMessages(String state, String userId, Pageable pageable);
 
     /**
      * 获取用户的未读消息列表（分页）

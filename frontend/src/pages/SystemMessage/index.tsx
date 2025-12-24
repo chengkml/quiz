@@ -21,6 +21,8 @@ import {
     IconList,
     IconSearch,
     IconEmail,
+    IconCheckCircleFill,
+    IconNotification,
 } from '@arco-design/web-react/icon';
 import './style/index.less';
 import {
@@ -66,8 +68,9 @@ function SystemMessageManager() {
 
     // 已读状态选项
     const readStatusOptions = [
-        {label: '未读', value: false},
-        {label: '已读', value: true},
+        {label: '全部', value: 'all'},
+        {label: '未读', value: 'unread'},
+        {label: '已读', value: 'read'},
     ];
 
     // 时间格式化
@@ -105,20 +108,13 @@ function SystemMessageManager() {
     const fetchTableData = async (params: any = {}, pageSize: number = pagination.pageSize, current: number = pagination.current) => {
         setTableLoading(true);
         try {
-            const targetParams = {
+            const targetParams: any = {
                 page: current - 1,
                 size: pageSize,
+                state: params.unread === undefined ? 'all' : (params.unread === true ? 'unread' : 'read')
             };
-
-            let response;
-            if (params.unread === true) {
-                // 只查询未读消息
-                response = await getUnreadMessages(targetParams);
-            } else {
-                // 查询所有消息
-                response = await getMessageList(targetParams);
-            }
-
+            if (params.unread === undefined) delete targetParams.state;
+            const response = await getMessageList(targetParams);
             if (response.data) {
                 setTableData(response.data.content || []);
                 setPagination(prev => ({
@@ -152,14 +148,12 @@ function SystemMessageManager() {
         setDetailModalVisible(true);
 
         // 如果消息未读，标记为已读
-        if (!record.read) {
+        if (!record.isRead && !record.read) {
             markAsRead(record.id).then(() => {
-                // 更新本地数据
                 setTableData(prev => prev.map(item =>
-                    item.id === record.id ? {...item, read: true} : item
+                    item.id === record.id ? {...item, isRead: true, read: true} : item
                 ));
-                // 更新当前记录
-                setCurrentRecord({...record, read: true});
+                setCurrentRecord({...record, isRead: true, read: true});
             }).catch(() => {
                 Message.error('标记已读失败');
             });
@@ -171,9 +165,8 @@ function SystemMessageManager() {
         try {
             await markAsRead(record.id);
             Message.success('已标记为已读');
-            // 更新本地数据
             setTableData(prev => prev.map(item =>
-                item.id === record.id ? {...item, read: true} : item
+                item.id === record.id ? {...item, isRead: true, read: true} : item
             ));
         } catch (error) {
             Message.error('标记失败');
@@ -241,21 +234,11 @@ function SystemMessageManager() {
     // 列配置
     const columns = [
         {
-            title: '状态',
-            dataIndex: 'read',
-            width: 80,
-            render: (read: boolean) => (
-                <div style={{textAlign: 'center'}}>
-                    {!read && <span className="unread-dot"></span>}
-                </div>
-            ),
-        },
-        {
             title: '标题',
             dataIndex: 'title',
             ellipsis: true,
             render: (title: string, record: any) => (
-                <div style={{fontWeight: record.read ? 'normal' : 'bold'}}>
+                <div style={{fontWeight: record.isRead ? 'normal' : 'bold'}}>
                     {title}
                 </div>
             ),
@@ -289,6 +272,15 @@ function SystemMessageManager() {
             render: (value: string) => formatDateTime(value),
         },
         {
+            title: '状态',
+            dataIndex: 'isRead',
+            width: 80,
+            render: (_: any, record: any) => {
+                const flag = record.isRead ?? record.read;
+                return <Tag color={flag ? 'green' : 'red'}>{flag ? '已读' : '未读'}</Tag>;
+            },
+        },
+        {
             title: '操作',
             width: 100,
             align: 'center',
@@ -304,7 +296,7 @@ function SystemMessageManager() {
                                     <IconEmail style={{marginRight: 5}}/>
                                     查看
                                 </Menu.Item>
-                                {!record.read && (
+                                {!record.isRead && (
                                     <Menu.Item key="markRead">
                                         <IconCheck style={{marginRight: 5}}/>
                                         标记已读
@@ -349,12 +341,18 @@ function SystemMessageManager() {
                     {/* 筛选表单 */}
                     <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
                         const values = filterFormRef.current?.getFieldsValue?.() || {};
+                        // 兼容老数据，转换为 state
+                        if (values.unread !== undefined) {
+                            if (values.unread === 'all') delete values.unread;
+                            else if (values.unread === 'unread') values.unread = true;
+                            else if (values.unread === 'read') values.unread = false;
+                        }
                         searchTableData(values);
                     }}>
                         <Row gutter={16}>
                             <Col span={6}>
                                 <Form.Item field="unread" label="状态">
-                                    <Select placeholder="请选择状态" allowClear>
+                                    <Select placeholder="请选择状态" allowClear defaultValue="all">
                                         {readStatusOptions.map(opt => (
                                             <Select.Option key={String(opt.value)} value={opt.value}>{opt.label}</Select.Option>
                                         ))}
@@ -371,9 +369,6 @@ function SystemMessageManager() {
                                     </Button>
                                     <Button type="primary" status="success" icon={<IconCheck/>} onClick={handleMarkAllAsRead}>
                                         全部已读
-                                    </Button>
-                                    <Button type="primary" status="danger" icon={<IconDelete/>} onClick={handleDeleteAll}>
-                                        清空消息
                                     </Button>
                                 </Space>
                             </Col>
@@ -400,7 +395,7 @@ function SystemMessageManager() {
 
                     {/* 消息详情对话框 */}
                     <Modal
-                        title="消息详情"
+                        title={null}
                         visible={detailModalVisible}
                         onCancel={() => setDetailModalVisible(false)}
                         footer={
@@ -410,35 +405,46 @@ function SystemMessageManager() {
                         }
                     >
                         {currentRecord && (
-                            <div className="message-detail">
-                                <div className="detail-item">
-                                    <label>标题：</label>
-                                    <span>{currentRecord.title}</span>
+                            <div className="message-detail" style={{paddingTop: 0}}>
+                                {/* 顶部标题区 */}
+                                <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
+                                    {/* 类型图标 */}
+                                    {(() => {
+                                        const typeIconMap: Record<string, JSX.Element> = {
+                                            SUCCESS: <IconCheckCircleFill style={{color:'#52c41a',fontSize:22}} />,
+                                            ERROR: <IconNotification style={{color:'#ff4d4f',fontSize:22}} />,
+                                            WARNING: <IconNotification style={{color:'#faad14',fontSize:22}} />,
+                                            INFO: <IconNotification style={{color:'#1890ff',fontSize:22}} />,
+                                            SYSTEM: <IconNotification style={{color:'#888',fontSize:22}} />,
+                                            NOTIFICATION: <IconNotification style={{color:'#3578e5',fontSize:22}} />,
+                                        };
+                                        return typeIconMap[currentRecord.type] || <IconNotification style={{color:'#3578e5',fontSize:22}} />;
+                                    })()}
+                                    <span style={{fontWeight:700,fontSize:20,flex:1}}>{currentRecord.title}</span>
+                                    <span style={{color:'#b0b0b0',fontSize:14}}>{formatDateTime(currentRecord.createDate)}</span>
+                                    {!currentRecord.isRead && (
+                                        <Button size="small" type="primary" style={{marginLeft:8}} onClick={async () => {
+                                            await markAsRead(currentRecord.id);
+                                            setCurrentRecord({...currentRecord, isRead: true, read: true});
+                                            setTableData(prev => prev.map(item => item.id === currentRecord.id ? {...item, isRead: true, read: true} : item));
+                                            Message.success('已标记为已读');
+                                        }}>标记已读</Button>
+                                    )}
                                 </div>
-                                <div className="detail-item">
-                                    <label>类型：</label>
-                                    <span>
-                                        {messageTypeOptions.find(opt => opt.value === currentRecord.type)?.label || currentRecord.type}
-                                    </span>
+                                {/* 内容区 */}
+                                <div className="content-text" style={{margin:'12px 0 0 0',fontSize:16,lineHeight:1.9,background:'#fafdff',borderRadius:12,padding:'18px 20px',boxShadow:'0 2px 12px 0 rgba(79,140,255,0.07)'}}>
+                                    {currentRecord.content}
                                 </div>
-                                <div className="detail-item">
-                                    <label>状态：</label>
-                                    <span>{currentRecord.read ? '已读' : '未读'}</span>
+                                {/* 其他信息区 */}
+                                <div style={{marginTop:18}}>
+                                    <span style={{color:'#888',fontSize:13}}>状态：</span>
+                                    <Tag color={currentRecord.isRead ? 'green' : 'red'}>{currentRecord.isRead ? '已读' : '未读'}</Tag>
+                                    {currentRecord.readDate && (
+                                        <span style={{marginLeft:16,color:'#888',fontSize:13}}>
+                                            已读时间：{formatDateTime(currentRecord.readDate)}
+                                        </span>
+                                    )}
                                 </div>
-                                <div className="detail-item">
-                                    <label>内容：</label>
-                                    <div className="content-text">{currentRecord.content}</div>
-                                </div>
-                                <div className="detail-item">
-                                    <label>创建时间：</label>
-                                    <span>{formatDateTime(currentRecord.createDate)}</span>
-                                </div>
-                                {currentRecord.readDate && (
-                                    <div className="detail-item">
-                                        <label>已读时间：</label>
-                                        <span>{formatDateTime(currentRecord.readDate)}</span>
-                                    </div>
-                                )}
                             </div>
                         )}
                     </Modal>

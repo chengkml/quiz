@@ -5,9 +5,16 @@ import com.ck.quiz.notification.entity.SystemMessage;
 import com.ck.quiz.notification.repository.SystemMessageRepository;
 import com.ck.quiz.notification.service.SystemMessageService;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import com.ck.quiz.websocket.WsAction;
+import com.ck.quiz.websocket.WsBizType;
+import com.ck.quiz.websocket.WsEventMessage;
+import com.ck.quiz.websocket.WsEventType;
+import com.ck.quiz.websocket.WsMessageService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -18,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 系统消息服务实现
@@ -30,9 +38,10 @@ public class SystemMessageServiceImpl implements SystemMessageService {
 
     private final SystemMessageRepository messageRepository;
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final WsMessageService wsMessageService;
 
     @Override
-    public Page<?> getUserMessages(String userId, Pageable pageable) {
+    public Page<?> getUserMessages(String state, String userId, Pageable pageable) {
         StringBuilder sql = new StringBuilder(
                 "SELECT sm.id, sm.user_id, sm.title, sm.content, sm.type, sm.is_read, " +
                         "sm.read_date, sm.priority, sm.status, sm.sender_id, sm.link_url, " +
@@ -50,6 +59,16 @@ public class SystemMessageServiceImpl implements SystemMessageService {
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);
         params.put("status", SystemMessage.MessageStatus.ACTIVE.name());
+
+        if ("read".equalsIgnoreCase(state)) {
+            sql.append(" AND sm.is_read = :isRead ");
+            countSql.append(" AND sm.is_read = :isRead ");
+            params.put("isRead", true);
+        } else if ("unread".equalsIgnoreCase(state)) {
+            sql.append(" AND sm.is_read = :isRead ");
+            countSql.append(" AND sm.is_read = :isRead ");
+            params.put("isRead", false);
+        }
 
         // 排序
         sql.append(" ORDER BY sm.create_date DESC ");
@@ -142,6 +161,22 @@ public class SystemMessageServiceImpl implements SystemMessageService {
     public void markAsRead(String messageId) {
         messageRepository.markAsRead(messageId, LocalDateTime.now());
         log.info("消息已标记为已读，messageId: {}", messageId);
+        Optional<SystemMessage> op = messageRepository.findById(messageId);
+        if (!op.isPresent()) {
+            return;
+        }
+        String userId = op.get().getUserId();
+        WsEventMessage wsMsg = WsEventMessage.builder()
+                .type(WsEventType.SYS_MSG_NEW)
+                .eventId(messageId)
+                .bizType(WsBizType.SYSTEM)
+                .bizId(null)
+                .action(WsAction.BADGE)
+                .level("INFO")
+                .timestamp(System.currentTimeMillis())
+                .build();
+        wsMessageService.sendToUser(userId, "sys_msg", wsMsg);
+
     }
 
     @Override

@@ -32,12 +32,13 @@ public class SystemMessageController {
      */
     @Operation(summary = "获取用户消息列表", description = "分页获取当前用户的系统消息列表")
     @GetMapping("/list")
-        public ResponseEntity<Page<?>> getMessages(
-            @Parameter(description = "页码，从0开始") @RequestParam(name = "page", defaultValue = "0") int page,
-            @Parameter(description = "每页大小") @RequestParam(name = "size", defaultValue = "20") int size) {
+    public ResponseEntity<Page<?>> getMessages(
+        @Parameter(description = "消息状态（all: 全部, read: 已读, unread: 未读）", example = "all") @RequestParam(value = "state", defaultValue = "all") String state,
+        @Parameter(description = "页码，从0开始") @RequestParam(value = "page", defaultValue = "0") int page,
+        @Parameter(description = "每页大小") @RequestParam(value = "size", defaultValue = "20") int size) {
         String userId = getCurrentUserId();
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(messageService.getUserMessages(userId, pageable));
+        return ResponseEntity.ok(messageService.getUserMessages(state, userId, pageable));
     }
 
     /**
@@ -45,9 +46,9 @@ public class SystemMessageController {
      */
     @Operation(summary = "获取未读消息列表", description = "分页获取当前用户的未读系统消息列表")
     @GetMapping("/unread")
-        public ResponseEntity<Page<?>> getUnreadMessages(
-            @Parameter(description = "页码，从0开始") @RequestParam(name = "page", defaultValue = "0") int page,
-            @Parameter(description = "每页大小") @RequestParam(name = "size", defaultValue = "20") int size) {
+    public ResponseEntity<Page<?>> getUnreadMessages(
+        @Parameter(description = "页码，从0开始") @RequestParam(value = "page", defaultValue = "0") int page,
+        @Parameter(description = "每页大小") @RequestParam(value = "size", defaultValue = "20") int size) {
         String userId = getCurrentUserId();
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(messageService.getUserUnreadMessages(userId, pageable));
@@ -72,8 +73,8 @@ public class SystemMessageController {
     @Operation(summary = "获取消息详情", description = "获取指定消息的详细信息")
     @GetMapping("/{messageId}")
     public ResponseEntity<?> getMessageDetail(
-            @Parameter(description = "消息ID", required = true)
-            @PathVariable String messageId) {
+        @Parameter(description = "消息ID", required = true)
+        @PathVariable("messageId") String messageId) {
         Object message = messageService.getMessageDetail(messageId);
         if (message == null) {
             return ResponseEntity.notFound().build();
@@ -87,8 +88,8 @@ public class SystemMessageController {
     @Operation(summary = "标记消息为已读", description = "标记指定消息为已读")
     @PutMapping("/{messageId}/read")
     public ResponseEntity<Void> markAsRead(
-            @Parameter(description = "消息ID", required = true)
-            @PathVariable String messageId) {
+        @Parameter(description = "消息ID", required = true)
+        @PathVariable("messageId") String messageId) {
         messageService.markAsRead(messageId);
         return ResponseEntity.ok().build();
     }
@@ -110,8 +111,8 @@ public class SystemMessageController {
     @Operation(summary = "删除消息", description = "删除指定的消息")
     @DeleteMapping("/{messageId}")
     public ResponseEntity<Void> deleteMessage(
-            @Parameter(description = "消息ID", required = true)
-            @PathVariable String messageId) {
+        @Parameter(description = "消息ID", required = true)
+        @PathVariable("messageId") String messageId) {
         messageService.deleteMessage(messageId);
         return ResponseEntity.ok().build();
     }

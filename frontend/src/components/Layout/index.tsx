@@ -1,3 +1,4 @@
+import renderDate from '@/utils/timeUtil';
 import React, {useCallback, useEffect, useState} from 'react';
 import {Button, Dropdown, Layout, Menu, Message, Badge, Modal, List, Spin, Empty, Space, Tooltip, Switch} from '@arco-design/web-react';
 import {Outlet, useLocation, useNavigate} from 'react-router-dom';
@@ -15,6 +16,7 @@ import {
     IconNotification,
     IconSun,
     IconMoon,
+    IconCheckCircleFill,
 } from '@arco-design/web-react/icon';
 // 主题切换逻辑
 const getInitTheme = () => {
@@ -33,6 +35,7 @@ import {useUser} from '@/contexts/UserContext';
 import {clearUserInfo} from '@/utils/userUtils';
 import {logoutUser} from '@/pages/User/api';
 import {getUnreadCount, getUnreadMessages, SystemMessageDto} from '@/pages/Notification/systemMessageApi';
+import { markAsRead } from '@/pages/SystemMessage/api';
 import {wsClient} from '@/core/websocket';
 import './style.less';
 
@@ -416,65 +419,71 @@ const AppLayout: React.FC = () => {
                         droplist={
                             <div className="system-message-dropdown" style={{ width: 340, maxHeight: 400, padding: 0 }}>
                                 <div style={{ padding: '12px 16px', fontWeight: 500, borderBottom: '1px solid #f0f0f0' }}>系统消息</div>
-                                <Spin loading={messageLoading} style={{ minHeight: 180 }}>
+                                <Spin loading={messageLoading} style={{ minHeight: 180, width: '100%' }}>
                                     {messageList && messageList.length > 0 ? (
                                         <List
                                             dataSource={messageList}
+                                            className="system-message-list"
                                             style={{ maxHeight: 260, overflowY: 'auto', margin: 0, padding: 0 }}
-                                            render={(item: SystemMessageDto) => (
-                                                <List.Item key={item.id} style={{ padding: '10px 16px' }}>
-                                                    <List.Item.Meta
-                                                        title={
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                <span>{item.title}</span>
-                                                                <span
-                                                                    style={{
-                                                                        display: 'inline-block',
-                                                                        padding: '2px 8px',
-                                                                        borderRadius: '4px',
-                                                                        fontSize: '12px',
-                                                                        backgroundColor:
-                                                                            item.type === 'SUCCESS'
-                                                                                ? '#f6ffed'
-                                                                                : item.type === 'WARNING'
-                                                                                ? '#fffbe6'
-                                                                                : item.type === 'ERROR'
-                                                                                ? '#fff1f0'
-                                                                                : '#f0f5ff',
-                                                                        color:
-                                                                            item.type === 'SUCCESS'
-                                                                                ? '#52c41a'
-                                                                                : item.type === 'WARNING'
-                                                                                ? '#faad14'
-                                                                                : item.type === 'ERROR'
-                                                                                ? '#ff4d4f'
-                                                                                : '#1890ff',
-                                                                    }}
-                                                                >
-                                                                    {item.type}
-                                                                </span>
-                                                            </div>
-                                                        }
-                                                        description={
-                                                            <div>
-                                                                <div
-                                                                    style={{
-                                                                        color: '#999',
-                                                                        fontSize: '12px',
-                                                                        marginTop: '4px',
-                                                                        whiteSpace: 'nowrap',
-                                                                        overflow: 'hidden',
-                                                                        textOverflow: 'ellipsis',
-                                                                    }}
-                                                                    dangerouslySetInnerHTML={{
-                                                                        __html: item.content?.substring(0, 100) || '',
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        }
-                                                    />
-                                                </List.Item>
-                                            )}
+                                            render={(item: SystemMessageDto) => {
+                                                const typeIconMap: Record<string, JSX.Element> = {
+                                                    SUCCESS: <IconCheckCircleFill style={{color:'#52c41a'}} />,
+                                                    ERROR: <IconNotification style={{color:'#ff4d4f'}} />,
+                                                    WARNING: <IconNotification style={{color:'#faad14'}} />,
+                                                    INFO: <IconNotification style={{color:'#1890ff'}} />,
+                                                    SYSTEM: <IconNotification style={{color:'#888'}} />,
+                                                    NOTIFICATION: <IconNotification style={{color:'#3578e5'}} />,
+                                                };
+                                                const typeIcon = typeIconMap[item.type] || <IconNotification style={{color:'#3578e5'}} />;
+                                                return (
+                                                    <div
+                                                        key={item.id}
+                                                        className="system-message-item"
+                                                        style={{width: '100%'}}
+                                                        onClick={() => {
+                                                            let modalRef: any = null;
+                                                            // 自动标记为已读
+                                                            const autoMarkRead = async () => {
+                                                                if (!item.isRead) {
+                                                                    try {
+                                                                        await markAsRead(item.id);
+                                                                        // 刷新未读消息列表和计数
+                                                                        loadUnreadMessages();
+                                                                        loadUnreadCount();
+                                                                    } catch {
+                                                                        Message.error('标记已读失败');
+                                                                    }
+                                                                }
+                                                            };
+                                                            modalRef = Modal.info({
+                                                                title: (
+                                                                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                                                        {typeIcon}
+                                                                        <span style={{fontWeight:600}}>{item.title}</span>
+                                                                        <span style={{flex:1}}></span>
+                                                                        <span style={{color:'#b0b0b0',fontSize:13}}>{renderDate(item.createDate)}</span>
+                                                                    </div>
+                                                                ),
+                                                                content: (
+                                                                    <div style={{marginTop:8}}>
+                                                                        <div style={{whiteSpace:'pre-line',fontSize:15,lineHeight:1.7}}>{item.content}</div>
+                                                                    </div>
+                                                                ),
+                                                                okText: '关闭',
+                                                                maskClosable: true,
+                                                                footer: null,
+                                                                afterOpen: autoMarkRead,
+                                                            });
+                                                        }}
+                                                    >
+                                                        <div className="system-message-title" style={{width:'100%',display:'flex',alignItems:'center',gap:8}}>
+                                                            {typeIcon}
+                                                            <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.title}</span>
+                                                            <span style={{color:'#b0b0b0',fontSize:13}}>{renderDate(item.createDate)}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }}
                                         />
                                     ) : (
                                         <Empty description="暂无未读消息" style={{ margin: '32px 0' }} />
