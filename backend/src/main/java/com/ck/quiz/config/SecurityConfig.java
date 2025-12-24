@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -28,10 +29,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.anonymous(anonymous -> anonymous
-                        .principal("admin")
-                        .authorities("sys_mgr")
-                )
+        http
+                // 1. 恢复标准匿名用户配置，不再伪装成 admin
+                .anonymous(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
@@ -42,14 +42,12 @@ public class SecurityConfig {
                     return config;
                 }))
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/login", "/api/user/login", "/open/**").permitAll()
-                    .requestMatchers("/api/wx/user/**").permitAll()
-                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                    // 静态资源
-                    .requestMatchers("/static/**").permitAll()
-                    // 放行 WebSocket/SockJS 端点（实际路径为 /quiz/ws，但此处不含 context-path）
-                    .requestMatchers("/ws/**").permitAll()
-                    .anyRequest().authenticated()
+                        // 2. 这里的路径匹配逻辑要覆盖 Nginx 转发后的 servletPath
+                        .requestMatchers("/login**", "/api/user/login**", "/open/**").permitAll()
+                        .requestMatchers("/api/wx/user/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/static/**", "/ws/**").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
@@ -64,8 +62,7 @@ public class SecurityConfig {
                             response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponse));
                         })
                 )
-                .addFilterBefore(jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
