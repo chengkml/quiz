@@ -345,11 +345,11 @@ function SubjectManager() {
                                 <p style={{marginBottom: '12px'}}>{message}</p>
                                 {errorMessages && errorMessages.length > 0 && (
                                     <div>
-                                        <p style={{color: '#ff4d4f', marginBottom: '8px'}}>失败详情：</p>
+                                        <p style={{color: 'var(--color-danger-6)', marginBottom: '8px'}}>失败详情：</p>
                                         <ul style={{maxHeight: '200px', overflowY: 'auto'}}>
                                             {errorMessages.map((msg: string, index: number) => (
                                                 <li key={index}
-                                                    style={{color: '#ff4d4f', fontSize: '14px', marginBottom: '4px'}}>
+                                                    style={{color: 'var(--color-danger-6)', fontSize: '14px', marginBottom: '4px'}}>
                                                     {msg}
                                                 </li>
                                             ))}
@@ -541,7 +541,7 @@ function SubjectManager() {
                     confirmLoading={loading}
                 >
                     <p>确定要删除学科 <strong>{currentRecord?.name}</strong> 吗？</p>
-                    <p style={{color: '#f53f3f'}}>删除后不可恢复，请谨慎操作！</p>
+                    <p style={{color: 'var(--color-danger-6)'}}>删除后不可恢复，请谨慎操作！</p>
                 </Modal>
 
                   {/* 导入模态框 */}

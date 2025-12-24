@@ -113,7 +113,7 @@ function QuestionManager() {
         if (trimmed.startsWith('[RETRY]')) {
             // 用红色强调重试起始信息
             const rest = trimmed.substring('[RETRY]'.length);
-            const html = '<span style="color:#ff4d4f;font-weight:600">' + escapeHtml('[RETRY]' + rest) + '</span>';
+            const html = '<span style="color:var(--color-danger-6);font-weight:600">' + escapeHtml('[RETRY]' + rest) + '</span>';
             // 保留原始换行
             return html + '<br/>';
         }
@@ -982,7 +982,7 @@ function QuestionManager() {
         }
 
         return (
-            <div style={{marginTop: 8, color: '#165DFF'}}>
+            <div style={{marginTop: 8, color: 'var(--color-primary-6)'}}>
                 <strong>答案:</strong> {displayAnswer}
             </div>
         );
@@ -997,7 +997,7 @@ function QuestionManager() {
                         minWidth: 200,
                         maxWidth: 400,
                         height: '100%',
-                        backgroundColor: '#fff',
+                        backgroundColor: 'var(--color-bg-1)',
                         borderRight: '1px solid #e5e6eb',
                     }}
                 >
@@ -1066,7 +1066,7 @@ function QuestionManager() {
                             ) : (
                                 <div style={{
                                     textAlign: 'center',
-                                    color: '#86909c',
+                                    color: 'var(--color-text-2)',
                                     padding: '20px 0',
                                     fontSize: '14px'
                                 }}>
@@ -1474,11 +1474,11 @@ function QuestionManager() {
                             <div style={{
                                 marginBottom: 16,
                                 padding: 12,
-                                backgroundColor: '#f7f8fa',
+                                backgroundColor: 'var(--color-fill-2)',
                                 borderRadius: 6,
                                 border: '1px solid #e5e6eb'
                             }}>
-                                <div style={{fontWeight: 'bold', marginBottom: 8, color: '#1d2129'}}>
+                                <div style={{fontWeight: 'bold', marginBottom: 8, color: 'var(--color-text-1)'}}>
                                     生成信息:
                                 </div>
                                 <div style={{display: 'flex', gap: 12}}>
@@ -1510,7 +1510,7 @@ function QuestionManager() {
                             <div style={{
                                 marginBottom: 16,
                                 padding: 12,
-                                backgroundColor: '#f0f9ff',
+                                backgroundColor: 'var(--color-info-light-1)',
                                 borderRadius: 6,
                                 border: '1px solid #b6e3ff',
                                 maxHeight: 200,
@@ -1522,7 +1522,7 @@ function QuestionManager() {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         padding: '20px',
-                                        color: '#165DFF'
+                                        color: 'var(--color-primary-6)'
                                     }}>
                                         <Spin />
                                         <span style={{marginLeft: 12}}>正在连接AI模型，准备生成题目...</span>
@@ -1530,7 +1530,7 @@ function QuestionManager() {
                                 ) : streamingContent ? (
                                     <div ref={streamingContainerRef} style={{
                                         fontSize: 12,
-                                        color: '#666',
+                                        color: 'var(--color-text-3)',
                                         whiteSpace: 'pre-wrap',
                                         wordBreak: 'break-word',
                                         fontFamily: 'monospace'
@@ -1549,7 +1549,7 @@ function QuestionManager() {
                             footer={null}
                         >
                             <div style={{maxHeight: '60vh', overflowY: 'auto', padding: 12, background: '#fafafa'}}>
-                                <div style={{fontSize: 12, color: '#666', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace'}}
+                                <div style={{fontSize: 12, color: 'var(--color-text-3)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace'}}
                                      dangerouslySetInnerHTML={{__html: streamingContent}}>
                                 </div>
                             </div>
@@ -1611,7 +1611,7 @@ function QuestionManager() {
                                                             <div style={{
                                                                 marginTop: 4,
                                                                 padding: '8px 12px',
-                                                                backgroundColor: '#f7f8fa',
+                                                                backgroundColor: 'var(--color-fill-2)',
                                                                 borderRadius: 4
                                                             }}>
                                                                 {question.content}
@@ -1624,7 +1624,7 @@ function QuestionManager() {
                                                         {question.explanation && (
                                                             <div style={{marginTop: 8}}>
                                                                 <strong>解析:</strong>
-                                                                <div style={{marginTop: 4, color: '#666'}}>
+                                                                <div style={{marginTop: 4, color: 'var(--color-text-3)'}}>
                                                                     {question.explanation}
                                                                 </div>
                                                             </div>
@@ -1662,9 +1662,9 @@ function QuestionManager() {
                                 <div style={{
                                     marginTop: 8,
                                     padding: '12px 16px',
-                                    backgroundColor: '#f0f9ff',
+                                    backgroundColor: 'var(--color-info-light-1)',
                                     borderRadius: 6,
-                                    color: '#666',
+                                    color: 'var(--color-text-3)',
                                     lineHeight: 1.6
                                 }}>
                                     {detailRecord.content}
@@ -1680,9 +1680,9 @@ function QuestionManager() {
                                     <div style={{
                                         marginTop: 8,
                                         padding: '12px 16px',
-                                        backgroundColor: '#f7f8fa',
+                                        backgroundColor: 'var(--color-fill-2)',
                                         borderRadius: 6,
-                                        color: '#666',
+                                        color: 'var(--color-text-3)',
                                         lineHeight: 1.6
                                     }}>
                                         {detailRecord.explanation}
@@ -1694,7 +1694,7 @@ function QuestionManager() {
                                 <div style={{
                                     display: 'flex',
                                     justifyContent: 'space-between',
-                                    color: '#86909c',
+                                    color: 'var(--color-text-2)',
                                     fontSize: 14
                                 }}>
                                     <span>创建人: <UserAvatar name={detailRecord.createUserName || ''} showName /></span>

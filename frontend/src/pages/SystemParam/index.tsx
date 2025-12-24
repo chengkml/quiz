@@ -443,11 +443,11 @@ function SystemParamManager() {
                         minWidth: 200,
                         maxWidth: 400,
                         height: '100%',
-                        backgroundColor: '#fff',
-                        borderRight: '1px solid #e5e6eb',
+                        backgroundColor: 'var(--color-bg-1)',
+                        borderRight: '1px solid var(--color-border-2)',
                     }}
                 >
-                    <div style={{ padding: '12px', borderBottom: '1px solid #e5e6eb' }}>
+                    <div style={{ padding: '12px', borderBottom: '1px solid var(--color-border-2)' }}>
                         <Input.Search
                             placeholder="搜索分类"
                             allowClear
@@ -495,7 +495,7 @@ function SystemParamManager() {
                             ) : (
                                 <div style={{
                                     textAlign: 'center',
-                                    color: '#86909c',
+                                    color: 'var(--color-text-2)',
                                     padding: '20px 0',
                                     fontSize: '14px'
                                 }}>

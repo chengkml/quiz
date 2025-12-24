@@ -1,7 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {Button, Dropdown, Layout, Menu, Message, Badge, Modal, List, Spin, Empty, Space, Tooltip} from '@arco-design/web-react';
+import {Button, Dropdown, Layout, Menu, Message, Badge, Modal, List, Spin, Empty, Space, Tooltip, Switch} from '@arco-design/web-react';
 import {Outlet, useLocation, useNavigate} from 'react-router-dom';
-import * as ArcoIcons from '@arco-design/web-react/icon';
 import {
     IconCaretLeft,
     IconCaretRight,
@@ -14,7 +13,20 @@ import {
     IconStorage,
     IconUser,
     IconNotification,
+    IconSun,
+    IconMoon,
 } from '@arco-design/web-react/icon';
+// 主题切换逻辑
+const getInitTheme = () => {
+    if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('themeMode');
+        if (saved === 'dark' || saved === 'light') return saved;
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+    }
+    return 'light';
+};
 import {MenuTreeDto} from '../../types/menu';
 import UserAvatar from '@/components/UserAvatar';
 import {useUser} from '@/contexts/UserContext';
@@ -29,6 +41,19 @@ const MenuItem = Menu.Item;
 const SubMenu = Menu.SubMenu;
 
 const AppLayout: React.FC = () => {
+    const [theme, setTheme] = useState<'light' | 'dark'>(getInitTheme());
+        // 切换主题
+        const handleThemeChange = (checked: boolean) => {
+            const mode = checked ? 'dark' : 'light';
+            setTheme(mode);
+            document.body.setAttribute('arco-theme', mode === 'dark' ? 'dark' : '');
+            localStorage.setItem('themeMode', mode);
+        };
+
+        // 初始化主题
+        useEffect(() => {
+            document.body.setAttribute('arco-theme', theme === 'dark' ? 'dark' : '');
+        }, [theme]);
     const navigate = useNavigate();
     const location = useLocation();
     const [openKeys, setOpenKeys] = useState<string[]>([]);
@@ -211,9 +236,18 @@ const AppLayout: React.FC = () => {
         // 1) 优先根据 menuIcon 字段渲染（如：'user-add' -> IconUserAdd）
         if (menu.menuIcon) {
             const compName = `${toPascal(menu.menuIcon)}`;
-            const IconComp = (ArcoIcons as any)[compName];
-            if (IconComp) {
-                return <IconComp/>;
+            // 仅支持已静态导入的图标
+            const staticIcons: Record<string, JSX.Element> = {
+                IconDashboard: <IconDashboard/>,
+                IconUser: <IconUser/>,
+                IconSettings: <IconSettings/>,
+                IconFile: <IconFile/>,
+                IconStorage: <IconStorage/>,
+                IconLock: <IconLock/>,
+                IconHome: <IconHome/>,
+            };
+            if (staticIcons[compName]) {
+                return staticIcons[compName];
             }
             // 常用简写的兼容映射
             const fallbackMap: Record<string, JSX.Element> = {
@@ -362,6 +396,15 @@ const AppLayout: React.FC = () => {
             }}>
                 <div></div>
                 <Space size={12} align="center" className="header-actions">
+                    <Tooltip content={theme === 'dark' ? '切换为亮色' : '切换为暗黑'} position="bottom">
+                        <Switch
+                            checked={theme === 'dark'}
+                            onChange={handleThemeChange}
+                            checkedIcon={<IconMoon />}
+                            uncheckedIcon={<IconSun />}
+                            style={{ marginRight: 8 }}
+                        />
+                    </Tooltip>
                     <Tooltip content="系统消息" position="bottom" getPopupContainer={() => document.body}>
                         <Badge className="message-badge" count={unreadCount} maxCount={99} offset={[2, -2]}>
                             <Button

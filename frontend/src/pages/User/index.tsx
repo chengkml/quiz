@@ -807,7 +807,7 @@ function UserManager() {
                         <Input.Password placeholder="请输入新密码"/>
                     </Form.Item>
                 </Form>
-                <p style={{color: '#666', fontSize: '12px'}}>
+                <p style={{color: 'var(--color-text-3)', fontSize: '12px'}}>
                     为用户 "{currentUser?.userName}" 重置密码
                 </p>
             </Modal>
