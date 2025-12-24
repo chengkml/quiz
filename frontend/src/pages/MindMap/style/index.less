@@ -1,15 +1,15 @@
 .mindmap-list-page {
-  box-shadow: rgb(229, 230, 235) -1px 0px 0px 0px inset;
+  box-shadow: var(--color-border-2, rgb(229,230,235)) -1px 0px 0px 0px inset;
   overflow: hidden;
   background: var(--background-color-base);
   height: 100%;
 
   .arco-layout-content {
     margin: 10px;
-    background-color: #fff;
+    background-color: var(--color-bg-1);
     border-radius: 8px;
     padding: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--color-shadow-2, 0 2px 8px rgba(0,0,0,0.1));
     height: calc(100% - 20px);
     width: calc(100% - 20px);
   }
@@ -34,18 +34,18 @@
   }
 
   .mindmap-list-table {
-    background-color: #fff;
+    background-color: var(--color-bg-1);
     border-radius: 6px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--color-shadow-1, 0 1px 3px rgba(0,0,0,0.1));
 
     :global {
       .arco-table-header {
-        background-color: #fafafa;
+        background-color: var(--color-fill-2);
       }
 
       .arco-table-row-hover {
-        background-color: #f5f5f5;
+        background-color: var(--color-fill-3);
       }
 
       .arco-table-cell {
@@ -54,11 +54,11 @@
       }
 
       .arco-table-td-fixed-left {
-        box-shadow: 1px 0 0 #f0f0f0;
+        box-shadow: 1px 0 0 var(--color-border-1, #f0f0f0);
       }
 
       .arco-table-td-fixed-right {
-        box-shadow: -1px 0 0 #f0f0f0;
+        box-shadow: -1px 0 0 var(--color-border-1, #f0f0f0);
       }
     }
   }
