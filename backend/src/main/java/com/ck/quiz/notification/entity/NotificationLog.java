@@ -29,9 +29,8 @@ public class NotificationLog {
      * 主键ID
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private Long id;
+    private String id;
 
     /**
      * 通知渠道类型
@@ -78,7 +77,8 @@ public class NotificationLog {
     /**
      * 构造方法，自动设置创建时间
      */
-    public NotificationLog(String channelType, String messageContent, String errorMessage) {
+    public NotificationLog(String id, String channelType, String messageContent, String errorMessage) {
+        this.id = id;
         this.channelType = channelType;
         this.messageContent = messageContent;
         this.errorMessage = errorMessage;

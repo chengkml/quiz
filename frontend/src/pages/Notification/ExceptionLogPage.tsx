@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
+  Dropdown,
   Form,
+  Grid,
   Input,
   Layout,
+  Menu,
   Message,
   Modal,
   Pagination,
@@ -11,24 +14,53 @@ import {
   Table,
   Tag,
 } from "@arco-design/web-react";
-import { IconSearch, IconRedo } from "@arco-design/web-react/icon";
+import { IconSearch, IconRedo, IconList } from "@arco-design/web-react/icon";
+import renderDate from "@/utils/timeUtil";
 import "./style/index.less";
 import { getErrorLogs, retryErrorLog } from "./api";
 
-const {Content} = Layout;
+const { Content } = Layout;
+const { Row, Col } = Grid;
+
+// 解析内容JSON
+const parseMsg = (msg: string) => {
+  try {
+    return JSON.parse(msg);
+  } catch {
+    return {};
+  }
+};
 
 const columns = [
   {
     title: "渠道类型",
     dataIndex: "channelType",
-    width: 120,
+    width: 100,
     render: (v: string) => <Tag color="arcoblue">{v}</Tag>,
   },
   {
-    title: "内容",
-    dataIndex: "messageContent",
-    ellipsis: true,
-    width: 300,
+    title: "发送人",
+    width: 120,
+    render: (_: any, record: any) => {
+      const obj = parseMsg(record.messageContent);
+      return obj.senderId || '-';
+    },
+  },
+  {
+    title: "接收人",
+    width: 180,
+    render: (_: any, record: any) => {
+      const obj = parseMsg(record.messageContent);
+      return obj.to || '-';
+    },
+  },
+  {
+    title: "标题",
+    width: 200,
+    render: (_: any, record: any) => {
+      const obj = parseMsg(record.messageContent);
+      return obj.title || '-';
+    },
   },
   {
     title: "异常信息",
@@ -37,25 +69,35 @@ const columns = [
     width: 300,
   },
   {
-    title: "时间",
+    title: "发送时间",
     dataIndex: "createdAt",
     width: 180,
-    render: (v: string) => v?.replace("T", " ") || "-",
+    render: (v: string) => renderDate(v),
   },
   {
     title: "操作",
     width: 100,
-    align: "center" as any,
+    align: "center" as const,
+    fixed: "right" as const,
     render: (_: any, record: any) => (
-      <Space>
-        <Button
-          type="primary"
-          size="mini"
-          icon={<IconRedo />}
-          onClick={() => record.onRetry(record)}
+      <Space size="large" className="table-btn-group">
+        <Dropdown
+          position="bl"
+          droplist={
+            <Menu onClickMenuItem={(key, e) => {
+              e.stopPropagation();
+              if (key === 'retry') record.onRetry(record);
+            }} className="handle-dropdown-menu">
+              <Menu.Item key="retry">
+                <IconRedo style={{ marginRight: 5 }} />重试
+              </Menu.Item>
+            </Menu>
+          }
         >
-          重试
-        </Button>
+          <Button type="text" className="more-btn" onClick={e => e.stopPropagation()}>
+            <IconList />
+          </Button>
+        </Dropdown>
       </Space>
     ),
   },
@@ -137,28 +179,41 @@ const ExceptionLogPage: React.FC = () => {
         <Content>
           {/* 筛选表单 */}
           <Form
-            layout="inline"
+            layout="horizontal"
             className="filter-form"
-            style={{ marginBottom: 16 }}
+            style={{ marginTop: "10px" }}
           >
-            <Form.Item label="关键字">
-              <Input
-                placeholder="渠道/内容/异常信息"
-                value={keyWord}
-                onChange={setKeyWord}
-                allowClear
-                style={{ width: 240 }}
-              />
-            </Form.Item>
-            <Form.Item>
-              <Button
-                type="primary"
-                icon={<IconSearch />}
-                onClick={handleSearch}
+            <Row gutter={16}>
+              <Col span={6}>
+                <Form.Item label="关键字">
+                  <Input
+                    placeholder="渠道/内容/异常信息"
+                    value={keyWord}
+                    onChange={setKeyWord}
+                    allowClear
+                  />
+                </Form.Item>
+              </Col>
+              <Col
+                span={6}
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-start",
+                  alignItems: "flex-end",
+                  paddingBottom: "16px",
+                }}
               >
-                搜索
-              </Button>
-            </Form.Item>
+                <Space>
+                  <Button
+                    type="primary"
+                    icon={<IconSearch />}
+                    onClick={handleSearch}
+                  >
+                    搜索
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
           </Form>
 
           {/* 表格 */}

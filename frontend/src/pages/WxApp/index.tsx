@@ -288,8 +288,8 @@ function WxAppManager() {
         {
             title: '操作',
             width: 100,
-            align: 'center',
-            fixed: 'right' as any,
+            align: 'center' as const,
+            fixed: 'right' as const,
             render: (_: any, record: WxAppResponse) => (
                 <Space size="large" className="table-btn-group">
                     <Dropdown

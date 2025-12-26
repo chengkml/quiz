@@ -2,6 +2,11 @@ package com.ck.quiz.notification.service;
 
 import com.ck.quiz.notification.entity.NotificationLog;
 import com.ck.quiz.notification.repository.NotificationLogRepository;
+import com.ck.quiz.utils.IdHelper;
+import com.ck.quiz.utils.JdbcQueryHelper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -13,6 +18,9 @@ import java.util.Optional;
 
 @Service
 public class NotificationLogService {
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     @Autowired
     private NotificationLogRepository notificationLogRepository;
 
@@ -26,17 +34,17 @@ public class NotificationLogService {
     public Page<NotificationLog> getErrorLogs(int page, int size, String keyWord) {
         StringBuilder sql = new StringBuilder(
                 "SELECT id, channel_type, message_content, error_message, level, created_at " +
-                "FROM notification_log WHERE level = :level "
-        );
+                        "FROM notification_log WHERE level = :level ");
         StringBuilder countSql = new StringBuilder(
-                "SELECT COUNT(1) FROM notification_log WHERE level = :level "
-        );
+                "SELECT COUNT(1) FROM notification_log WHERE level = :level ");
         Map<String, Object> params = new HashMap<>();
         params.put("level", "ERROR");
 
         if (keyWord != null && !keyWord.trim().isEmpty()) {
-            sql.append(" AND (LOWER(channel_type) LIKE :keyWord OR LOWER(message_content) LIKE :keyWord OR LOWER(error_message) LIKE :keyWord) ");
-            countSql.append(" AND (LOWER(channel_type) LIKE :keyWord OR LOWER(message_content) LIKE :keyWord OR LOWER(error_message) LIKE :keyWord) ");
+            sql.append(
+                    " AND (LOWER(channel_type) LIKE :keyWord OR LOWER(message_content) LIKE :keyWord OR LOWER(error_message) LIKE :keyWord) ");
+            countSql.append(
+                    " AND (LOWER(channel_type) LIKE :keyWord OR LOWER(message_content) LIKE :keyWord OR LOWER(error_message) LIKE :keyWord) ");
             params.put("keyWord", "%" + keyWord.toLowerCase() + "%");
         }
 
@@ -46,7 +54,7 @@ public class NotificationLogService {
 
         List<NotificationLog> list = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
             NotificationLog log = new NotificationLog();
-            log.setId(rs.getLong("id"));
+            log.setId(rs.getString("id"));
             log.setChannelType(rs.getString("channel_type"));
             log.setMessageContent(rs.getString("message_content"));
             log.setErrorMessage(rs.getString("error_message"));
@@ -55,7 +63,7 @@ public class NotificationLogService {
             return log;
         });
 
-        return com.ck.quiz.utils.JdbcQueryHelper.toPage(jdbcTemplate, countSql.toString(), params, list, page, size);
+        return JdbcQueryHelper.toPage(jdbcTemplate, countSql.toString(), params, list, page, size);
     }
 
     // 重试逻辑（伪实现，实际应集成消息发送服务）
@@ -68,33 +76,23 @@ public class NotificationLogService {
                 return false;
             }
             try {
-                // 反序列化 messageContent 为 NotificationMessage
-                NotificationMessage message = parseMessageContent(log.getMessageContent());
+                String messageContent = log.getMessageContent();
+                Map<String, Object> messageMap = objectMapper.readValue(messageContent, Map.class);
+                NotificationMessage message = NotificationMessage.builder()
+                        .to((String) messageMap.get("to"))
+                        .title((String) messageMap.get("title"))
+                        .content((String) messageMap.get("content"))
+                        .channelType(NotificationChannelType.valueOf((String) messageMap.get("channelType")))
+                        .type((String) messageMap.get("type"))
+                        .senderId((String) messageMap.get("senderId"))
+                        .build();
                 notificationDispatcher.dispatch(message);
                 return true;
             } catch (Exception e) {
-                // 失败可再次记录日志
-                NotificationLog retryLog = new NotificationLog(
-                        log.getChannelType(),
-                        log.getMessageContent(),
-                        "重试失败: " + e.getMessage()
-                );
-                notificationLogRepository.save(retryLog);
                 return false;
             }
         }
         return false;
     }
 
-    // 简单实现：假设 messageContent 为 NotificationMessage 的 toString，可用 JSON 替换
-    private NotificationMessage parseMessageContent(String content) {
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            // 支持 JSR310 时间类型
-            objectMapper.findAndRegisterModules();
-            return objectMapper.readValue(content, NotificationMessage.class);
-        } catch (Exception e) {
-            throw new RuntimeException("消息内容反序列化失败", e);
-        }
-    }
 }

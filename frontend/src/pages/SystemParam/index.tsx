@@ -166,7 +166,7 @@ function SystemParamManager() {
             title: '操作',
             width: 100,
             align: 'center' as const,
-            fixed: 'right' as any,
+            fixed: 'right' as const,
             render: (_: any, record: SystemParamDto) => (
                 <Dropdown
                     position="bl"

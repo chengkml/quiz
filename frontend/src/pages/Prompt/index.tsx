@@ -180,6 +180,7 @@ const PromptTemplateManagement: React.FC = () => {
             title: '操作',
             key: 'action',
             width: 100,
+            fixed: 'right' as const,
             render: (_, record) => (
                 <Dropdown
                     position="bl"

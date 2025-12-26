@@ -13,15 +13,16 @@ public class NotificationLogController {
 
     // 查询所有异常日志，支持分页和关键字
     @GetMapping("/error")
-    public Object getErrorLogs(@RequestParam(defaultValue = "0") int page,
-                               @RequestParam(defaultValue = "10") int size,
-                               @RequestParam(required = false) String keyWord) {
+    public Object getErrorLogs(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "keyWord", required = false) String keyWord) {
         return notificationLogService.getErrorLogs(page, size, keyWord);
     }
 
     // 根据ID重试发送
     @PostMapping("/retry/{id}")
-    public String retrySend(@PathVariable Long id) {
+    public String retrySend(@PathVariable(name="id") Long id) {
         boolean success = notificationLogService.retrySend(id);
         return success ? "重试成功" : "重试失败，日志不存在或非异常日志";
     }

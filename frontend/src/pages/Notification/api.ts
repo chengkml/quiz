@@ -1,10 +1,10 @@
 // 异常通知日志相关接口
 export function getErrorLogs(params: { page?: number; size?: number; keyWord?: string }) {
-  return axios.get('/api/notification/log/error', { params });
+  return axios.get('/notification/log/error', { params });
 }
 
 export function retryErrorLog(id: number) {
-  return axios.post(`/api/notification/log/retry/${id}`);
+  return axios.post(`/notification/log/retry/${id}`);
 }
 import axios from '@/core/src/http';
 

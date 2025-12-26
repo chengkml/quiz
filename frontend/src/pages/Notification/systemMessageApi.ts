@@ -101,7 +101,7 @@ export const sendSystemMessage = (payload: SendSystemMessagePayload) =>
  */
 export const streamSendLogs = (jobId: string) => {
   const token = localStorage.getItem('token');
-  const base = `/cron/job/logs/stream/${jobId}`;
+  const base = `/api/cron/job/logs/stream/${jobId}`;
   const url = token ? `${base}?token=${encodeURIComponent(token)}` : base;
   return new EventSource(url, { withCredentials: true });
 };
