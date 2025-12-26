@@ -30,18 +30,16 @@ public class EmailChannel implements NotificationChannel {
     }
 
     @Override
-    public boolean send(NotificationMessage message) {
+    public void send(NotificationMessage message) {
         try {
             if (!StringUtils.hasText(message.getTo())) {
-                log.error("邮件接收地址为空");
-                return false;
+                throw new IllegalArgumentException("邮件接收地址为空");
             }
 
             // 从配置表获取发件人地址
             String from = getMailUsername();
             if (!StringUtils.hasText(from)) {
-                log.error("未配置发件人地址");
-                return false;
+                throw new IllegalArgumentException("未配置发件人地址");
             }
 
             MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -67,11 +65,9 @@ public class EmailChannel implements NotificationChannel {
             mailSender.send(mimeMessage);
             
             log.info("邮件发送成功 - 收件人: {}, 主题: {}", message.getTo(), message.getTitle());
-            return true;
             
         } catch (Exception e) {
-            log.error("邮件发送失败 - 收件人: {}, 错误: {}", message.getTo(), e.getMessage(), e);
-            return false;
+            throw new RuntimeException("邮件发送失败: " + e.getMessage(), e);
         }
     }
 

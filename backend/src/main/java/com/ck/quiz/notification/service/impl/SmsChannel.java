@@ -25,32 +25,24 @@ public class SmsChannel implements NotificationChannel {
     }
 
     @Override
-    public boolean send(NotificationMessage message) {
-        try {
-            // 默认使用阿里云，可通过配置指定使用其他服务商
-            String vendor = "aliyun";
-            
-            SmsService smsService = smsServiceFactory.getService(vendor);
-            
-            // 发送短信（简单内容发送）
-            SmsResult result = smsService.sendTemplate(
+    public void send(NotificationMessage message) {
+        // 默认使用阿里云，可通过配置指定使用其他服务商
+        String vendor = "aliyun";
+
+        SmsService smsService = smsServiceFactory.getService(vendor);
+
+        // 发送短信（简单内容发送）
+        SmsResult result = smsService.sendTemplate(
                 message.getTo(),
                 "notification",
-                java.util.Map.of("content", message.getContent())
-            );
-            
-            if (result.isSuccess()) {
-                log.info("短信发送成功 -> phone: {}, vendor: {}, requestId: {}", 
+                java.util.Map.of("content", message.getContent()));
+
+        if (result.isSuccess()) {
+            log.info("短信发送成功 -> phone: {}, vendor: {}, requestId: {}",
                     message.getTo(), result.getVendor(), result.getRequestId());
-                return true;
-            } else {
-                log.warn("短信发送失败 -> phone: {}, vendor: {}, message: {}", 
+        } else {
+            log.warn("短信发送失败 -> phone: {}, vendor: {}, message: {}",
                     message.getTo(), result.getVendor(), result.getMessage());
-                return false;
-            }
-        } catch (Exception e) {
-            log.error("短信发送异常 -> phone: {}, error: {}", message.getTo(), e.getMessage(), e);
-            return false;
         }
     }
 }

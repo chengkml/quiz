@@ -45,8 +45,8 @@
 }
 // 系统消息下拉菜单背景色
 .system-message-dropdown {
-  background: #fff;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+  background: var(--color-bg-1);
+  box-shadow: 0 6px 24px var(--color-shadow-2, rgba(0,0,0,0.13));
   border-radius: 12px;
   padding: 0;
   min-width: 320px;
@@ -63,7 +63,7 @@
     flex-direction: column;
     gap: 2px;
     padding: 10px 18px 10px 16px;
-    border-bottom: 1px solid #f3f4f7;
+    border-bottom: 1px solid var(--color-border-2, #f3f4f7);
     cursor: pointer;
     background: transparent;
     transition: background 0.18s;
@@ -73,18 +73,18 @@
     border-bottom: none;
   }
   .system-message-item:hover {
-    background: #f6faff;
+    background: var(--color-primary-light-1, #f6faff);
   }
   .system-message-title {
     font-weight: 600;
-    color: #223;
+    color: var(--color-text-1, #223);
     font-size: 15px;
     display: flex;
     align-items: center;
     gap: 8px;
   }
   .system-message-content {
-    color: #666;
+    color: var(--color-text-2, #666);
     font-size: 14px;
     margin-top: 2px;
     white-space: pre-line;
@@ -92,7 +92,7 @@
     word-break: break-word;
   }
   .system-message-time {
-    color: #b0b0b0;
+    color: var(--color-text-4, #b0b0b0);
     font-size: 12px;
     margin-top: 2px;
     display: flex;
@@ -106,15 +106,15 @@
     background: var(--color-danger-6, #ff4d4f);
     display: inline-block;
     margin-right: 6px;
-    box-shadow: 0 0 0 2px #fff;
+    box-shadow: 0 0 0 2px var(--color-bg-1, #fff);
   }
   .system-message-type-tag {
     font-size: 12px;
     border-radius: 8px;
     padding: 1px 8px;
     font-weight: 500;
-    background: #eaf3ff;
-    color: #3578e5;
+    background: var(--color-primary-light-1, #eaf3ff);
+    color: var(--color-primary-6, #3578e5);
     margin-left: 2px;
     line-height: 1.2;
   }

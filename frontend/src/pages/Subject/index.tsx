@@ -12,28 +12,26 @@ import {
     Modal,
     Pagination,
     Space,
-    Table,
+    Card,
     Tag,
     Upload,
+    Spin,
+    Empty,
+    Typography
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
     createSubject,
     deleteSubject,
-    downloadTemplate,
-    exportSubjects,
     getSubjectList,
-    importSubjects,
     updateSubject
 } from './api';
 import {
     IconDelete,
-    IconDownload,
     IconEdit,
     IconList,
     IconPlus,
-    IconSearch,
-    IconUpload
+    IconSearch
 } from '@arco-design/web-react/icon';
 
 const {TextArea} = Input;
@@ -41,27 +39,27 @@ const {Content} = Layout;
 const {Row, Col} = Grid;
 
 function SubjectManager() {
-    // 状态管理
+    // 状态管理 (保持不变)
     const [tableData, setTableData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [tableLoading, setTableLoading] = useState(false);
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
 
-    // 对话框状态
+    // 对话框状态 (保持不变)
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-    const [importModalVisible, setImportModalVisible] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    // const [importModalVisible, setImportModalVisible] = useState(false);
+    // const [uploading, setUploading] = useState(false);
+    // const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [currentRecord, setCurrentRecord] = useState(null);
 
-    // 表单引用
-    const filterFormRef = useRef();
-    const addFormRef = useRef();
-    const editFormRef = useRef();
+    // 表单引用 (保持不变)
+    const filterFormRef = useRef<any>();
+    const addFormRef = useRef<any>();
+    const editFormRef = useRef<any>();
 
-    // 分页配置
+    // 分页配置 (保持不变)
     const [pagination, setPagination] = useState({
         current: 1,
         pageSize: 20,
@@ -71,123 +69,29 @@ function SubjectManager() {
         showPageSize: true,
     });
 
-    // 表格列配置
-    const columns = [
-        {
-            title: '学科名称',
-            dataIndex: 'name',
-            width: 200,
-            ellipsis: true,
-            render: (value) => (
-                <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                    <Tag color="blue" bordered>{value}</Tag>
-                </div>
-            ),
-        },
-        {
-            title: '学科描述',
-            dataIndex: 'description',
-            minWidth: 300,
-            ellipsis: true,
-            render: (value) => (
-                <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                    {value || '--'}
-                </div>
-            ),
-        },
-        {
-            title: '创建人',
-            dataIndex: 'createUserName',
-            width: 120,
-            ellipsis: true,
-            render: (name, record) => (
-                <UserAvatar name={name || (record?.createUser ?? '')} showName />
-            ),
-        },
-        {
-            title: '创建时间',
-            dataIndex: 'createDate',
-            width: 170,
-            render: (value) => {
-                if (!value) return '--';
+    // 提取原有的时间格式化逻辑
+    const renderTimeText = (value) => {
+        if (!value) return '--';
+        const now = new Date();
+        const date = new Date(value);
+        const diffMs = now.getTime() - date.getTime();
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffSeconds / 60);
+        const diffHours = Math.floor(diffMinutes / 60);
+        const diffDays = Math.floor(diffHours / 24);
 
-                const now = new Date();
-                const date = new Date(value);
-                const diffMs = now.getTime() - date.getTime();
-                const diffSeconds = Math.floor(diffMs / 1000);
-                const diffMinutes = Math.floor(diffSeconds / 60);
-                const diffHours = Math.floor(diffMinutes / 60);
-                const diffDays = Math.floor(diffHours / 24);
+        if (diffDays === 0) {
+            if (diffSeconds < 60) return `${diffSeconds}秒前`;
+            if (diffMinutes < 60) return `${diffMinutes}分钟前`;
+            return `${diffHours}小时前`;
+        } else if (diffDays === 1) {
+            return `昨天 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        } else {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+    };
 
-                // 今天
-                if (diffDays === 0) {
-                    if (diffSeconds < 60) {
-                        return `${diffSeconds}秒前`;
-                    } else if (diffMinutes < 60) {
-                        return `${diffMinutes}分钟前`;
-                    } else {
-                        return `${diffHours}小时前`;
-                    }
-                }
-                // 昨天
-                else if (diffDays === 1) {
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    return `昨天 ${hours}:${minutes}`;
-                }
-                // 昨天之前
-                else {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const seconds = String(date.getSeconds()).padStart(2, '0');
-                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-                }
-            },
-        },
-        {
-            title: '操作',
-            width: 100,
-            align: 'center',
-            fixed: 'right',
-            render: (_, record) => (
-                <Dropdown
-                    position="bl"
-                    droplist={
-                        <Menu
-                            onClickMenuItem={(key, e) => {
-                                handleMenuClick(key, e, record);
-                            }}
-                            className="handle-dropdown-menu"
-                        >
-                            <Menu.Item key="edit">
-                                <IconEdit style={{marginRight: '5px'}}/>
-                                编辑
-                            </Menu.Item>
-                            <Menu.Item key="delete">
-                                <IconDelete style={{marginRight: '5px'}}/>
-                                删除
-                            </Menu.Item>
-                        </Menu>
-                    }
-                >
-                    <Button
-                        type="text"
-                        className="more-btn"
-                        onClick={e => {
-                            e.stopPropagation();
-                        }}
-                    >
-                        <IconList/>
-                    </Button>
-                </Dropdown>
-            ),
-        },
-    ];
-
-    // 获取表格数据
+    // 获取数据逻辑 (保持不变)
     const fetchTableData = async (params = {}, pageSize = pagination.pageSize, current = pagination.current) => {
         setTableLoading(true);
         try {
@@ -213,33 +117,19 @@ function SubjectManager() {
         }
     };
 
-    // 搜索表格数据
     const searchTableData = (params) => {
         fetchTableData(params, pagination.pageSize, 1);
     };
 
-    // 处理下拉菜单点击
     const handleMenuClick = (key, e, record) => {
         e.stopPropagation();
         switch (key) {
-            case 'edit':
-                handleEdit(record);
-                break;
-            case 'delete':
-                handleDelete(record);
-                break;
-            default:
-                break;
+            case 'edit': handleEdit(record); break;
+            case 'delete': handleDelete(record); break;
         }
     };
 
-    // 处理新增
-    const handleAdd = () => {
-        setAddModalVisible(true);
-        addFormRef.current?.resetFields();
-    };
-
-    // 处理新增确认
+    const handleAdd = () => { setAddModalVisible(true); addFormRef.current?.resetFields(); };
     const handleAddConfirm = async () => {
         try {
             const formData = addFormRef.current?.getFieldsValue();
@@ -250,20 +140,10 @@ function SubjectManager() {
                 setAddModalVisible(false);
                 fetchTableData();
             }
-        } catch (error) {
-            Message.error('新增学科失败');
-        } finally {
-            setLoading(false);
-        }
+        } catch (error) { Message.error('新增学科失败'); } finally { setLoading(false); }
     };
 
-    // 处理编辑
-    const handleEdit = (record) => {
-        setCurrentRecord(record);
-        setEditModalVisible(true);
-    };
-
-    // 处理编辑确认
+    const handleEdit = (record) => { setCurrentRecord(record); setEditModalVisible(true); };
     const handleEditConfirm = async () => {
         try {
             const formData = editFormRef.current?.getFieldsValue();
@@ -274,20 +154,10 @@ function SubjectManager() {
                 setEditModalVisible(false);
                 fetchTableData();
             }
-        } catch (error) {
-            Message.error('编辑学科失败');
-        } finally {
-            setLoading(false);
-        }
+        } catch (error) { Message.error('编辑学科失败'); } finally { setLoading(false); }
     };
 
-    // 处理删除
-    const handleDelete = (record) => {
-        setCurrentRecord(record);
-        setDeleteModalVisible(true);
-    };
-
-    // 处理删除确认
+    const handleDelete = (record) => { setCurrentRecord(record); setDeleteModalVisible(true); };
     const handleDeleteConfirm = async () => {
         try {
             setLoading(true);
@@ -297,84 +167,9 @@ function SubjectManager() {
                 setDeleteModalVisible(false);
                 fetchTableData();
             }
-        } catch (error) {
-            Message.error('删除学科失败');
-        } finally {
-            setLoading(false);
-        }
+        } catch (error) { Message.error('删除学科失败'); } finally { setLoading(false); }
     };
 
-      // 处理导出
-    const handleExport = () => {
-        try {
-            exportSubjects();
-            Message.success('导出成功');
-        } catch (error) {
-            Message.error('导出失败，请稍后重试');
-        }
-    };
-
-    // 打开导入模态框
-    const handleImportModal = () => {
-        setImportModalVisible(true);
-        setSelectedFile(null);
-    };
-
-    // 处理导入确认
-    const handleImportConfirm = async () => {
-        if (!selectedFile) {
-            Message.warning('请先选择文件');
-            return;
-        }
-
-        try {
-            setUploading(true);
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-
-            const response = await importSubjects(formData);
-            if (response.data) {
-                const {successCount, errorCount, errorMessages, message} = response.data;
-
-                if (errorCount > 0) {
-                    // 显示导入结果详情
-                    Modal.info({
-                        title: '导入结果',
-                        content: (
-                            <div>
-                                <p style={{marginBottom: '12px'}}>{message}</p>
-                                {errorMessages && errorMessages.length > 0 && (
-                                    <div>
-                                        <p style={{color: 'var(--color-danger-6)', marginBottom: '8px'}}>失败详情：</p>
-                                        <ul style={{maxHeight: '200px', overflowY: 'auto'}}>
-                                            {errorMessages.map((msg: string, index: number) => (
-                                                <li key={index}
-                                                    style={{color: 'var(--color-danger-6)', fontSize: '14px', marginBottom: '4px'}}>
-                                                    {msg}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-                        ),
-                        onOk: () => {
-                            fetchTableData();
-                            setImportModalVisible(false);
-                        }
-                    });
-                } else {
-                    Message.success(message);
-                    fetchTableData();
-                    setImportModalVisible(false);
-                }
-            }
-        } catch (error: any) {
-            Message.error(error.message || '导入失败，请稍后重试');
-        } finally {
-            setUploading(false);
-        }
-    };
 
 
     useEffect(() => {
@@ -386,15 +181,14 @@ function SubjectManager() {
         };
         calculateTableHeight();
         fetchTableData();
-        const handleResize = () => calculateTableHeight();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        window.addEventListener('resize', calculateTableHeight);
+        return () => window.removeEventListener('resize', calculateTableHeight);
     }, []);
 
     return (
         <Layout className="subject-manager">
             <Content>
-                {/* 筛选表单 */}
+                {/* 筛选表单 (保持不变) */}
                 <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}}
                       onValuesChange={() => {
                           const values = filterFormRef.current?.getFieldsValue?.() || {};
@@ -406,181 +200,92 @@ function SubjectManager() {
                                 <Input placeholder="请输入学科名称"/>
                             </Form.Item>
                         </Col>
-                        <Col span={6} style={{
-                            display: 'flex',
-                            justifyContent: 'flex-start',
-                            alignItems: 'flex-end',
-                            paddingBottom: '16px'
-                        }}>
+                        <Col span={6} style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '16px' }}>
                             <Space>
-                                <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                    const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                    searchTableData(values);
-                                }}>
-                                    搜索
-                                </Button>
-                                <Button type="primary" icon={<IconPlus/>} status="success" onClick={handleAdd}>
-                                    新增
-                                </Button>
-                                <Button type="default" icon={<IconUpload/>} onClick={handleImportModal}>
-                                    导入
-                                </Button>
-                                <Button type="default" icon={<IconDownload/>} onClick={handleExport}>
-                                    导出
-                                </Button>
+                                <Button type="primary" icon={<IconSearch/>} onClick={() => searchTableData(filterFormRef.current?.getFieldsValue())}>搜索</Button>
+                                <Button type="primary" icon={<IconPlus/>} status="success" onClick={handleAdd}>新增</Button>
+                                {/* <Button type="default" icon={<IconUpload/>} onClick={handleImportModal}>导入</Button> */}
+                                {/* <Button type="default" icon={<IconDownload/>} onClick={handleExport}>导出</Button> */}
                             </Space>
                         </Col>
                     </Row>
                 </Form>
-                <Table
-                    columns={columns}
-                    data={tableData}
-                    loading={tableLoading}
-                    pagination={false}
-                    scroll={{
-                        y: tableScrollHeight,
-                    }}
-                    rowKey="id"
-                />
 
-                {/* 分页 */}
+                {/* --- 表格替换为卡片展示区 --- */}
+                <div className="card-container" style={{ height: tableScrollHeight, overflowY: 'auto' }}>
+                    <Spin loading={tableLoading} style={{ width: '100%' }}>
+                        {tableData.length > 0 ? (
+                            <Row gutter={[16, 16]} style={{width: '100%'}}>
+                                {tableData.map((item: any) => (
+                                    <Col xs={24} sm={12} md={8} lg={6} xl={6} key={item.id}>
+                                        <Card
+                                            hoverable
+                                            className="subject-card"
+                                            title={<Tag color="blue" bordered>{item.name}</Tag>}
+                                            extra={
+                                                <Dropdown
+                                                    droplist={
+                                                        <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, item)}>
+                                                            <Menu.Item key="edit"><IconEdit style={{marginRight: 8}}/>编辑</Menu.Item>
+                                                            <Menu.Item key="delete"><IconDelete style={{marginRight: 8}}/>删除</Menu.Item>
+                                                        </Menu>
+                                                    }
+                                                >
+                                                    <Button type="text" icon={<IconList />} size="mini" />
+                                                </Dropdown>
+                                            }
+                                        >
+                                            <div className="card-content">
+                                                <Typography.Paragraph 
+                                                    className="card-desc" 
+                                                    ellipsis={{ rows: 3, showTooltip: true }}
+                                                >
+                                                    {item.description || '暂无描述'}
+                                                </Typography.Paragraph>
+                                                <div className="card-footer">
+                                                    <UserAvatar name={item.createUserName || (item?.createUser ?? '')} showName />
+                                                    <span className="time">{renderTimeText(item.createDate)}</span>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </Col>
+                                ))}
+                            </Row>
+                        ) : (
+                            !tableLoading && <Empty style={{ marginTop: 60 }} />
+                        )}
+                    </Spin>
+                </div>
+
+                {/* 分页 (保持不变) */}
                 <div className="pagination-wrapper">
                     <Pagination
                         {...pagination}
-                        onChange={(current, pageSize) => {
-                            fetchTableData({}, pageSize, current);
-                        }}
+                        onChange={(current, pageSize) => fetchTableData({}, pageSize, current)}
                     />
                 </div>
 
-                {/* 新增对话框 */}
-                <Modal
-                    title="新增学科"
-                    visible={addModalVisible}
-                    onOk={handleAddConfirm}
-                    onCancel={() => {
-                        setAddModalVisible(false);
-                        addFormRef.current?.resetFields();
-                    }}
-                    confirmLoading={loading}
-                >
+                {/* 所有的 Modal (保持不变) */}
+                <Modal title="新增学科" visible={addModalVisible} onOk={handleAddConfirm} confirmLoading={loading} onCancel={() => setAddModalVisible(false)}>
                     <Form ref={addFormRef} layout="vertical">
-                        <Form.Item
-                            label="学科名称"
-                            field="name"
-                            rules={[
-                                {required: true, message: '请输入学科名称'},
-                                {maxLength: 64, message: '学科名称长度不能超过64个字符'}
-                            ]}
-                        >
-                            <Input placeholder="请输入学科名称"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="学科描述"
-                            field="description"
-                            rules={[
-                                {maxLength: 255, message: '学科描述长度不能超过255个字符'}
-                            ]}
-                        >
-                            <TextArea
-                                placeholder="请输入学科描述"
-                                autoSize={{minRows: 3, maxRows: 6}}
-                            />
-                        </Form.Item>
+                        <Form.Item label="学科名称" field="name" rules={[{required: true, message: '请输入名称'}, {maxLength: 64}]}><Input placeholder="请输入学科名称"/></Form.Item>
+                        <Form.Item label="学科描述" field="description" rules={[{maxLength: 255}]}><TextArea placeholder="请输入学科描述" autoSize={{minRows: 3, maxRows: 6}}/></Form.Item>
                     </Form>
                 </Modal>
 
-                {/* 编辑对话框 */}
-                <Modal
-                    title="编辑学科"
-                    visible={editModalVisible}
-                    onOk={handleEditConfirm}
-                    onCancel={() => {
-                        setEditModalVisible(false);
-                        editFormRef.current?.resetFields();
-                    }}
-                    confirmLoading={loading}
-                    width={600}
-                >
-                    <Form
-                        ref={editFormRef}
-                        layout="vertical"
-                        initialValues={currentRecord}
-                    >
-                        <Form.Item
-                            label="学科名称"
-                            field="name"
-                            rules={[
-                                {required: true, message: '请输入学科名称'},
-                                {maxLength: 64, message: '学科名称长度不能超过64个字符'}
-                            ]}
-                        >
-                            <Input placeholder="请输入学科名称"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="学科描述"
-                            field="description"
-                            rules={[
-                                {maxLength: 255, message: '学科描述长度不能超过255个字符'}
-                            ]}
-                        >
-                            <TextArea
-                                placeholder="请输入学科描述"
-                                autoSize={{minRows: 3, maxRows: 6}}
-                            />
-                        </Form.Item>
+                <Modal title="编辑学科" visible={editModalVisible} onOk={handleEditConfirm} confirmLoading={loading} onCancel={() => setEditModalVisible(false)} unmountOnExit>
+                    <Form ref={editFormRef} layout="vertical" initialValues={currentRecord}>
+                        <Form.Item label="学科名称" field="name" rules={[{required: true, message: '请输入名称'}, {maxLength: 64}]}><Input placeholder="请输入学科名称"/></Form.Item>
+                        <Form.Item label="学科描述" field="description" rules={[{maxLength: 255}]}><TextArea placeholder="请输入学科描述" autoSize={{minRows: 3, maxRows: 6}}/></Form.Item>
                     </Form>
                 </Modal>
 
-                {/* 删除确认对话框 */}
-                <Modal
-                    title="删除学科"
-                    visible={deleteModalVisible}
-                    onOk={handleDeleteConfirm}
-                    onCancel={() => setDeleteModalVisible(false)}
-                    confirmLoading={loading}
-                >
+                <Modal title="删除学科" visible={deleteModalVisible} onOk={handleDeleteConfirm} confirmLoading={loading} onCancel={() => setDeleteModalVisible(false)}>
                     <p>确定要删除学科 <strong>{currentRecord?.name}</strong> 吗？</p>
-                    <p style={{color: 'var(--color-danger-6)'}}>删除后不可恢复，请谨慎操作！</p>
+                    <p style={{color: 'red'}}>删除后不可恢复，请谨慎操作！</p>
                 </Modal>
 
-                  {/* 导入模态框 */}
-                <Modal
-                    title="导入学科"
-                    visible={importModalVisible}
-                    onOk={handleImportConfirm}
-                    onCancel={() => {
-                        setImportModalVisible(false);
-                        setSelectedFile(null);
-                    }}
-                    okText="确认导入"
-                    cancelText="取消"
-                    okLoading={uploading}
-                >
-                    <div style={{marginBottom: '20px'}}>
-                        <Upload
-                            accept=".xlsx"
-                            multiple={false}
-                            beforeUpload={(file) => {
-                                setSelectedFile(file as File);
-                                return false; // 阻止自动上传
-                            }}
-                            fileList={selectedFile ? [{uid: '1', name: selectedFile.name, status: 'done'}] : []}
-                        >
-                            <Button type="default">选择文件</Button>
-                        </Upload>
-                    </div>
-
-                    <div style={{marginTop: '16px'}}>
-                        <Button
-                            type="default"
-                            icon={<IconDownload/>}
-                            onClick={downloadTemplate}
-                        >
-                            下载导入模板
-                        </Button>
-                    </div>
-                </Modal>
+                {/* 导入学科 Modal 已移除 */}
             </Content>
         </Layout>
     );

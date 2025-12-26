@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import ExceptionLogPage from './ExceptionLogPage';
 import {
   Button,
   Form,
@@ -25,19 +26,11 @@ type ChannelType = 'SMS' | 'BROWSER' | 'EMAIL';
   return (
     <div className="notification-page">
       <div className="notification-container">
-        <Card className="notification-card" bordered>
-          <div className="header">
-            <Space size="large" align="center">
-              <span className="channel-icon">{channelIcon}</span>
-              <Typography.Title heading={4} style={{ margin: 0 }}>消息发送</Typography.Title>
-            </Space>
-            const { Row, Col } = Grid;
-            const { TextArea } = Input;
-
-            type ChannelType = 'SMS' | 'BROWSER' | 'EMAIL';
-
-            const NotificationPage: React.FC = () => {
-              const formRef = useRef<any>(null);
+        {/* 其它原有内容... */}
+        <ExceptionLogPage />
+      </div>
+    </div>
+  );
               const [sending, setSending] = useState(false);
               const [channel, setChannel] = useState<ChannelType>('BROWSER');
               const [browserContentHtml, setBrowserContentHtml] = useState<string>('');

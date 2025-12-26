@@ -41,6 +41,7 @@ import WxAppManager from "@/pages/WxApp";
 import MdResolvePage from "@/pages/MdResolve";
 import MdConvertPage from "@/pages/MdConvert";
 import NotificationPage from "@/pages/Notification/Page";
+import ExceptionLogPage from "@/pages/Notification/ExceptionLogPage";
 import SystemMessagePage from "@/pages/SystemMessage";
 import SystemParamManagement from "@/pages/SystemParam";
 import { registerNavigationCallback, setupNavigationListeners } from "@/utils/navigationManager";
@@ -210,6 +211,7 @@ const protectedPages = [
   { path: "mdconvert", element: <MdConvertPage />, requiredPath: "mdconvert" },
   { path: "wxapp", element: <WxAppManager />, requiredPath: "wxapp" },
   { path: "notification", element: <NotificationPage />, requiredPath: "notification" },
+  { path: "notification-exception", element: <ExceptionLogPage />, requiredPath: "notification" },
   { path: "systemmessage", element: <SystemMessagePage />, requiredPath: "systemmessage" },
   { path: "systemparam", element: <SystemParamManagement />, requiredPath: "systemparam" },
 ];

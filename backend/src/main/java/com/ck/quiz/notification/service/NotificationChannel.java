@@ -4,5 +4,5 @@ public interface NotificationChannel {
 
     NotificationChannelType getType();
 
-    boolean send(NotificationMessage message);
+    void send(NotificationMessage message);
 }

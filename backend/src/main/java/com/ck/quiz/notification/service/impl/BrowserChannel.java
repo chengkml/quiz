@@ -35,7 +35,7 @@ public class BrowserChannel implements NotificationChannel {
     }
 
     @Override
-    public boolean send(NotificationMessage message) {
+    public void send(NotificationMessage message) {
 
         String messageId = IdHelper.genUuid();
         SystemMessage insertMsg = SystemMessage.builder()
@@ -64,6 +64,5 @@ public class BrowserChannel implements NotificationChannel {
                 .build();
         wsMessageService.sendToUser(message.getTo(), "sys_msg", wsMsg);
         log.info("浏览器消息已推送，userId: {}", message.getTo());
-        return true;
     }
 }

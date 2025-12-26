@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.ck.quiz.cron.dto.JobDto;
 import com.ck.quiz.cron.service.JobService;
 import com.ck.quiz.notification.service.NotificationService;
+import com.ck.quiz.user.entity.User;
 import com.ck.quiz.user.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,7 +38,7 @@ public class NotificationServiceImpl implements NotificationService {
         // 根据channel类型获取正确的接收人信息
         String to = userId;
         if ("EMAIL".equals(channel) || "SMS".equals(channel)) {
-            var user = userRepository.findById(userId).orElse(null);
+            User user = userRepository.findById(userId).orElse(null);
             if (user != null) {
                 if ("EMAIL".equals(channel)) {
                     to = user.getEmail();
