@@ -67,7 +67,7 @@ public class NotificationLogService {
     }
 
     // 重试逻辑（伪实现，实际应集成消息发送服务）
-    public boolean retrySend(Long logId) {
+    public boolean retrySend(String logId) {
         Optional<NotificationLog> logOpt = notificationLogRepository.findById(logId);
         if (logOpt.isPresent()) {
             NotificationLog log = logOpt.get();

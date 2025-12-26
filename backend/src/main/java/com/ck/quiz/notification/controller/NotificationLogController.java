@@ -22,7 +22,7 @@ public class NotificationLogController {
 
     // 根据ID重试发送
     @PostMapping("/retry/{id}")
-    public String retrySend(@PathVariable(name="id") Long id) {
+    public String retrySend(@PathVariable(name="id") String id) {
         boolean success = notificationLogService.retrySend(id);
         return success ? "重试成功" : "重试失败，日志不存在或非异常日志";
     }
