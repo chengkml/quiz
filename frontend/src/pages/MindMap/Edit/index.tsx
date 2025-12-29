@@ -440,22 +440,6 @@ const MindMapEditPage: React.FC = () => {
                             <Button icon={<IconRedo />} onClick={handleRedo} />
                         </Tooltip>
                     </div>
-                    <div className="mindmap-toolbar-center">
-                        <Space>
-                            <Tooltip content="缩小">
-                                <Button icon={<IconZoomOut />} onClick={handleZoomOut} />
-                            </Tooltip>
-                            <span style={{minWidth: '60px', textAlign: 'center'}}>
-                                {Math.round(zoomLevel * 100)}%
-                            </span>
-                            <Tooltip content="放大">
-                                <Button icon={<IconZoomIn />} onClick={handleZoomIn} />
-                            </Tooltip>
-                            <Tooltip content="适应窗口">
-                                <Button icon={<IconExpand />} onClick={handleFitView} />
-                            </Tooltip>
-                        </Space>
-                    </div>
                     <div className="mindmap-toolbar-right">
                         <Tooltip content="切换主题">
                             <Dropdown droplist={themeMenu} position="br">
