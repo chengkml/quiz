@@ -333,6 +333,11 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
       if (data.startsWith('[ERROR]')) {
         const errMsg = data.replace(/\n/g, ' ').replace('[ERROR]', '').trim();
         Message.error(errMsg || '流式生成出错');
+        // 无论是否有错误，都将已接收的累积内容回写到编辑器
+        try {
+          setCode(acc);
+          setStreamContent(acc);
+        } catch (e) { /* ignore */ }
         try { es.close(); } catch (err) { /* ignore */ }
         eventSourceRef.current = null;
         setIsGenerating(false);
@@ -378,14 +383,16 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
         setIsGenerating(false);
         setPrompt('');
         setSseFirstMessageReceived(false);
-        if (acc && acc.length > 0) {
+        // 无论是否收到有效内容，都将累积结果回写
+        try {
           setCode(acc);
           setStreamContent(acc);
-          setModalVisible(false);
+        } catch (e) { /* ignore */ }
+        setModalVisible(false);
+        if (acc && acc.length > 0) {
           Message.success('AI 生成完成');
         } else {
           Message.error('流式连接已关闭，未收到有效结果');
-          setModalVisible(false);
         }
       } else {
         // 其他错误分支
@@ -395,6 +402,10 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
         setModalVisible(false);
         setSseFirstMessageReceived(false);
         // 仅在未收到任何有效内容时提示最终错误
+        try {
+          setCode(acc);
+          setStreamContent(acc);
+        } catch (e) { /* ignore */ }
         if (!hasReceivedValid) {
           Message.error('流式生成发生错误');
         }
