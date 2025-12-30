@@ -35,7 +35,8 @@ import FuncDocFeatures from "@/pages/FuncDoc/Features";
 import PromptTemplateManagement from "@/pages/Prompt";
 import CronTask from "@/pages/CronTask";
 import FileDetector from "@/pages/FileDetector";
-import MermaidPage from "@/pages/Mermaid";
+import MermaidMgr from "@/pages/MermaidMgr";
+import MermaidFromMgr from "@/pages/Mermaid/FromMgr";
 import OcrPage from "@/pages/Ocr";
 import WxAppManager from "@/pages/WxApp";
 import MdResolvePage from "@/pages/MdResolve";
@@ -205,7 +206,7 @@ const protectedPages = [
     element: <FileDetector />,
     requiredPath: "filedetector",
   },
-  { path: "mermaid", element: <MermaidPage />, requiredPath: "mermaid" },
+  { path: "mermaid-mgr", element: <MermaidMgr />, requiredPath: "mermaid-mgr" },
   { path: "ocr", element: <OcrPage />, requiredPath: "ocr" },
   { path: "mdresolve", element: <MdResolvePage />, requiredPath: "mdresolve" },
   { path: "mdconvert", element: <MdConvertPage />, requiredPath: "mdconvert" },
@@ -268,6 +269,7 @@ export const router = createBrowserRouter(
         // 非菜单页：思维导图编辑页
         { path: "mindmap/edit", element: <MindMapEditPage /> },
         { path: "mindmap/edit/:id", element: <MindMapEditPage /> },
+        { path: "mermaid-mgr/:id", element: <MermaidFromMgr /> },
         // 非菜单页：文档详情页和功能点页
         { path: "funcDoc/detail/:id", element: <FuncDocDetail /> },
         { path: "funcDoc/features/:id", element: <FuncDocFeatures /> },

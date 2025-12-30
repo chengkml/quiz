@@ -35,7 +35,7 @@ public interface RoleMenuRelaRepository extends JpaRepository<RoleMenuRela, Stri
     @Modifying
     @Transactional
     @Query("delete from RoleMenuRela r where r.menuId = :menuId")
-    int deleteByMenuId(String menuId);
+    int deleteByMenuId(@Param("menuId") String menuId);
 
     /**
      * 统计某角色绑定的菜单数量
