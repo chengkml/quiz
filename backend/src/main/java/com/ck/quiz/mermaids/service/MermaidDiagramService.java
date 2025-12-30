@@ -44,7 +44,7 @@ public interface MermaidDiagramService {
      * @return SseEmitter 用于流式推送结果
      */
     SseEmitter streamGenerateDiagram(String advice, String diagramData, String modelName);
-        SseEmitter streamGenerateDiagram(String advice, String diagramData, String modelName);
+
     /**
      * 删除指定 ID 的 Mermaid 思维图。
      *
