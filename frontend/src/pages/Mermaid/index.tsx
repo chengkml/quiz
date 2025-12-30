@@ -9,6 +9,7 @@ import {
   Message,
   Select,
   Spin,
+  Modal,
 } from "@arco-design/web-react";
 import { IconFullscreen, IconSend, IconShrink } from "@arco-design/web-react/icon";
 import mermaid from "mermaid";
@@ -127,6 +128,10 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
   const [loading, setLoading] = useState(false);
   const [prompt, setPrompt] = useState<string>(""); // 存储用户的修改要求
   const [isGenerating, setIsGenerating] = useState(false); // AI 生成状态
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const [sseFirstMessageReceived, setSseFirstMessageReceived] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [streamContent, setStreamContent] = useState<string>('');
   const [diagramId, setDiagramId] = useState<string>("");
   const navigate = useNavigate();
 
@@ -291,19 +296,121 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
   const handleAiEdit = async () => {
     if (!prompt.trim()) return;
 
-    setIsGenerating(true);
-    try {
-      // 这里替换为你真实的 AI 接口调用
-      // const newCode = await callYourLLM(code, prompt);
-      // setCode(newCode);
-      Message.success("图表已根据要求更新");
-      setPrompt(""); // 清空输入框
-    } catch (err) {
-      Message.error("AI 修改失败，请稍后重试");
-    } finally {
-      setIsGenerating(false);
+    // 关闭已有连接
+    if (eventSourceRef.current) {
+      try { eventSourceRef.current.close(); } catch (e) { /* ignore */ }
+      eventSourceRef.current = null;
     }
+
+    setIsGenerating(true);
+    setModalVisible(true);
+    setStreamContent('');
+    setSseFirstMessageReceived(false);
+
+    const params = new URLSearchParams();
+    params.set('advice', prompt);
+    params.set('diagramData', code || '');
+    const url = `/api/mermaids/diagrams/generate/stream?${params.toString()}`;
+
+    const es = new EventSource(url);
+    eventSourceRef.current = es;
+
+    // 发送完成后立即清空用户输入，避免重复提交
+    setPrompt('');
+
+    let acc = ''; // accumulate chunks
+    let parseBuffer = ''; // buffer for any special markers
+    let hasReceivedValid = false;
+
+    es.onmessage = (e) => {
+      const data = e.data || '';
+
+      if (!sseFirstMessageReceived) {
+        setSseFirstMessageReceived(true);
+      }
+
+      // 服务端主动返回错误信息的约定：以 [ERROR] 开头
+      if (data.startsWith('[ERROR]')) {
+        const errMsg = data.replace(/\n/g, ' ').replace('[ERROR]', '').trim();
+        Message.error(errMsg || '流式生成出错');
+        try { es.close(); } catch (err) { /* ignore */ }
+        eventSourceRef.current = null;
+        setIsGenerating(false);
+        setModalVisible(false);
+        setSseFirstMessageReceived(false);
+        return;
+      }
+
+      // 服务器可能会发送解析/结束标记，例如 [PARSE_RESULT] 或 [END]，这里做缓冲简单处理
+      parseBuffer += data;
+
+      // 如果存在显式结束标记，优先以标记为准（后端需配合）
+      if (parseBuffer.includes('[END]') || parseBuffer.includes('[PARSE_RESULT]')) {
+        // 移除标记并当作最终内容
+        const cleaned = parseBuffer.replace(/\[END\]|\[PARSE_RESULT\]/g, '');
+        acc += cleaned;
+        setStreamContent(acc);
+        hasReceivedValid = true;
+        try { es.close(); } catch (err) { /* ignore */ }
+        eventSourceRef.current = null;
+        setIsGenerating(false);
+        setPrompt('');
+        setSseFirstMessageReceived(false);
+        setCode(acc);
+        setModalVisible(false);
+        Message.success('AI 生成完成');
+        return;
+      }
+
+      // 普通数据追加并展示
+      acc += data;
+      setStreamContent(acc);
+      hasReceivedValid = true;
+    };
+
+    es.onerror = (ev) => {
+      // @ts-ignore
+      const state = es.readyState;
+      // 如果是服务器正常关闭连接 (CLOSED)，把已累积内容作为最终结果
+      if (state === EventSource.CLOSED) {
+        try { es.close(); } catch (err) { /* ignore */ }
+        eventSourceRef.current = null;
+        setIsGenerating(false);
+        setPrompt('');
+        setSseFirstMessageReceived(false);
+        if (acc && acc.length > 0) {
+          setCode(acc);
+          setStreamContent(acc);
+          setModalVisible(false);
+          Message.success('AI 生成完成');
+        } else {
+          Message.error('流式连接已关闭，未收到有效结果');
+          setModalVisible(false);
+        }
+      } else {
+        // 其他错误分支
+        try { es.close(); } catch (err) { /* ignore */ }
+        eventSourceRef.current = null;
+        setIsGenerating(false);
+        setModalVisible(false);
+        setSseFirstMessageReceived(false);
+        // 仅在未收到任何有效内容时提示最终错误
+        if (!hasReceivedValid) {
+          Message.error('流式生成发生错误');
+        }
+      }
+    };
   };
+
+  // 清理 eventsource
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        try { eventSourceRef.current.close(); } catch (e) { /* ignore */ }
+        eventSourceRef.current = null;
+      }
+    };
+  }, []);
 
   // CodeMirror 处理 Tab 与编辑交互，故不再需要手动处理 Tab 键
 
@@ -412,6 +519,25 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
                   />
                 </div>
               </div>
+              <Modal
+                title="AI 生成中"
+                visible={modalVisible}
+                onCancel={() => {
+                  if (eventSourceRef.current) {
+                    try { eventSourceRef.current.close(); } catch (e) {}
+                    eventSourceRef.current = null;
+                  }
+                  setModalVisible(false);
+                  setIsGenerating(false);
+                  setSseFirstMessageReceived(false);
+                }}
+                footer={null}
+                style={{ maxHeight: '70vh' }}
+              >
+                <div style={{ maxHeight: '60vh', overflow: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                  {sseFirstMessageReceived ? (streamContent || '') : '等待AI返回...'}
+                </div>
+              </Modal>
               <div
                 style={{
                   display: "flex",

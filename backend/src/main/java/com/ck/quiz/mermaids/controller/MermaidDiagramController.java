@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.Map;
 
 @RestController
@@ -31,9 +33,7 @@ public class MermaidDiagramController {
     public ResponseEntity<MermaidDiagramDTO> updateDiagramData(@PathVariable("id") String id,
                                                                @RequestBody Map<String, String> payload) {
         String diagramData = payload == null ? null : payload.get("diagramData");
-        MermaidDiagramDTO dto = new MermaidDiagramDTO();
-        dto.setDiagramData(diagramData);
-        MermaidDiagramDTO updated = service.update(id, dto);
+        MermaidDiagramDTO updated = service.updateDiagramData(id, diagramData);
         return ResponseEntity.ok(updated);
     }
 
@@ -55,5 +55,12 @@ public class MermaidDiagramController {
                                                       @RequestParam(value = "categoryId", required = false) String categoryId,
                                                       Pageable pageable) {
         return ResponseEntity.ok(service.list(keyWord, categoryId, pageable));
+    }
+
+    @GetMapping(path = "/generate/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamGenerate(@RequestParam("advice") String advice,
+                                     @RequestParam(value = "diagramData", required = false) String diagramData,
+                                     @RequestParam(value = "modelName", required = false) String modelName) {
+        return service.streamGenerateDiagram(advice, diagramData, modelName);
     }
 }

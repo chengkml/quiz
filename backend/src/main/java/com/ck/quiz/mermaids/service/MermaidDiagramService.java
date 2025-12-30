@@ -3,6 +3,7 @@ package com.ck.quiz.mermaids.service;
 import com.ck.quiz.mermaids.dto.MermaidDiagramDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 服务接口：用于管理 Mermaid 思维图。
@@ -27,6 +28,23 @@ public interface MermaidDiagramService {
      */
     MermaidDiagramDTO update(String id, MermaidDiagramDTO dto);
 
+    /**
+     * 仅更新 diagramData 字段
+     * @param id 图表 ID
+     * @param diagramData Mermaid 源码文本
+     * @return 更新后的 DTO
+     */
+    MermaidDiagramDTO updateDiagramData(String id, String diagramData);
+
+    /**
+     * 流式生成 Mermaid 图文本（SSE）
+     * @param advice 用户输入的生成描述
+     * @param diagramData Mermaid 源码文本
+     * @param modelName 可选模型名称
+     * @return SseEmitter 用于流式推送结果
+     */
+    SseEmitter streamGenerateDiagram(String advice, String diagramData, String modelName);
+        SseEmitter streamGenerateDiagram(String advice, String diagramData, String modelName);
     /**
      * 删除指定 ID 的 Mermaid 思维图。
      *

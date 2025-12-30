@@ -4,7 +4,6 @@ import com.ck.quiz.question.dto.QuestionCreateDto;
 import com.ck.quiz.question.dto.QuestionGenerateDto;
 import com.ck.quiz.question.dto.QuestionQueryDto;
 import com.ck.quiz.question.dto.QuestionUpdateDto;
-import com.ck.quiz.question.entity.Question;
 import com.ck.quiz.question.service.QuestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +12,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -74,20 +74,17 @@ public class QuestionController {
                 questionService.generateQuestions(
                         request.getKnowledgeDescr(),
                         request.getNum(),
-                        request.getModelName()
-                )
-        );
+                        request.getModelName()));
     }
 
-        @Operation(summary = "流式生成题目（SSE）", description = "根据知识点描述调用大模型流式生成题目，逐条推送")
-        @GetMapping(path = "/generate/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
-        public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamGenerateQuestions(
+    @Operation(summary = "流式生成题目（SSE）", description = "根据知识点描述调用大模型流式生成题目，逐条推送")
+    @GetMapping(path = "/generate/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamGenerateQuestions(
             @RequestParam("knowledgeDescr") String knowledgeDescr,
             @RequestParam(value = "num", defaultValue = "1") int num,
-            @RequestParam(value = "modelName", required = false) String modelName
-        ) {
+            @RequestParam(value = "modelName", required = false) String modelName) {
         return questionService.streamGenerateQuestions(knowledgeDescr, num, modelName);
-        }
+    }
 
     @Operation(summary = "关联知识点", description = "为题目关联知识点")
     @PostMapping("/{id}/associate-knowledge")
