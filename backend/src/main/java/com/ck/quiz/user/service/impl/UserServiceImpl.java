@@ -262,4 +262,12 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         userRepository.delete(user); // 会自动级联删除 userRoleRela
         return convertToUserDto(user);
     }
+
+    @Override
+    public Map<String, UserDto> getUserMapByIds(List<String> userIds) {
+        List<User> users = userRepository.findByUserIdIn(userIds);
+        return users.stream()
+                .map(this::convertToUserDto)
+                .collect(Collectors.toMap(UserDto::getUserId, userDto -> userDto));
+    }
 }

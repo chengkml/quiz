@@ -1,3 +1,4 @@
+// 导入必要的模块和组件
 import React from "react";
 import { createBrowserRouter, Navigate, useNavigate } from "react-router-dom";
 import Login from "@/pages/Login/LoginWrapper";
@@ -45,13 +46,18 @@ import NotificationPage from "@/pages/Notification/Page";
 import ExceptionLogPage from "@/pages/Notification/ExceptionLogPage";
 import SystemMessagePage from "@/pages/SystemMessage";
 import SystemParamManagement from "@/pages/SystemParam";
-import { registerNavigationCallback, setupNavigationListeners } from "@/utils/navigationManager";
+import {
+  registerNavigationCallback,
+  setupNavigationListeners,
+} from "@/utils/navigationManager";
 import { useEffect } from "react";
 
 /**
  * 全局导航处理组件 - 处理来自拦截器的全局导航事件
  */
-const NavigationHandler: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const NavigationHandler: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,7 +70,7 @@ const NavigationHandler: React.FC<{ children: React.ReactNode }> = ({ children }
     setupNavigationListeners();
 
     return () => {
-      // 清理
+      // 清理事件监听器
     };
   }, [navigate]);
 
@@ -81,7 +87,7 @@ const hasMenuPermission = (path: string, menuTree: MenuTreeDto[]): boolean => {
   // 递归检查菜单树中是否包含指定路径
   const checkMenuTree = (menus: MenuTreeDto[]): boolean => {
     for (const menu of menus) {
-      // 检查当前菜单项
+      // 检查当前菜单项是否匹配
       if (menu.menuType === MenuType.MENU && menu.url === path) {
         return true;
       }
@@ -107,6 +113,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const token = localStorage.getItem("token");
   if (!token) {
+    // 如果未登录，跳转到登录页
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
@@ -122,6 +129,7 @@ const MenuPermissionRoute: React.FC<{
 }> = ({ children, requiredPath }) => {
   const token = localStorage.getItem("token");
   if (!token) {
+    // 如果未登录，跳转到登录页
     return <Navigate to="/login" replace />;
   }
 
@@ -211,10 +219,26 @@ const protectedPages = [
   { path: "mdresolve", element: <MdResolvePage />, requiredPath: "mdresolve" },
   { path: "mdconvert", element: <MdConvertPage />, requiredPath: "mdconvert" },
   { path: "wxapp", element: <WxAppManager />, requiredPath: "wxapp" },
-  { path: "notification", element: <NotificationPage />, requiredPath: "notification" },
-  { path: "notification-exception", element: <ExceptionLogPage />, requiredPath: "notification" },
-  { path: "systemmessage", element: <SystemMessagePage />, requiredPath: "systemmessage" },
-  { path: "systemparam", element: <SystemParamManagement />, requiredPath: "systemparam" },
+  {
+    path: "notification",
+    element: <NotificationPage />,
+    requiredPath: "notification",
+  },
+  {
+    path: "notification-exception",
+    element: <ExceptionLogPage />,
+    requiredPath: "notification",
+  },
+  {
+    path: "systemmessage",
+    element: <SystemMessagePage />,
+    requiredPath: "systemmessage",
+  },
+  {
+    path: "systemparam",
+    element: <SystemParamManagement />,
+    requiredPath: "systemparam",
+  },
 ];
 
 /**
@@ -222,7 +246,7 @@ const protectedPages = [
  */
 declare const __APP_BASE_PATH__: string;
 
-const basename = __APP_BASE_PATH__ || '/';
+const basename = __APP_BASE_PATH__ || "/";
 export const router = createBrowserRouter(
   [
     // 登录页 - 包装在NavigationHandler中以支持登录成功后的导航
@@ -277,7 +301,7 @@ export const router = createBrowserRouter(
       ],
     },
 
-    // 404
+    // 404页面
     {
       path: "*",
       element: (

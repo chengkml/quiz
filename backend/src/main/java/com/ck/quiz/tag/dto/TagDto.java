@@ -1,38 +1,20 @@
-package com.ck.quiz.subject.dto;
-
-import com.ck.quiz.category.dto.CategoryDto;
-import lombok.Data;
+package com.ck.quiz.tag.dto;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import lombok.Data;
 
 @Data
-public class SubjectDto {
+public class TagDto {
 
     private String id;
-
     private String name;
-
     private String label;
-
     private String descr;
-
+    private String color;
     private LocalDateTime createDate;
-
     private String createUser;
-
     private String createUserName;
-
     private LocalDateTime updateDate;
-
     private String updateUser;
-
     private String updateUserName;
-
-    private List<CategoryDto> categories;
-
-    private int questionNum;
-
-    private int knowledgeNum;
-
 }

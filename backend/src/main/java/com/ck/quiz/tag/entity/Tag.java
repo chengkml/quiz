@@ -1,40 +1,43 @@
-package com.ck.quiz.subject.entity;
+package com.ck.quiz.tag.entity;
 
-import jakarta.persistence.*;
-import lombok.Data;
+import java.time.LocalDateTime;
 
 import org.hibernate.annotations.Comment;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.LocalDateTime;
+import jakarta.persistence.*;
+import lombok.Data;
 
 @Data
 @Entity
-@Comment("主题表")
-@Table(name = "subject",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uk_subject_name_create_user", columnNames = {"name", "create_user"})
-    }
-)
-public class Subject {
+@Comment("标签表")
+@Table(name = "tag", indexes = {
+    @Index(name = "idx_tag_name", columnList = "name"),
+    @Index(name = "idx_tag_label", columnList = "label")
+})
+public class Tag {
 
     @Id
-    @Column(name = "subject_id", length = 32, nullable = false)
-    @Comment("主题ID")
+    @Comment("标签ID")
+    @Column(name = "tag_id", length = 32, nullable = false)
     private String id;
 
-    @Column(length = 64, nullable = false)
-    @Comment("主题英文名")
+    @Comment("标签英文名")
+    @Column(nullable = false, length = 128, unique = true)
     private String name;
 
-    @Column(length = 128, nullable = false)
-    @Comment("主题中文名")
+    @Comment("标签中文名")
+    @Column(nullable = false, length = 256, unique = true)
     private String label;
 
+    @Comment("标签描述")
     @Column(length = 512)
-    @Comment("主题描述")
     private String descr;
+
+    @Comment("标签颜色")
+    @Column(length = 32)
+    private String color;
 
     @Column(name = "create_date", updatable = false)
     @Comment("创建日期")

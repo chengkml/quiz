@@ -3,89 +3,32 @@ package com.ck.quiz.user.service;
 import com.ck.quiz.user.dto.UserCreateDto;
 import com.ck.quiz.user.dto.UserDto;
 import com.ck.quiz.user.dto.UserUpdateDto;
+
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.data.domain.Page;
 
-/**
- * 用户管理服务接口
- */
 public interface UserService {
 
-    /**
-     * 用户注册
-     *
-     * @param userCreateDto 用户创建信息
-     * @return 创建的用户信息
-     */
     UserDto register(UserCreateDto userCreateDto);
 
-    /**
-     * 根据ID获取用户详情
-     *
-     * @param id 用户ID
-     * @return 用户信息
-     */
     UserDto getUserById(String id);
 
-    /**
-     * 分页查询用户
-     *
-     * @param userName
-     * @param state
-     * @param sortColumn
-     * @param sortType
-     * @param pageNum
-     * @param pageSize
-     * @return
-     */
     Page<UserDto> searchUsers(String userName, String state, String sortColumn, String sortType, int pageNum, int pageSize);
 
-    /**
-     * 更新用户信息
-     *
-     * @param userUpdateDto 更新信息
-     * @return 更新后的用户信息
-     */
     UserDto updateUser(UserUpdateDto userUpdateDto);
 
-    /**
-     * 管理员重置用户密码
-     *
-     * @param id          用户ID
-     * @param newPassword 新密码
-     * @return 是否成功
-     */
     boolean resetPassword(String id, String newPassword);
 
-    /**
-     * 启用用户
-     *
-     * @param id 用户ID
-     * @return 是否成功
-     */
     UserDto enableUser(String id);
 
-    /**
-     * 禁用用户
-     *
-     * @param id 用户ID
-     * @return 是否成功
-     */
     UserDto disableUser(String id);
 
-    /**
-     * 检查用户账号是否存在
-     *
-     * @param userId 用户账号
-     * @return 是否存在
-     */
     boolean existsByUserId(String userId);
 
-    /**
-     * 删除用户
-     *
-     * @param id 用户ID
-     * @return 是否成功
-     */
     UserDto deleteUser(String id);
+
+    Map<String, UserDto> getUserMapByIds(List<String> userIds);
 
 }

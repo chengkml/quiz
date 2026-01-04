@@ -1,39 +1,37 @@
-package com.ck.quiz.subject.entity;
+package com.ck.quiz.group.entity;
 
-import jakarta.persistence.*;
-import lombok.Data;
+import java.time.LocalDateTime;
 
 import org.hibernate.annotations.Comment;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.LocalDateTime;
+import jakarta.persistence.*;
+import lombok.Data;
 
 @Data
 @Entity
-@Comment("主题表")
-@Table(name = "subject",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uk_subject_name_create_user", columnNames = {"name", "create_user"})
-    }
-)
-public class Subject {
+@Comment("分组表")
+@Table(name = "group", indexes = {
+    @Index(name = "idx_group_name_create_user", columnList = "name,create_user", unique = true)
+})
+public class Group {
 
     @Id
-    @Column(name = "subject_id", length = 32, nullable = false)
-    @Comment("主题ID")
+    @Comment("分组ID")
+    @Column(name = "group_id", length = 32, nullable = false)
     private String id;
 
-    @Column(length = 64, nullable = false)
-    @Comment("主题英文名")
+    @Comment("分组英文名")
+    @Column(nullable = false, length = 128, unique = true)
     private String name;
 
-    @Column(length = 128, nullable = false)
-    @Comment("主题中文名")
+    @Comment("分组中文名")
+    @Column(nullable = false, length = 256, unique = true)
     private String label;
 
+    @Comment("分组描述")
     @Column(length = 512)
-    @Comment("主题描述")
     private String descr;
 
     @Column(name = "create_date", updatable = false)
@@ -69,4 +67,6 @@ public class Subject {
             this.updateUser = authentication.getName();
         }
     }
+
+
 }
