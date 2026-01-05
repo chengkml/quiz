@@ -1,11 +1,11 @@
 package com.ck.quiz.category.service.impl;
 
+import com.ck.quiz.base.service.impl.BaseServiceImpl;
 import com.ck.quiz.category.dto.CategoryCreateDto;
 import com.ck.quiz.category.dto.CategoryDto;
 import com.ck.quiz.category.dto.CategoryQueryDto;
 import com.ck.quiz.category.dto.CategoryUpdateDto;
 import com.ck.quiz.category.entity.Category;
-import com.ck.quiz.category.exception.CategoryException;
 import com.ck.quiz.category.repository.CategoryRepository;
 import com.ck.quiz.category.service.CategoryService;
 import com.ck.quiz.knowledge.service.KnowledgeService;
@@ -15,10 +15,8 @@ import com.ck.quiz.subject.dto.SubjectDto;
 import com.ck.quiz.subject.service.SubjectService;
 import com.ck.quiz.thpool.CommonPool;
 import com.ck.quiz.utils.HumpHelper;
-import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 
-import io.micrometer.common.lang.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -26,7 +24,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -35,19 +32,14 @@ import org.springframework.util.StringUtils;
 
 import java.util.*;
 
-/**
- * 分类服务实现类
- * 实现分类管理的具体业务逻辑
- */
-@Service
 @Slf4j
-public class CategoryServiceImpl implements CategoryService {
+@Service
+public class CategoryServiceImpl extends
+        BaseServiceImpl<CategoryCreateDto, CategoryUpdateDto, CategoryQueryDto, CategoryDto, Category, CategoryRepository>
+        implements CategoryService {
 
     @Autowired
     private CategoryRepository categoryRepository;
-
-    @Autowired
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Autowired
     private SubjectService subjectService;
@@ -60,356 +52,119 @@ public class CategoryServiceImpl implements CategoryService {
     @Autowired
     private QuestionService questionService;
 
-    @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
-
     @Override
-    @Transactional
-    public CategoryDto createCategory(CategoryCreateDto createDto) {
-        log.info("创建分类: {}", createDto.getName());
-
-        // 检查分类名称是否已存在
-        if (checkCategoryNameExists(createDto.getName(), null)) {
-            throw new CategoryException("CATEGORY_NAME_EXISTS", "分类名称已存在: " + createDto.getName());
-        }
-
-        // 创建分类实体
-        Category category = new Category();
-        category.setId(IdHelper.genUuid());
-        BeanUtils.copyProperties(createDto, category);
-
-        // 保存分类
-        Category savedCategory = categoryRepository.save(category);
-        log.info("分类创建成功，ID: {}", savedCategory.getId());
-
-        return convertToDto(savedCategory);
-    }
-
-    @Override
-    @Transactional
-    public CategoryDto updateCategory(CategoryUpdateDto updateDto) {
-        log.info("更新分类: {}", updateDto.getId());
-
-        // 检查分类是否存在
-        Category existingCategory = categoryRepository.findById(updateDto.getId())
-                .orElseThrow(() -> new CategoryException("CATEGORY_NOT_FOUND", "分类不存在: " + updateDto.getId()));
-
-        // 检查分类名称是否已被其他分类使用
-        if (checkCategoryNameExists(updateDto.getName(), updateDto.getId())) {
-            throw new CategoryException("CATEGORY_NAME_EXISTS", "分类名称已存在: " + updateDto.getName());
-        }
-
-        // 更新分类信息
-        BeanUtils.copyProperties(updateDto, existingCategory, "id", "createDate", "createUser");
-
-        // 保存更新
-        Category updatedCategory = categoryRepository.save(existingCategory);
-        log.info("分类更新成功，ID: {}", updatedCategory.getId());
-
-        return convertToDto(updatedCategory);
-    }
-
-    @Override
-    @Transactional
-    public void deleteCategory(@Nullable String id) {
-        log.info("删除分类: {}", id);
-
-        // 检查分类是否存在
-        if (!categoryRepository.existsById(id)) {
-            throw new CategoryException("CATEGORY_NOT_FOUND", "分类不存在: " + id);
-        }
-
-        // 检查是否有子分类
-        List<Category> childCategories = categoryRepository.findByParentId(id);
-        if (!childCategories.isEmpty()) {
-            throw new CategoryException("CATEGORY_HAS_CHILDREN", "该分类下存在子分类，无法删除");
-        }
-
-        // 删除分类
-        categoryRepository.deleteById(id);
-        log.info("分类删除成功，ID: {}", id);
-    }
-
-    @Override
-    public CategoryDto getCategoryById(String id) {
-        log.debug("根据ID获取分类: {}", id);
-
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new CategoryException("CATEGORY_NOT_FOUND", "分类不存在: " + id));
-
-        return convertToDto(category);
-    }
-
-    @Override
-    public CategoryDto getCategoryByName(String name) {
-        log.debug("根据名称获取分类: {}", name);
-
-        Category category = categoryRepository.findByName(name)
-                .orElseThrow(() -> new CategoryException("CATEGORY_NOT_FOUND", "分类不存在: " + name));
-
-        return convertToDto(category);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<CategoryDto> searchCategories(CategoryQueryDto queryDto) {
-        StringBuilder sql = new StringBuilder("select c.*, u.user_name create_user_name, s.name subject_name from category c left join user u on u.user_id = c.create_user left join subject s on s.subject_id = c.subject_id where 1=1 ");
+    public Page<CategoryDto> search(String userId, CategoryQueryDto queryDto) {
+        StringBuilder sql = new StringBuilder(
+                "select c.* from category c where 1=1 ");
         StringBuilder countSql = new StringBuilder("select count(1) from category c where 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
-        // 分类名称模糊查询
-        JdbcQueryHelper.lowerLike("categoryName", queryDto.getName(),
-                " and lower(c.name) like :categoryName ", params, namedParameterJdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("keyWord", queryDto.getKeyWord(),
+                " and lower(c.name) like :keyWord ", params, namedParameterJdbcTemplate, sql, countSql);
 
-        // 父分类 ID
         JdbcQueryHelper.equals("parentId", queryDto.getParentId(),
                 " and c.parent_id = :parentId ", params, sql, countSql);
 
-        // 学科 ID
         JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(),
                 " and c.subject_id = :subjectId ", params, sql, countSql);
 
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
-            JdbcQueryHelper.equals("createUser", authentication.getName(),
+            JdbcQueryHelper.equals("createUser", userId,
                     " AND c.create_user = :createUser ", params, sql, countSql);
         }
 
-        // 排序
-        JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
+        JdbcQueryHelper.order("create_date", "desc", sql);
 
-        // 分页（注意 pageNum 从 1 开始，JdbcQueryHelper 偏移量是 pageNum * pageSize）
-        int pageNum = Math.max(0, queryDto.getPageNum() - 1);
         String limitSql = JdbcQueryHelper.getLimitSql(
                 namedParameterJdbcTemplate,
                 sql.toString(),
-                pageNum,
-                queryDto.getPageSize()
-        );
+                queryDto.getPageNum(),
+                queryDto.getPageSize());
 
-        // 查询数据
         List<CategoryDto> categories = namedParameterJdbcTemplate.query(
                 limitSql,
                 params,
                 (rs, rowNum) -> {
                     CategoryDto c = new CategoryDto();
-                    c.setId(rs.getString("category_id"));
+                    c.setId(rs.getString("id"));
                     c.setName(rs.getString("name"));
                     c.setParentId(rs.getString("parent_id"));
-                    c.setSubjectName(rs.getString("subject_name"));
-                    c.setDescription(rs.getString("description"));
+                    c.setSubjectId(rs.getString("subject_id"));
+                    c.setDescr(rs.getString("descr"));
                     c.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
-                    c.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
+                    c.setUpdateDate(
+                            rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime()
+                                    : null);
                     c.setCreateUser(rs.getString("create_user"));
-                    c.setCreateUserName(rs.getString("create_user_name"));
                     c.setUpdateUser(rs.getString("update_user"));
                     return c;
-                }
-        );
+                });
 
-        // 封装分页结果
+        // 组装分页对象
         return JdbcQueryHelper.toPage(
                 namedParameterJdbcTemplate,
                 countSql.toString(),
                 params,
                 categories,
-                pageNum,
-                queryDto.getPageSize()
-        );
-    }
-
-
-    @Override
-    public List<CategoryDto> getAllCategories() {
-        log.debug("获取所有分类");
-
-        List<Category> categories = categoryRepository.findAll();
-        return categories.stream()
-                .map(this::convertToDto)
-                .toList();
+                queryDto.getPageNum(),
+                queryDto.getPageSize());
     }
 
     @Override
-    public List<CategoryDto> getCategoriesBySubjectId(String subjectId) {
-        log.debug("根据学科ID获取分类: {}", subjectId);
-
-        List<Category> categories = categoryRepository.findBySubjectId(subjectId);
-        List<CategoryDto> dtos = categories.stream()
-                .map(this::convertToDto)
-                .toList();
-        if(!dtos.isEmpty()) {
-            loadCateQuestionNums(dtos);
-            loadCateKnowledgeNums(dtos);
+    public boolean checkNameUniq(String userId, String categoryName, String excludeId) {
+        if (!StringUtils.hasText(categoryName)) {
+            return true;
         }
-        return dtos;
-    }
-
-    private void loadCateQuestionNums(List<CategoryDto> dtos) {
-        Map<String, CategoryDto> idMap = new HashMap<>();
-        dtos.forEach(category -> {
-            idMap.put(category.getId(), category);
-        });
-        Map<String, Object> params = new HashMap<>();
-        params.put("categoryIds", idMap.keySet());
-        HumpHelper.lineToHump(jdbcTemplate.queryForList("select k.category_id, count(*) num from knowledge k inner join question_knowledge_rela r on k.knowledge_id = r.knowledge_id inner join question q on q.question_id = r.question_id where k.category_id in (:categoryIds) group by k.category_id", params)).forEach(map -> {
-            String categoryId = MapUtils.getString(map, "categoryId");
-            int num = MapUtils.getIntValue(map, "num");
-            idMap.get(categoryId).setQuestionNum(num);
-        });
-    }
-
-    private void loadCateKnowledgeNums(List<CategoryDto> dtos) {
-        Map<String, CategoryDto> idMap = new HashMap<>();
-        dtos.forEach(category -> {
-            idMap.put(category.getId(), category);
-        });
-        Map<String, Object> params = new HashMap<>();
-        params.put("categoryIds", idMap.keySet());
-        HumpHelper.lineToHump(jdbcTemplate.queryForList("select k.category_id, count(*) num from knowledge k where k.category_id in (:categoryIds) group by k.category_id", params)).forEach(map -> {
-            String categoryId = MapUtils.getString(map, "categoryId");
-            int num = MapUtils.getIntValue(map, "num");
-            idMap.get(categoryId).setKnowledgeNum(num);
-        });
-    }
-
-    @Override
-    public List<CategoryDto> getCategoriesByParentId(String parentId) {
-        log.debug("根据父分类ID获取子分类: {}", parentId);
-
-        List<Category> categories = categoryRepository.findByParentId(parentId);
-        return categories.stream()
-                .map(this::convertToDto)
-                .toList();
-    }
-
-
-    @Override
-    public boolean checkCategoryNameExists(String name, String excludeId) {
-        log.debug("检查分类名称是否存在: {}, 排除ID: {}", name, excludeId);
-
         if (StringUtils.hasText(excludeId)) {
-            return categoryRepository.existsByNameAndIdNot(name, excludeId);
-        } else {
-            return categoryRepository.existsByName(name);
+            return !categoryRepository.existsByNameAndIdNot(categoryName, excludeId);
         }
+        return !categoryRepository.existsByName(categoryName);
     }
 
     @Override
-    public CategoryDto convertToDto(Category category) {
-        if (category == null) {
-            return null;
-        }
-
-        CategoryDto dto = new CategoryDto();
-        BeanUtils.copyProperties(category, dto);
-
-        // 获取父分类名称
-        if (StringUtils.hasText(category.getParentId())) {
-            Optional<Category> parentCategory = categoryRepository.findById(category.getParentId());
-            parentCategory.ifPresent(parent -> dto.setParentName(parent.getName()));
-        }
-
-        // 获取学科名称（这里需要根据实际情况调用学科服务）
-        // 暂时设置为空，后续可以通过注入学科服务来获取
-        dto.setSubjectName(null);
-
-        // 设置用户名称（这里需要根据实际情况调用用户服务）
-        // 暂时设置为空，后续可以通过注入用户服务来获取
-        dto.setCreateUserName(null);
-        dto.setUpdateUserName(null);
-
-        return dto;
-    }
-
-    @Override
-    public List<SubjectDto> getSubjectCategoryTree() {
-        log.info("获取学科分类树");
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        // 1. 获取所有学科
-        List<SubjectDto> subjects = subjectService.getUserSubjects(authentication.getName());
-
-        // 2. 为每个学科构建分类树
+    public List<SubjectDto> getSubjectCategoryTree(String userId) {
+        List<SubjectDto> subjects = subjectService.list(userId);
         for (SubjectDto subject : subjects) {
-            // 获取该学科下的所有分类
-            List<CategoryDto> categories = getCategoriesBySubjectId(subject.getId());
-
-            // 构建树形结构
-            List<CategoryDto> categoryTree = buildCategoryTree(categories);
-
-            // 设置到学科对象中
+            List<Category> categories = categoryRepository.findBySubjectId(subject.getId());
+            List<CategoryDto> categoryDtos = convertToDtos(categories);
+            List<CategoryDto> categoryTree = buildCategoryTree(new ArrayList<>(categoryDtos));
             subject.setCategories(categoryTree);
         }
-
         return subjects;
     }
 
-    /**
-     * 构建分类树形结构
-     *
-     * @param categories 分类列表
-     * @return 树形结构的分类列表
-     */
     private List<CategoryDto> buildCategoryTree(List<CategoryDto> categories) {
         if (categories == null || categories.isEmpty()) {
             return List.of();
         }
-
-        // 创建ID到分类的映射
         Map<String, CategoryDto> categoryMap = new HashMap<>();
         for (CategoryDto category : categories) {
             categoryMap.put(category.getId(), category);
             category.setChildren(new ArrayList<>());
         }
-
-        // 构建树形结构
         List<CategoryDto> rootCategories = new ArrayList<>();
         for (CategoryDto category : categories) {
             if (category.getParentId() == null || category.getParentId().isEmpty()) {
-                // 根节点
                 rootCategories.add(category);
             } else {
-                // 子节点，添加到父节点的children中
                 CategoryDto parent = categoryMap.get(category.getParentId());
                 if (parent != null) {
                     parent.getChildren().add(category);
                 }
             }
         }
-
         return rootCategories;
     }
 
-    public void initCategoryQuestions(String userId, String categoryId, int questionNum) {
-        try {
-            Objects.requireNonNull(categoryId, "categoryId 不能为空");
-            Optional<Category> op = categoryRepository.findById(categoryId);
-            List<String> knowledges = knowledgeService.generateKnowledges(op.get().getName());
-            knowledges.forEach(knowledge -> {
-                try {
-                    List<QuestionCreateDto> questions = questionService.generateQuestions(knowledge, questionNum, null);
-                    questions.forEach(question -> {
-                        question.setSubjectId(op.get().getSubjectId());
-                        question.setCategoryId(categoryId);
-                        question.setKnowledge(knowledge);
-                    });
-                    questionService.createQuestions(questions);
-                } catch (Exception e) {
-                    log.error("生成知识点【{}】的问题异常：{}", knowledge, ExceptionUtils.getStackTrace(e));
-                }
-            });
-        } catch (Exception e) {
-            log.error("生成分类【{}】的问题异常：{}", categoryId, ExceptionUtils.getStackTrace(e));
-        }
+    @Override
+    protected CategoryDto newDto() {
+        return new CategoryDto();
     }
 
-    public void initCategoryQuestionsAsync(String categoryId, int questionNum) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CommonPool.cachedPool.execute(() -> {
-            initCategoryQuestions(authentication.getName(), categoryId, questionNum);
-        });
+    @Override
+    protected Category newModel() {
+        return new Category();
     }
 
 }

@@ -1,46 +1,27 @@
 package com.ck.quiz.category.dto;
 
+import com.ck.quiz.base.dto.CreateDto;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
-/**
- * 分类创建DTO
- * 用于创建新分类时接收参数
- */
 @Data
-@NoArgsConstructor
-public class CategoryCreateDto {
+@EqualsAndHashCode(callSuper = true)
+public class CategoryCreateDto extends CreateDto {
 
-    /**
-     * 分类名称
-     */
-    @NotBlank(message = "分类名称不能为空")
-    @Size(max = 64, message = "分类名称长度不能超过64个字符")
+    @NotBlank(message = "目录名称不能为空")
+    @Size(max = 64, message = "目录名称长度不能超过64个字符")
     private String name;
 
-    /**
-     * 父分类ID（顶级分类为null）
-     */
-    @Size(max = 32, message = "父分类ID长度不能超过32个字符")
+    @Size(max = 32, message = "父目录ID长度不能超过32个字符")
     private String parentId;
 
-    /**
-     * 所属学科ID
-     */
-    @NotBlank(message = "所属学科ID不能为空")
-    @Size(max = 32, message = "学科ID长度不能超过32个字符")
+    @NotBlank(message = "所属主题ID不能为空")
+    @Size(max = 32, message = "主题ID长度不能超过32个字符")
     private String subjectId;
 
-
-
-    /**
-     * 分类描述
-     */
-    @Size(max = 255, message = "分类描述长度不能超过255个字符")
-    private String description;
+    @Size(max = 255, message = "目录描述长度不能超过255个字符")
+    private String descr;
 
 }

@@ -1,5 +1,6 @@
 package com.ck.quiz.todo.service.impl;
 
+import com.ck.quiz.base.service.impl.BaseServiceImpl;
 import com.ck.quiz.mindmap.dto.MindMapDto;
 import com.ck.quiz.mindmap.entity.MindMap;
 import com.ck.quiz.mindmap.repository.MindMapRepository;
@@ -11,22 +12,18 @@ import com.ck.quiz.todo.dto.TodoUpdateDto;
 import com.ck.quiz.todo.entity.Todo;
 import com.ck.quiz.todo.repository.TodoRepository;
 import com.ck.quiz.todo.service.TodoService;
-import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
-import org.springframework.beans.BeanUtils;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.FileCopyUtils;
-import org.springframework.util.StringUtils;
 
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -40,13 +37,11 @@ import java.util.Optional;
  * 待办管理服务实现类
  */
 @Service
-public class TodoServiceImpl implements TodoService {
+@Transactional
+public class TodoServiceImpl extends BaseServiceImpl<TodoCreateDto, TodoUpdateDto, TodoQueryDto, TodoDto, Todo, TodoRepository> implements TodoService {
 
     @Autowired
     private TodoRepository todoRepository;
-
-    @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
 
     @Lazy
     @Autowired
@@ -57,90 +52,19 @@ public class TodoServiceImpl implements TodoService {
     private MindMapRepository mindMapRepository;
 
     @Override
-    @Transactional
-    public TodoDto createTodo(TodoCreateDto todoCreateDto) {
-        Todo todo = new Todo();
-        todo.setId(IdHelper.genUuid());
-        todo.setTitle(todoCreateDto.getTitle());
-        todo.setDescription(todoCreateDto.getDescription());
-        todo.setStatus(todoCreateDto.getStatus() != null ? todoCreateDto.getStatus() : Todo.Status.PENDING);
-        todo.setPriority(todoCreateDto.getPriority() != null ? todoCreateDto.getPriority() : Todo.Priority.MEDIUM);
-        todo.setDueDate(todoCreateDto.getDueDate());
-        Todo saved = todoRepository.save(todo);
-        return convertToDto(saved);
-    }
-
-    @Override
-    @Transactional
-    public TodoDto updateTodo(TodoUpdateDto todoUpdateDto) {
-        Optional<Todo> optionalTodo = todoRepository.findById(todoUpdateDto.getId());
-        if (optionalTodo.isEmpty()) {
-            throw new RuntimeException("待办不存在，ID: " + todoUpdateDto.getId());
-        }
-        Todo todo = optionalTodo.get();
-
-        if (StringUtils.hasText(todoUpdateDto.getTitle())) {
-            todo.setTitle(todoUpdateDto.getTitle());
-        }
-        if (todoUpdateDto.getDescription() != null) {
-            todo.setDescription(todoUpdateDto.getDescription());
-        }
-        if (todoUpdateDto.getStatus() != null) {
-            todo.setStatus(todoUpdateDto.getStatus());
-        }
-        if (todoUpdateDto.getPriority() != null) {
-            todo.setPriority(todoUpdateDto.getPriority());
-        }
-        if (todoUpdateDto.getDueDate() != null) {
-            todo.setDueDate(todoUpdateDto.getDueDate());
-        }
-
-        Todo saved = todoRepository.save(todo);
-        return convertToDto(saved);
-    }
-
-    @Override
-    @Transactional
-    public TodoDto deleteTodo(String todoId) {
-        Optional<Todo> optionalTodo = todoRepository.findById(todoId);
-        if (optionalTodo.isEmpty()) {
-            throw new RuntimeException("待办不存在，ID: " + todoId);
-        }
-        Todo todo = optionalTodo.get();
-        todoRepository.delete(todo);
-        return convertToDto(todo);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public TodoDto getTodoById(String todoId) {
-        Optional<Todo> optionalTodo = todoRepository.findById(todoId);
-        if (optionalTodo.isEmpty()) {
-            throw new RuntimeException("待办不存在，ID: " + todoId);
-        }
-        return convertToDto(optionalTodo.get());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<TodoDto> searchTodos(TodoQueryDto queryDto) {
+    public Page<TodoDto> search(String userId, TodoQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
-                "SELECT t.todo_id AS id, t.title, t.description, t.status, t.priority, t.due_date, " +
-                        "t.create_date, t.create_user, t.update_date, t.update_user, u.user_name create_user_name " +
-                        "FROM todo t LEFT JOIN user u ON u.user_id = t.create_user "
+                "SELECT t.* FROM todo t WHERE 1=1 "
         );
 
         StringBuilder countSql = new StringBuilder(
-                "SELECT COUNT(1) FROM todo t "
+                "SELECT COUNT(1) FROM todo t WHERE 1=1 "
         );
-
-        sql.append(" WHERE 1=1 ");
-        countSql.append(" WHERE 1=1 ");
 
         Map<String, Object> params = new HashMap<>();
 
         // 动态条件
-        JdbcQueryHelper.lowerLike("titleKey", queryDto.getTitle(), " AND LOWER(t.title) LIKE :titleKey ", params, jdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("titleKey", queryDto.getTitle(), " AND LOWER(t.title) LIKE :titleKey ", params, namedParameterJdbcTemplate, sql, countSql);
 
         if (queryDto.getStatus() != null) {
             JdbcQueryHelper.equals("status", queryDto.getStatus().name(), " AND t.status = :status ", params, sql, countSql);
@@ -159,11 +83,11 @@ public class TodoServiceImpl implements TodoService {
         JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
 
         // 分页
-        String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
+        String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
 
-        List<TodoDto> list = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
+        List<TodoDto> list = namedParameterJdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
             TodoDto dto = new TodoDto();
-            dto.setId(rs.getString("id"));
+            dto.setId(rs.getString("todo_id"));
             dto.setTitle(rs.getString("title"));
             dto.setDescription(rs.getString("description"));
             dto.setStatus(rs.getString("status") != null ? Todo.Status.valueOf(rs.getString("status")) : null);
@@ -171,20 +95,22 @@ public class TodoServiceImpl implements TodoService {
             dto.setDueDate(rs.getTimestamp("due_date") != null ? rs.getTimestamp("due_date").toLocalDateTime() : null);
             dto.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             dto.setCreateUser(rs.getString("create_user"));
-            dto.setCreateUserName(rs.getString("create_user_name"));
             dto.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;
         });
 
-        return JdbcQueryHelper.toPage(jdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
+        return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
     }
 
     @Override
-    public TodoDto convertToDto(Todo todo) {
-        TodoDto dto = new TodoDto();
-        BeanUtils.copyProperties(todo, dto);
-        return dto;
+    protected TodoDto newDto() {
+        return new TodoDto();
+    }
+
+    @Override
+    protected Todo newModel() {
+        return new Todo();
     }
 
     @Override
