@@ -1,59 +1,16 @@
 package com.ck.quiz.prompt.dto;
 
-import lombok.AllArgsConstructor;
+import com.ck.quiz.base.dto.Dto;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
-import java.time.LocalDateTime;
-
-/**
- * 提示词模板DTO
- * 用于在服务层与前端或其他系统交互时传输提示词模板详细信息
- */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class PromptTemplateDto {
+@EqualsAndHashCode(callSuper = true)
+public class PromptTemplateDto extends Dto {
 
-    /**
-     * 提示词模板ID
-     */
-    private String id;
-
-    /**
-     * 模板名称
-     */
     private String name;
 
-    /**
-     * 模板内容
-     */
     private String content;
 
-    /**
-     * 模板描述
-     */
     private String description;
-
-    /**
-     * 创建时间
-     */
-    private LocalDateTime createDate;
-
-    /**
-     * 创建用户
-     */
-    private String createUser;
-
-    private String createUserName;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime updateDate;
-
-    /**
-     * 更新用户
-     */
-    private String updateUser;
 }

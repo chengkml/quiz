@@ -13,7 +13,6 @@ import org.hibernate.annotations.Comment;
  * 序列表
  */
 @Data
-@NoArgsConstructor
 @Entity
 @Table(name = "synth_seq")
 public class Seq {

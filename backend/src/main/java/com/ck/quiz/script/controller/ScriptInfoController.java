@@ -1,5 +1,7 @@
 package com.ck.quiz.script.controller;
 
+import com.ck.quiz.base.controller.BaseController;
+import com.ck.quiz.base.service.BaseService;
 import com.ck.quiz.script.dto.ScriptInfoCreateDto;
 import com.ck.quiz.script.dto.ScriptInfoDto;
 import com.ck.quiz.script.dto.ScriptInfoQueryDto;
@@ -7,150 +9,69 @@ import com.ck.quiz.script.dto.ScriptInfoUpdateDto;
 import com.ck.quiz.script.service.ScriptInfoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
-/**
- * 脚本信息Controller
- */
+@Tag(name = "脚本管理", description = "脚本相关的API接口")
 @RestController
 @RequestMapping("/api/script/info")
-@RequiredArgsConstructor
-public class ScriptInfoController {
+public class ScriptInfoController extends BaseController<ScriptInfoCreateDto, ScriptInfoUpdateDto, ScriptInfoQueryDto, ScriptInfoDto> {
 
-    private final ScriptInfoService scriptInfoService;
+    @Autowired
+    private ScriptInfoService scriptInfoService;
 
-    /**
-     * 创建脚本信息
-     */
-    @PostMapping
-    public ResponseEntity<Map<String, String>> createScriptInfo(@Validated @RequestBody ScriptInfoCreateDto createDto) {
-        String id = scriptInfoService.createScriptInfo(createDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
-    }
-
-    /**
-     * 根据ID查询脚本信息
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<ScriptInfoDto> getScriptInfoById(@PathVariable("id") String id) {
-        ScriptInfoDto dto = scriptInfoService.getScriptInfoById(id);
-        return ResponseEntity.ok(dto);
-    }
-
-    /**
-     * 根据脚本编码查询脚本信息
-     */
+    @Operation(summary = "根据脚本编码查询", description = "根据脚本编码获取脚本信息")
     @GetMapping("/code/{code}")
-    public ResponseEntity<ScriptInfoDto> getScriptInfoByCode(@PathVariable("code") String code) {
+    public ResponseEntity<ScriptInfoDto> getScriptInfoByCode(
+            @Parameter(description = "脚本编码", required = true) @PathVariable("code") String code) {
         ScriptInfoDto dto = scriptInfoService.getScriptInfoByCode(code);
         return ResponseEntity.ok(dto);
     }
 
-    /**
-     * 查询脚本信息列表
-     */
-    @GetMapping
-    public ResponseEntity<Page<ScriptInfoDto>> queryScriptInfo(ScriptInfoQueryDto queryDto) {
-        Page<ScriptInfoDto> pageInfo = scriptInfoService.queryScriptInfo(queryDto);
-        return ResponseEntity.ok(pageInfo);
-    }
-
-    /**
-     * 更新脚本信息
-     */
-    @PutMapping
-    public ResponseEntity<Void> updateScriptInfo(@Validated @RequestBody ScriptInfoUpdateDto updateDto) {
-        scriptInfoService.updateScriptInfo(updateDto);
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * 删除脚本信息
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteScriptInfo(@PathVariable("id") String id) {
-        scriptInfoService.deleteScriptInfo(id);
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * 批量删除脚本信息
-     */
-    @DeleteMapping("/batch")
-    public ResponseEntity<Void> batchDeleteScriptInfo(@RequestBody List<String> ids) {
-        scriptInfoService.batchDeleteScriptInfo(ids);
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * 启用脚本
-     */
-    @PutMapping("/{id}/enable")
-    public ResponseEntity<Void> enableScript(@PathVariable("id") String id) {
-        scriptInfoService.updateScriptState(id, "ENABLED");
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * 禁用脚本
-     */
-    @PutMapping("/{id}/disable")
-    public ResponseEntity<Void> disableScript(@PathVariable("id") String id) {
-        scriptInfoService.updateScriptState(id, "DISABLED");
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * 执行脚本
-     */
+    @Operation(summary = "执行脚本", description = "执行指定的脚本")
     @PostMapping("/{id}/exec")
     public ResponseEntity<Void> execScript(
-            @PathVariable("id") String id,
-            @RequestParam("queueId") String queueId) {
-
+            @Parameter(description = "脚本ID", required = true) @PathVariable("id") String id,
+            @Parameter(description = "队列ID", required = true) @RequestParam("queueId") String queueId) {
         scriptInfoService.execScript(id, queueId);
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * 查询脚本执行任务列表
-     */
+    @Operation(summary = "查询脚本执行任务", description = "分页查询脚本执行任务列表")
     @GetMapping("/jobs")
     public ResponseEntity<Page<Map<String, Object>>> searchJobs(
-            @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "20") int limit,
-            @RequestParam(value = "scriptId") String scriptId,
-            @RequestParam(value = "state", required = false) String state,
-            @RequestParam(value = "taskClass", required = false) String taskClass,
-            @RequestParam(value = "queueName", required = false) String queueName,
-            @RequestParam(value = "triggerType", required = false) String triggerType,
-            @RequestParam(value = "startTimeLt", required = false) String startTimeLt,
-            @RequestParam(value = "startTimeGt", required = false) String startTimeGt,
-            @RequestParam(value = "taskId", required = false) String taskId,
-            @RequestParam(value = "keyWord", required = false) String keyWord
-    ) {
-
+            @Parameter(description = "偏移量") @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @Parameter(description = "限制数") @RequestParam(value = "limit", defaultValue = "20") int limit,
+            @Parameter(description = "脚本ID") @RequestParam(value = "scriptId") String scriptId,
+            @Parameter(description = "状态") @RequestParam(value = "state", required = false) String state,
+            @Parameter(description = "任务类") @RequestParam(value = "taskClass", required = false) String taskClass,
+            @Parameter(description = "队列名") @RequestParam(value = "queueName", required = false) String queueName,
+            @Parameter(description = "触发类型") @RequestParam(value = "triggerType", required = false) String triggerType,
+            @Parameter(description = "开始时间上限") @RequestParam(value = "startTimeLt", required = false) String startTimeLt,
+            @Parameter(description = "开始时间下限") @RequestParam(value = "startTimeGt", required = false) String startTimeGt,
+            @Parameter(description = "任务ID") @RequestParam(value = "taskId", required = false) String taskId,
+            @Parameter(description = "关键字") @RequestParam(value = "keyWord", required = false) String keyWord) {
         Page<Map<String, Object>> pageInfo = scriptInfoService.searchJobs(
                 offset, limit, scriptId, state, taskClass, queueName,
-                triggerType, startTimeLt, startTimeGt, taskId, keyWord
-        );
-
+                triggerType, startTimeLt, startTimeGt, taskId, keyWord);
         return ResponseEntity.ok(pageInfo);
     }
 
+    @Operation(summary = "删除作业", description = "根据作业ID删除脚本执行任务")
     @PostMapping("/delete/job/{jobId}")
-    @Operation(summary = "删除作业")
-    public ResponseEntity<Object> deleteJob(@Parameter(description = "作业ID") @PathVariable("jobId") String jobId) {
+    public ResponseEntity<String> deleteJob(
+            @Parameter(description = "作业ID", required = true) @PathVariable("jobId") String jobId) {
         scriptInfoService.deleteJob(jobId);
         return ResponseEntity.ok("删除成功");
     }
 
+    @Override
+    protected BaseService<ScriptInfoCreateDto, ScriptInfoUpdateDto, ScriptInfoQueryDto, ScriptInfoDto, ?> getService() {
+        return scriptInfoService;
+    }
 }
