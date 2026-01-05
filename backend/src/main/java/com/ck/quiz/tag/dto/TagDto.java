@@ -1,20 +1,19 @@
 package com.ck.quiz.tag.dto;
 
-import java.time.LocalDateTime;
+import com.ck.quiz.base.dto.Dto;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class TagDto {
+@EqualsAndHashCode(callSuper = true)
+public class TagDto extends Dto {
 
-    private String id;
     private String name;
+
     private String label;
+
     private String descr;
+
     private String color;
-    private LocalDateTime createDate;
-    private String createUser;
-    private String createUserName;
-    private LocalDateTime updateDate;
-    private String updateUser;
-    private String updateUserName;
+
 }

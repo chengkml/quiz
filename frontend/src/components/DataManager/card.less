@@ -1,0 +1,39 @@
+// 卡片相关样式
+.short-card,
+.long-card {
+  background: #ffffff;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.1);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(15, 23, 42, 0.2);
+    }
+  }
+}
+
+// 动画
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.short-card,
+.long-card {
+  animation: fadeIn 0.3s ease-out;
+}

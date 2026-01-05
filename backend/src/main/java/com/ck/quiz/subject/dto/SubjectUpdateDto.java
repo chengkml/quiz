@@ -1,15 +1,14 @@
 package com.ck.quiz.subject.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import com.ck.quiz.base.dto.UpdateDto;
+
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class SubjectUpdateDto {
-
-    @NotBlank(message = "主题ID不能为空")
-    @Size(max = 32, message = "主题ID长度不能超过32个字符")
-    private String id;
+@EqualsAndHashCode(callSuper = true)
+public class SubjectUpdateDto extends UpdateDto {
 
     @Size(max = 64, message = "主题英文名长度不能超过64个字符")
     private String name;

@@ -1,33 +1,21 @@
 package com.ck.quiz.subject.dto;
 
+import com.ck.quiz.base.dto.Dto;
 import com.ck.quiz.category.dto.CategoryDto;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-public class SubjectDto {
-
-    private String id;
+@EqualsAndHashCode(callSuper = true)
+public class SubjectDto extends Dto {
 
     private String name;
 
     private String label;
 
     private String descr;
-
-    private LocalDateTime createDate;
-
-    private String createUser;
-
-    private String createUserName;
-
-    private LocalDateTime updateDate;
-
-    private String updateUser;
-
-    private String updateUserName;
 
     private List<CategoryDto> categories;
 

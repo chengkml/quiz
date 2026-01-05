@@ -1,18 +1,14 @@
 package com.ck.quiz.tag.repository;
 
+import com.ck.quiz.base.repository.BaseRepository;
 import com.ck.quiz.tag.entity.Tag;
-import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TagRepository extends JpaRepository<Tag, String> {
-    boolean existsByName(String name);
+import java.util.List;
 
-    boolean existsByNameAndIdNot(String name, String id);
+public interface TagRepository extends BaseRepository<Tag> {
 
-    boolean existsByLabel(String label);
+    List<Tag> findByCreateUser(String userId);
 
-    boolean existsByLabelAndIdNot(String label, String id);
+    Tag findByCreateUserAndName(String userId, String tagName);
 
-    java.util.List<Tag> findByCreateUser(String createUser);
-
-    Tag findByCreateUserAndName(String createUser, String name);
 }

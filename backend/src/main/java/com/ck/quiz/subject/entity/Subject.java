@@ -2,27 +2,20 @@ package com.ck.quiz.subject.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import org.hibernate.annotations.Comment;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.LocalDateTime;
+import com.ck.quiz.base.entity.Model;
 
 @Data
 @Entity
 @Comment("主题表")
-@Table(name = "subject",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uk_subject_name_create_user", columnNames = {"name", "create_user"})
-    }
-)
-public class Subject {
-
-    @Id
-    @Column(name = "subject_id", length = 32, nullable = false)
-    @Comment("主题ID")
-    private String id;
+@EqualsAndHashCode(callSuper = true)
+@Table(name = "subject", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_subject_name_create_user", columnNames = { "name", "create_user" })
+})
+public class Subject extends Model {
 
     @Column(length = 64, nullable = false)
     @Comment("主题英文名")
@@ -36,37 +29,4 @@ public class Subject {
     @Comment("主题描述")
     private String descr;
 
-    @Column(name = "create_date", updatable = false)
-    @Comment("创建日期")
-    private LocalDateTime createDate;
-
-    @Column(name = "create_user", length = 64, updatable = false)
-    @Comment("创建用户")
-    private String createUser;
-
-    @Column(name = "update_date")
-    @Comment("更新日期")
-    private LocalDateTime updateDate;
-
-    @Column(name = "update_user", length = 64)
-    @Comment("更新用户")
-    private String updateUser;
-
-    @PrePersist
-    public void prePersist() {
-        this.createDate = LocalDateTime.now();
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            this.createUser = authentication.getName();
-        }
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        this.updateDate = LocalDateTime.now();
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            this.updateUser = authentication.getName();
-        }
-    }
 }

@@ -1,11 +1,15 @@
 package com.ck.quiz.tag.dto;
 
+import com.ck.quiz.base.dto.CreateDto;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class TagCreateDto {
+@EqualsAndHashCode(callSuper = true)
+public class TagCreateDto extends CreateDto {
 
     @NotBlank(message = "标签英文名不能为空")
     @Size(max = 128, message = "标签英文名不能超过128个字符")

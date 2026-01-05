@@ -1,0 +1,93 @@
+// 模态框相关样式
+
+.add-edit-form,
+.detail-content {
+  .arco-form-item {
+    margin-bottom: 16px;
+
+    .arco-form-item-label {
+      .arco-form-item-label-required-mark {
+        color: #ff4d4f;
+      }
+    }
+  }
+}
+
+.add-edit-tabs-modal,
+.detail-tabs-modal {
+  .arco-modal {
+    .arco-modal-header {
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .arco-modal-body {
+      padding: 16px;
+    }
+
+    .arco-modal-footer {
+      border-top: 1px solid rgba(15, 23, 42, 0.06);
+    }
+  }
+
+  .arco-tabs {
+    margin-bottom: 0;
+
+    .arco-tabs-header {
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .arco-tabs-content {
+      padding: 0;
+    }
+
+    .arco-tabs-pane {
+      padding: 16px 0;
+    }
+  }
+}
+
+// 描述列表样式
+.arco-descriptions {
+  margin-top: 16px;
+
+  .arco-descriptions-item {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .arco-descriptions-item-label {
+      color: rgba(15, 23, 42, 0.65);
+      font-weight: 500;
+      width: 30%;
+    }
+
+    .arco-descriptions-item-value {
+      color: rgba(15, 23, 42, 0.85);
+      text-align: left;
+    }
+  }
+}
+
+// 标签样式
+.arco-tag {
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+
+// 加载动画
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.arco-spin-icon {
+  animation: spin 1s linear infinite;
+}
