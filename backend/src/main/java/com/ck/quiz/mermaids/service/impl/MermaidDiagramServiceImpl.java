@@ -18,6 +18,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.ck.quiz.llmmodel.entity.LLMModel;
 import com.ck.quiz.llmmodel.repository.LLMModelRepository;
+import com.ck.quiz.prompt.dto.PromptTemplateDto;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
@@ -161,7 +162,7 @@ public class MermaidDiagramServiceImpl implements MermaidDiagramService {
 
                 String finalPrompt = advice;
                 try {
-                    com.ck.quiz.prompt.dto.PromptTemplateDto tpl = promptTemplateService.getPromptTemplateByName("mermaidGenerate");
+                    PromptTemplateDto tpl = promptTemplateService.getByName("mermaidGenerate");
                     if (tpl != null && tpl.getContent() != null && !tpl.getContent().isEmpty()) {
                         String content = tpl.getContent();
                         String adv = advice == null ? "" : advice;

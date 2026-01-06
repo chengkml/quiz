@@ -240,7 +240,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
     }
 
     private String buildEventPrompt(String eventDescription) {
-        PromptTemplateDto promptTemplateDto = promptTemplateService.getPromptTemplateByName("calendarEventGenerate");
+        PromptTemplateDto promptTemplateDto = promptTemplateService.getByName("calendarEventGenerate");
         String targetPrompt = promptTemplateDto.getContent().replace("{{eventDescr}}", eventDescription);
         String dateTime = LocalDateTime.now().toString();
         targetPrompt = targetPrompt.replace("{{currentDateTime}}", dateTime);

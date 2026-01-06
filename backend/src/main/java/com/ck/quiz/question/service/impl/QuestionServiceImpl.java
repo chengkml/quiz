@@ -539,7 +539,7 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     private String buildPrompt(String knowledgePointDescription, int num) {
-        PromptTemplateDto promptTemplateDto = promptTemplateService.getPromptTemplateByName("questionGenerate");
+        PromptTemplateDto promptTemplateDto = promptTemplateService.getByName("questionGenerate");
         String targetPrompt = promptTemplateDto.getContent().replace("{{questionNum}}", String.valueOf(num));
         targetPrompt = targetPrompt.replace("{{knowledgePointDescr}}", knowledgePointDescription);
         return targetPrompt;

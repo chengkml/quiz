@@ -1,62 +1,20 @@
 package com.ck.quiz.llmmodel.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
+import com.ck.quiz.base.dto.UpdateDto;
+
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
-/**
- * 大语言模型更新 DTO
- * 用于接收更新模型的请求参数
- */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class LLMModelUpdateDto {
+@EqualsAndHashCode(callSuper = true)
+public class LLMModelUpdateDto extends UpdateDto {
 
-    /**
-     * 模型唯一标识
-     */
-    @NotBlank(message = "模型ID不能为空")
-    private String id;
-
-    /**
-     * 模型名称
-     */
     private String name;
-
-    /**
-     * 模型描述
-     */
-    private String description;
-
-    /**
-     * API 密钥
-     */
+    private String descr;
     private String apiKey;
-
-    /**
-     * API 端点
-     */
     private String apiEndpoint;
-
-    /**
-     * 上下文窗口大小
-     */
     private Integer contextWindow;
-
-    /**
-     * 输入token单价（分/千token）
-     */
     private Double inputPricePer1k;
-
-    /**
-     * 输出token单价（分/千token）
-     */
     private Double outputPricePer1k;
-
-    /**
-     * 配置信息（JSON格式）
-     */
     private String config;
 }

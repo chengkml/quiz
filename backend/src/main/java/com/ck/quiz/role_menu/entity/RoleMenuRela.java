@@ -52,7 +52,7 @@ public class RoleMenuRela {
      * 角色对象（懒加载）
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id", referencedColumnName = "role_id", insertable = false, updatable = false)
+    @JoinColumn(name = "role_id", referencedColumnName = "id", insertable = false, updatable = false)
     private UserRole role;
 
     /**

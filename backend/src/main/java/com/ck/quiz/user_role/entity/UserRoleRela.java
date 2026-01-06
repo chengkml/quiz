@@ -51,6 +51,6 @@ public class UserRoleRela {
      * 使用 {@code role_id} 作为外键映射到 {@link UserRole} 实体
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id", referencedColumnName = "role_id")
+    @JoinColumn(name = "role_id", referencedColumnName = "id")
     private UserRole role;
 }

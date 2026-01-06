@@ -10,4 +10,6 @@ import com.ck.quiz.prompt.entity.PromptTemplate;
 public interface PromptTemplateService extends BaseService<PromptTemplateCreateDto, PromptTemplateUpdateDto, PromptTemplateQueryDto, PromptTemplateDto, PromptTemplate> {
 
     boolean checkNameUniq(String userId, String name, String excludeId);
+
+    PromptTemplateDto getByName(String name);
 }

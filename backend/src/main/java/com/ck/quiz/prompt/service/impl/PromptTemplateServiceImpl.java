@@ -98,4 +98,10 @@ public class PromptTemplateServiceImpl extends BaseServiceImpl<PromptTemplateCre
     protected PromptTemplate newModel() {
         return new PromptTemplate();
     }
+
+    @Override
+    public PromptTemplateDto getByName(String name) {
+        PromptTemplate template = templateRepository.findByName(name);
+        return convertToDto(template, true);
+    }
 }
