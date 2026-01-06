@@ -10,4 +10,6 @@ public interface SubjectRepository extends BaseRepository<Subject> {
     List<Subject> findByCreateUser(String userId);
 
     Subject findByCreateUserAndName(String userId, String subjectName);
+
+    long countByCreateUser(String userId);
 }

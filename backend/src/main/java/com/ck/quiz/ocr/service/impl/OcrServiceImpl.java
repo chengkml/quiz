@@ -63,7 +63,7 @@ public class OcrServiceImpl implements OcrService {
         }
 
         // 必须从提示词模板表读取模板 name = 'ocrRecognize'
-        PromptTemplateDto tpl = promptTemplateService.getPromptTemplateByName("ocrRecognize");
+        PromptTemplateDto tpl = promptTemplateService.getByName("ocrRecognize");
         if (tpl == null || tpl.getContent() == null || tpl.getContent().isBlank()) {
             throw new RuntimeException("未找到提示词模板 ocrRecognize，请在提示词管理中配置");
         }

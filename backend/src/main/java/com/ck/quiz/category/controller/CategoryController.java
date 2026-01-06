@@ -22,7 +22,8 @@ import java.util.List;
 @Tag(name = "分类管理", description = "分类相关的API接口")
 @RestController
 @RequestMapping("/api/category")
-public class CategoryController extends BaseController<CategoryCreateDto, CategoryUpdateDto, CategoryQueryDto, CategoryDto> {
+public class CategoryController
+        extends BaseController<CategoryCreateDto, CategoryUpdateDto, CategoryQueryDto, CategoryDto> {
 
     @Autowired
     private CategoryService categoryService;
@@ -33,13 +34,15 @@ public class CategoryController extends BaseController<CategoryCreateDto, Catego
             @Parameter(description = "分类名称", required = true) @RequestParam("categoryName") String categoryName,
             @Parameter(description = "排除的分类ID") @RequestParam(value = "excludeCategoryId", required = false) String excludeCategoryId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return ResponseEntity.ok(categoryService.checkNameUniq(authentication.getName(), categoryName, excludeCategoryId));
+        return ResponseEntity
+                .ok(categoryService.checkNameUniq(authentication.getName(), categoryName, excludeCategoryId));
     }
 
     @Operation(summary = "获取学科分类树", description = "获取学科分类树")
     @GetMapping("/subject-category-tree")
     public ResponseEntity<List<SubjectDto>> getSubjectCategoryTree() {
-        List<SubjectDto> subjectDtos = categoryService.getSubjectCategoryTree();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        List<SubjectDto> subjectDtos = categoryService.getSubjectCategoryTree(authentication.getName());
         return ResponseEntity.ok(subjectDtos);
     }
 

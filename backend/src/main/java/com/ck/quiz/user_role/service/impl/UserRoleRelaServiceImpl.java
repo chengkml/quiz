@@ -35,7 +35,7 @@ public class UserRoleRelaServiceImpl implements UserRoleRelaService {
         return userRoleRelaRepository.findByUser(userRepository.findByUserId(userId).get()).stream()
                 .map(UserRoleRela::getRole)       // 直接取角色实体
                 .filter(Objects::nonNull)
-                .map(roleService::convertToDto)
+                .map(role -> roleService.convertToDto(role, true))
                 .collect(Collectors.toList());
     }
 
@@ -68,7 +68,8 @@ public class UserRoleRelaServiceImpl implements UserRoleRelaService {
         // 5. 返回 DTO 列表
         return relas.stream()
                 .map(UserRoleRela::getRole)
-                .map(roleService::convertToDto)
+                .filter(Objects::nonNull)
+                .map(role -> roleService.convertToDto(role, true))
                 .collect(Collectors.toList());
     }
 

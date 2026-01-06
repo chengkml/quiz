@@ -81,7 +81,7 @@ public class RoleServiceImpl extends BaseServiceImpl<RoleCreateDto, RoleUpdateDt
         if (!StringUtils.hasText(name)) {
             return true;
         }
-        UserRole role = roleRepository.findByName(name).orElse(null);
+        UserRole role = roleRepository.findByName(name);
         if (role == null) {
             return true;
         }
