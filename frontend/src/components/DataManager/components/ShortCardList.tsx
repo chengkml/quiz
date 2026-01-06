@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { Card, Grid, Button, Space, Tooltip, Empty } from '@arco-design/web-react';
 import { IconEdit, IconDelete, IconEye } from '@arco-design/web-react/icon';
-import { CardActions, CardConfig } from '../types';
-import './card.less';
+import { CardActions, CardConfig } from '../../types/types';
+import '../styles/card.less';
 
 interface ShortCardListProps<T = any> {
   data: T[];

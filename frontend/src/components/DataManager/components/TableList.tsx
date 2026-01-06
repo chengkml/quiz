@@ -1,7 +1,7 @@
 import React from 'react';
 import { Table, Button, Space, Tooltip, Empty } from '@arco-design/web-react';
 import { IconEdit, IconDelete, IconEye } from '@arco-design/web-react/icon';
-import './card.less';
+import '../styles/card.less';
 
 interface TableListProps<T = any> {
   data: T[];
@@ -11,7 +11,7 @@ interface TableListProps<T = any> {
   onDelete?: (record: T) => void;
   onView?: (record: T) => void;
   scrollHeight?: number;
-  rowKey?: string | ((record: T, index: number) => string);
+  rowKey?: string | ((record: T) => string | number);
   pagination?: false | any;
   onChange?: (pagination: any, filters?: any, sorter?: any, extra?: any) => void;
 }
@@ -20,7 +20,7 @@ interface TableListProps<T = any> {
  * 表格列表组件
  * 展示为传统表格形式
  */
-const TableList: React.FC<TableListProps> = ({
+const TableList = <T extends any>({
   data = [],
   loading = false,
   columns = [],
@@ -31,7 +31,7 @@ const TableList: React.FC<TableListProps> = ({
   rowKey = 'id',
   pagination = false,
   onChange,
-}) => {
+}: TableListProps<T>) => {
   if (data.length === 0 && !loading) {
     return <Empty />;
   }
@@ -85,20 +85,26 @@ const TableList: React.FC<TableListProps> = ({
     tableColumns.push(actionColumn);
   }
 
+  // 适配 rowKey 类型，确保传递给 Table 的 rowKey 符合要求
+  const adaptedRowKey =
+    typeof rowKey === 'function'
+      ? (record: T) => (rowKey as (record: T, index?: number) => string | number)(record)
+      : rowKey;
+
   return (
     <Table
       className="data-table"
       columns={tableColumns}
       data={data}
       loading={loading}
-      rowKey={rowKey}
+      rowKey={adaptedRowKey}
       pagination={pagination}
       onChange={onChange}
       scroll={{
         y: scrollHeight,
         x: true,
       }}
-      striped
+      stripe
     />
   );
 };

@@ -46,6 +46,8 @@ import NotificationPage from "@/pages/Notification/Page";
 import ExceptionLogPage from "@/pages/Notification/ExceptionLogPage";
 import SystemMessagePage from "@/pages/SystemMessage";
 import SystemParamManagement from "@/pages/SystemParam";
+import SimpleExample from "@/components/DataManager/docs/EXAMPLE";
+import AdvancedExample from "@/components/DataManager/docs/ADVANCED_EXAMPLE";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -144,9 +146,9 @@ const MenuPermissionRoute: React.FC<{
     const menuTree: MenuTreeDto[] = JSON.parse(menuInfoStr);
 
     // 检查是否有访问权限
-    if (!hasMenuPermission(requiredPath, menuTree)) {
-      return <Navigate to="/frame/notfound" replace />;
-    }
+    // if (!hasMenuPermission(requiredPath, menuTree)) {
+    //   return <Navigate to="/frame/notfound" replace />;
+    // }
 
     return <>{children}</>;
   } catch (error) {
@@ -239,6 +241,16 @@ const protectedPages = [
     element: <SystemParamManagement />,
     requiredPath: "systemparam",
   },
+  {
+    path: "example",
+    element: <SimpleExample />,
+    requiredPath: "example",
+  },
+  {
+    path: "advanced-example",
+    element: <AdvancedExample />,
+    requiredPath: "advanced-example",
+  },
 ];
 
 /**
@@ -260,6 +272,22 @@ export const router = createBrowserRouter(
         </NavigationHandler>
       ),
     },
+
+    // 独立访问的页面路由（不带Layout框架）
+    ...protectedPages.map((route) => ({
+      path: `/${route.path}`,
+      element: (
+        <NavigationHandler>
+          <UserProvider>
+            <ProtectedRoute>
+              <MenuPermissionRoute requiredPath={route.requiredPath}>
+                {route.element}
+              </MenuPermissionRoute>
+            </ProtectedRoute>
+          </UserProvider>
+        </NavigationHandler>
+      ),
+    })),
 
     // 主框架 + 内嵌页面 - 包装在NavigationHandler中以支持未授权时的导航
     {

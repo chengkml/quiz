@@ -1,176 +1,279 @@
+// 智能筛选表单组件样式
+.smart-filter-form {
+  margin-bottom: 12px;
+  border-radius: 6px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  background: var(--color-white);
+  overflow: hidden;
+
+  .arco-form-item {
+    margin-bottom: 0px !important;
+  }
+
+  // 完整显示状态（所有字段都在一行）
+  &.full {
+    .smart-filter-form-content {
+      height: auto !important;
+    }
+  }
+
+  // 内容区域
+  .smart-filter-form-content {
+    padding: 12px 16px;
+    position: relative;
+    background: var(--color-bg-2);
+    transition: all 0.3s ease;
+    border-radius: 6px;
+
+    // 行容器
+    :global(.arco-row) {
+      align-items: flex-start;
+    }
+  }
+
+  // 表单字段容器
+  .filter-form-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    width: 100%;
+
+    :global(.arco-row) {
+      width: 100%;
+    }
+
+    :global(.arco-col) {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+    }
+
+    :global(.arco-form-item) {
+      margin-bottom: 0;
+      width: 100%;
+      flex: 1;
+      min-width: 0;
+
+      :global(.arco-form-item-wrapper) {
+        display: flex;
+        align-items: center;
+        width: 100%;
+      }
+
+      // 标签样式
+      :global(.arco-form-label-item) {
+        padding-right: 8px;
+        min-width: auto;
+        width: auto;
+        flex-shrink: 0;
+      }
+
+      :global(.arco-form-item-wrapper-col) {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+  }
+
+  // 操作按钮组
+  .filter-oper-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+
+    .filter-btn {
+      white-space: nowrap;
+      flex-shrink: 0;
+
+      &.reset-btn {
+        :global(.arco-icon) {
+          margin-right: 4px;
+        }
+      }
+
+      &.more-btn {
+        :global(.arco-icon) {
+          margin-right: 4px;
+        }
+      }
+
+      &.collapse-btn {
+        :global(.arco-icon) {
+          margin-right: 4px;
+        }
+      }
+    }
+  }
+
+  // 已选条件标签区域
+  .filter-tags-section {
+    display: flex;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 12px;
+    gap: 12px;
+    flex-wrap: wrap;
+
+    .filter-tags-label {
+      color: var(--color-text-3);
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .filter-tags-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex: 1;
+      align-items: center;
+
+      .filter-tag {
+        max-width: 100%;
+
+        .filter-tag-content {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          max-width: 100%;
+          overflow: hidden;
+
+          .filter-tag-label {
+            white-space: nowrap;
+            flex-shrink: 0;
+            color: var(--color-text-1);
+            font-weight: 500;
+          }
+
+          .filter-tag-value {
+            flex: 1;
+            min-width: 0;
+            max-width: 200px;
+
+            :global(.arco-typography) {
+              color: var(--color-primary);
+              margin: 0;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 展开状态
+  &.expanded {
+    .smart-filter-form-content {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+      padding: 16px 20px;
+    }
+
+    .filter-form-fields {
+      :global(.arco-form-item) {
+        width: 100%;
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
+    .filter-oper-group {
+      position: absolute;
+      right: 20px;
+      bottom: 16px;
+    }
+
+    .filter-tags-section {
+      width: calc(100% - 240px);
+    }
+  }
+
+  // 响应式设计
+  @media (max-width: 1400px) {
+    .filter-form-fields {
+      :global(.arco-form-item) {
+        width: 100%;
+        flex: 1;
+      }
+    }
+
+    &.expanded {
+      .filter-form-fields {
+        :global(.arco-form-item) {
+          width: 100%;
+          flex: 1;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .filter-form-fields {
+      :global(.arco-form-item) {
+        width: 100%;
+        min-width: unset;
+        flex: 1;
+      }
+    }
+
+    .filter-oper-group {
+      width: 100%;
+      margin-top: 12px;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+
+      &.expanded {
+        position: static;
+        right: auto;
+        bottom: auto;
+      }
+    }
+  }
+
+  // 表单项通用样式处理
+  :global(.arco-form-item-layout-inline) {
+    margin-right: 0;
+  }
+
+  // 单选组件换行处理
+  :global(.arco-radio-group-type-button) {
+    white-space: nowrap;
+  }
+
+  // 级联选择器处理
+  :global(.arco-form-item.cascader) {
+    :global(.arco-form-item-wrapper) {
+      overflow: hidden;
+    }
+  }
+}
+
+// 向后兼容：支持旧的 modo-filter-form 类名
 .modo-filter-form {
-	margin-bottom: 10px;
-	border-radius: 6px;
-	position: relative;
-	transition: all .2s;
-	width: 100%;
-	height: 72px;
-	background: var(--color-white);
-	&.full {
-		height: auto !important;
-		.modo-filter-form-content {
-			height: auto !important;
-		}
-	}
-	.modo-filter-form-content {
-		height: 74px !important;
-		padding: 10px 16px !important;
-		padding-bottom: 4px !important;
-		position: relative;
-		background: var(--color-gray-1) !important;
-		transition: all .2s;
-	}
-	.arco-form {
-		flex-direction: row;
-	    flex-wrap: wrap;
-	}
-	.oper-group {
-		white-space: pre;
-	}
-	&.more {
-		.modo-filter-form-content {
-			height: auto !important;
-			padding: 10px 34px !important;
-			position: relative;
-		    z-index: 10;
-		    box-shadow: 0px 4px 10px 0px rgb(0 0 0 / 10%);
-		}
-		.arco-form-item {
-		    width: 25%;
-		}
-		.oper-group {
-			position: absolute;
-		    right: 34px;
-		    bottom: 10px;
-		}
-		.filter-form-result {
-			margin-top: 10px;
-		}
-	}
-	.arco-form-item {
-	    width: 33.333%;
-	    margin-bottom: 6px;
-	    // width: auto;
-	    flex-wrap: nowrap;
-	}
-	.arco-radio-group-type-button {
-		white-space: nowrap;
-	}
-	.arco-form-item > .arco-form-label-item {
-	    padding-right: 12px;
-	    vertical-align: middle;
-	    display: inline-block;
-    	width: 84px;
-	}
-	.arco-form-layout-inline {
-	    padding-right: 10px;
-	    margin-right: 0px;
-	    box-sizing: border-box;
-	}
-	.arco-form-item[span="2"] {
-	    width: calc(100% / 12);
-	}
-	.arco-form-item[span="3"] {
-	    width: calc(100% / 8);
-	}
-	.arco-form-item[span="4"] {
-	    width: calc(100% / 6);
-	}
-	.arco-form-item[span="6"] {
-	    width: calc(100% / 4);
-	}
-	.arco-form-item[span="8"] {
-	    width: calc(100% / 3);
-	}
-	.arco-form-item[span="12"] {
-	    width: calc(100% / 2);
-	}
-	.arco-form-item[span="16"] {
-	    width: calc(100% * 2 / 3);
-	}
-	.arco-form-item[span="18"] {
-	    width: calc(100% * 3 / 4);
-	}
-	.arco-form-item[span="20"] {
-	    width: calc(100% * 5 / 6);
-	}
-	.arco-form-item[span="21"] {
-	    width: calc(100% * 7 / 8);
-	}
-	.arco-form-item[span="22"] {
-	    width: calc(100% * 11 / 12);
-	}
-	.arco-form-item[span="24"] {
-	    width: 100%;
-	}
-	.arco-form-item.no-label > .arco-form-label-item {
-	    padding-right: 0px;
-	}
-	.arco-form-item-wrapper {
-	    display: inline-block;
-	    vertical-align: middle;
-	    overflow: hidden;
-	    // min-width: calc(100% - 84px);
-	}
-	.group-check {
-	    min-width: 0px !important;
-	}
-	.group-check label {
-	    padding-left: 2px;
-	}
-	.arco-form-label-item > label {
-	    white-space: nowrap;
-	    width: 100%;
-	    display: flex;
-	    padding-left: 10px;
-	    .label {
-	    	flex: 1;
-	    	margin-bottom: 0px;
-		    vertical-align: middle;
-		    line-height: inherit;
-	    }
-	}
-	.arco-picker {
-		width: 100%;
-	}
-	.arco-form-item.cascader>.arco-form-item-wrapper {
-	    overflow: hidden;
-	}
-	.filter-form-result {
-		display: flex;
-	}
-	.tag-list {
-		flex: 1;
-	    // padding-top: 6px;
-	    box-sizing: border-box;
-	    margin-bottom: -6px;
-	    white-space: nowrap;
-    	overflow: hidden;
-		.moda-tag {
-			max-width: 300px;
-			vertical-align: top;
-			.result {
-				flex: 1;
-			    overflow: hidden;
-			    display: flex;
-			    &>span {
-			    	flex: 1;
-				    overflow: hidden;
-				    .value {
-				    	width: 100%;
-				    	overflow: hidden;
-				    	vertical-align: top;
-				    }
-			    }
-			    .label {
-			    	margin-right: 4px;
-			    	flex: none;
-			    }
-			    div.arco-typography {
-			    	color: var(--color-primary);
-			    	margin-bottom: 0px;
-			    }
-			}
-		}
-	}
+  @extend .smart-filter-form;
+
+  &.more {
+    @extend .smart-filter-form.expanded;
+  }
+
+  .modo-filter-form-content {
+    @extend .smart-filter-form-content;
+  }
+
+  .oper-group {
+    @extend .filter-oper-group;
+  }
+
+  .filter-form-result {
+    @extend .filter-tags-section;
+  }
+
+  .tag-list {
+    @extend .filter-tags-list;
+  }
+
 }

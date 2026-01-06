@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { Modal, Tabs, Spin, Divider, Row, Col, Descriptions, Tag, Avatar, Empty } from '@arco-design/web-react';
-import { DetailFieldConfig, TabConfig } from '../types';
-import './modal.less';
+import { Modal, Tabs, Spin, Descriptions, Tag, Avatar, Empty } from '@arco-design/web-react';
+import { DetailFieldConfig, TabConfig } from '../../types/types';
+import '../styles/modal.less';
 
 interface DetailModalProps {
   visible: boolean;
@@ -124,7 +124,7 @@ const DetailModal: React.FC<DetailModalProps> = ({
         <Tabs
           activeTab={activeTab}
           onChange={setActiveTab}
-          type="button"
+          type="line"
           className="detail-tabs"
         >
           {tabItems.map((tab) => (

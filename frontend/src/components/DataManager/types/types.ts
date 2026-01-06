@@ -2,6 +2,8 @@
  * 通用数据管理组件类型定义
  */
 
+import { FormFieldConfig } from '../FormFieldConfig';
+
 export type DisplayMode = 'shortCard' | 'longCard' | 'table';
 
 export interface PaginationConfig {
@@ -126,22 +128,6 @@ export interface TabConfig {
   key: string;
   title: string;
   content: React.ReactNode;
-}
-
-export interface FormFieldConfig {
-  field: string;
-  label: string;
-  type?: 'text' | 'input' | 'textarea' | 'select' | 'number' | 'date' | 'checkbox' | 'radio';
-  required?: boolean;
-  placeholder?: string;
-  rules?: any[];
-  options?: { label: string; value: any }[];
-  initialValue?: any;
-  width?: string | number;
-  span?: number;
-  disabled?: boolean;
-  visible?: boolean | ((record: any) => boolean);
-  render?: (fieldValue: any, allValues: any) => React.ReactNode;
 }
 
 export interface DetailModalProps {

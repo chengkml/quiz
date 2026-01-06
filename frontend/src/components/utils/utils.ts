@@ -1,25 +1,33 @@
-import React, { useMemo } from 'react';
-import { Form, FormInstance, Input, Select, InputNumber, DatePicker, Checkbox, Radio } from '@arco-design/web-react';
-import { FormFieldConfig } from './types';
+import React, { ReactNode } from "react";
+import {
+  FormInstance,
+  Input,
+  Select,
+  InputNumber,
+  DatePicker,
+  Checkbox,
+  Radio,
+} from "@arco-design/web-react";
+import { FormFieldConfig } from "../types/types";
 
 /**
  * 渲染表单字段的工具函数
  */
+import { Form } from "@arco-design/web-react";
+
 export const renderFormField = (
   fieldConfig: FormFieldConfig,
-  form: FormInstance,
-) => {
+  form?: FormInstance
+): ReactNode => {
   const {
     field,
     label,
-    type = 'text',
+    type = "text",
     required = false,
     placeholder,
     rules = [],
     options = [],
     initialValue,
-    width,
-    span = 24,
     disabled = false,
     render,
   } = fieldConfig;
@@ -39,83 +47,76 @@ export const renderFormField = (
   let fieldNode: React.ReactNode = null;
 
   switch (type) {
-    case 'input':
-    case 'text':
-      fieldNode = (
-        <Input
-          placeholder={placeholder || `请输入${label}`}
-          disabled={disabled}
-        />
+    case "input":
+    case "text":
+      fieldNode = React.createElement(Input, {
+        placeholder: placeholder || `请输入${label}`,
+        disabled: disabled,
+      });
+      break;
+
+    case "textarea":
+      fieldNode = React.createElement(Input.TextArea, {
+        placeholder: placeholder || `请输入${label}`,
+        disabled: disabled,
+        rows: 4,
+      });
+      break;
+
+    case "number":
+      fieldNode = React.createElement(InputNumber, {
+        placeholder: placeholder || `请输入${label}`,
+        disabled: disabled,
+      });
+      break;
+
+    case "select":
+      fieldNode = React.createElement(Select, {
+        placeholder: placeholder || `请选择${label}`,
+        disabled: disabled,
+        options: options,
+      });
+      break;
+
+    case "date":
+      fieldNode = React.createElement(DatePicker, {
+        placeholder: placeholder || `请选择${label}`,
+        disabled: disabled,
+      });
+      break;
+
+    case "checkbox":
+      fieldNode = React.createElement(
+        Checkbox,
+        { disabled: disabled },
+        label
       );
       break;
 
-    case 'textarea':
-      fieldNode = (
-        <Input.TextArea
-          placeholder={placeholder || `请输入${label}`}
-          disabled={disabled}
-          rows={4}
-        />
-      );
-      break;
-
-    case 'number':
-      fieldNode = (
-        <InputNumber
-          placeholder={placeholder || `请输入${label}`}
-          disabled={disabled}
-        />
-      );
-      break;
-
-    case 'select':
-      fieldNode = (
-        <Select
-          placeholder={placeholder || `请选择${label}`}
-          disabled={disabled}
-          options={options}
-        />
-      );
-      break;
-
-    case 'date':
-      fieldNode = (
-        <DatePicker
-          placeholder={placeholder || `请选择${label}`}
-          disabled={disabled}
-        />
-      );
-      break;
-
-    case 'checkbox':
-      fieldNode = <Checkbox disabled={disabled}>{label}</Checkbox>;
-      break;
-
-    case 'radio':
-      fieldNode = (
-        <Radio.Group disabled={disabled} options={options} />
-      );
+    case "radio":
+      fieldNode = React.createElement(Radio.Group, {
+        disabled: disabled,
+        options: options,
+      });
       break;
 
     default:
-      fieldNode = (
-        <Input
-          placeholder={placeholder || `请输入${label}`}
-          disabled={disabled}
-        />
-      );
+      fieldNode = React.createElement(Input, {
+        placeholder: placeholder || `请输入${label}`,
+        disabled: disabled,
+      });
   }
 
-  if (render) {
+  if (render && form) {
     const fieldValue = form.getFieldValue(field);
     const allValues = form.getFieldsValue();
     fieldNode = render(fieldValue, allValues);
   }
 
-  return (
-    <Form.Item {...formItemProps} style={{ width: width }}>
-      {fieldNode}
-    </Form.Item>
+  return React.createElement(
+    Form.Item,
+    { ...formItemProps },
+    fieldNode
   );
 };
 
@@ -124,7 +125,7 @@ export const renderFormField = (
  */
 export const getFormInitialValues = (
   formConfig: FormFieldConfig[],
-  record?: any,
+  record?: any
 ) => {
   const initialValues: any = {};
 
@@ -144,10 +145,10 @@ export const getFormInitialValues = (
  */
 export const validateFormFields = async (
   form: FormInstance,
-  fieldNames?: string[],
+  fieldNames?: string[]
 ) => {
   if (fieldNames && fieldNames.length > 0) {
-    return await form.validateFields(fieldNames);
+    return await form.validate(fieldNames);
   }
   return await form.validate();
 };
@@ -157,8 +158,8 @@ export const validateFormFields = async (
  */
 export const generateSelectOptions = (
   data: any[],
-  labelField: string = 'label',
-  valueField: string = 'value',
+  labelField: string = "label",
+  valueField: string = "value"
 ) => {
   return data.map((item) => ({
     label: item[labelField],
@@ -172,7 +173,7 @@ export const generateSelectOptions = (
 export const paginateData = (
   data: any[],
   current: number,
-  pageSize: number,
+  pageSize: number
 ): any[] => {
   const start = (current - 1) * pageSize;
   const end = start + pageSize;
@@ -184,37 +185,37 @@ export const paginateData = (
  */
 export const formatDate = (
   date: any,
-  format: string = 'YYYY-MM-DD HH:mm:ss',
+  format: string = "YYYY-MM-DD HH:mm:ss"
 ): string => {
-  if (!date) return '--';
+  if (!date) return "--";
 
   const d = new Date(date);
-  if (isNaN(d.getTime())) return '--';
+  if (isNaN(d.getTime())) return "--";
 
   const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  const seconds = String(d.getSeconds()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const seconds = String(d.getSeconds()).padStart(2, "0");
 
   return format
-    .replace('YYYY', String(year))
-    .replace('MM', month)
-    .replace('DD', day)
-    .replace('HH', hours)
-    .replace('mm', minutes)
-    .replace('ss', seconds);
+    .replace("YYYY", String(year))
+    .replace("MM", month)
+    .replace("DD", day)
+    .replace("HH", hours)
+    .replace("mm", minutes)
+    .replace("ss", seconds);
 };
 
 /**
  * 相对时间格式化（如 "2小时前"）
  */
 export const formatRelativeTime = (date: any): string => {
-  if (!date) return '--';
+  if (!date) return "--";
 
   const d = new Date(date);
-  if (isNaN(d.getTime())) return '--';
+  if (isNaN(d.getTime())) return "--";
 
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
@@ -230,11 +231,11 @@ export const formatRelativeTime = (date: any): string => {
   } else if (diffHours < 24) {
     return `${diffHours}小时前`;
   } else if (diffDays === 1) {
-    return '昨天';
+    return "昨天";
   } else if (diffDays < 7) {
     return `${diffDays}天前`;
   } else {
-    return formatDate(date, 'YYYY-MM-DD');
+    return formatDate(date, "YYYY-MM-DD");
   }
 };
 
@@ -243,7 +244,7 @@ export const formatRelativeTime = (date: any): string => {
  */
 export const debounce = <T extends (...args: any[]) => any>(
   fn: T,
-  delay: number = 300,
+  delay: number = 300
 ) => {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -262,7 +263,7 @@ export const debounce = <T extends (...args: any[]) => any>(
  */
 export const throttle = <T extends (...args: any[]) => any>(
   fn: T,
-  delay: number = 300,
+  delay: number = 300
 ) => {
   let lastCallTime = 0;
 

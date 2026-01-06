@@ -4,11 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import DataManager from '@/components/DataManager';
-import AddEditModal from '@/components/DataManager/AddEditModal';
-import DetailModal from '@/components/DataManager/DetailModal';
 import { Message, Modal } from '@arco-design/web-react';
-import { FormFieldConfig, DetailFieldConfig } from '@/components/DataManager/types';
+import { DetailFieldConfig, FormFieldConfig } from '../../types/types';
+import { AddEditModal, DataManager, DetailModal } from '../index';
 
 interface User {
   id: number;
@@ -149,8 +147,8 @@ const SimpleExample: React.FC = () => {
         }}
         config={{
           shortCardConfig: {
-            title: (item) => item.name,
-            subtitle: (item) => item.email,
+            title: (item: User) => item.name,
+            subtitle: (item: User) => item.email,
             showFields: ['role', 'status'],
             fieldLabel: { role: '角色', status: '状态' },
           },
