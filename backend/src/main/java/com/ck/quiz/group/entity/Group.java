@@ -12,7 +12,7 @@ import lombok.Data;
 @Data
 @Entity
 @Comment("分组表")
-@Table(name = "group", indexes = {
+@Table(name = "groups", indexes = {
     @Index(name = "idx_group_name_create_user", columnList = "name,create_user", unique = true)
 })
 public class Group {
