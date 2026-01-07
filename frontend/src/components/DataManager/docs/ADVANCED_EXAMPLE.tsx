@@ -700,9 +700,8 @@ const AdvancedExample: React.FC = () => {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Content style={{ padding: "20px" }}>
-        <DataManager
+    <>
+      <DataManager
           data={products.slice(
             (pagination.current - 1) * pagination.pageSize,
             pagination.current * pagination.pageSize
@@ -762,8 +761,7 @@ const AdvancedExample: React.FC = () => {
             setCurrentRecord(null);
           }}
         />
-      </Content>
-    </Layout>
+    </>
   );
 };
 

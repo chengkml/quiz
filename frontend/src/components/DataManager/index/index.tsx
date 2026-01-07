@@ -1,19 +1,21 @@
-import React, { useMemo, useState } from 'react';
-import { Button, Space, Layout, Empty, Pagination, Spin } from '@arco-design/web-react';
+import React, { useMemo, useState } from "react";
 import {
-  IconApps,
-  IconList,
-  IconPlus,
-} from '@arco-design/web-react/icon';
-import ShortCardList from '../components/ShortCardList';
-import LongCardList from '../components/LongCardList';
-import TableList from '../components/TableList';
-import { DisplayMode, DataManagerProps } from '../../types/types';
-import '../styles/index.less';
-import Row from '@arco-design/web-react/es/Grid/row';
-import Col from '@arco-design/web-react/es/Grid/col';
+  Button,
+  Space,
+  Empty,
+  Pagination,
+  Spin,
+  Radio,
+  Layout,
+} from "@arco-design/web-react";
+import { IconApps, IconList, IconPlus } from "@arco-design/web-react/icon";
+import ShortCardList from "../components/ShortCardList";
+import LongCardList from "../components/LongCardList";
+import TableList from "../components/TableList";
+import { DisplayMode, DataManagerProps } from "../../types/types";
+import "../styles/index.less";
 
-const { Content } = Layout;
+const { Header, Content, Footer } = Layout;
 
 /**
  * 通用数据管理组件
@@ -28,15 +30,15 @@ const DataManager: React.FC<DataManagerProps> = ({
   actions = {},
   config = {},
   showActions = true,
-  actionsPosition = 'top',
+  actionsPosition = "top",
   actionButtons,
   tableScrollHeight = 400,
   cardColumns = 4,
   cardGutter = 16,
-  cardSize = 'small',
+  cardSize = "small",
 }) => {
   const {
-    displayMode: defaultDisplayMode = 'shortCard',
+    displayMode: defaultDisplayMode = "shortCard",
     showModeToggle = true,
     renderItem,
     renderShortCard,
@@ -49,86 +51,47 @@ const DataManager: React.FC<DataManagerProps> = ({
     filterContent,
   } = config;
 
-  const [displayMode, setDisplayMode] = useState<DisplayMode>(defaultDisplayMode);
-
-  // 创建操作处理函数
-  const cardActions = {
-    onEdit: actions?.onEdit,
-    onDelete: actions?.onDelete,
-    onView: actions?.onView,
-  };
+  const [displayMode, setDisplayMode] =
+    useState<DisplayMode>(defaultDisplayMode);
 
   // 顶部操作栏
-  const actionBar = showActions && (actionsPosition === 'top' || actionsPosition === 'both') && (
-    <div className="data-manager-actions-bar" style={{ marginBottom: '16px' }}>
-      <Row gutter={16} align="center" justify="space-between">
-        <Col>
-          <Space>
-            {showModeToggle && (
-              <>
-                <Button
-                  size="small"
-                  type={displayMode === 'shortCard' ? 'primary' : 'secondary'}
-                  icon={<IconApps />}
-                  onClick={() => setDisplayMode('shortCard')}
-                  title="短卡片视图"
-                />
-                <Button
-                  size="small"
-                  type={displayMode === 'longCard' ? 'primary' : 'secondary'}
-                  icon={<IconApps />}
-                  onClick={() => setDisplayMode('longCard')}
-                  title="长卡片视图"
-                />
-                <Button
-                  size="small"
-                  type={displayMode === 'table' ? 'primary' : 'secondary'}
-                  icon={<IconList />}
-                  onClick={() => setDisplayMode('table')}
-                  title="表格视图"
-                />
-              </>
-            )}
-            {actionButtons}
-          </Space>
-        </Col>
-        <Col>
+  const actionBar = showActions &&
+    (actionsPosition === "top" || actionsPosition === "both") && (
+      <div className="data-manager-actions-bar">
+        <Space>
+          {actionButtons}
           {actions?.onAdd && (
-            <Button
-              type="primary"
-              icon={<IconPlus />}
-              onClick={actions.onAdd}
-            >
+            <Button type="primary" icon={<IconPlus />} onClick={actions.onAdd}>
               新增
             </Button>
           )}
-        </Col>
-      </Row>
-    </div>
-  );
-
-  // 底部操作栏
-  const bottomActionBar = showActions && (actionsPosition === 'bottom' || actionsPosition === 'both') && (
-    <div className="data-manager-bottom-actions" style={{ marginTop: '16px' }}>
-      <Row gutter={16} align="center" justify="end">
-        <Col>
-          {actions?.onAdd && (
-            <Button
-              type="primary"
-              icon={<IconPlus />}
-              onClick={actions.onAdd}
+        </Space>
+        <Space>
+          {showModeToggle && (
+            <Radio.Group
+              type="button"
+              size="small"
+              value={displayMode}
+              onChange={setDisplayMode}
             >
-              新增
-            </Button>
+              <Radio value="shortCard">
+                <IconApps />
+              </Radio>
+              <Radio value="longCard">
+                <IconApps />
+              </Radio>
+              <Radio value="table">
+                <IconList />
+              </Radio>
+            </Radio.Group>
           )}
-        </Col>
-      </Row>
-    </div>
-  );
+        </Space>
+      </div>
+    );
 
   // 分页组件
   const paginationBar = pagination && (
-    <div className="data-manager-pagination" style={{ marginTop: '16px', textAlign: 'right' }}>
+    <div className="data-manager-pagination">
       <Pagination
         {...pagination}
         onChange={(page, pageSize) => {
@@ -142,18 +105,6 @@ const DataManager: React.FC<DataManagerProps> = ({
     </div>
   );
 
-  // 内容为空时的处理
-  if (data.length === 0 && !loading) {
-    return (
-      <div className="data-manager">
-        {filterContent && <div className="data-manager-filter">{filterContent}</div>}
-        {actionBar}
-        <Empty />
-        {paginationBar}
-      </div>
-    );
-  }
-
   // 根据显示模式渲染列表
   const renderListContent = () => {
     const commonProps = {
@@ -165,7 +116,7 @@ const DataManager: React.FC<DataManagerProps> = ({
     };
 
     switch (displayMode) {
-      case 'shortCard':
+      case "shortCard":
         return (
           <ShortCardList
             {...commonProps}
@@ -177,7 +128,7 @@ const DataManager: React.FC<DataManagerProps> = ({
           />
         );
 
-      case 'longCard':
+      case "longCard":
         return (
           <LongCardList
             {...commonProps}
@@ -187,7 +138,7 @@ const DataManager: React.FC<DataManagerProps> = ({
           />
         );
 
-      case 'table':
+      case "table":
       default:
         return (
           <TableList
@@ -200,21 +151,33 @@ const DataManager: React.FC<DataManagerProps> = ({
     }
   };
 
+  // 内容展示
+  const mainContent =
+    data.length === 0 && !loading ? <Empty /> : renderListContent();
+
   return (
     <div className="data-manager">
-      {filterContent && (
-        <div className="data-manager-filter">{filterContent}</div>
-      )}
+      <Layout style={{ height: "100%" }}>
+        {(filterContent || actionBar) && (
+          <Header className="data-manager-header" style={{ flexShrink: 0 }}>
+            {filterContent && (
+              <div className="data-manager-filter">{filterContent}</div>
+            )}
+            {actionBar}
+          </Header>
+        )}
 
-      {actionBar}
+        <Content
+          className="data-manager-content"
+          style={{ flex: 1, overflow: "auto" }}
+        >
+          <Spin loading={loading}>{mainContent}</Spin>
+        </Content>
 
-      <Spin loading={loading} className="data-manager-content">
-        {renderListContent()}
-      </Spin>
-
-      {paginationBar}
-
-      {bottomActionBar}
+        {paginationBar && (
+          <Footer className="data-manager-footer">{paginationBar}</Footer>
+        )}
+      </Layout>
     </div>
   );
 };
