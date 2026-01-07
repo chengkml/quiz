@@ -24,6 +24,7 @@ import {
   Badge,
   Tag,
   Avatar,
+  Tree,
 } from "@arco-design/web-react";
 import {
   IconSearch,
@@ -45,6 +46,27 @@ import { AddEditModal, DataManager, DetailModal } from "../index";
 
 const { Content } = Layout;
 const { Row, Col } = Grid;
+
+const treeData = [
+  {
+    title: "所有产品",
+    key: "all",
+    children: [
+      {
+        title: "电子产品",
+        key: "electronics",
+      },
+      {
+        title: "配件",
+        key: "accessories",
+      },
+      {
+        title: "软件",
+        key: "software",
+      },
+    ],
+  },
+];
 
 /**
  * 产品管理系统 - 完整示例
@@ -123,6 +145,7 @@ const AdvancedExample: React.FC = () => {
   const [detailVisible, setDetailVisible] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<Product | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState(["all"]);
 
   // 分页状态
   const [pagination, setPagination] = useState<PaginationConfig>({
@@ -719,6 +742,19 @@ const AdvancedExample: React.FC = () => {
             showModeToggle: true,
             displayMode: "shortCard",
             filterContent,
+            showTree: true,
+            showTreeFilter: true,
+            treeData: treeData,
+            selectedTreeKeys: selectedKeys,
+            onTreeSelect: (keys) => {
+              setSelectedKeys(keys);
+              const key = keys[0];
+              if (key === "all") {
+                fetchProducts();
+              } else {
+                fetchProducts({ category: key });
+              }
+            },
             renderShortCard: renderCustomCard,
             tableColumns,
             longCardConfig: {

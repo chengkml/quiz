@@ -53,6 +53,18 @@ export interface DataManagerConfig<T = any> {
   showFilterForm?: boolean;
   // 搜索表单内容
   filterContent?: React.ReactNode;
+  // 是否显示树
+  showTree?: boolean;
+  // 树内容
+  treeContent?: React.ReactNode;
+  // 树数据 (如果提供则自动渲染 Tree)
+  treeData?: any[];
+  // 树选中回调
+  onTreeSelect?: (keys: string[]) => void;
+  // 当前选中树节点
+  selectedTreeKeys?: string[];
+  // 是否显示树过滤
+  showTreeFilter?: boolean;
   // 过滤表单回调
   onFilter?: (values: any) => void;
   // 重置搜索表单

@@ -7,6 +7,8 @@ import {
   Spin,
   Radio,
   Layout,
+  Tree,
+  Input,
 } from "@arco-design/web-react";
 import { IconApps, IconList, IconPlus } from "@arco-design/web-react/icon";
 import ShortCardList from "../components/ShortCardList";
@@ -15,7 +17,7 @@ import TableList from "../components/TableList";
 import { DisplayMode, DataManagerProps } from "../../types/types";
 import "../styles/index.less";
 
-const { Header, Content, Footer } = Layout;
+const { Header, Content, Footer, Sider } = Layout;
 
 /**
  * 通用数据管理组件
@@ -49,10 +51,47 @@ const DataManager: React.FC<DataManagerProps> = ({
     longCardConfig = {},
     showFilterForm = false,
     filterContent,
+    showTree = false,
+    treeContent,
+    treeData = [],
+    selectedTreeKeys,
+    onTreeSelect,
+    showTreeFilter = false,
   } = config;
 
   const [displayMode, setDisplayMode] =
     useState<DisplayMode>(defaultDisplayMode);
+
+  const [treeKeyword, setTreeKeyword] = useState("");
+
+  // 树数据过滤逻辑
+  const filteredTreeData = useMemo(() => {
+    if (!treeKeyword || !treeData.length) return treeData;
+
+    const filter = (nodes: any[]): any[] => {
+      return nodes
+        .map((node) => {
+          const match = node.title
+            ?.toString()
+            .toLowerCase()
+            .includes(treeKeyword.toLowerCase());
+          const filteredChildren = node.children
+            ? filter(node.children)
+            : undefined;
+
+          if (match || (filteredChildren && filteredChildren.length > 0)) {
+            return {
+              ...node,
+              children: filteredChildren,
+            };
+          }
+          return null;
+        })
+        .filter((node) => node !== null) as any[];
+    };
+
+    return filter(treeData);
+  }, [treeData, treeKeyword]);
 
   // 顶部操作栏
   const actionBar = showActions &&
@@ -158,25 +197,50 @@ const DataManager: React.FC<DataManagerProps> = ({
   return (
     <div className="data-manager">
       <Layout style={{ height: "100%" }}>
-        {(filterContent || actionBar) && (
-          <Header className="data-manager-header" style={{ flexShrink: 0 }}>
-            {filterContent && (
-              <div className="data-manager-filter">{filterContent}</div>
+        {showTree && (
+          <Sider className="data-manager-tree-sider">
+            {showTreeFilter && (
+              <div style={{ marginBottom: 12 }}>
+                <Input.Search
+                  placeholder="搜索关键字"
+                  allowClear
+                  onChange={setTreeKeyword}
+                  onSearch={setTreeKeyword}
+                />
+              </div>
             )}
-            {actionBar}
-          </Header>
+            {treeContent || (
+              <Tree
+                treeData={filteredTreeData}
+                selectedKeys={selectedTreeKeys}
+                onSelect={onTreeSelect}
+                autoExpandParent={!!treeKeyword}
+                defaultExpandAll={!treeKeyword}
+              />
+            )}
+          </Sider>
         )}
+        <Layout>
+          {(filterContent || actionBar) && (
+            <Header className="data-manager-header" style={{ flexShrink: 0 }}>
+              {filterContent && (
+                <div className="data-manager-filter">{filterContent}</div>
+              )}
+              {actionBar}
+            </Header>
+          )}
 
-        <Content
-          className="data-manager-content"
-          style={{ flex: 1, overflow: "auto" }}
-        >
-          <Spin loading={loading}>{mainContent}</Spin>
-        </Content>
+          <Content
+            className="data-manager-content"
+            style={{ flex: 1, overflow: "auto" }}
+          >
+            <Spin loading={loading}>{mainContent}</Spin>
+          </Content>
 
-        {paginationBar && (
-          <Footer className="data-manager-footer">{paginationBar}</Footer>
-        )}
+          {paginationBar && (
+            <Footer className="data-manager-footer">{paginationBar}</Footer>
+          )}
+        </Layout>
       </Layout>
     </div>
   );

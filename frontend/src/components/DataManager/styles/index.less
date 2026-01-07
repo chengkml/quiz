@@ -3,6 +3,16 @@
   width: 100%;
   padding: 10px;
 
+  .data-manager-tree-sider {
+    height: 100%;
+    border-right: 1px solid var(--color-border-2);
+    background-color: var(--color-bg-2);
+    padding: 16px;
+    margin-right: 10px;
+    overflow: auto;
+    border-radius: 6px;
+  }
+
   .data-manager-filter {
     margin-bottom: 10px;
   }
@@ -11,7 +21,7 @@
     padding: 12px 16px;
     background-color: var(--color-bg-2);
     border-radius: 6px;
-    border: 1px solid rgba(15, 23, 42, 0.06);
+    border: 1px solid var(--color-border-2);
     margin-bottom: 10px;
     display: flex;
     align-items: center;
@@ -22,12 +32,14 @@
     min-height: 200px;
     background-color: var(--color-bg-2);
     padding: 10px;
+    border-radius: 6px 6px 0 0;
   }
 
   .data-manager-pagination {
     padding: 12px 16px;
     background-color: var(--color-bg-2);
-    border-top: 1px solid rgba(15, 23, 42, 0.06);
+    border-top: 1px solid var(--color-border-2);
+    border-radius: 0 0 6px 6px;
   }
 }
 
@@ -39,14 +51,14 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: #ffffff;
-    border: 1px solid rgba(15, 23, 42, 0.06);
+    background-color: var(--color-bg-1);
+    border: 1px solid var(--color-border-2);
     border-radius: 4px;
     transition: all 0.3s ease;
 
     &:hover {
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-      border-color: rgba(15, 23, 42, 0.12);
+      box-shadow: var(--color-shadow-2, 0 2px 8px rgba(0, 0, 0, 0.1));
+      border-color: var(--color-border-3);
     }
 
     &-small {
@@ -69,7 +81,7 @@
     .short-card-title {
       font-weight: 500;
       font-size: 1em;
-      color: rgba(15, 23, 42, 0.85);
+      color: var(--color-text-1);
       margin-bottom: 4px;
       white-space: nowrap;
       overflow: hidden;
@@ -78,7 +90,7 @@
 
     .short-card-subtitle {
       font-size: 0.85em;
-      color: rgba(15, 23, 42, 0.55);
+      color: var(--color-text-4);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -86,7 +98,7 @@
 
     .short-card-description {
       font-size: 0.9em;
-      color: rgba(15, 23, 42, 0.65);
+      color: var(--color-text-3);
       margin-bottom: 12px;
       line-height: 1.5;
       display: -webkit-box;
@@ -111,14 +123,14 @@
         }
 
         .field-label {
-          color: rgba(15, 23, 42, 0.55);
+          color: var(--color-text-4);
           font-weight: 500;
           white-space: nowrap;
           margin-right: 8px;
         }
 
         .field-value {
-          color: rgba(15, 23, 42, 0.75);
+          color: var(--color-text-2);
           text-align: right;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -129,7 +141,7 @@
 
     .short-card-actions {
       padding-top: 12px;
-      border-top: 1px solid rgba(15, 23, 42, 0.06);
+      border-top: 1px solid var(--color-border-2);
       flex-shrink: 0;
     }
   }
@@ -140,14 +152,14 @@
   width: 100%;
 
   .long-card {
-    background-color: #ffffff;
-    border: 1px solid rgba(15, 23, 42, 0.06);
+    background-color: var(--color-bg-1);
+    border: 1px solid var(--color-border-2);
     border-radius: 4px;
     transition: all 0.3s ease;
 
     &:hover {
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
-      border-color: rgba(15, 23, 42, 0.12);
+      box-shadow: var(--color-shadow-3, 0 4px 12px rgba(0, 0, 0, 0.1));
+      border-color: var(--color-border-3);
     }
 
     .long-card-content {
@@ -157,7 +169,7 @@
     .long-card-image {
       overflow: hidden;
       border-radius: 4px;
-      background-color: rgba(15, 23, 42, 0.02);
+      background-color: var(--color-fill-1);
     }
 
     .long-card-info {
@@ -167,20 +179,20 @@
     .long-card-title {
       font-weight: 600;
       font-size: 16px;
-      color: rgba(15, 23, 42, 0.85);
+      color: var(--color-text-1);
       margin-bottom: 8px;
       line-height: 1.5;
     }
 
     .long-card-subtitle {
       font-size: 13px;
-      color: rgba(15, 23, 42, 0.65);
+      color: var(--color-text-3);
       margin-bottom: 8px;
     }
 
     .long-card-description {
       font-size: 13px;
-      color: rgba(15, 23, 42, 0.65);
+      color: var(--color-text-3);
       margin-bottom: 12px;
       line-height: 1.6;
       display: -webkit-box;
@@ -201,13 +213,13 @@
         font-size: 13px;
 
         .field-label {
-          color: rgba(15, 23, 42, 0.55);
+          color: var(--color-text-4);
           font-weight: 500;
           margin-right: 8px;
         }
 
         .field-value {
-          color: rgba(15, 23, 42, 0.75);
+          color: var(--color-text-2);
         }
       }
     }
@@ -216,7 +228,7 @@
 
 // 表格列表样式
 .data-table {
-  background-color: #ffffff;
+  background-color: var(--color-bg-1);
 }
 
 // 模态框样式
