@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Form, Grid, Input, Layout, Message, Modal, Pagination, Select, Space, Table, Tag, Dropdown, Menu } from '@arco-design/web-react';
+import { Button, Form, Grid, Input, Message, Modal, Select, Space, Tag, Dropdown, Menu } from '@arco-design/web-react';
 import { IconDelete, IconEdit, IconPlus, IconRefresh, IconSearch, IconList } from '@arco-design/web-react/icon';
+import { DataManager } from '@/components/DataManager';
 import './style/index.less';
 import { getCronTaskList, deleteCronTask, saveCronTask, triggerCronTask, getTaskOptions, CronTaskDto } from './api';
 import { getQueueList } from '../Job/api';
 
-const { Content } = Layout;
 const { TextArea } = Input;
 const { Option } = Select;
 const { Row, Col } = Grid;
@@ -138,6 +138,14 @@ function CronTaskManager() {
   // 分页变化
   const handlePageChange = (current: number, pageSize: number) => {
     setPagination(prev => ({ ...prev, current, pageSize }));
+  };
+
+  const handlePaginationChange = (nextPagination: any) => {
+    setPagination(prev => ({
+      ...prev,
+      current: nextPagination.current,
+      pageSize: nextPagination.pageSize,
+    }));
   };
 
   // 新增
@@ -279,77 +287,88 @@ function CronTaskManager() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  return (
-    <div className="cron-task-manager">
-      <Layout>
-        <Content>
-          {/* 搜索区域 */}
-          <Form
-              ref={filterFormRef}
-              layout="horizontal"
-              style={{marginTop: '10px'}}
-              className="filter-form"
-            >
-              <Row gutter={16}>
-                <Col span={6}>
-                  <Form.Item field="keyWord" label="关键词">
-                    <Input placeholder="请输入关键词" prefix={<IconSearch />} />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item field="queueName" label="队列">
-                    <Select placeholder="请选择队列名称" allowClear>
-                      {queueOptions.map(opt => (
-                        <Option key={opt.id} value={opt.queueName}>{opt.queueLabel || opt.queueName}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item field="state" label="状态">
-                    <Select placeholder="请选择状态" allowClear>
-                      {statusOptions.map(option => (
-                        <Option key={option.value} value={option.value}>{option.label}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                
-                <Col span={6} style={{
-                  display: 'flex',
-                  justifyContent: 'flex-start',
-                  alignItems: 'flex-end',
-                  paddingBottom: '16px'
-                }}>
-                  <Space size="medium">
-                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
+  const filterContent = (
+    <Form
+      ref={filterFormRef}
+      layout="horizontal"
+      style={{ marginTop: '10px' }}
+      className="filter-form"
+    >
+      <Row gutter={16}>
+        <Col span={6}>
+          <Form.Item field="keyWord" label="关键词">
+            <Input placeholder="请输入关键词" prefix={<IconSearch />} />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item field="queueName" label="队列">
+            <Select placeholder="请选择队列名称" allowClear>
+              {queueOptions.map(opt => (
+                <Option key={opt.id} value={opt.queueName}>
+                  {opt.queueLabel || opt.queueName}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item field="state" label="状态">
+            <Select placeholder="请选择状态" allowClear>
+              {statusOptions.map(option => (
+                <Option key={option.value} value={option.value}>
+                  {option.label}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col
+          span={6}
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-start',
+            alignItems: 'flex-end',
+            paddingBottom: '16px',
+          }}
+        >
+          <Space size="medium">
+            <Button
+              type="primary"
+              icon={<IconSearch />}
+              onClick={() => {
                 const values = filterFormRef.current?.getFieldsValue?.() || {};
                 handleSearch(values);
-              }}>搜索</Button>
-                    <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>新增</Button>
-                  </Space>
-                </Col>
-              </Row>
-            </Form>
+              }}
+            >
+              搜索
+            </Button>
+            <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>
+              新增
+            </Button>
+          </Space>
+        </Col>
+      </Row>
+    </Form>
+  );
 
-          {/* 表格区域 */}
-          <Table
-              rowKey="id"
-              loading={tableLoading}
-              columns={columns}
-              data={tableData}
-              pagination={false}
-              border={false}
-              scroll={{ y: tableScrollHeight }}
-            />
-             <div className="pagination-wrapper">
-                  <Pagination
-                      {...pagination}
-                      onChange={handlePageChange}
-                  />
-              </div>
-        </Content>
-      </Layout>
+  return (
+    <div className="cron-task-manager">
+      <DataManager
+        data={tableData}
+        loading={tableLoading}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        actions={{
+          onAdd: handleAdd,
+        }}
+        config={{
+          showModeToggle: false,
+          displayMode: 'table',
+          filterContent,
+          tableColumns: columns,
+        }}
+        tableScrollHeight={tableScrollHeight}
+      />
 
       {/* 新增/编辑弹窗 */}
       <Modal

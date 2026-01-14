@@ -10,12 +10,11 @@ import {
   Menu,
   Message,
   Modal,
-  Pagination,
   Select,
   Space,
-  Table,
   Tag,
 } from "@arco-design/web-react";
+import DataManager from "@/components/DataManager";
 import UserAvatar from "@/components/UserAvatar";
 import {
   IconCheck,
@@ -151,9 +150,14 @@ function TodoManager() {
   };
 
   // 分页变化
-  const handlePageChange = (current: number, pageSize: number) => {
+  const handlePaginationChange = (nextPagination: any) => {
+    setPagination((prev) => ({
+      ...prev,
+      current: nextPagination.current,
+      pageSize: nextPagination.pageSize,
+    }));
     const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
-    fetchTableData(filterParams, pageSize, current);
+    fetchTableData(filterParams, nextPagination.pageSize, nextPagination.current);
   };
 
   // 新增
@@ -427,97 +431,92 @@ function TodoManager() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const filterContent = (
+    <Form
+      ref={filterFormRef}
+      layout="horizontal"
+      className="filter-form"
+      onValuesChange={() => {
+        const values = filterFormRef.current?.getFieldsValue?.() || {};
+        searchTableData(values);
+      }}
+    >
+      <Row gutter={16}>
+        <Col span={6}>
+          <Form.Item field="title" label="标题">
+            <Input placeholder="请输入标题关键字" />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item field="status" label="状态">
+            <Select placeholder="请选择状态" allowClear>
+              {statusOptions.map((opt) => (
+                <Select.Option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item field="priority" label="优先级">
+            <Select placeholder="请选择优先级" allowClear>
+              {priorityOptions.map((opt) => (
+                <Select.Option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col
+          span={6}
+          style={{
+            display: "flex",
+            justifyContent: "flex-start",
+            alignItems: "flex-end",
+            paddingBottom: "16px",
+          }}
+        >
+          <Space>
+            <Button
+              type="primary"
+              icon={<IconSearch />}
+              onClick={() => {
+                const values =
+                  filterFormRef.current?.getFieldsValue?.() || {};
+                searchTableData(values);
+              }}
+            >
+              搜索
+            </Button>
+            {/* 新增按钮现在移到了 DataManager 的 actions 中 */}
+          </Space>
+        </Col>
+      </Row>
+    </Form>
+  );
+
   return (
     <div className="todo-manager">
       <Layout>
         <Content>
-          {/* 筛选表单 */}
-          <Form
-            ref={filterFormRef}
-            layout="horizontal"
-            className="filter-form"
-            style={{ marginTop: "10px" }}
-            onValuesChange={() => {
-              const values = filterFormRef.current?.getFieldsValue?.() || {};
-              searchTableData(values);
-            }}
-          >
-            <Row gutter={16}>
-              <Col span={6}>
-                <Form.Item field="title" label="标题">
-                  <Input placeholder="请输入标题关键字" />
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item field="status" label="状态">
-                  <Select placeholder="请选择状态" allowClear>
-                    {statusOptions.map((opt) => (
-                      <Select.Option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item field="priority" label="优先级">
-                  <Select placeholder="请选择优先级" allowClear>
-                    {priorityOptions.map((opt) => (
-                      <Select.Option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col
-                span={6}
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-start",
-                  alignItems: "flex-end",
-                  paddingBottom: "16px",
-                }}
-              >
-                <Space>
-                  <Button
-                    type="primary"
-                    icon={<IconSearch />}
-                    onClick={() => {
-                      const values =
-                        filterFormRef.current?.getFieldsValue?.() || {};
-                      searchTableData(values);
-                    }}
-                  >
-                    搜索
-                  </Button>
-                  <Button
-                    type="primary"
-                    status="success"
-                    icon={<IconPlus />}
-                    onClick={handleAdd}
-                  >
-                    新增
-                  </Button>
-                </Space>
-              </Col>
-            </Row>
-          </Form>
-
-          {/* 表格 */}
-          <Table
-            columns={columns}
+          <DataManager
             data={tableData}
             loading={tableLoading}
-            pagination={false}
-            scroll={{ y: tableScrollHeight }}
-            rowKey="id"
+            pagination={pagination}
+            onPaginationChange={handlePaginationChange}
+            actions={{
+              onAdd: handleAdd,
+            }}
+            config={{
+              showModeToggle: false,
+              displayMode: 'table',
+              filterContent,
+              tableColumns: columns,
+            }}
+            tableScrollHeight={tableScrollHeight}
           />
-
-          {/* 分页 */}
-          <div className="pagination-wrapper">
-            <Pagination {...pagination} onChange={handlePageChange} />
-          </div>
 
           {/* 新增对话框 */}
           <Modal

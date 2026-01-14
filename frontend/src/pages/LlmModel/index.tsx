@@ -1,51 +1,40 @@
 import React, {useEffect, useRef, useState} from 'react';
 import UserAvatar from '@/components/UserAvatar';
+import { DataManager } from '@/components/DataManager';
 import {
     Button,
-    DatePicker,
     Dropdown,
     Form,
     Grid,
     Input,
-    Layout,
     Menu,
     Message,
     Modal,
-    Pagination,
     Select,
     Space,
-    Table,
     Tag,
-    Switch,
 } from '@arco-design/web-react';
 import {
     IconCheck,
     IconDelete,
     IconEdit,
     IconList,
-    IconMindMapping,
-    IconPlus,
     IconSearch
 } from '@arco-design/web-react/icon';
-import {useNavigate} from 'react-router-dom';
 import './style/index.less';
 import {
     createModel,
     deleteModel,
     getModelList,
-    getModelById,
     updateModel,
     setDefaultModel,
 } from './api';
-import dayjs from 'dayjs';
 
-const {Content} = Layout;
 const {TextArea} = Input;
 const {Option} = Select;
 const {Row, Col} = Grid;
 
 function LlmModelManager() {
-    const navigate = useNavigate();
 
     // 表格数据与状态
     const [tableData, setTableData] = useState<any[]>([]);
@@ -59,7 +48,6 @@ function LlmModelManager() {
         showPageSize: true,
     });
     const [tableScrollHeight, setTableScrollHeight] = useState(420);
-    const [analyzeLoading, setAnalyzeLoading] = useState(false);
 
     // 当前记录与弹窗
     const [currentRecord, setCurrentRecord] = useState<any | null>(null);
@@ -145,10 +133,9 @@ function LlmModelManager() {
         fetchTableData(params, pagination.pageSize, 1);
     };
 
-    // 分页变化
-    const handlePageChange = (current: number, pageSize: number) => {
+    const handlePaginationChange = (nextPagination: any) => {
         const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
-        fetchTableData(filterParams, pageSize, current);
+        fetchTableData(filterParams, nextPagination.pageSize, nextPagination.current);
     };
 
     // 新增
@@ -244,15 +231,6 @@ function LlmModelManager() {
     };
 
 
-    // （不再支持的旧操作占位）
-    const handleAnalyze = async (record: any) => {
-        Message.info('该操作不可用');
-    };
-
-    const handleComplete = async (record: any) => {
-        Message.info('该操作不可用');
-    };
-
     // 菜单点击
     const handleMenuClick = (key: string, e: React.MouseEvent, record: any) => {
         e.stopPropagation();
@@ -337,57 +315,75 @@ function LlmModelManager() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const filterContent = (
+        <Form
+            ref={filterFormRef}
+            layout="horizontal"
+            className="filter-form"
+            style={{marginTop: '10px'}}
+            onValuesChange={() => {
+                const values = filterFormRef.current?.getFieldsValue?.() || {};
+                searchTableData(values);
+            }}
+        >
+            <Row gutter={16}>
+                <Col span={6}>
+                    <Form.Item field="name" label="名称">
+                        <Input placeholder="请输入名称关键字"/>
+                    </Form.Item>
+                </Col>
+                <Col span={6}>
+                    <Form.Item field="provider" label="提供者">
+                        <Input placeholder="请输入提供者" />
+                    </Form.Item>
+                </Col>
+                <Col span={6}>
+                    <Form.Item field="type" label="类型">
+                        <Select placeholder="请选择类型" allowClear>
+                            {typeOptions.map(opt => (
+                                <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                </Col>
+                <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
+                    <Space>
+                        <Button
+                            type="primary"
+                            icon={<IconSearch/>}
+                            onClick={() => {
+                                const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                searchTableData(values);
+                            }}
+                        >
+                            搜索
+                        </Button>
+                    </Space>
+                </Col>
+            </Row>
+        </Form>
+    );
+
     return (
         <div className="llm-model-manager">
-            <Layout>
-                <Content>
-                    {/* 筛选表单 */}
-                    <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
-                        const values = filterFormRef.current?.getFieldsValue?.() || {};
-                        searchTableData(values);
-                    }}>
-                        <Row gutter={16}>
-                            <Col span={6}>
-                                <Form.Item field="name" label="名称">
-                                    <Input placeholder="请输入名称关键字"/>
-                                </Form.Item>
-                            </Col>
-                            <Col span={6}>
-                                <Form.Item field="provider" label="提供者">
-                                    <Input placeholder="请输入提供者" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={6}>
-                                <Form.Item field="type" label="类型">
-                                    <Select placeholder="请选择类型" allowClear>
-                                        {typeOptions.map(opt => (
-                                            <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
-                                <Space>
-                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                        searchTableData(values);
-                                    }}>搜索</Button>
-                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>新增</Button>
-                                </Space>
-                            </Col>
-                        </Row>
-                    </Form>
+            <DataManager
+                data={tableData}
+                loading={tableLoading}
+                pagination={pagination}
+                onPaginationChange={handlePaginationChange}
+                actions={{
+                    onAdd: handleAdd,
+                }}
+                config={{
+                    showModeToggle: false,
+                    displayMode: "table",
+                    filterContent,
+                    tableColumns: columns,
+                }}
+                tableScrollHeight={tableScrollHeight}
+            />
 
-                    {/* 表格 */}
-                    <Table columns={columns} data={tableData} loading={tableLoading} pagination={false} scroll={{y: tableScrollHeight}} rowKey="id" />
-
-                    {/* 分页 */}
-                    <div className="pagination-wrapper">
-                        <Pagination {...pagination} onChange={handlePageChange} />
-                    </div>
-
-                    {/* 新增对话框 */}
-                    <Modal title="新增模型" visible={addModalVisible} onOk={handleAddConfirm} onCancel={() => setAddModalVisible(false)}>
+            <Modal title="新增模型" visible={addModalVisible} onOk={handleAddConfirm} onCancel={() => setAddModalVisible(false)}>
                         <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
                             <Form ref={addFormRef} layout="vertical" className="modal-form">
                                 <Form.Item label="名称" field="name" rules={[{required: true, message: '请输入名称'}]}>
@@ -421,8 +417,7 @@ function LlmModelManager() {
                         </div>
                     </Modal>
 
-                    {/* 编辑对话框 */}
-                    <Modal title="编辑模型" visible={editModalVisible} onOk={handleEditConfirm} onCancel={() => setEditModalVisible(false)}>
+            <Modal title="编辑模型" visible={editModalVisible} onOk={handleEditConfirm} onCancel={() => setEditModalVisible(false)}>
                         <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
                             <Form ref={editFormRef} layout="vertical" className="modal-form">
                                 <Form.Item label="名称" field="name" rules={[{required: true, message: '请输入名称'}]}>
@@ -459,13 +454,10 @@ function LlmModelManager() {
                         </div>
                     </Modal>
 
-                    {/* 删除确认 */}
-                    <Modal title="确认删除" visible={deleteModalVisible} onOk={handleDeleteConfirm} onCancel={() => setDeleteModalVisible(false)}>
+            <Modal title="确认删除" visible={deleteModalVisible} onOk={handleDeleteConfirm} onCancel={() => setDeleteModalVisible(false)}>
                         <div className="delete-modal">确定要删除该模型吗？此操作不可恢复。</div>
                     </Modal>
 
-                </Content>
-            </Layout>
         </div>
     );
 }

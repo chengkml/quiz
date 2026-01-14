@@ -8,7 +8,6 @@ import {
     Layout,
     Message,
     Modal,
-    Pagination,
     Select,
     Space,
     Table,
@@ -24,6 +23,7 @@ import {
     IconSearch,
     IconUser
 } from '@arco-design/web-react/icon';
+import { DataManager } from '@/components/DataManager';
 import './style/index.less';
 import {createWxApp, deleteWxApp, getWxAppList, updateWxApp, getWxAppUsers, WxAppResponse, WxAppQueryParams, WxAppUserResponse} from './api';
 
@@ -129,9 +129,14 @@ function WxAppManager() {
     };
 
     // 分页变化
-    const handlePageChange = (current: number, pageSize: number) => {
+    const handlePaginationChange = (nextPagination: any) => {
+        setPagination(prev => ({
+            ...prev,
+            current: nextPagination.current,
+            pageSize: nextPagination.pageSize,
+        }));
         const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
-        fetchTableData(filterParams, pageSize, current);
+        fetchTableData(filterParams, nextPagination.pageSize, nextPagination.current);
     };
 
     // 新增
@@ -336,54 +341,76 @@ function WxAppManager() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const filterContent = (
+        <Form
+            ref={filterFormRef}
+            layout="horizontal"
+            className="filter-form"
+            onValuesChange={() => {
+                const values = filterFormRef.current?.getFieldsValue?.() || {};
+                searchTableData(values);
+            }}
+        >
+            <Row gutter={16}>
+                <Col span={6}>
+                    <Form.Item field="appName" label="名称">
+                        <Input placeholder="请输入小程序名称"/>
+                    </Form.Item>
+                </Col>
+                <Col
+                    span={6}
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'flex-start',
+                        alignItems: 'flex-end',
+                        paddingBottom: '16px',
+                    }}
+                >
+                    <Space>
+                        <Button
+                            type="primary"
+                            icon={<IconSearch/>}
+                            onClick={() => {
+                                const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                searchTableData(values);
+                            }}
+                        >
+                            搜索
+                        </Button>
+                        <Button
+                            type="primary"
+                            status="success"
+                            icon={<IconPlus/>}
+                            onClick={handleAdd}
+                        >
+                            新增
+                        </Button>
+                    </Space>
+                </Col>
+            </Row>
+        </Form>
+    );
+
     return (
         <div className="wxapp-manager">
             <Layout>
                 <Content>
-                    {/* 筛选表单 */}
-                    <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
-                        const values = filterFormRef.current?.getFieldsValue?.() || {};
-                        searchTableData(values);
-                    }}>
-                        <Row gutter={16}>
-                            <Col span={6}>
-                                <Form.Item field="appName" label="名称">
-                                    <Input placeholder="请输入小程序名称"/>
-                                </Form.Item>
-                            </Col>
-                            <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
-                                <Space>
-                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                        searchTableData(values);
-                                    }}>
-                                        搜索
-                                    </Button>
-                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
-                                        新增
-                                    </Button>
-                                </Space>
-                            </Col>
-                        </Row>
-                    </Form>
-
-                    {/* 表格 */}
-                    <Table
-                        columns={columns}
+                    <DataManager
                         data={tableData}
                         loading={tableLoading}
-                        pagination={false}
-                        scroll={{y: tableScrollHeight}}
-                        rowKey="appId"
+                        pagination={pagination}
+                        onPaginationChange={handlePaginationChange}
+                        actions={{
+                            onAdd: handleAdd,
+                        }}
+                        config={{
+                            showModeToggle: false,
+                            displayMode: 'table',
+                            filterContent,
+                            tableColumns: columns,
+                        }}
+                        tableScrollHeight={tableScrollHeight}
                     />
-
-                    {/* 分页 */}
-                    <div className="pagination-wrapper">
-                        <Pagination
-                            {...pagination}
-                            onChange={handlePageChange}
-                        />
-                    </div>
 
                     {/* 新增对话框 */}
                     <Modal
