@@ -16,6 +16,8 @@ export interface FormFieldConfig {
   disabled?: boolean;
   visible?: boolean | ((record: any) => boolean);
   render?: (fieldValue: any, allValues: any) => React.ReactNode;
+  allowClear?: boolean;
+  labelWidth?: number | string;
 }
 
 export type DisplayMode = 'shortCard' | 'longCard' | 'table';

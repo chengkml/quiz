@@ -34,7 +34,7 @@ const DataManager: React.FC<DataManagerProps> = ({
   showActions = true,
   actionsPosition = "top",
   actionButtons,
-  tableScrollHeight = 400,
+  tableScrollHeight = 100,
   cardColumns = 4,
   cardGutter = 16,
   cardSize = "small",
@@ -148,7 +148,6 @@ const DataManager: React.FC<DataManagerProps> = ({
   const renderListContent = () => {
     const commonProps = {
       data,
-      loading,
       onEdit: actions?.onEdit,
       onDelete: actions?.onDelete,
       onView: actions?.onView,
@@ -215,7 +214,6 @@ const DataManager: React.FC<DataManagerProps> = ({
                 selectedKeys={selectedTreeKeys}
                 onSelect={onTreeSelect}
                 autoExpandParent={!!treeKeyword}
-                defaultExpandAll={!treeKeyword}
               />
             )}
           </Sider>
@@ -230,10 +228,7 @@ const DataManager: React.FC<DataManagerProps> = ({
             </Header>
           )}
 
-          <Content
-            className="data-manager-content"
-            style={{ flex: 1, overflow: "auto" }}
-          >
+          <Content className="data-manager-content">
             <Spin loading={loading}>{mainContent}</Spin>
           </Content>
 

@@ -1,10 +1,10 @@
 import axios from '@/core/src/http';
 
 // 获取学科列表（分页查询）
-const getSubjectList = params => axios.get('/subject', {params});
+const getSubjectList = params => axios.post('/subject/search', params);
 
 // 获取学科详情
-const getSubjectById = id => axios.get(`/subject/${id}`);
+const getSubjectById = id => axios.get(`/subject/get/${id}`);
 
 // 根据名称获取学科
 const getSubjectByName = name => axios.get(`/subject/name/${name}`);
@@ -19,10 +19,16 @@ const updateSubject = params => axios.put('/subject/update', params);
 const deleteSubject = id => axios.delete(`/subject/delete/${id}`);
 
 // 获取所有学科列表
-const getAllSubjects = () => axios.get('/subject/list/user/all');
+const getAllSubjects = () => axios.get('/subject/list');
 
 // 检查学科名称是否存在
-const checkSubjectName = params => axios.get('/subject/check/name', {params});
+const checkSubjectName = (name, excludeId) => {
+  const params = { subjectName: name };
+  if (excludeId) {
+    params.excludeSubjectId = excludeId;
+  }
+  return axios.get('/subject/check/name', { params });
+};
 
 // 导出学科列表
 const exportSubjects = () => {

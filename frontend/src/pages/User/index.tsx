@@ -1,818 +1,695 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from "react";
 import {
-    Button,
-    Dropdown,
-    Form,
-    Grid,
-    Input,
-    Layout,
-    Menu,
-    Message,
-    Modal,
-    Pagination,
-    Select,
-    Space,
-    Spin,
-    Table,
-    Tag,
-} from '@arco-design/web-react';
-import UserAvatar from '@/components/UserAvatar';
-import './style/index.less';
+  Button,
+  Dropdown,
+  Form,
+  Input,
+  Layout,
+  Menu,
+  Message,
+  Modal,
+  Select,
+  Space,
+  Spin,
+  Tag,
+} from "@arco-design/web-react";
+import UserAvatar from "@/components/UserAvatar";
+import "./style/index.less";
 import {
-    deleteUser,
-    disableUser,
-    enableUser,
-    getActiveRoles,
-    getUserRoles,
-    registerUser,
-    replaceUserRoles,
-    resetPassword,
-    searchUsers,
-    updateUser,
-} from './api';
+  deleteUser,
+  disableUser,
+  enableUser,
+  getActiveRoles,
+  getUserRoles,
+  registerUser,
+  replaceUserRoles,
+  resetPassword,
+  searchUsers,
+  updateUser,
+} from "./api";
 import {
-    IconDelete,
-    IconEdit,
-    IconList,
-    IconMenu,
-    IconPlus,
-    IconRefresh,
-    IconSearch,
-    IconUser
-} from '@arco-design/web-react/icon';
-
-const {Content} = Layout;
-const {Row, Col} = Grid;
+  IconDelete,
+  IconEdit,
+  IconList,
+  IconMenu,
+  IconRefresh,
+  IconUser,
+} from "@arco-design/web-react/icon";
+import { DataManager, AddEditModal } from "@/components/DataManager";
+import FilterForm from "@/components/FilterForm";
+import { FormFieldConfig } from "@/components/types/types";
 
 function UserManager() {
-    // 状态管理
-    const [tableData, setTableData] = useState([]);
-    const [tableLoading, setTableLoading] = useState(false);
-    const [tableScrollHeight, setTableScrollHeight] = useState(200);
+  // 状态管理
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-    // 对话框状态
-    const [addModalVisible, setAddModalVisible] = useState(false);
-    const [editModalVisible, setEditModalVisible] = useState(false);
-    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-    const [resetPasswordModalVisible, setResetPasswordModalVisible] = useState(false);
+  // DataManager 分页状态
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 20,
+    total: 0,
+    showTotal: true,
+    showJumper: true,
+    showPageSize: true,
+    pageSizeOptions: [10, 20, 50, 100],
+  });
 
-    // 分页状态
-    const [pagination, setPagination] = useState({
-        current: 1,
-        pageSize: 20,
-        total: 0,
-        showTotal: true,
-        showJumper: true,
-        showPageSize: true,
-    });
+  // 搜索条件
+  const [searchParams, setSearchParams] = useState({
+    name: "",
+    state: "",
+  });
 
-    // 搜索条件
-    const [searchParams, setSearchParams] = useState({
-        name: '',
-        state: '',
-    });
+  // 对话框状态
+  const [addEditVisible, setAddEditVisible] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
 
-    // 当前操作的用户
-    const [currentUser, setCurrentUser] = useState(null);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [resetPasswordModalVisible, setResetPasswordModalVisible] =
+    useState(false);
 
-    // 表单引用
-    const [addForm] = Form.useForm();
-    const [editForm] = Form.useForm();
-    const [resetPasswordForm] = Form.useForm();
-    const filterFormRef = useRef<any>(null);
+  // 当前操作的用户
+  const [currentUser, setCurrentUser] = useState(null);
 
-    // 用户状态选项
-    const userStateOptions = [
-        {label: '启用', value: 'ENABLED'},
-        {label: '禁用', value: 'DISABLED'},
+  // 表单引用
+  const [resetPasswordForm] = Form.useForm();
+  const filterFormRef = useRef<any>(null);
+
+  // 角色分配 Drawer 与数据
+  const [assignRoleVisible, setAssignRoleVisible] = useState(false);
+  const [assignRoleLoading, setAssignRoleLoading] = useState(false);
+  const [roleOptions, setRoleOptions] = useState([]);
+  const [selectedRoleIds, setSelectedRoleIds] = useState([]);
+
+  // 表格列定义
+  const columns = [
+    {
+      title: "用户ID",
+      dataIndex: "userId",
+      key: "userId",
+      width: 120,
+      fixed: "left",
+    },
+    {
+      title: "用户姓名",
+      dataIndex: "userName",
+      key: "userName",
+      width: 120,
+    },
+    {
+      title: "邮箱",
+      dataIndex: "email",
+      key: "email",
+      width: 180,
+    },
+    {
+      title: "手机号",
+      dataIndex: "phone",
+      key: "phone",
+      width: 120,
+    },
+    {
+      title: "状态",
+      dataIndex: "state",
+      key: "state",
+      align: "center",
+      width: 80,
+      render: (state) => (
+        <Tag color={state === "ENABLED" ? "green" : "red"}>
+          {state === "ENABLED" ? "启用" : "禁用"}
+        </Tag>
+      ),
+    },
+    {
+      title: "创建时间",
+      dataIndex: "createDate",
+      key: "createDate",
+      width: 160,
+      render: (value) => {
+        if (!value) return "--";
+
+        const now = new Date();
+        const date = new Date(value);
+        const diffMs = now.getTime() - date.getTime();
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffSeconds / 60);
+        const diffHours = Math.floor(diffMinutes / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        // 今天
+        if (diffDays === 0) {
+          if (diffSeconds < 60) {
+            return `${diffSeconds}秒前`;
+          } else if (diffMinutes < 60) {
+            return `${diffMinutes}分钟前`;
+          } else {
+            return `${diffHours}小时前`;
+          }
+        }
+        // 昨天
+        else if (diffDays === 1) {
+          const hours = String(date.getHours()).padStart(2, "0");
+          const minutes = String(date.getMinutes()).padStart(2, "0");
+          return `昨天 ${hours}:${minutes}`;
+        }
+        // 昨天之前
+        else {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          const hours = String(date.getHours()).padStart(2, "0");
+          const minutes = String(date.getMinutes()).padStart(2, "0");
+          const seconds = String(date.getSeconds()).padStart(2, "0");
+          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+      },
+    },
+    {
+      title: "创建人",
+      dataIndex: "createUserName",
+      key: "createUserName",
+      width: 120,
+      render: (_: any, record: any) => (
+        <UserAvatar
+          name={record.createUserName || record.createUser || ""}
+          showName
+        />
+      ),
+    },
+    {
+      title: "操作",
+      key: "action",
+      width: 100,
+      align: "center",
+      fixed: "right",
+      render: (_, record) => (
+        <Space size="large" className="dropdown-demo table-btn-group">
+          <Dropdown
+            position="bl"
+            droplist={
+              <Menu
+                onClickMenuItem={(key, e) => {
+                  handleMenuClick(key, e, record);
+                }}
+                className="handle-dropdown-menu"
+              >
+                <Menu.Item key="edit">
+                  <IconEdit style={{ marginRight: "5px" }} />
+                  编辑
+                </Menu.Item>
+                <Menu.Item key="resetPassword">
+                  <IconRefresh style={{ marginRight: "5px" }} />
+                  重置密码
+                </Menu.Item>
+                <Menu.Item key="assignRoles">
+                  <IconMenu style={{ marginRight: "5px" }} />
+                  分配角色
+                </Menu.Item>
+                <Menu.Item key="toggleState">
+                  <IconUser style={{ marginRight: "5px" }} />
+                  {record.state === "ENABLED" ? "禁用" : "启用"}
+                </Menu.Item>
+                <Menu.Item key="delete">
+                  <IconDelete style={{ marginRight: "5px" }} />
+                  删除
+                </Menu.Item>
+              </Menu>
+            }
+          >
+            <Button
+              type="text"
+              className="more-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <IconList />
+            </Button>
+          </Dropdown>
+        </Space>
+      ),
+    },
+  ];
+
+  // 搜索表单配置
+  const searchFormFields: FormFieldConfig[] = [
+    {
+      field: "name",
+      label: "用户名",
+      type: "input",
+      placeholder: "请输入用户名关键词",
+      span: 8,
+    },
+    {
+      field: "state",
+      label: "状态",
+      type: "select",
+      placeholder: "请选择状态",
+      options: [
+        { label: "启用", value: "ENABLED" },
+        { label: "禁用", value: "DISABLED" },
+      ],
+      span: 8,
+    },
+  ];
+
+  // 新增/编辑表单配置
+  const getFormConfig = (isEditMode: boolean): FormFieldConfig[] => {
+    const commonFields: FormFieldConfig[] = [
+      {
+        field: "userId",
+        label: "用户ID",
+        type: "input",
+        required: !isEditMode,
+        disabled: isEditMode,
+        rules: isEditMode
+          ? undefined
+          : [
+              { required: true, message: "请输入用户ID" },
+              { max: 32, message: "用户ID长度不能超过32个字符" },
+            ],
+      },
+      {
+        field: "userName",
+        label: "用户姓名",
+        type: "input",
+        required: true,
+        rules: [
+          { required: true, message: "请输入用户姓名" },
+          { max: 128, message: "用户姓名长度不能超过128个字符" },
+        ],
+      },
     ];
 
-    // 角色分配 Drawer 与数据
-    const [assignRoleVisible, setAssignRoleVisible] = useState(false);
-    const [assignRoleLoading, setAssignRoleLoading] = useState(false);
-    const [roleOptions, setRoleOptions] = useState([]);
-    const [selectedRoleIds, setSelectedRoleIds] = useState([]);
+    const passwordField: FormFieldConfig = {
+      field: "password",
+      label: "密码",
+      type: "input", 
+      render: () => <Input.Password placeholder="请输入密码" />,
+      required: true,
+      rules: [
+        { required: true, message: "请输入密码" },
+        { minLength: 6, message: "密码长度至少6个字符" },
+        { maxLength: 20, message: "密码长度不能超过20个字符" },
+      ],
+    };
 
-    // 表格列定义
-    const columns = [
-        {
-            title: '用户ID',
-            dataIndex: 'userId',
-            key: 'userId',
-            width: 120,
-            fixed: 'left',
-        },
-        {
-            title: '用户姓名',
-            dataIndex: 'userName',
-            key: 'userName',
-            width: 120,
-        },
-        {
-            title: '邮箱',
-            dataIndex: 'email',
-            key: 'email',
-            width: 180,
-        },
-        {
-            title: '手机号',
-            dataIndex: 'phone',
-            key: 'phone',
-            width: 120,
-        },
-        {
-            title: '状态',
-            dataIndex: 'state',
-            key: 'state',
-            align: 'center',
-            width: 80,
-            render: (state) => (
-                <Tag color={state === 'ENABLED' ? 'green' : 'red'}>
-                    {state === 'ENABLED' ? '启用' : '禁用'}
-                </Tag>
-            ),
-        },
-        {
-            title: '角色',
-            dataIndex: 'roles',
-            key: 'roles',
-            width: 200,
-            render: (roles) => {
-                if (!roles || roles.length === 0) {
-                    return <span style={{color: 'var(--color-text-3)'}}>未分配角色</span>;
-                }
-                return (
-                    <Space direction="vertical" size={4}>
-                        {roles.map((role) => (
-                            <Tag key={role.id} color="blue">
-                                {role.name}
-                            </Tag>
-                        ))}
-                    </Space>
-                );
-            },
-        },
-        {
-            title: '创建时间',
-            dataIndex: 'createDate',
-            key: 'createDate',
-            width: 160,
-            render: (value) => {
-                if (!value) return '--';
-
-                const now = new Date();
-                const date = new Date(value);
-                const diffMs = now.getTime() - date.getTime();
-                const diffSeconds = Math.floor(diffMs / 1000);
-                const diffMinutes = Math.floor(diffSeconds / 60);
-                const diffHours = Math.floor(diffMinutes / 60);
-                const diffDays = Math.floor(diffHours / 24);
-
-                // 今天
-                if (diffDays === 0) {
-                    if (diffSeconds < 60) {
-                        return `${diffSeconds}秒前`;
-                    } else if (diffMinutes < 60) {
-                        return `${diffMinutes}分钟前`;
-                    } else {
-                        return `${diffHours}小时前`;
-                    }
-                }
-                // 昨天
-                else if (diffDays === 1) {
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    return `昨天 ${hours}:${minutes}`;
-                }
-                // 昨天之前
-                else {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const seconds = String(date.getSeconds()).padStart(2, '0');
-                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-                }
-            },
-        },
-        {
-            title: '创建人',
-            dataIndex: 'createUserName',
-            key: 'createUserName',
-            width: 100,
-            render: (_: any, record: any) => (
-                <UserAvatar name={record.createUserName || record.createUser || ''} showName />
-            ),
-        },
-        {
-            title: '操作',
-            key: 'action',
-            width: 100,
-            align: 'center',
-            fixed: 'right',
-            render: (_, record) => (
-                <Space size="large" className="dropdown-demo table-btn-group">
-                    <Dropdown
-                        position="bl"
-                        droplist={
-                            <Menu
-                                onClickMenuItem={(key, e) => {
-                                    handleMenuClick(key, e, record);
-                                }}
-                                className="handle-dropdown-menu"
-                            >
-                                <Menu.Item key="edit">
-                                    <IconEdit style={{marginRight: '5px'}}/>
-                                    编辑
-                                </Menu.Item>
-                                <Menu.Item key="resetPassword">
-                                    <IconRefresh style={{marginRight: '5px'}}/>
-                                    重置密码
-                                </Menu.Item>
-                                <Menu.Item key="assignRoles">
-                                    <IconMenu style={{marginRight: '5px'}}/>
-                                    分配角色
-                                </Menu.Item>
-                                <Menu.Item key="toggleState">
-                                    <IconUser style={{marginRight: '5px'}}/>
-                                    {record.state === 'ENABLED' ? '禁用' : '启用'}
-                                </Menu.Item>
-                                <Menu.Item key="delete">
-                                    <IconDelete style={{marginRight: '5px'}}/>
-                                    删除
-                                </Menu.Item>
-                            </Menu>
-                        }
-                    >
-                        <Button
-                            type="text"
-                            className="more-btn"
-                            onClick={e => {
-                                e.stopPropagation();
-                            }}
-                        >
-                            <IconList/>
-                        </Button>
-                    </Dropdown>
-                </Space>
-            ),
-        },
+    const otherFields: FormFieldConfig[] = [
+      {
+        field: "email",
+        label: "邮箱",
+        type: "input",
+        rules: [
+          { type: "email", message: "请输入正确的邮箱格式" },
+          { max: 64, message: "邮箱长度不能超过64个字符" },
+        ],
+      },
+      {
+        field: "phone",
+        label: "手机号",
+        type: "input",
+        rules: [{ max: 16, message: "手机号长度不能超过16个字符" }],
+      },
+      {
+        field: "logo",
+        label: "头像URL",
+        type: "input",
+        rules: [{ max: 256, message: "头像URL长度不能超过256个字符" }],
+      },
     ];
 
-    // 获取用户列表
-    const fetchUsers = async (params = {}) => {
-        setTableLoading(true);
-        try {
-            const queryParams = {
-                ...searchParams,
-                ...params,
-                page: pagination.current - 1,
-                size: pagination.pageSize,
-                sortBy: 'create_date',
-                sortDir: 'desc',
-            };
+    if (isEditMode) {
+      return [...commonFields, ...otherFields];
+    } else {
+      // Insert password after userName
+      return [...commonFields, passwordField, ...otherFields];
+    }
+  };
 
-            const response = await searchUsers(queryParams);
-            const {content, totalElements} = response.data;
-
-            // 为每个用户获取角色信息
-            if (content && content.length > 0) {
-                const usersWithRoles = await Promise.all(
-                    content.map(async (user) => {
-                        try {
-                            const rolesResp = await getUserRoles(user.userId);
-                            return {
-                                ...user,
-                                roles: rolesResp.data || []
-                            };
-                        } catch (error) {
-                            console.error(`获取用户 ${user.userId} 的角色信息失败:`, error);
-                            return {
-                                ...user,
-                                roles: []
-                            };
-                        }
-                    })
-                );
-                setTableData(usersWithRoles);
-            } else {
-                setTableData([]);
-            }
-
-            setPagination(prev => ({
-                ...prev,
-                total: totalElements || 0,
-            }));
-        } catch (error) {
-            Message.error('获取用户列表失败');
-            console.error('获取用户列表失败:', error);
-        } finally {
-            setTableLoading(false);
-        }
-    };
-
-    // 搜索处理
-    const handleSearch = (values) => {
-        setSearchParams(values);
-        setPagination(prev => ({...prev, current: 1}));
-        fetchUsers(values);
-    };
-
-    // 搜索逻辑已优化，移除重置功能
-
-    // 初始化设置表单默认值
-    useEffect(() => {
-        if (filterFormRef.current) {
-            filterFormRef.current.setFieldsValue(searchParams);
-        }
-    }, []);
-
-    // 添加用户
-    const handleAdd = () => {
-        setAddModalVisible(true);
-        addForm.resetFields();
-    };
-
-    // 编辑用户
-    const handleEdit = (record) => {
-        setCurrentUser(record);
-        setEditModalVisible(true);
-        editForm.setFieldsValue({
-            userId: record.userId,
-            userName: record.userName,
-            email: record.email,
-            phone: record.phone,
-            logo: record.logo,
-        });
-    };
-
-    // 删除用户
-    const handleDelete = (record) => {
-        setCurrentUser(record);
-        setDeleteModalVisible(true);
-    };
-
-    // 重置密码
-    const handleResetPassword = (record) => {
-        setCurrentUser(record);
-        setResetPasswordModalVisible(true);
-        resetPasswordForm.resetFields();
-    };
-
-    // 切换用户状态
-    const handleToggleState = async (record) => {
-        try {
-            if (record.state === 'ENABLED') {
-                await disableUser(record.userId);
-                Message.success('用户已禁用');
-            } else {
-                await enableUser(record.userId);
-                Message.success('用户已启用');
-            }
-            fetchUsers();
-        } catch (error) {
-            Message.error('操作失败');
-            console.error('切换用户状态失败:', error);
-        }
-    };
-
-    // 打开角色分配抽屉并加载数据
-    const openAssignRoles = async (record) => {
-        setCurrentUser(record);
-        setAssignRoleVisible(true);
-        setAssignRoleLoading(true);
-        try {
-            const [activeResp, userResp] = await Promise.all([
-                getActiveRoles(),
-                getUserRoles(record.userId),
-            ]);
-            const activeRoles = activeResp.data || [];
-            const userRoles = userResp.data || [];
-            setRoleOptions(activeRoles);
-            setSelectedRoleIds(userRoles.map(r => r.id));
-        } catch (error) {
-            Message.error('加载角色数据失败');
-            console.error('加载角色数据失败:', error);
-        } finally {
-            setAssignRoleLoading(false);
-        }
-    };
-
-    // 保存角色分配
-    const handleAssignRolesSave = async () => {
-        if (!currentUser) return;
-        setAssignRoleLoading(true);
-        try {
-            await replaceUserRoles(currentUser.userId, selectedRoleIds);
-            Message.success('角色分配已保存');
-            setAssignRoleVisible(false);
-            // 重新获取用户列表，更新角色信息
-            fetchUsers();
-        } catch (error) {
-            if (error.response?.data?.message) {
-                Message.error(error.response.data.message);
-            } else {
-                Message.error('保存角色分配失败');
-            }
-            console.error('保存角色分配失败:', error);
-        } finally {
-            setAssignRoleLoading(false);
-        }
-    };
-
-    // 处理菜单点击
-    const handleMenuClick = (key, event, record) => {
-        event.stopPropagation();
-        if (key === 'edit') {
-            handleEdit(record);
-        } else if (key === 'resetPassword') {
-            handleResetPassword(record);
-        } else if (key === 'assignRoles') {
-            openAssignRoles(record);
-        } else if (key === 'toggleState') {
-            handleToggleState(record);
-        } else if (key === 'delete') {
-            handleDelete(record);
-        }
-    };
-
-    // 确认添加用户
-    const handleAddConfirm = async () => {
-        try {
-            const values = await addForm.validate();
-            await registerUser(values);
-            Message.success('用户创建成功');
-            setAddModalVisible(false);
-            fetchUsers();
-        } catch (error) {
-            if (error.response?.data?.message) {
-                Message.error(error.response.data.message);
-            } else {
-                Message.error('创建用户失败');
-            }
-            console.error('创建用户失败:', error);
-        }
-    };
-
-    // 确认编辑用户
-    const handleEditConfirm = async () => {
-        try {
-            const values = await editForm.validate();
-            await updateUser(values);
-            Message.success('用户信息更新成功');
-            setEditModalVisible(false);
-            fetchUsers();
-        } catch (error) {
-            Message.error('更新用户信息失败');
-            console.error('更新用户信息失败:', error);
-        }
-    };
-
-    // 确认删除用户
-    const handleDeleteConfirm = async () => {
-        try {
-            await deleteUser(currentUser.userId);
-            Message.success('用户删除成功');
-            setDeleteModalVisible(false);
-            fetchUsers();
-        } catch (error) {
-            Message.error('删除用户失败');
-            console.error('删除用户失败:', error);
-        }
-    };
-
-    // 确认重置密码
-    const handleResetPasswordConfirm = async () => {
-        try {
-            const values = await resetPasswordForm.validate();
-            await resetPassword(currentUser.userId, values.newPassword);
-            Message.success('密码重置成功');
-            setResetPasswordModalVisible(false);
-        } catch (error) {
-            Message.error('重置密码失败');
-            console.error('重置密码失败:', error);
-        }
-    };
-
-    // 分页处理
-    const handlePageChange = (current, pageSize) => {
-        setPagination(prev => ({
-            ...prev,
-            current,
-            pageSize,
-        }));
-    };
-
-    // 计算表格高度
-    const calculateTableHeight = () => {
-        const windowHeight = window.innerHeight;
-        const otherElementsHeight = 250;
-        const newHeight = Math.max(100, windowHeight - otherElementsHeight);
-        setTableScrollHeight(newHeight);
-    };
-
-    // 初始化和窗口大小变化处理
-    useEffect(() => {
-        fetchUsers();
-        calculateTableHeight();
-
-        const handleResize = () => {
-            calculateTableHeight();
+  // 获取用户列表
+  const fetchUsers = React.useCallback(
+    async (pageNum: number = 0, filters: Record<string, any> = searchParams) => {
+      setLoading(true);
+      try {
+        const queryParams = {
+          ...filters,
+          page: pageNum,
+          size: pagination.pageSize,
+          sortBy: "create_date",
+          sortDir: "desc",
         };
 
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        const response = await searchUsers(queryParams);
+        const { content, totalElements } = response.data;
 
-    // 分页变化时重新获取数据
-    useEffect(() => {
-        fetchUsers();
-    }, [pagination.current, pagination.pageSize]);
+        setData(content || []);
 
-    return (
-        <div className="user-manager">
-            <Content>
-                {/* 搜索表单和操作按钮 */}
-                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
-                    const values = filterFormRef.current?.getFieldsValue?.() || {};
-                    handleSearch(values);
-                }}>
-                    <Row gutter={16}>
-                        <Col span={6}>
-                            <Form.Item field="name" label="用户名">
-                                <Input placeholder="请输入用户名关键词"/>
-                            </Form.Item>
-                        </Col>
-                        <Col span={6}>
-                            <Form.Item field="state" label="状态">
-                                <Select placeholder="请选择状态" allowClear>
-                                    {userStateOptions.map(opt => (
-                                        <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={6} style={{
-                            display: 'flex',
-                            justifyContent: 'flex-start',
-                            alignItems: 'flex-end',
-                            paddingBottom: '16px'
-                        }}>
-                            <Space>
-                                <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                    const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                    handleSearch(values);
-                                }}>
-                                    搜索
-                                </Button>
-                                <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
-                                    新增
-                                </Button>
-                            </Space>
-                        </Col>
-                    </Row>
-                </Form>
+        setPagination((prev) => ({
+          ...prev,
+          total: totalElements || 0,
+        }));
+      } catch (error) {
+        Message.error("获取用户列表失败");
+        console.error("获取用户列表失败:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [pagination.pageSize]
+  );
 
-                {/* 用户表格 */}
-                <Table
-                    columns={columns}
-                    data={tableData}
-                    loading={tableLoading}
-                    pagination={false}
-                    scroll={{
-                        y: tableScrollHeight,
-                    }}
-                    rowKey="userId"
-                />
-
-                {/* 分配角色对话框 */}
-                <Modal
-                    title={`分配角色${currentUser ? ` - ${currentUser.userName || currentUser.userId}` : ''}`}
-                    visible={assignRoleVisible}
-                    onCancel={() => setAssignRoleVisible(false)}
-                    onOk={handleAssignRolesSave}
-                    okButtonProps={{loading: assignRoleLoading}}
-                    okText="确定"
-                    cancelText="取消"
-                >
-                    <Spin loading={assignRoleLoading} tip="加载中..." style={{width: '100%'}}>
-                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                            <Form layout="vertical">
-                                <Form.Item
-                                    label="选择角色"
-                                    field="roles"
-                                    rules={[
-                                        {required: true, message: '请选择至少一个角色'},
-                                    ]}
-                                >
-                                    <Select
-                                        mode="multiple"
-                                        value={selectedRoleIds}
-                                        onChange={vals => setSelectedRoleIds(vals)}
-                                        placeholder="请选择要分配的角色"
-                                        style={{width: '100%'}}
-                                    >
-                                        {roleOptions && roleOptions.length > 0 ? (
-                                            roleOptions.map(role => (
-                                                <Select.Option key={role.id} value={role.id}>
-                                                    <Space>
-                                                        <span>{role.name}</span>
-                                                        <span style={{color: 'var(--color-text-3)'}}>（{role.id}）</span>
-                                                    </Space>
-                                                </Select.Option>
-                                            ))
-                                        ) : (
-                                            <Select.Option disabled value="">暂无启用角色</Select.Option>
-                                        )}
-                                    </Select>
-                                </Form.Item>
-                            </Form>
-                        </div>
-                    </Spin>
-                </Modal>
-
-                {/* 分页 */}
-                <div className="pagination-wrapper">
-                    <Pagination
-                        {...pagination}
-                        onChange={handlePageChange}
-                    />
-                </div>
-            </Content>
-
-            {/* 新增用户对话框 */}
-            <Modal
-                title="新增用户"
-                visible={addModalVisible}
-                onOk={handleAddConfirm}
-                onCancel={() => setAddModalVisible(false)}
-                okText="确定"
-                cancelText="取消"
-            >
-                <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                    <Form form={addForm} layout="vertical">
-                        <Form.Item
-                            label="用户ID"
-                            field="userId"
-                            rules={[
-                                {required: true, message: '请输入用户ID'},
-                                {max: 32, message: '用户ID长度不能超过32个字符'},
-                            ]}
-                        >
-                            <Input placeholder="请输入用户ID"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="用户姓名"
-                            field="userName"
-                            rules={[
-                                {required: true, message: '请输入用户姓名'},
-                                {max: 128, message: '用户姓名长度不能超过128个字符'},
-                            ]}
-                        >
-                            <Input placeholder="请输入用户姓名"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="密码"
-                            field="password"
-                            rules={[
-                                {required: true, message: '请输入密码'},
-                                {minLength: 6, message: '密码长度至少6个字符'},
-                                {maxLength: 20, message: '密码长度不能超过20个字符'},
-                            ]}
-                        >
-                            <Input.Password placeholder="请输入密码"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="邮箱"
-                            field="email"
-                            rules={[
-                                {type: 'email', message: '请输入正确的邮箱格式'},
-                                {max: 64, message: '邮箱长度不能超过64个字符'},
-                            ]}
-                        >
-                            <Input placeholder="请输入邮箱"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="手机号"
-                            field="phone"
-                            rules={[
-                                {max: 16, message: '手机号长度不能超过16个字符'},
-                            ]}
-                        >
-                            <Input placeholder="请输入手机号"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="头像URL"
-                            field="logo"
-                            rules={[
-                                {max: 256, message: '头像URL长度不能超过256个字符'},
-                            ]}
-                        >
-                            <Input placeholder="请输入头像URL"/>
-                        </Form.Item>
-                    </Form>
-                </div>
-            </Modal>
-
-            {/* 编辑用户对话框 */}
-            <Modal
-                title="编辑用户"
-                visible={editModalVisible}
-                onOk={handleEditConfirm}
-                onCancel={() => setEditModalVisible(false)}
-                okText="确定"
-                cancelText="取消"
-            >
-                <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                    <Form form={editForm} layout="vertical">
-                        <Form.Item
-                            label="用户ID"
-                            field="userId"
-                        >
-                            <Input disabled/>
-                        </Form.Item>
-                        <Form.Item
-                            label="用户姓名"
-                            field="userName"
-                            rules={[
-                                {max: 128, message: '用户姓名长度不能超过128个字符'},
-                            ]}
-                        >
-                            <Input placeholder="请输入用户姓名"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="邮箱"
-                            field="email"
-                            rules={[
-                                {type: 'email', message: '请输入正确的邮箱格式'},
-                                {max: 64, message: '邮箱长度不能超过64个字符'},
-                            ]}
-                        >
-                            <Input placeholder="请输入邮箱"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="手机号"
-                            field="phone"
-                            rules={[
-                                {max: 16, message: '手机号长度不能超过16个字符'},
-                            ]}
-                        >
-                            <Input placeholder="请输入手机号"/>
-                        </Form.Item>
-                        <Form.Item
-                            label="头像URL"
-                            field="logo"
-                            rules={[
-                                {max: 256, message: '头像URL长度不能超过256个字符'},
-                            ]}
-                        >
-                            <Input placeholder="请输入头像URL"/>
-                        </Form.Item>
-                    </Form>
-                </div>
-            </Modal>
-
-            {/* 删除确认对话框 */}
-            <Modal
-                title="删除用户"
-                visible={deleteModalVisible}
-                onOk={handleDeleteConfirm}
-                onCancel={() => setDeleteModalVisible(false)}
-                okText="确定"
-                cancelText="取消"
-            >
-                <p>确定要删除用户 "{currentUser?.userName}" 吗？此操作不可恢复。</p>
-            </Modal>
-
-            {/* 重置密码对话框 */}
-            <Modal
-                title="重置密码"
-                visible={resetPasswordModalVisible}
-                onOk={handleResetPasswordConfirm}
-                onCancel={() => setResetPasswordModalVisible(false)}
-                okText="确定"
-                cancelText="取消"
-            >
-                <Form form={resetPasswordForm} layout="vertical">
-                    <Form.Item
-                        label="新密码"
-                        field="newPassword"
-                        rules={[
-                            {required: true, message: '请输入新密码'},
-                            {minLength: 6, message: '密码长度至少6个字符'},
-                            {maxLength: 20, message: '密码长度不能超过20个字符'},
-                        ]}
-                    >
-                        <Input.Password placeholder="请输入新密码"/>
-                    </Form.Item>
-                </Form>
-                <p style={{color: 'var(--color-text-3)', fontSize: '12px'}}>
-                    为用户 "{currentUser?.userName}" 重置密码
-                </p>
-            </Modal>
-        </div>
+  // 搜索处理
+  const handleSearch = React.useCallback((values) => {
+    // 过滤空值
+    const filterValues = Object.fromEntries(
+      Object.entries(values).filter(([_, v]) => v !== "" && v !== undefined)
     );
+    setSearchParams(filterValues);
+    setPagination((prev) => ({ ...prev, current: 1 }));
+  }, []);
+
+  // 搜索表单内容
+  const filterContent = (
+    <FilterForm
+      ref={filterFormRef}
+      initialValues={searchParams}
+      formFields={searchFormFields}
+      onSearch={handleSearch}
+      onReset={() => {
+        setSearchParams({ name: "", state: "" });
+        setPagination((prev) => ({ ...prev, current: 1 }));
+        Message.info("已重置筛选条件");
+      }}
+      min={3}
+    />
+  );
+
+  // 添加用户
+  const handleAdd = () => {
+    setIsEdit(false);
+    setCurrentUser(null);
+    setAddEditVisible(true);
+  };
+
+  // 编辑用户
+  const handleEdit = (record) => {
+    setCurrentUser(record);
+    setIsEdit(true);
+    setAddEditVisible(true);
+  };
+
+  // 删除用户
+  const handleDelete = (record) => {
+    setCurrentUser(record);
+    setDeleteModalVisible(true);
+  };
+
+  // 重置密码
+  const handleResetPassword = (record) => {
+    setCurrentUser(record);
+    setResetPasswordModalVisible(true);
+    resetPasswordForm.resetFields();
+  };
+
+  // 切换用户状态
+  const handleToggleState = async (record) => {
+    try {
+      if (record.state === "ENABLED") {
+        await disableUser(record.userId);
+        Message.success("用户已禁用");
+      } else {
+        await enableUser(record.userId);
+        Message.success("用户已启用");
+      }
+      // 重新获取数据
+      setPagination((prev) => ({ ...prev, current: 1 }));
+    } catch (error) {
+      Message.error("操作失败");
+      console.error("切换用户状态失败:", error);
+    }
+  };
+
+  // 打开角色分配抽屉并加载数据
+  const openAssignRoles = async (record) => {
+    setCurrentUser(record);
+    setAssignRoleVisible(true);
+    setAssignRoleLoading(true);
+    try {
+      const [activeResp, userResp] = await Promise.all([
+        getActiveRoles(),
+        getUserRoles(record.userId),
+      ]);
+      const activeRoles = activeResp.data || [];
+      const userRoles = userResp.data || [];
+      setRoleOptions(activeRoles);
+      setSelectedRoleIds(userRoles.map((r) => r.id));
+    } catch (error) {
+      Message.error("加载角色数据失败");
+      console.error("加载角色数据失败:", error);
+    } finally {
+      setAssignRoleLoading(false);
+    }
+  };
+
+  // 保存角色分配
+  const handleAssignRolesSave = async () => {
+    if (!currentUser) return;
+    setAssignRoleLoading(true);
+    try {
+      await replaceUserRoles(currentUser.userId, selectedRoleIds);
+      Message.success("角色分配已保存");
+      setAssignRoleVisible(false);
+      setPagination((prev) => ({ ...prev, current: 1 }));
+    } catch (error) {
+      if (error.response?.data?.message) {
+        Message.error(error.response.data.message);
+      } else {
+        Message.error("保存角色分配失败");
+      }
+      console.error("保存角色分配失败:", error);
+    } finally {
+      setAssignRoleLoading(false);
+    }
+  };
+
+  // 处理菜单点击
+  const handleMenuClick = (key, event, record) => {
+    event.stopPropagation();
+    if (key === "edit") {
+      handleEdit(record);
+    } else if (key === "resetPassword") {
+      handleResetPassword(record);
+    } else if (key === "assignRoles") {
+      openAssignRoles(record);
+    } else if (key === "toggleState") {
+      handleToggleState(record);
+    } else if (key === "delete") {
+      handleDelete(record);
+    }
+  };
+
+  // 确认添加/编辑用户
+  const handleAddEditSubmit = async (values) => {
+    try {
+      if (isEdit) {
+        await updateUser(values);
+        Message.success("用户信息更新成功");
+      } else {
+        await registerUser(values);
+        Message.success("用户创建成功");
+      }
+      setAddEditVisible(false);
+      setCurrentUser(null);
+      // 刷新列表数据
+      await fetchUsers(0, searchParams);
+    } catch (error) {
+      let msg = isEdit ? "更新用户信息失败" : "创建用户失败";
+      if (error.response?.data?.message) {
+        msg = error.response.data.message;
+      }
+      throw new Error(msg);
+    }
+  };
+
+  // 确认删除用户
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteUser(currentUser.userId);
+      Message.success("用户删除成功");
+      setDeleteModalVisible(false);
+      // 刷新列表数据
+      await fetchUsers(0, searchParams);
+    } catch (error) {
+      Message.error("删除用户失败");
+      console.error("删除用户失败:", error);
+    }
+  };
+
+  // 确认重置密码
+  const handleResetPasswordConfirm = async () => {
+    try {
+      const values = await resetPasswordForm.validate();
+      await resetPassword(currentUser.userId, values.newPassword);
+      Message.success("密码重置成功");
+      setResetPasswordModalVisible(false);
+    } catch (error) {
+      Message.error("重置密码失败");
+      console.error("重置密码失败:", error);
+    }
+  };
+
+  // 搜索条件变化时重新获取数据
+  useEffect(() => {
+    fetchUsers(0, searchParams);
+  }, [searchParams, fetchUsers]);
+
+  // 分页变化时获取数据
+  useEffect(() => {
+    fetchUsers(pagination.current - 1, searchParams);
+  }, [pagination.current, fetchUsers, searchParams]);
+
+  // 分页改变处理
+  const handlePaginationChange = React.useCallback((newPagination) => {
+    setPagination((prev) => ({
+      ...prev,
+      ...newPagination,
+    }));
+  }, []);
+
+  return (
+    <div className="user-manager">
+      <DataManager
+        data={data}
+        loading={loading}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        actions={{
+          onAdd: handleAdd,
+        }}
+        config={{
+          showModeToggle: false, // 暂时只支持表格模式
+          displayMode: "table",
+          filterContent,
+          tableColumns: columns, // 使用自定义列配置（包含操作列）
+        }}
+        tableScrollHeight={200}
+      />
+
+      {/* 新增/编辑用户对话框 (统一使用 AddEditModal) */}
+      <AddEditModal
+        visible={addEditVisible}
+        isEdit={isEdit}
+        record={currentUser || undefined}
+        title={isEdit ? "编辑用户" : "新增用户"}
+        formConfig={getFormConfig(isEdit)}
+        onOk={handleAddEditSubmit}
+        onCancel={() => {
+          setAddEditVisible(false);
+          setCurrentUser(null);
+        }}
+      />
+
+      {/* 分配角色对话框 */}
+      <Modal
+        title={`分配角色${
+          currentUser ? ` - ${currentUser.userName || currentUser.userId}` : ""
+        }`}
+        visible={assignRoleVisible}
+        onCancel={() => setAssignRoleVisible(false)}
+        onOk={handleAssignRolesSave}
+        okButtonProps={{ loading: assignRoleLoading }}
+        okText="确定"
+        cancelText="取消"
+      >
+        <Spin
+          loading={assignRoleLoading}
+          tip="加载中..."
+          style={{ width: "100%" }}
+        >
+          <div
+            style={{
+              maxHeight: "60vh",
+              overflowY: "auto",
+              paddingRight: "10px",
+            }}
+          >
+            <Form layout="vertical">
+              <Form.Item
+                label="选择角色"
+                field="roles"
+                rules={[{ required: true, message: "请选择至少一个角色" }]}
+              >
+                <Select
+                  mode="multiple"
+                  value={selectedRoleIds}
+                  onChange={(vals) => setSelectedRoleIds(vals)}
+                  placeholder="请选择要分配的角色"
+                  style={{ width: "100%" }}
+                >
+                  {roleOptions && roleOptions.length > 0 ? (
+                    roleOptions.map((role) => (
+                      <Select.Option key={role.id} value={role.id}>
+                        <Space>
+                          <span>{role.name}</span>
+                          <span style={{ color: "var(--color-text-3)" }}>
+                            （{role.id}）
+                          </span>
+                        </Space>
+                      </Select.Option>
+                    ))
+                  ) : (
+                    <Select.Option disabled value="">
+                      暂无启用角色
+                    </Select.Option>
+                  )}
+                </Select>
+              </Form.Item>
+            </Form>
+          </div>
+        </Spin>
+      </Modal>
+
+      {/* 删除确认对话框 */}
+      <Modal
+        title="删除用户"
+        visible={deleteModalVisible}
+        onOk={handleDeleteConfirm}
+        onCancel={() => setDeleteModalVisible(false)}
+        okText="确定"
+        cancelText="取消"
+      >
+        <p>确定要删除用户 "{currentUser?.userName}" 吗？此操作不可恢复。</p>
+      </Modal>
+
+      {/* 重置密码对话框 */}
+      <Modal
+        title="重置密码"
+        visible={resetPasswordModalVisible}
+        onOk={handleResetPasswordConfirm}
+        onCancel={() => setResetPasswordModalVisible(false)}
+        okText="确定"
+        cancelText="取消"
+      >
+        <Form form={resetPasswordForm} layout="vertical">
+          <Form.Item
+            label="新密码"
+            field="newPassword"
+            rules={[
+              { required: true, message: "请输入新密码" },
+              { minLength: 6, message: "密码长度至少6个字符" },
+              { maxLength: 20, message: "密码长度不能超过20个字符" },
+            ]}
+          >
+            <Input.Password placeholder="请输入新密码" />
+          </Form.Item>
+        </Form>
+        <p style={{ color: "var(--color-text-3)", fontSize: "12px" }}>
+          为用户 "{currentUser?.userName}" 重置密码
+        </p>
+      </Modal>
+    </div>
+  );
 }
 
 export default UserManager;

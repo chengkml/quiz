@@ -472,6 +472,7 @@ const AdvancedExample: React.FC = () => {
       label: "产品分类",
       type: "select",
       placeholder: "选择分类",
+      allowClear: true,
       options: [
         { label: "电子产品", value: "electronics" },
         { label: "配件", value: "accessories" },
@@ -485,6 +486,7 @@ const AdvancedExample: React.FC = () => {
       label: "产品状态",
       type: "select",
       placeholder: "选择状态",
+      allowClear: true,
       options: [
         { label: "活跃", value: "active" },
         { label: "禁用", value: "inactive" },
@@ -536,14 +538,8 @@ const AdvancedExample: React.FC = () => {
         }));
         Message.info("已重置筛选条件");
       }}
-      fieldLabelMap={{
-        name: "产品名称",
-        category: "产品分类",
-        status: "产品状态",
-        minPrice: "最低价格",
-        maxPrice: "最高价格",
-      }}
       min={3}
+      labelWidth={80}
     />
   );
 

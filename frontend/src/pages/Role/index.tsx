@@ -1,800 +1,683 @@
-import React, {useEffect, useRef, useState} from 'react';
-import UserAvatar from '@/components/UserAvatar';
+import React, { useEffect, useRef, useState } from "react";
+import UserAvatar from "@/components/UserAvatar";
 import {
-    Button,
-    Drawer,
-    Dropdown,
-    Form,
-    Grid,
-    Input,
-    Layout,
-    Menu,
-    Message,
-    Modal,
-    Pagination,
-    Select,
-    Space,
-    Table,
-    Tag,
-    Tree,
-} from '@arco-design/web-react';
-import './style/index.less';
+  Button,
+  Drawer,
+  Dropdown,
+  Grid,
+  Layout,
+  Menu,
+  Message,
+  Modal,
+  Space,
+  Tag,
+  Tree,
+} from "@arco-design/web-react";
+import "./style/index.less";
 import {
-    checkRoleName,
-    createRole,
-    deleteRole,
-    disableRole,
-    enableRole,
-    getRoleMenuTree,
-    getRoles,
-    replaceRoleMenus,
-    updateRole,
-} from './api';
-import {IconDelete, IconEdit, IconList, IconMenu, IconPlus, IconSearch, IconUser,} from '@arco-design/web-react/icon';
-import {getMenuTree} from '@/pages/Menu/api';
+  checkRoleName,
+  createRole,
+  deleteRole,
+  getRoleMenuTree,
+  getRoles,
+  replaceRoleMenus,
+  updateRole,
+} from "./api";
+import {
+  IconDelete,
+  IconEdit,
+  IconList,
+  IconMenu,
+} from "@arco-design/web-react/icon";
+import { getMenuTree } from "@/pages/Menu/api";
+import { DataManager, AddEditModal } from "@/components/DataManager";
+import FilterForm from "@/components/FilterForm";
+import { FormFieldConfig } from "@/components/types/types";
 
-const {Content} = Layout;
-const {Option} = Select;
-const {TextArea} = Input;
-const {Row, Col} = Grid;
+const { Content } = Layout;
 
 function RoleManager() {
-    // 状态管理
-    const [tableData, setTableData] = useState([]);
-    const [tableLoading, setTableLoading] = useState(false);
-    const [tableScrollHeight, setTableScrollHeight] = useState(200);
+  // 状态管理
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-    // 对话框状态
-    const [addModalVisible, setAddModalVisible] = useState(false);
-    const [editModalVisible, setEditModalVisible] = useState(false);
-    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  // DataManager 分页状态
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 20,
+    total: 0,
+    showTotal: true,
+    showJumper: true,
+    showPageSize: true,
+    pageSizeOptions: [10, 20, 50, 100],
+  });
 
-    // 分页状态
-    const [pagination, setPagination] = useState({
-        current: 1,
-        pageSize: 20,
-        total: 0,
-        showTotal: true,
-        showJumper: true,
-        showPageSize: true,
-    });
+  // 搜索条件
+  const [searchParams, setSearchParams] = useState({
+    roleName: "",
+  });
 
-    // 搜索条件
-    const [searchParams, setSearchParams] = useState({
-        roleName: '',
-        state: '',
-    });
+  // 对话框状态
+  const [addEditVisible, setAddEditVisible] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
-    // 当前操作的角色
-    const [currentRole, setCurrentRole] = useState(null);
+  // 当前操作的角色
+  const [currentRole, setCurrentRole] = useState(null);
 
-    // 分配菜单：抽屉、加载、树数据与选中项
-    const [assignVisible, setAssignVisible] = useState(false);
-    const [assignLoading, setAssignLoading] = useState(false);
-    const [menuTreeData, setMenuTreeData] = useState([]);
-    const [checkedMenuKeys, setCheckedMenuKeys] = useState([]);
+  // 分配菜单：抽屉、加载、树数据与选中项
+  const [assignVisible, setAssignVisible] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [menuTreeData, setMenuTreeData] = useState([]);
+  const [checkedMenuKeys, setCheckedMenuKeys] = useState([]);
 
-    // 表单引用
-    const [addForm] = Form.useForm();
-    const [editForm] = Form.useForm();
-    const filterFormRef = useRef<any>(null);
+  // 表单引用
+  const filterFormRef = useRef<any>(null);
 
+  // 验证角色ID唯一性
+  const validateRoleId = async (value, callback) => {
+    if (!value) {
+      return callback();
+    }
 
+    try {
+      // 检查角色ID是否已存在（通过查询角色列表）
+      const response = await getRoles({
+        keyWord: "",
+        pageNum: 0,
+        pageSize: 1000,
+      });
 
-    // 角色状态选项
-    const roleStateOptions = [
-        {label: '启用', value: 'ENABLED'},
-        {label: '禁用', value: 'DISABLED'},
+      const existingRole = response.data.content.find(
+        (role) => role.id === value
+      );
+      if (existingRole) {
+        callback("角色ID已存在");
+      } else {
+        callback();
+      }
+    } catch (error) {
+      console.error("验证角色ID失败:", error);
+      callback();
+    }
+  };
+
+  // 验证角色名称唯一性
+  const validateRoleName = async (value, callback) => {
+    if (!value) {
+      return callback();
+    }
+
+    try {
+      const excludeRoleId = currentRole?.id || null;
+      const response = await checkRoleName(value, excludeRoleId);
+      if (response.data) {
+        callback("角色名称已存在");
+      } else {
+        callback();
+      }
+    } catch (error) {
+      console.error("验证角色名称失败:", error);
+      callback();
+    }
+  };
+
+  // 表格列定义
+  const columns = [
+    {
+      title: "角色ID",
+      dataIndex: "id",
+      key: "id",
+      width: 120,
+      fixed: "left",
+    },
+    {
+      title: "角色名称",
+      dataIndex: "name",
+      key: "name",
+      width: 150,
+    },
+    {
+      title: "角色描述",
+      dataIndex: "descr",
+      key: "descr",
+      render: (descr) => descr || "-",
+    },
+    {
+      title: "状态",
+      dataIndex: "state",
+      key: "state",
+      align: "center",
+      width: 80,
+      render: (state) => (
+        <Tag color={state === "ENABLED" ? "green" : "red"}>
+          {state === "ENABLED" ? "启用" : "禁用"}
+        </Tag>
+      ),
+    },
+    {
+      title: "创建时间",
+      dataIndex: "createDate",
+      key: "createDate",
+      width: 160,
+      render: (value) => {
+        if (!value) return "--";
+
+        const now = new Date();
+        const date = new Date(value);
+        const diffMs = now.getTime() - date.getTime();
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffSeconds / 60);
+        const diffHours = Math.floor(diffMinutes / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        // 今天
+        if (diffDays === 0) {
+          if (diffSeconds < 60) {
+            return `${diffSeconds}秒前`;
+          } else if (diffMinutes < 60) {
+            return `${diffMinutes}分钟前`;
+          } else {
+            return `${diffHours}小时前`;
+          }
+        }
+        // 昨天
+        else if (diffDays === 1) {
+          const hours = String(date.getHours()).padStart(2, "0");
+          const minutes = String(date.getMinutes()).padStart(2, "0");
+          return `昨天 ${hours}:${minutes}`;
+        }
+        // 昨天之前
+        else {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          const hours = String(date.getHours()).padStart(2, "0");
+          const minutes = String(date.getMinutes()).padStart(2, "0");
+          const seconds = String(date.getSeconds()).padStart(2, "0");
+          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+      },
+    },
+    {
+      title: "创建人",
+      dataIndex: "createUserName",
+      key: "createUserName",
+      width: 100,
+      render: (name, record) => (
+        <UserAvatar name={name || (record?.createUser ?? "")} showName />
+      ),
+    },
+    {
+      title: "更新时间",
+      dataIndex: "updateDate",
+      key: "updateDate",
+      width: 160,
+      render: (value) => {
+        if (!value) return "--";
+
+        const now = new Date();
+        const date = new Date(value);
+        const diffMs = now.getTime() - date.getTime();
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffSeconds / 60);
+        const diffHours = Math.floor(diffMinutes / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        // 今天
+        if (diffDays === 0) {
+          if (diffSeconds < 60) {
+            return `${diffSeconds}秒前`;
+          } else if (diffMinutes < 60) {
+            return `${diffMinutes}分钟前`;
+          } else {
+            return `${diffHours}小时前`;
+          }
+        }
+        // 昨天
+        else if (diffDays === 1) {
+          const hours = String(date.getHours()).padStart(2, "0");
+          const minutes = String(date.getMinutes()).padStart(2, "0");
+          return `昨天 ${hours}:${minutes}`;
+        }
+        // 昨天之前
+        else {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          const hours = String(date.getHours()).padStart(2, "0");
+          const minutes = String(date.getMinutes()).padStart(2, "0");
+          const seconds = String(date.getSeconds()).padStart(2, "0");
+          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+      },
+    },
+    {
+      title: "操作",
+      key: "action",
+      width: 100,
+      align: "center",
+      fixed: "right",
+      render: (_, record) => (
+        <Space size="large" className="dropdown-demo table-btn-group">
+          <Dropdown
+            position="bl"
+            droplist={
+              <Menu
+                onClickMenuItem={(key, e) => {
+                  handleMenuClick(key, e, record);
+                }}
+                className="handle-dropdown-menu"
+              >
+                <Menu.Item key="assign">
+                  <IconMenu style={{ marginRight: "5px" }} />
+                  分配菜单
+                </Menu.Item>
+                <Menu.Item key="edit">
+                  <IconEdit style={{ marginRight: "5px" }} />
+                  编辑
+                </Menu.Item>
+                {/* <Menu.Item key="toggle">
+                  <IconUser style={{ marginRight: "5px" }} />
+                  {record.state === "ENABLED" ? "禁用" : "启用"}
+                </Menu.Item> */}
+                <Menu.Item key="delete">
+                  <IconDelete style={{ marginRight: "5px" }} />
+                  删除
+                </Menu.Item>
+              </Menu>
+            }
+          >
+            <Button
+              type="text"
+              className="more-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <IconList />
+            </Button>
+          </Dropdown>
+        </Space>
+      ),
+    },
+  ];
+
+  // 搜索表单配置
+  const searchFormFields: FormFieldConfig[] = [
+    {
+      field: "roleName",
+      label: "名称",
+      type: "input",
+      placeholder: "请输入角色名称",
+      span: 6,
+    },
+    // {
+    //   field: "state",
+    //   label: "状态",
+    //   type: "select",
+    //   placeholder: "请选择状态",
+    //   options: [
+    //     { label: "启用", value: "ENABLED" },
+    //     { label: "禁用", value: "DISABLED" },
+    //   ],
+    //   span: 6,
+    // },
+  ];
+
+  // 新增/编辑表单配置
+  const getFormConfig = (isEditMode: boolean): FormFieldConfig[] => {
+    return [
+      {
+        field: "id",
+        label: "角色ID",
+        type: "input",
+        disabled: isEditMode,
+        required: !isEditMode,
+        placeholder: "请输入角色ID（如：admin、user等）",
+        rules: isEditMode
+          ? []
+          : [
+              { required: true, message: "请输入角色ID" },
+              { max: 32, message: "角色ID长度不能超过32个字符" },
+              {
+                pattern: /^[a-zA-Z0-9_-]+$/,
+                message: "角色ID只能包含字母、数字、下划线和连字符",
+              },
+              { validator: validateRoleId },
+            ],
+      },
+      {
+        field: "name",
+        label: "角色名称",
+        type: "input",
+        required: true,
+        placeholder: "请输入角色名称",
+        rules: [
+          { required: true, message: "请输入角色名称" },
+          { max: 64, message: "角色名称长度不能超过64个字符" },
+          { validator: validateRoleName },
+        ],
+      },
+      {
+        field: "descr",
+        label: "角色描述",
+        type: "textarea",
+        placeholder: "请输入角色描述",
+        rules: [{ max: 128, message: "角色描述长度不能超过128个字符" }],
+      },
     ];
+  };
 
-    // 表格列定义
-    const columns = [
-        {
-            title: '角色ID',
-            dataIndex: 'id',
-            key: 'id',
-            width: 120,
-            fixed: 'left',
-        },
-        {
-            title: '角色名称',
-            dataIndex: 'name',
-            key: 'name',
-            width: 150,
-        },
-        {
-            title: '角色描述',
-            dataIndex: 'descr',
-            key: 'descr',
-            render: (descr) => descr || '-',
-        },
-        {
-            title: '状态',
-            dataIndex: 'state',
-            key: 'state',
-            align: 'center',
-            width: 80,
-            render: (state) => (
-                <Tag color={state === 'ENABLED' ? 'green' : 'red'}>
-                    {state === 'ENABLED' ? '启用' : '禁用'}
-                </Tag>
-            ),
-        },
-        {
-            title: '创建时间',
-            dataIndex: 'createDate',
-            key: 'createDate',
-            width: 160,
-            render: (value) => {
-                if (!value) return '--';
+  // 获取角色列表
+  const fetchRoles = async (params = {}) => {
+    setLoading(true);
+    try {
+      const queryParams = {
+        keyWord: searchParams.roleName || params.roleName || "",
+        pageNum: pagination.current - 1,
+        pageSize: pagination.pageSize,
+      };
 
-                const now = new Date();
-                const date = new Date(value);
-                const diffMs = now.getTime() - date.getTime();
-                const diffSeconds = Math.floor(diffMs / 1000);
-                const diffMinutes = Math.floor(diffSeconds / 60);
-                const diffHours = Math.floor(diffMinutes / 60);
-                const diffDays = Math.floor(diffHours / 24);
+      const response = await getRoles(queryParams);
+      const { content, totalElements } = response.data;
 
-                // 今天
-                if (diffDays === 0) {
-                    if (diffSeconds < 60) {
-                        return `${diffSeconds}秒前`;
-                    } else if (diffMinutes < 60) {
-                        return `${diffMinutes}分钟前`;
-                    } else {
-                        return `${diffHours}小时前`;
-                    }
-                }
-                // 昨天
-                else if (diffDays === 1) {
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    return `昨天 ${hours}:${minutes}`;
-                }
-                // 昨天之前
-                else {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const seconds = String(date.getSeconds()).padStart(2, '0');
-                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-                }
-            },
-        },
-        {
-            title: '创建人',
-            dataIndex: 'createUserName',
-            key: 'createUserName',
-            width: 100,
-            render: (name, record) => (
-                <UserAvatar name={name || (record?.createUser ?? '')} showName />
-            ),
-        },
-        {
-            title: '更新时间',
-            dataIndex: 'updateDate',
-            key: 'updateDate',
-            width: 160,
-            render: (value) => {
-                if (!value) return '--';
+      setData(content || []);
+      setPagination((prev) => ({
+        ...prev,
+        total: totalElements || 0,
+      }));
+    } catch (error) {
+      Message.error("获取角色列表失败");
+      console.error("获取角色列表失败:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                const now = new Date();
-                const date = new Date(value);
-                const diffMs = now.getTime() - date.getTime();
-                const diffSeconds = Math.floor(diffMs / 1000);
-                const diffMinutes = Math.floor(diffSeconds / 60);
-                const diffHours = Math.floor(diffMinutes / 60);
-                const diffDays = Math.floor(diffHours / 24);
-
-                // 今天
-                if (diffDays === 0) {
-                    if (diffSeconds < 60) {
-                        return `${diffSeconds}秒前`;
-                    } else if (diffMinutes < 60) {
-                        return `${diffMinutes}分钟前`;
-                    } else {
-                        return `${diffHours}小时前`;
-                    }
-                }
-                // 昨天
-                else if (diffDays === 1) {
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    return `昨天 ${hours}:${minutes}`;
-                }
-                // 昨天之前
-                else {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const seconds = String(date.getSeconds()).padStart(2, '0');
-                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-                }
-            },
-        },
-        {
-            title: '操作',
-            key: 'action',
-            width: 100,
-            align: 'center',
-            fixed: 'right',
-            render: (_, record) => (
-                <Space size="large" className="dropdown-demo table-btn-group">
-                    <Dropdown
-                        position="bl"
-                        droplist={
-                            <Menu
-                                onClickMenuItem={(key, e) => {
-                                    handleMenuClick(key, e, record);
-                                }}
-                                className="handle-dropdown-menu"
-                            >
-                                <Menu.Item key="assign">
-                                    <IconMenu style={{marginRight: '5px'}}/>
-                                    分配菜单
-                                </Menu.Item>
-                                <Menu.Item key="edit">
-                                    <IconEdit style={{marginRight: '5px'}}/>
-                                    编辑
-                                </Menu.Item>
-                                <Menu.Item key="toggle">
-                                    <IconUser style={{marginRight: '5px'}}/>
-                                    {record.state === 'ENABLED' ? '禁用' : '启用'}
-                                </Menu.Item>
-                                <Menu.Item key="delete">
-                                    <IconDelete style={{marginRight: '5px'}}/>
-                                    删除
-                                </Menu.Item>
-                            </Menu>
-                        }
-                    >
-                        <Button
-                            type="text"
-                            className="more-btn"
-                            onClick={e => {
-                                e.stopPropagation();
-                            }}
-                        >
-                            <IconList/>
-                        </Button>
-                    </Dropdown>
-                </Space>
-            ),
-        },
-    ];
-
-    // 处理菜单点击
-    const handleMenuClick = (key, event, record) => {
-        event.stopPropagation();
-        if (key === 'edit') {
-            handleEdit(record);
-        } else if (key === 'delete') {
-            handleDelete(record);
-        } else if (key === 'toggle') {
-            handleToggleState(record);
-        } else if (key === 'assign') {
-            handleAssignMenus(record);
-        }
-    };
-
-    // 将后端MenuDto转换为Tree组件数据结构
-    const convertToTreeNodes = (nodes = []) => {
-        return (nodes || []).map(n => ({
-            key: n.menuId,
-            title: n.menuLabel || n.menuName || n.menuId,
-            children: convertToTreeNodes(n.children || []),
-        }));
-    };
-
-    // 提取树中的所有key
-    const extractKeys = (allTree, nodes = []) => {
-        const keys = [];
-        const walk = (list) => {
-            (list || []).forEach(n => {
-                keys.push(n.menuId || n.key);
-                if (n.children && n.children.length) {
-                    walk(n.children);
-                }
-            });
-        };
-        walk(nodes);
-        return keys;
-    };
-
-    // 打开分配菜单抽屉并加载数据
-    const handleAssignMenus = async (record) => {
-        setCurrentRole(record);
-        setAssignVisible(true);
-        setAssignLoading(true);
-        try {
-            const [allResp, assignedResp] = await Promise.all([
-                getMenuTree(),
-                getRoleMenuTree(record.id)
-            ]);
-            const allTree = convertToTreeNodes(allResp.data || []);
-            const assignedTree = assignedResp.data || [];
-            let assignedKeys = extractKeys(allTree, assignedTree);
-            assignedKeys = removeCheckParents(allTree, assignedKeys);
-            setMenuTreeData(allTree);
-            setCheckedMenuKeys(assignedKeys);
-        } catch (e) {
-            Message.error('加载菜单数据失败');
-            console.error('加载菜单数据失败:', e);
-        } finally {
-            setAssignLoading(false);
-        }
-    };
-
-    const removeCheckParents = (allTree, assignedKeys) => {
-        // 创建一个 Set 便于快速查找
-        const assignedSet = new Set(assignedKeys);
-
-        // 判断一个节点是否所有子节点都被选中
-        const isAllChildrenChecked = (node) => {
-            if (!node.children || node.children.length === 0) return true;
-            return node.children.every(child =>
-                assignedSet.has(child.key) && isAllChildrenChecked(child)
-            );
-        };
-
-        // 遍历树，移除不满足条件的父节点
-        const filterKeys = (node) => {
-            if (node.children && node.children.length) {
-                node.children.forEach(filterKeys); // 先处理子节点
-            }
-
-            // 如果当前节点有子节点，且不是所有子节点都选中，则移除自己
-            if (node.children && node.children.length && !isAllChildrenChecked(node)) {
-                assignedSet.delete(node.key);
-            }
-        };
-
-        allTree.forEach(filterKeys);
-
-        return Array.from(assignedSet);
-    };
-
-
-    const handleAssignCancel = () => {
-        setAssignVisible(false);
-        setCheckedMenuKeys([]);
-    };
-
-    const handleAssignSave = async () => {
-        if (!currentRole) return;
-        setAssignLoading(true);
-        try {
-            await replaceRoleMenus(currentRole.id, checkedMenuKeys);
-            Message.success('菜单分配已保存');
-            setAssignVisible(false);
-        } catch (e) {
-            Message.error('保存菜单分配失败');
-            console.error('保存菜单分配失败:', e);
-        } finally {
-            setAssignLoading(false);
-        }
-    };
-
-    // 获取角色列表
-    const fetchRoles = async (params = {}) => {
-        setTableLoading(true);
-        try {
-            const queryParams = {
-                roleName: searchParams.roleName || params.roleName,
-                state: searchParams.state || params.state,
-                page: pagination.current - 1,
-                size: pagination.pageSize,
-                sortBy: 'create_date',
-                sortDir: 'desc',
-            };
-
-            const response = await getRoles(queryParams);
-            const {content, totalElements} = response.data;
-
-            setTableData(content || []);
-            setPagination(prev => ({
-                ...prev,
-                total: totalElements || 0,
-            }));
-        } catch (error) {
-            Message.error('获取角色列表失败');
-            console.error('获取角色列表失败:', error);
-        } finally {
-            setTableLoading(false);
-        }
-    };
-
-    // 搜索处理
-    const handleSearch = (values) => {
-        setSearchParams(values);
-        setPagination(prev => ({...prev, current: 1}));
-        fetchRoles(values);
-    };
-
-    // 重置搜索
-    const handleReset = () => {
-        const resetParams = {roleName: '', state: ''};
-        setSearchParams(resetParams);
-        setPagination(prev => ({...prev, current: 1}));
-        filterFormRef.current?.setFieldsValue?.(resetParams);
-        fetchRoles(resetParams);
-    };
-
-    // 添加角色
-    const handleAdd = () => {
-        setAddModalVisible(true);
-        addForm.resetFields();
-    };
-
-    // 编辑角色
-    const handleEdit = (record) => {
-        setCurrentRole(record);
-        setEditModalVisible(true);
-        editForm.setFieldsValue({
-            id: record.id,
-            name: record.name,
-            descr: record.descr,
-        });
-    };
-
-    // 删除角色
-    const handleDelete = (record) => {
-        setCurrentRole(record);
-        setDeleteModalVisible(true);
-    };
-
-    // 切换角色状态
-    const handleToggleState = async (record) => {
-        try {
-            if (record.state === 'ENABLED') {
-                await disableRole(record.id);
-                Message.success('角色已禁用');
-            } else {
-                await enableRole(record.id);
-                Message.success('角色已启用');
-            }
-            fetchRoles();
-        } catch (error) {
-            Message.error('操作失败');
-            console.error('切换角色状态失败:', error);
-        }
-    };
-
-    // 验证角色ID唯一性
-    const validateRoleId = async (value, callback) => {
-        if (!value) {
-            return callback();
-        }
-
-        try {
-            // 检查角色ID是否已存在（通过查询角色列表）
-            const response = await getRoles({
-                roleName: '',
-                state: '',
-                pageNum: 0,
-                pageSize: 1000
-            });
-
-            const existingRole = response.data.content.find(role => role.id === value);
-            if (existingRole) {
-                callback('角色ID已存在');
-            } else {
-                callback();
-            }
-        } catch (error) {
-            console.error('验证角色ID失败:', error);
-            callback();
-        }
-    };
-
-    // 验证角色名称唯一性
-    const validateRoleName = async (value, callback) => {
-        if (!value) {
-            return callback();
-        }
-
-        try {
-            const excludeRoleId = currentRole?.id || null;
-            const response = await checkRoleName(value, excludeRoleId);
-            if (response.data) {
-                callback('角色名称已存在');
-            } else {
-                callback();
-            }
-        } catch (error) {
-            console.error('验证角色名称失败:', error);
-            callback();
-        }
-    };
-
-    // 确认添加角色
-    const handleAddConfirm = async () => {
-        try {
-            const values = await addForm.validate();
-            await createRole(values);
-            Message.success('角色创建成功');
-            setAddModalVisible(false);
-            fetchRoles();
-        } catch (error) {
-            if (error.response?.data?.message) {
-                Message.error(error.response.data.message);
-            } else {
-                Message.error('创建角色失败');
-            }
-            console.error('创建角色失败:', error);
-        }
-    };
-
-    // 确认编辑角色
-    const handleEditConfirm = async () => {
-        try {
-            const values = await editForm.validate();
-            await updateRole(values);
-            Message.success('角色信息更新成功');
-            setEditModalVisible(false);
-            fetchRoles();
-        } catch (error) {
-            Message.error('更新角色信息失败');
-            console.error('更新角色信息失败:', error);
-        }
-    };
-
-    // 确认删除角色
-    const handleDeleteConfirm = async () => {
-        try {
-            await deleteRole(currentRole.id);
-            Message.success('角色删除成功');
-            setDeleteModalVisible(false);
-            fetchRoles();
-        } catch (error) {
-            Message.error('删除角色失败');
-            console.error('删除角色失败:', error);
-        }
-    };
-
-    // 分页处理
-    const handlePageChange = (current, pageSize) => {
-        setPagination(prev => ({
-            ...prev,
-            current,
-            pageSize,
-        }));
-    };
-
-    // 计算表格高度
-    const calculateTableHeight = () => {
-        const windowHeight = window.innerHeight;
-        const otherElementsHeight = 240; // 搜索表单、按钮区域和分页等其他元素的总高度
-        const newHeight = Math.max(200, windowHeight - otherElementsHeight);
-        setTableScrollHeight(newHeight);
-    };
-
-    // 初始化和窗口大小变化处理
-    useEffect(() => {
-        fetchRoles();
-        calculateTableHeight();
-
-        // 设置表单默认值
-        setTimeout(() => {
-            filterFormRef.current?.setFieldsValue?.(searchParams);
-        }, 50);
-
-        const handleResize = () => calculateTableHeight();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    // 分页变化时重新获取数据
-    useEffect(() => {
-        fetchRoles();
-    }, [pagination.current, pagination.pageSize]);
-
-    return (
-        <div className="role-manager">
-            <Content>
-                {/* 筛选表单 */}
-                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}}
-                      onValuesChange={(changedValues, values) => {
-                          handleSearch(values);
-                      }}>
-                    <Row gutter={16}>
-                        <Col span={6}>
-                            <Form.Item field="roleName" label="名称">
-                                <Input placeholder="请输入角色名称"/>
-                            </Form.Item>
-                        </Col>
-                        <Col span={6}>
-                            <Form.Item field="state" label="状态">
-                                <Select placeholder="请选择状态" allowClear>
-                                    {roleStateOptions.map(option => (
-                                        <Option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={12} style={{
-                            display: 'flex',
-                            justifyContent: 'flex-start',
-                            alignItems: 'flex-end',
-                            paddingBottom: '16px'
-                        }}>
-                            <Space>
-                                <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                    const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                    handleSearch(values);
-                                }}>
-                                    搜索
-                                </Button>
-                                <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
-                                    新增
-                                </Button>
-                            </Space>
-                        </Col>
-                    </Row>
-                </Form>
-
-                {/* 角色表格 */}
-                <Table
-                    columns={columns}
-                    data={tableData}
-                    loading={tableLoading}
-                    pagination={false}
-                    scroll={{
-                        y: tableScrollHeight,
-                    }}
-                    rowKey="id"
-                />
-
-                {/* 分页 */}
-                <div className="pagination-wrapper">
-                    <Pagination
-                        {...pagination}
-                        onChange={handlePageChange}
-                    />
-                </div>
-
-                {/* 分配菜单抽屉 */}
-                <Drawer
-                    title={`分配菜单 - ${currentRole?.name || ''}`}
-                    visible={assignVisible}
-                    width={520}
-                    maskClosable={false}
-                    onCancel={handleAssignCancel}
-                    footer={
-                        <Space>
-                            <Button onClick={handleAssignCancel} disabled={assignLoading}>取消</Button>
-                            <Button type="primary" onClick={handleAssignSave} loading={assignLoading}>保存</Button>
-                        </Space>
-                    }
-                >
-                    <div style={{maxHeight: 420, overflow: 'auto'}}>
-                        <Tree
-                            checkable
-                            treeData={menuTreeData}
-                            checkedKeys={checkedMenuKeys}
-                            onCheck={(keys) => setCheckedMenuKeys(keys)}
-                        />
-                    </div>
-                </Drawer>
-            </Content>
-
-            {/* 新增角色对话框 */}
-            <Modal
-                title="新增角色"
-                visible={addModalVisible}
-                onOk={handleAddConfirm}
-                onCancel={() => setAddModalVisible(false)}
-                okText="确定"
-                cancelText="取消"
-            >
-                <Form form={addForm} layout="vertical">
-                    <Form.Item
-                        label="角色ID"
-                        field="id"
-                        rules={[
-                            {required: true, message: '请输入角色ID'},
-                            {max: 32, message: '角色ID长度不能超过32个字符'},
-                            {
-                                pattern: /^[a-zA-Z0-9_-]+$/,
-                                message: '角色ID只能包含字母、数字、下划线和连字符'
-                            },
-                            {validator: validateRoleId},
-                        ]}
-                    >
-                        <Input placeholder="请输入角色ID（如：admin、user等）"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="角色名称"
-                        field="name"
-                        rules={[
-                            {required: true, message: '请输入角色名称'},
-                            {max: 64, message: '角色名称长度不能超过64个字符'},
-                            {validator: validateRoleName},
-                        ]}
-                    >
-                        <Input placeholder="请输入角色名称"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="角色描述"
-                        field="descr"
-                        rules={[
-                            {max: 128, message: '角色描述长度不能超过128个字符'},
-                        ]}
-                    >
-                        <TextArea
-                            placeholder="请输入角色描述"
-                            rows={3}
-                            maxLength={128}
-                            showWordLimit
-                        />
-                    </Form.Item>
-                </Form>
-            </Modal>
-
-            {/* 编辑角色对话框 */}
-            <Modal
-                title="编辑角色"
-                visible={editModalVisible}
-                onOk={handleEditConfirm}
-                onCancel={() => setEditModalVisible(false)}
-                okText="确定"
-                cancelText="取消"
-            >
-                <Form form={editForm} layout="vertical">
-                    <Form.Item
-                        label="角色ID"
-                        field="id"
-                    >
-                        <Input disabled/>
-                    </Form.Item>
-                    <Form.Item
-                        label="角色名称"
-                        field="name"
-                        rules={[
-                            {required: true, message: '请输入角色名称'},
-                            {max: 64, message: '角色名称长度不能超过64个字符'},
-                            {validator: validateRoleName},
-                        ]}
-                    >
-                        <Input placeholder="请输入角色名称"/>
-                    </Form.Item>
-                    <Form.Item
-                        label="角色描述"
-                        field="descr"
-                        rules={[
-                            {max: 128, message: '角色描述长度不能超过128个字符'},
-                        ]}
-                    >
-                        <TextArea
-                            placeholder="请输入角色描述"
-                            rows={3}
-                            maxLength={128}
-                            showWordLimit
-                        />
-                    </Form.Item>
-                </Form>
-            </Modal>
-
-            {/* 删除确认对话框 */}
-            <Modal
-                title="删除角色"
-                visible={deleteModalVisible}
-                onOk={handleDeleteConfirm}
-                onCancel={() => setDeleteModalVisible(false)}
-                okText="确定"
-                cancelText="取消"
-            >
-                <p>确定要删除角色 "{currentRole?.name}" 吗？此操作不可恢复。</p>
-            </Modal>
-        </div>
+  // 搜索处理
+  const handleSearch = (values) => {
+    // 过滤空值
+    const filterValues = Object.fromEntries(
+      Object.entries(values).filter(([_, v]) => v !== "" && v !== undefined)
     );
+    setSearchParams((prev) => ({ ...prev, ...filterValues }));
+    setPagination((prev) => ({ ...prev, current: 1 }));
+    fetchRoles({ ...searchParams, ...filterValues });
+  };
+
+  // 搜索表单内容
+  const filterContent = (
+    <FilterForm
+      ref={filterFormRef}
+      initialValues={searchParams}
+      formFields={searchFormFields}
+      onSearch={handleSearch}
+      onReset={() => {
+        const resetParams = { roleName: "" };
+        setSearchParams(resetParams);
+        setPagination((prev) => ({ ...prev, current: 1 }));
+        fetchRoles(resetParams);
+        Message.info("已重置筛选条件");
+      }}
+      min={3}
+    />
+  );
+
+  // 处理菜单点击
+  const handleMenuClick = (key, event, record) => {
+    event.stopPropagation();
+    if (key === "edit") {
+      handleEdit(record);
+    } else if (key === "delete") {
+      handleDelete(record);
+    } else if (key === "assign") {
+      handleAssignMenus(record);
+    }
+  };
+
+  // 将后端MenuDto转换为Tree组件数据结构
+  const convertToTreeNodes = (nodes = []) => {
+    return (nodes || []).map((n) => ({
+      key: n.menuId,
+      title: n.menuLabel || n.menuName || n.menuId,
+      children: convertToTreeNodes(n.children || []),
+    }));
+  };
+
+  // 提取树中的所有key
+  const extractKeys = (allTree, nodes = []) => {
+    const keys = [];
+    const walk = (list) => {
+      (list || []).forEach((n) => {
+        keys.push(n.menuId || n.key);
+        if (n.children && n.children.length) {
+          walk(n.children);
+        }
+      });
+    };
+    walk(nodes);
+    return keys;
+  };
+
+  const removeCheckParents = (allTree, assignedKeys) => {
+    // 创建一个 Set 便于快速查找
+    const assignedSet = new Set(assignedKeys);
+
+    // 判断一个节点是否所有子节点都被选中
+    const isAllChildrenChecked = (node) => {
+      if (!node.children || node.children.length === 0) return true;
+      return node.children.every(
+        (child) => assignedSet.has(child.key) && isAllChildrenChecked(child)
+      );
+    };
+
+    // 遍历树，移除不满足条件的父节点
+    const filterKeys = (node) => {
+      if (node.children && node.children.length) {
+        node.children.forEach(filterKeys); // 先处理子节点
+      }
+
+      // 如果当前节点有子节点，且不是所有子节点都选中，则移除自己
+      if (
+        node.children &&
+        node.children.length &&
+        !isAllChildrenChecked(node)
+      ) {
+        assignedSet.delete(node.key);
+      }
+    };
+
+    allTree.forEach(filterKeys);
+
+    return Array.from(assignedSet);
+  };
+
+  // 打开分配菜单抽屉并加载数据
+  const handleAssignMenus = async (record) => {
+    setCurrentRole(record);
+    setAssignVisible(true);
+    setAssignLoading(true);
+    try {
+      const [allResp, assignedResp] = await Promise.all([
+        getMenuTree(),
+        getRoleMenuTree(record.id),
+      ]);
+      const allTree = convertToTreeNodes(allResp.data || []);
+      const assignedTree = assignedResp.data || [];
+      let assignedKeys = extractKeys(allTree, assignedTree);
+      assignedKeys = removeCheckParents(allTree, assignedKeys);
+      setMenuTreeData(allTree);
+      setCheckedMenuKeys(assignedKeys);
+    } catch (e) {
+      Message.error("加载菜单数据失败");
+      console.error("加载菜单数据失败:", e);
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const handleAssignCancel = () => {
+    setAssignVisible(false);
+    setCheckedMenuKeys([]);
+  };
+
+  const handleAssignSave = async () => {
+    if (!currentRole) return;
+    setAssignLoading(true);
+    try {
+      await replaceRoleMenus(currentRole.id, checkedMenuKeys);
+      Message.success("菜单分配已保存");
+      setAssignVisible(false);
+    } catch (e) {
+      Message.error("保存菜单分配失败");
+      console.error("保存菜单分配失败:", e);
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  // 添加角色
+  const handleAdd = () => {
+    setIsEdit(false);
+    setCurrentRole(null);
+    setAddEditVisible(true);
+  };
+
+  // 编辑角色
+  const handleEdit = (record) => {
+    setCurrentRole(record);
+    setIsEdit(true);
+    setAddEditVisible(true);
+  };
+
+  // 删除角色
+  const handleDelete = (record) => {
+    setCurrentRole(record);
+    setDeleteModalVisible(true);
+  };
+
+  // 确认添加/编辑角色
+  const handleAddEditSubmit = async (values) => {
+    try {
+      if (isEdit) {
+        await updateRole(values);
+        Message.success("角色信息更新成功");
+      } else {
+        await createRole(values);
+        Message.success("角色创建成功");
+      }
+      fetchRoles();
+    } catch (error) {
+      let msg = isEdit ? "更新角色信息失败" : "创建角色失败";
+      if (error.response?.data?.message) {
+        msg = error.response.data.message;
+      }
+      throw new Error(msg);
+    }
+  };
+
+  // 确认删除角色
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteRole(currentRole.id);
+      Message.success("角色删除成功");
+      setDeleteModalVisible(false);
+      fetchRoles();
+    } catch (error) {
+      Message.error("删除角色失败");
+      console.error("删除角色失败:", error);
+    }
+  };
+
+  // 初始化
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+  // 分页变化时重新获取数据
+  useEffect(() => {
+    fetchRoles();
+  }, [pagination.current, pagination.pageSize]);
+
+  return (
+    <div className="role-manager">
+      <DataManager
+        data={data}
+        loading={loading}
+        pagination={pagination}
+        onPaginationChange={setPagination}
+        actions={{
+          onAdd: handleAdd,
+        }}
+        config={{
+          showModeToggle: false,
+          displayMode: "table",
+          filterContent,
+          tableColumns: columns,
+        }}
+        tableScrollHeight={500}
+      />
+
+      {/* 新增/编辑角色对话框 */}
+      <AddEditModal
+        visible={addEditVisible}
+        isEdit={isEdit}
+        record={currentRole || undefined}
+        title={isEdit ? "编辑角色" : "新增角色"}
+        formConfig={getFormConfig(isEdit)}
+        onOk={handleAddEditSubmit}
+        onCancel={() => {
+          setAddEditVisible(false);
+          setCurrentRole(null);
+        }}
+      />
+
+      {/* 分配菜单抽屉 */}
+      <Drawer
+        title={`分配菜单 - ${currentRole?.name || ""}`}
+        visible={assignVisible}
+        width={520}
+        maskClosable={false}
+        onCancel={handleAssignCancel}
+        footer={
+          <Space>
+            <Button onClick={handleAssignCancel} disabled={assignLoading}>
+              取消
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleAssignSave}
+              loading={assignLoading}
+            >
+              保存
+            </Button>
+          </Space>
+        }
+      >
+        <div style={{ maxHeight: 420, overflow: "auto" }}>
+          <Tree
+            checkable
+            treeData={menuTreeData}
+            checkedKeys={checkedMenuKeys}
+            onCheck={(keys) => setCheckedMenuKeys(keys)}
+          />
+        </div>
+      </Drawer>
+
+      {/* 删除确认对话框 */}
+      <Modal
+        title="删除角色"
+        visible={deleteModalVisible}
+        onOk={handleDeleteConfirm}
+        onCancel={() => setDeleteModalVisible(false)}
+        okText="确定"
+        cancelText="取消"
+      >
+        <p>确定要删除角色 "{currentRole?.name}" 吗？此操作不可恢复。</p>
+      </Modal>
+    </div>
+  );
 }
 
 export default RoleManager;

@@ -17,7 +17,8 @@ import { Form } from "@arco-design/web-react";
 
 export const renderFormField = (
   fieldConfig: FormFieldConfig,
-  form?: FormInstance
+  form?: FormInstance,
+  defaultLabelWidth?: string | number
 ): ReactNode => {
   const {
     field,
@@ -30,11 +31,15 @@ export const renderFormField = (
     initialValue,
     disabled = false,
     render,
+    allowClear,
+    labelWidth,
   } = fieldConfig;
 
   const formRules = required
     ? [{ required: true, message: `请输入${label}` }, ...rules]
     : rules;
+
+  const resolvedLabelWidth = labelWidth ?? defaultLabelWidth;
 
   const formItemProps = {
     key: field,
@@ -42,6 +47,14 @@ export const renderFormField = (
     label: label,
     rules: formRules,
     initialValue: initialValue,
+    style: resolvedLabelWidth
+      ? ({
+          ["--filter-form-label-width" as any]:
+            typeof resolvedLabelWidth === "number"
+              ? `${resolvedLabelWidth}px`
+              : resolvedLabelWidth,
+        } as React.CSSProperties)
+      : undefined,
   };
 
   let fieldNode: React.ReactNode = null;
@@ -75,6 +88,7 @@ export const renderFormField = (
         placeholder: placeholder || `请选择${label}`,
         disabled: disabled,
         options: options,
+        allowClear: allowClear,
       });
       break;
 

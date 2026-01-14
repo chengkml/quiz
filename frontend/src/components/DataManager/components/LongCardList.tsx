@@ -143,7 +143,7 @@ const LongCardList: React.FC<LongCardListProps> = ({
         );
 
         return (
-          <Col key={key} span={24}>
+          <Col key={key} span={24} style={{marginBottom: '10px'}}>
             <Card
               className="long-card"
               style={{

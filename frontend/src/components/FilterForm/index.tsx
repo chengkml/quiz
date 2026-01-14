@@ -18,16 +18,15 @@ interface FilterItem {
 }
 
 interface FilterFormProps {
-  children: React.ReactNode;
   initialValues?: Record<string, any>;
   onValuesChange?: (changeValue: any, values: any) => void;
   onSearch?: (values: any) => void;
   onReset?: () => void;
   min?: number;
+  labelWidth?: number | string;
   className?: string;
   style?: React.CSSProperties;
   showButtonText?: boolean;
-  fieldLabelMap?: Record<string, string>;
   formFields?: FormFieldConfig[];
 }
 
@@ -40,15 +39,14 @@ interface FilterFormProps {
  */
 const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
   const {
-    children,
     initialValues = {},
     onValuesChange,
     onSearch,
     onReset,
     min = 3,
+    labelWidth,
     className,
     style,
-    fieldLabelMap = {},
     formFields = [],
   } = props;
 
@@ -66,13 +64,25 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
     for (let key in currentValues) {
       const value = currentValues[key];
       if (value !== undefined && value !== null && value !== '') {
-        const label = fieldLabelMap[key] || key;
-        // 处理数组、对象等复杂值
-        const valueLabel = Array.isArray(value)
-          ? value.join(', ')
-          : typeof value === 'object'
-          ? JSON.stringify(value)
-          : String(value);
+        // 从 formFields 中查找对应字段的 label
+        const fieldConfig = formFields.find(f => f.field === key);
+        const label = fieldConfig?.label || key;
+        
+        // 根据字段配置查找中文的value标签
+        let valueLabel: string | React.ReactNode = '';
+        
+        if (fieldConfig?.options && Array.isArray(fieldConfig.options)) {
+          // Select字段，查找对应value的label
+          const option = fieldConfig.options.find(opt => opt.value === value);
+          valueLabel = option?.label || String(value);
+        } else {
+          // 其他字段，直接转换为字符串
+          valueLabel = Array.isArray(value)
+            ? value.join(', ')
+            : typeof value === 'object'
+            ? JSON.stringify(value)
+            : String(value);
+        }
         
         newValueList.push({
           field: key,
@@ -83,7 +93,7 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
       }
     }
     setValueList(newValueList);
-  }, [fieldLabelMap]);
+  }, [formFields]);
 
   // 表单值变化回调
   const handleValuesChange = useCallback((changeValue: any, currentValues: any) => {
@@ -129,6 +139,11 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
     valuesRef.current = newValues;
     setValues(newValues);
     updateValueList(newValues);
+    
+    // 同步更新表单字段
+    if (formRef.current) {
+      formRef.current.setFieldValue(field, undefined);
+    }
   }, [updateValueList]);
 
   // 查询按钮
@@ -155,10 +170,10 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
     };
   }, [expanded]);
 
-  // 初始化已选条件
+  // 初始化已选条件 - 仅在组件挂载时执行一次
   useEffect(() => {
-    updateValueList(initialValues);
-  }, [initialValues, updateValueList]);
+    updateValueList(values);
+  }, []); // 移除 initialValues 的依赖，仅在挂载时执行
 
   // 暴露公共方法
   React.useImperativeHandle(ref, () => ({
@@ -174,8 +189,7 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
 
   // 获取要渲染的字段
   const fieldsToRender = formFields.length > 0 ? formFields : [];
-  const childrenArray = formFields.length === 0 ? React.Children.toArray(children) : [];
-  const totalFields = formFields.length > 0 ? formFields.length : childrenArray.length;
+  const totalFields = formFields.length;
   const isFull = totalFields <= min;
 
   // 按钮组宽度计算
@@ -185,7 +199,7 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
   } else {
     operFlexWidth = 138;
   }
-  const resultOperFlexWidth = 238;
+  const resultOperFlexWidth = operFlexWidth + 12; // 12px 是 marginLeft
 
   return (
     <div
@@ -210,7 +224,7 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
                     : fieldsToRender
                   ).map(field => (
                     <Col key={field.field} span={field.span || 8} style={{ width: 'auto' }}>
-                      {renderFormField(field)}
+                      {renderFormField(field, formRef.current || undefined, labelWidth)}
                     </Col>
                   ))}
                 </Row>
@@ -264,12 +278,12 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
           </Col>
         </Row>
 
-        {/* 已选筛选条件标签 */}
-        {(isFull || valueList.length > 0) && (
+        {/* 已选筛选条件标签：只有非 full 状态才展示 */}
+        {!isFull && (expanded || valueList.length > 0) && (
           <div
             className="filter-tags-section"
             style={{
-              width: expanded ? `calc(100% - ${resultOperFlexWidth}px)` : '100%',
+              width: `calc(100% - ${resultOperFlexWidth}px)`,
             }}
           >
             <span className="filter-tags-label">已选条件:</span>

@@ -1,29 +1,15 @@
 import React, {useEffect, useRef, useState} from 'react';
 import UserAvatar from '@/components/UserAvatar';
-import {
-    Button,
-    Dropdown,
-    Form,
-    Grid,
-    Input,
-    Layout,
-    Menu,
-    Message,
-    Modal,
-    Pagination,
-    Select,
-    Space,
-    Table
-} from '@arco-design/web-react';
-import {IconDelete, IconEdit, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
+import { Layout, Message, Modal } from '@arco-design/web-react';
 import AddCategoryModal from './components/AddCategoryModal';
 import EditCategoryModal from './components/EditCategoryModal';
+import { DataManager } from '@/components/DataManager';
+import FilterForm from '@/components/FilterForm';
+import { FormFieldConfig } from '@/components/types/types';
 
 import {deleteCategory, getCategoryById, getCategoryList} from './api';
 import {getAllSubjects} from '../Subject/api';
 import './index.less';
-
-const {Row, Col} = Grid;
 
 const {Content} = Layout;
 
@@ -57,7 +43,7 @@ function CategoryManager() {
 
 
     // 表格列配置
-    const columns = [
+    const tableColumns = [
         {
             title: '分类名称',
             dataIndex: 'name',
@@ -136,48 +122,34 @@ function CategoryManager() {
                 }
             },
         },
+    ];
+
+    const searchFormFields: FormFieldConfig[] = [
         {
-            title: '操作',
-            width: 100,
-            align: 'center',
-            fixed: 'right',
-            render: (_, record) => (
-                <Dropdown
-                    droplist={
-                        <Menu>
-                            <Menu.Item key="edit" onClick={() => handleEdit(record)}>
-                                <IconEdit style={{marginRight: 8}}/>
-                                编辑
-                            </Menu.Item>
-                            <Menu.Item key="delete" onClick={() => handleDelete(record)}>
-                                <IconDelete style={{marginRight: 8}}/>
-                                删除
-                            </Menu.Item>
-                        </Menu>
-                    }
-                    position="bl"
-                >
-                    <Button
-                        type="text"
-                        className="more-btn"
-                        onClick={e => {
-                            e.stopPropagation();
-                        }}
-                    >
-                        <IconList/>
-                    </Button>
-                </Dropdown>
-            ),
+            field: 'name',
+            label: '名称',
+            type: 'input',
+            placeholder: '请输入分类名称',
+            span: 8,
+        },
+        {
+            field: 'subjectId',
+            label: '学科',
+            type: 'select',
+            placeholder: '请选择学科',
+            allowClear: true,
+            options: subjectOptions.map((subject: any) => ({ label: subject.name, value: subject.id })),
+            span: 8,
         },
     ];
 
     // 获取表格数据
-    const fetchTableData = async (params = {}) => {
+    const fetchTableData = async (params = {}, page?: number, pageSize?: number) => {
         try {
             setLoading(true);
             const queryParams = {
-                pageNum: pagination.current - 1,
-                pageSize: pagination.pageSize,
+                pageNum: (page ?? pagination.current) - 1,
+                pageSize: pageSize ?? pagination.pageSize,
                 ...params,
             };
 
@@ -187,6 +159,8 @@ function CategoryManager() {
             setTableData(content);
             setPagination(prev => ({
                 ...prev,
+                current: (queryParams.pageNum || 0) + 1,
+                pageSize: queryParams.pageSize || prev.pageSize,
                 total: totalElements,
             }));
         } catch (error) {
@@ -197,11 +171,6 @@ function CategoryManager() {
         }
     };
 
-    // 搜索表格数据
-    const searchTableData = (params) => {
-        setPagination(prev => ({...prev, current: 1}));
-        fetchTableData(params);
-    };
 
     // 获取学科选项
     const fetchSubjectOptions = async () => {
@@ -246,11 +215,6 @@ function CategoryManager() {
         };
     }, []);
 
-    // 分页变化处理
-    const handleTableChange = (pagination) => {
-        setPagination(pagination);
-        fetchTableData();
-    };
 
     // 处理新增
     const handleAdd = () => {
@@ -278,13 +242,31 @@ function CategoryManager() {
                 try {
                     await deleteCategory(record.id);
                     Message.success('删除成功');
-                    fetchTableData();
+                    const values = filterFormRef.current?.getFilterValues?.() || {};
+                    fetchTableData(values);
                 } catch (error) {
                     console.error('删除分类失败:', error);
                     Message.error('删除失败');
                 }
             },
         });
+    };
+
+    const filterContent = (
+        <FilterForm
+            ref={filterFormRef}
+            initialValues={{ name: '', subjectId: undefined }}
+            formFields={searchFormFields}
+            onSearch={(values) => fetchTableData(values, 1)}
+            onReset={() => fetchTableData({}, 1)}
+            min={3}
+        />
+    );
+
+    const handlePaginationChange = (p: any) => {
+        setPagination(p);
+        const values = filterFormRef.current?.getFilterValues?.() || {};
+        fetchTableData(values, p.current, p.pageSize);
     };
 
 
@@ -294,7 +276,8 @@ function CategoryManager() {
         setAddModalVisible(false);
         setEditModalVisible(false);
         setCurrentRecord(null);
-        fetchTableData();
+        const values = filterFormRef.current?.getFilterValues?.() || {};
+        fetchTableData(values);
     };
 
     // 模态框取消回调
@@ -307,76 +290,35 @@ function CategoryManager() {
     return (
         <Layout className="category-manager">
             <Content>
-                {/* 筛选表单 */}
-                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
-                    const values = filterFormRef.current?.getFieldsValue?.() || {};
-                    searchTableData(values);
-                }}>
-                    <Row gutter={16}>
-                        <Col span={6}>
-                            <Form.Item field="name" label="名称">
-                                <Input placeholder="请输入分类名称"/>
-                            </Form.Item>
-                        </Col>
-                        <Col span={6}>
-                            <Form.Item field="subjectId" label="学科">
-                                <Select placeholder="请选择学科" allowClear>
-                                    {subjectOptions.map(subject => (
-                                        <Select.Option key={subject.id} value={subject.id}>{subject.name}</Select.Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-
-                        <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
-                            <Space>
-                                <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                    const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                    searchTableData(values);
-                                }}>
-                                    搜索
-                                </Button>
-                                <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
-                                    新增
-                                </Button>
-                            </Space>
-                        </Col>
-                    </Row>
-                </Form>
-
-                {/* 表格 */}
-                <Table
-                    columns={columns}
+                <DataManager
                     data={tableData}
                     loading={loading}
-                    pagination={false}
-                    rowKey="id"
-                    scroll={{
-                        y: tableScrollHeight,
+                    pagination={pagination}
+                    onPaginationChange={handlePaginationChange}
+                    actions={{
+                        onAdd: handleAdd,
+                        onEdit: handleEdit,
+                        onDelete: handleDelete,
                     }}
+                    config={{
+                        displayMode: 'table',
+                        filterContent,
+                        tableColumns: tableColumns,
+                        showModeToggle: false,
+                    }}
+                    tableScrollHeight={tableScrollHeight}
                 />
-                <div className="pagination-wrapper">
-                    <Pagination
-                        {...pagination}
-                        onChange={handleTableChange}
-                    />
-                </div>
-                {/* 新增模态框 */}
                 <AddCategoryModal
                     visible={addModalVisible}
                     onCancel={handleModalCancel}
                     onSuccess={handleModalSuccess}
                 />
-
-                {/* 编辑模态框 */}
                 <EditCategoryModal
                     visible={editModalVisible}
                     record={currentRecord}
                     onCancel={handleModalCancel}
                     onSuccess={handleModalSuccess}
                 />
-
-
             </Content>
         </Layout>
     );

@@ -10,28 +10,19 @@ const updateRole = params => axios.put('/role/update', params);
 const deleteRole = roleId => axios.delete(`/role/delete/${roleId}`);
 
 // 获取角色详情
-const getRoleById = roleId => axios.get(`/role/${roleId}`);
+const getRoleById = roleId => axios.get(`/role/get/${roleId}`);
 
 // 根据名称获取角色
 const getRoleByName = roleName => axios.get(`/role/name/${roleName}`);
 
 // 分页查询角色
-const getRoles = params => axios.get('/role', { params });
-
-// 获取启用角色列表
-const getActiveRoles = () => axios.get('/role/list/active');
-
-// 启用角色
-const enableRole = roleId => axios.post(`/role/${roleId}/enable`);
-
-// 禁用角色
-const disableRole = roleId => axios.post(`/role/${roleId}/disable`);
+const getRoles = params => axios.post('/role/search', params);
 
 // 检查角色名称是否存在
 const checkRoleName = (roleName, excludeRoleId = null) => {
-  const params = { roleName };
+  const params = { name: roleName };
   if (excludeRoleId) {
-    params.excludeRoleId = excludeRoleId;
+    params.excludeId = excludeRoleId;
   }
   return axios.get('/role/check/name', { params });
 };
@@ -43,9 +34,6 @@ export {
   getRoleById,
   getRoleByName,
   getRoles,
-  getActiveRoles,
-  enableRole,
-  disableRole,
   checkRoleName
 };
 

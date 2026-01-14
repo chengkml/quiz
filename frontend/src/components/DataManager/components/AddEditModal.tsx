@@ -87,7 +87,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
       confirmLoading={submitting || loading}
       maskClosable={false}
     >
-      <Spin loading={loading}>
+      <Spin loading={loading} style={{ width: "100%" }}>
         <Form
           form={form}
           layout="vertical"
