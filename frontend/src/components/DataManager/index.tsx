@@ -1,8 +1,4 @@
-/**
- * DataManager 组件库入口
- * 导出主组件和所有工具
- */
-
+export { default } from './index/index';
 export { default as DataManager } from './index/index';
 export { default as AddEditModal } from './components/AddEditModal';
 export { default as DetailModal } from './components/DetailModal';
