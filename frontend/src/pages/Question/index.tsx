@@ -10,15 +10,12 @@ import {
     Grid,
     Input,
     InputNumber,
-    Layout,
     Menu,
     Message,
     Modal,
-    Pagination,
     Select,
     Space,
     Spin,
-    Table,
     Tag,
     Tooltip,
     Tree,
@@ -39,12 +36,11 @@ import {
 } from './api';
 import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import DynamicQuestionForm from '@/components/DynamicQuestionForm';
-import Sider from '@arco-design/web-react/es/Layout/sider';
+import { DataManager } from '../../components/DataManager';
 import {createKnowledge} from '../Knowledge/api';
 import renderDate from "@/utils/timeUtil";
 
 const {TextArea} = Input;
-const {Content} = Layout;
 const {Row, Col} = Grid;
 
 function QuestionManager() {
@@ -990,142 +986,148 @@ function QuestionManager() {
 
     return (
         <div className="question-manager">
-            <Layout>
-                <Sider
-                    resizeDirections={['right']}
-                    style={{
-                        minWidth: 200,
-                        maxWidth: 400,
-                        height: '100%',
-                        backgroundColor: 'var(--color-bg-1)',
-                        borderRight: '1px solid #e5e6eb',
-                    }}
-                >
-                    <div style={{padding: '12px', borderBottom: '1px solid #e5e6eb'}}>
-                        <Input.Search
-                            placeholder="搜索学科分类"
-                            allowClear
-                            style={{width: '100%'}}
-                            value={searchKeyword}
-                            onChange={(value) => {
-                                handleSearchChange(value);
+            <DataManager
+                data={tableData}
+                loading={tableLoading}
+                pagination={pagination}
+                onPaginationChange={(p) => {
+                    fetchTableData(null, p.pageSize, p.current);
+                }}
+                config={{
+                    displayMode: 'table',
+                    filterContent: (
+                        <Form
+                            ref={filterFormRef}
+                            layout="horizontal"
+                            className="filter-form"
+                            style={{marginTop: '10px'}}
+                            onValuesChange={(params) => {
+                                fetchTableData(params);
                             }}
-                        />
-                    </div>
-                    <div style={{padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto'}}>
-                        <Spin loading={treeLoading}>
-                            {filteredTreeData.length > 0 ? (
-                                <Tree
-                                    treeData={filteredTreeData}
-                                    expandedKeys={expandedKeys}
-                                    selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
-                                    onExpand={(expandedKeys) => {
-                                        setExpandedKeys(expandedKeys);
-                                    }}
-                                    onSelect={(selectedKeys, info) => {
-                                        if (selectedKeys.length > 0) {
-                                            setSelectedTreeNode(selectedKeys[0]);
-                                            const selectedKey = selectedKeys[0];
-                                            const nodeInfo = findNodeInTree(treeData, selectedKey);
-                                            const collectChildCategoryIds = (treeNode) => {
-                                                let categoryIds = [];
-                                                if (treeNode.children && treeNode.children.length > 0) {
-                                                    treeNode.children.forEach((child) => {
-                                                        if(child.categoryId) {
-                                                            categoryIds.push(child.categoryId);
-                                                            categoryIds = categoryIds.concat(collectChildCategoryIds(child));
-                                                        }
-                                                    });
-                                                }
-                                                return categoryIds;
-                                            };
-                                            let categoryIds = [];
-                                            if (nodeInfo.categoryId) {
-                                                categoryIds.push(nodeInfo.categoryId);
-                                                categoryIds = categoryIds.concat(collectChildCategoryIds(nodeInfo));
-                                            }
-                                            nodeInfo.categoryIds = categoryIds;
-                                            setCurrentTreeNode(nodeInfo);
-                                            if (nodeInfo) {
-                                                fetchTableData(null, null, null, nodeInfo.subjectId, categoryIds);
-                                            } else {
-                                                fetchTableData();
-                                            }
-                                        } else {
-                                            setSelectedTreeNode(null);
-                                            setCurrentTreeNode(null);
-                                            fetchTableData();
-                                        }
-                                    }}
-                                    blockNode
-                                    showLine
+                        >
+                            <Row gutter={16}>
+                                <Col span={8}>
+                                    <Form.Item field="content" label="关键字">
+                                        <Input placeholder="请输入题干内容关键词"/>
+                                    </Form.Item>
+                                </Col>
+                                <Col
+                                    span={8}
                                     style={{
-                                        backgroundColor: 'transparent',
+                                        display: 'flex',
+                                        justifyContent: 'flex-start',
+                                        alignItems: 'flex-end',
+                                        paddingBottom: '16px',
+                                    }}
+                                >
+                                    <Space>
+                                        <Button
+                                            type="primary"
+                                            icon={<IconSearch/>}
+                                            onClick={() => {
+                                                fetchTableData();
+                                            }}
+                                        >
+                                            搜索
+                                        </Button>
+                                        <Button
+                                            type="primary"
+                                            status="success"
+                                            icon={<IconPlus/>}
+                                            onClick={handleGenerate}
+                                        >
+                                            新增
+                                        </Button>
+                                    </Space>
+                                </Col>
+                            </Row>
+                        </Form>
+                    ),
+                    showTree: true,
+                    treeContent: (
+                        <div style={{height: '100%'}}>
+                            <div style={{padding: '12px', borderBottom: '1px solid #e5e6eb'}}>
+                                <Input.Search
+                                    placeholder="搜索学科分类"
+                                    allowClear
+                                    style={{width: '100%'}}
+                                    value={searchKeyword}
+                                    onChange={(value) => {
+                                        handleSearchChange(value);
                                     }}
                                 />
-                            ) : (
-                                <div style={{
-                                    textAlign: 'center',
-                                    color: 'var(--color-text-2)',
-                                    padding: '20px 0',
-                                    fontSize: '14px'
-                                }}>
-                                    暂无数据
-                                </div>
-                            )}
-                        </Spin>
-                    </div>
-                </Sider>
-                <Content>
-                    {/* 筛选表单 */}
-                    <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}}
-                          onValuesChange={(params) => {
-                              fetchTableData(params)
-                          }}>
-                        <Row gutter={16}>
-                            <Col span={8}>
-                                <Form.Item field="content" label="关键字">
-                                    <Input placeholder="请输入题干内容关键词"/>
-                                </Form.Item>
-                            </Col>
-                            <Col span={8} style={{
-                                display: 'flex',
-                                justifyContent: 'flex-start',
-                                alignItems: 'flex-end',
-                                paddingBottom: '16px'
-                            }}>
-                                <Space>
-                                    <Button type="primary" icon={<IconSearch/>} onClick={(params) => {
-                                        fetchTableData()
-                                    }}>
-                                        搜索
-                                    </Button>
-                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleGenerate}>
-                                        新增
-                                    </Button>
-                                </Space>
-                            </Col>
-                        </Row>
-                    </Form>
-                    <Table
-                        columns={columns}
-                        data={tableData}
-                        loading={tableLoading}
-                        pagination={false}
-                        scroll={{y: tableScrollHeight}}
-                        rowKey="id"
-                    />
-
-                    {/* 分页 */}
-                    <div className="pagination-wrapper">
-                        <Pagination
-                            {...pagination}
-                            onChange={(current, pageSize) => {
-                                fetchTableData(null, pageSize, current);
-                            }}
-                        />
-                    </div>
-                </Content>
+                            </div>
+                            <div style={{padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto'}}>
+                                <Spin loading={treeLoading}>
+                                    {filteredTreeData.length > 0 ? (
+                                        <Tree
+                                            treeData={filteredTreeData}
+                                            expandedKeys={expandedKeys}
+                                            selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
+                                            onExpand={(keys) => {
+                                                setExpandedKeys(keys as string[]);
+                                            }}
+                                            onSelect={(selectedKeys) => {
+                                                if (selectedKeys.length > 0) {
+                                                    setSelectedTreeNode(selectedKeys[0]);
+                                                    const selectedKey = selectedKeys[0];
+                                                    const nodeInfo = findNodeInTree(treeData, selectedKey);
+                                                    const collectChildCategoryIds = (treeNode) => {
+                                                        let categoryIds = [];
+                                                        if (treeNode.children && treeNode.children.length > 0) {
+                                                            treeNode.children.forEach((child) => {
+                                                                if (child.categoryId) {
+                                                                    categoryIds.push(child.categoryId);
+                                                                    categoryIds = categoryIds.concat(collectChildCategoryIds(child));
+                                                                }
+                                                            });
+                                                        }
+                                                        return categoryIds;
+                                                    };
+                                                    let categoryIds = [];
+                                                    if (nodeInfo.categoryId) {
+                                                        categoryIds.push(nodeInfo.categoryId);
+                                                        categoryIds = categoryIds.concat(collectChildCategoryIds(nodeInfo));
+                                                    }
+                                                    nodeInfo.categoryIds = categoryIds;
+                                                    setCurrentTreeNode(nodeInfo);
+                                                    if (nodeInfo) {
+                                                            fetchTableData(null, null, null, nodeInfo.subjectId, categoryIds);
+                                                    } else {
+                                                            fetchTableData();
+                                                    }
+                                                } else {
+                                                    setSelectedTreeNode(null);
+                                                    setCurrentTreeNode(null);
+                                                    fetchTableData();
+                                                }
+                                            }}
+                                            blockNode
+                                            showLine
+                                            style={{
+                                                backgroundColor: 'transparent',
+                                            }}
+                                        />
+                                    ) : (
+                                        <div
+                                            style={{
+                                                textAlign: 'center',
+                                                color: 'var(--color-text-2)',
+                                                padding: '20px 0',
+                                                fontSize: '14px',
+                                            }}
+                                        >
+                                            暂无数据
+                                        </div>
+                                    )}
+                                </Spin>
+                            </div>
+                        </div>
+                    ),
+                    tableColumns: columns,
+                }}
+                tableScrollHeight={tableScrollHeight}
+            />
 
                 {/* 编辑对话框 */}
                 <Modal
@@ -1705,7 +1707,6 @@ function QuestionManager() {
                     </Modal>
                 )}
 
-            </Layout>
         </div>
     );
 }

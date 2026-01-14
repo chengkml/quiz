@@ -29,6 +29,7 @@ import {
     getSubjectCategoryTree,
     updateKnowledge,
 } from './api';
+import { DataManager } from '../../components/DataManager';
 import { IconDelete, IconEdit, IconList, IconPlus, IconSearch } from '@arco-design/web-react/icon';
 import Sider from '@arco-design/web-react/es/Layout/sider';
 
@@ -508,180 +509,171 @@ function KnowledgeManager() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    return (
-        <div className="knowledge-manager">
-            <Layout>
-                <Sider
-                    resizeDirections={['right']}
+    const filterContent = (
+        <Form
+            ref={filterFormRef}
+            layout="horizontal"
+            className="filter-form"
+            style={{ marginTop: '10px' }}
+            onValuesChange={() => {
+                const values = filterFormRef.current?.getFieldsValue?.() || {};
+                searchTableData(values);
+            }}
+        >
+            <Row gutter={16}>
+                <Col span={8}>
+                    <Form.Item field="knowledgeName" label="关键字">
+                        <Input placeholder="请输入关键字" />
+                    </Form.Item>
+                </Col>
+                <Col
+                    span={6}
                     style={{
-                        minWidth: 200,
-                        maxWidth: 400,
-                        height: '100%',
-                        backgroundColor: '#fff',
-                        borderRight: '1px solid #e5e6eb',
+                        display: 'flex',
+                        justifyContent: 'flex-start',
+                        alignItems: 'flex-end',
+                        paddingBottom: '16px',
                     }}
                 >
-                    <div style={{ padding: '12px', borderBottom: '1px solid #e5e6eb' }}>
-                        <Input.Search
-                            placeholder="搜索学科分类"
-                            allowClear
-                            style={{ width: '100%' }}
-                            value={searchKeyword}
-                            onChange={(value) => {
-                                handleSearchChange(value);
+                    <Space>
+                        <Button
+                            type="primary"
+                            icon={<IconSearch />}
+                            onClick={() => {
+                                const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                searchTableData(values);
                             }}
-                        />
-                    </div>
-                    <div style={{ padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto' }}>
-                        <Spin loading={treeLoading}>
-                            {filteredTreeData.length > 0 ? (
-                                <Tree
-                                    treeData={filteredTreeData}
-                                    expandedKeys={expandedKeys}
-                                    selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
-                                    onExpand={(expandedKeys) => {
-                                        setExpandedKeys(expandedKeys);
-                                    }}
-                                    onSelect={(selectedKeys, info) => {
-                                        if (selectedKeys.length > 0) {
-                                            const node = info.node;
+                        >
+                            搜索
+                        </Button>
+                    </Space>
+                </Col>
+            </Row>
+        </Form>
+    );
 
-                                            const subjectId = node.props.subjectId;
+    const treeContent = (
+        <div style={{ height: '100%' }}>
+            <div style={{ padding: '12px', borderBottom: '1px solid #e5e6eb' }}>
+                <Input.Search
+                    placeholder="搜索学科分类"
+                    allowClear
+                    style={{ width: '100%' }}
+                    value={searchKeyword}
+                    onChange={(value) => {
+                        handleSearchChange(value);
+                    }}
+                />
+            </div>
+            <div style={{ padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto' }}>
+                <Spin loading={treeLoading}>
+                    {filteredTreeData.length > 0 ? (
+                        <Tree
+                            treeData={filteredTreeData}
+                            expandedKeys={expandedKeys}
+                            selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
+                            onExpand={(expandedKeys) => {
+                                setExpandedKeys(expandedKeys);
+                            }}
+                            onSelect={(selectedKeys, info) => {
+                                if (selectedKeys.length > 0) {
+                                    const node = info.node;
 
-                                            // 判断是否为学科节点
-                                            const isSubjectNode = node.key === node.props.subjectId;
-                                            const categoryId = isSubjectNode ? null : node.key;
+                                    const subjectId = node.props.subjectId;
+                                    const isSubjectNode = node.key === node.props.subjectId;
+                                    const categoryId = isSubjectNode ? null : node.key;
 
-                                            // 递归收集所有子节点的 categoryId
-                                            const collectChildCategoryIds = (treeNode) => {
-                                                let ids = [];
-                                                if (treeNode.children && treeNode.children.length > 0) {
-                                                    treeNode.children.forEach((child) => {
-                                                        ids.push(child.key);
-                                                        ids = ids.concat(collectChildCategoryIds(child));
-                                                    });
-                                                }
-                                                return ids;
-                                            };
-
-                                            let categoryIds = [];
-
-                                            if (!isSubjectNode) {
-                                                // 当前分类
-                                                categoryIds.push(categoryId);
-
-                                                // 加上所有子分类
-                                                categoryIds = categoryIds.concat(collectChildCategoryIds(node));
-                                            }
-
-                                            setSelectedTreeNode(selectedKeys[0]);
-                                            setCurrentSubjectId(subjectId);
-                                            setCurrentCategoryIds(categoryIds);
-
-                                            fetchTableData(
-                                                null,
-                                                pagination.pageSize,
-                                                pagination.current,
-                                                subjectId,
-                                                categoryIds.length > 0 ? categoryIds : null
-                                            );
-                                        } else {
-                                            setSelectedTreeNode(null);
-                                            setCurrentSubjectId(null);
-                                            setCurrentCategoryIds([]);
-                                            fetchTableData();
+                                    const collectChildCategoryIds = (treeNode) => {
+                                        let ids = [];
+                                        if (treeNode.children && treeNode.children.length > 0) {
+                                            treeNode.children.forEach((child) => {
+                                                ids.push(child.key);
+                                                ids = ids.concat(collectChildCategoryIds(child));
+                                            });
                                         }
-                                    }}
-                                    blockNode
-                                    showLine
-                                    style={{
-                                        backgroundColor: 'transparent',
-                                    }}
-                                />
-                            ) : (
-                                <div
-                                    style={{
-                                        textAlign: 'center',
-                                        color: '#86909c',
-                                        padding: '20px 0',
-                                        fontSize: '14px',
-                                    }}
-                                >
-                                    暂无数据
-                                </div>
-                            )}
-                        </Spin>
-                    </div>
-                </Sider>
-                <Content>
-                    {/* 筛选表单 */}
-                    <Form
-                        ref={filterFormRef}
-                        layout="horizontal"
-                        className="filter-form"
-                        style={{ marginTop: '10px' }}
-                        onValuesChange={() => {
-                            const values = filterFormRef.current?.getFieldsValue?.() || {};
-                            searchTableData(values);
-                        }}
-                    >
-                        <Row gutter={16}>
-                            <Col span={8}>
-                                <Form.Item field="knowledgeName" label="关键字">
-                                    <Input placeholder="请输入关键字" />
-                                </Form.Item>
-                            </Col>
-                            <Col
-                                span={6}
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'flex-start',
-                                    alignItems: 'flex-end',
-                                    paddingBottom: '16px',
-                                }}
-                            >
-                                <Space>
-                                    <Button
-                                        type="primary"
-                                        icon={<IconSearch />}
-                                        onClick={() => {
-                                            const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                            searchTableData(values);
-                                        }}
-                                    >
-                                        搜索
-                                    </Button>
-                                    <Button type="primary" status="success" icon={<IconPlus />} onClick={handleAdd}>
-                                        新增
-                                    </Button>
-                                </Space>
-                            </Col>
-                        </Row>
-                    </Form>
-                    <Table
-                        columns={columns}
-                        data={tableData}
-                        loading={tableLoading}
-                        pagination={false}
-                        scroll={{ y: tableScrollHeight }}
-                        rowKey="id"
-                    />
-                    <div className="pagination-wrapper">
-                        <Pagination {...pagination} onChange={handlePageChange} />
-                    </div>
+                                        return ids;
+                                    };
 
-                    {/* 新增对话框 */}
-                    <Modal
-                        title="新增知识点"
-                        visible={addModalVisible}
-                        onOk={confirmAdd}
-                        onCancel={() => {
-                            setAddModalVisible(false);
-                            addFormRef.current?.resetFields();
-                        }}
-                    >
-                        <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
-                            <Form ref={addFormRef} className="modal-form" layout="vertical">
+                                    let categoryIds = [];
+                                    if (!isSubjectNode) {
+                                        categoryIds.push(categoryId);
+                                        categoryIds = categoryIds.concat(collectChildCategoryIds(node));
+                                    }
+
+                                    setSelectedTreeNode(selectedKeys[0]);
+                                    setCurrentSubjectId(subjectId);
+                                    setCurrentCategoryIds(categoryIds);
+
+                                    fetchTableData(
+                                        null,
+                                        pagination.pageSize,
+                                        pagination.current,
+                                        subjectId,
+                                        categoryIds.length > 0 ? categoryIds : null
+                                    );
+                                } else {
+                                    setSelectedTreeNode(null);
+                                    setCurrentSubjectId(null);
+                                    setCurrentCategoryIds([]);
+                                    fetchTableData();
+                                }
+                            }}
+                            blockNode
+                            showLine
+                            style={{ backgroundColor: 'transparent' }}
+                        />
+                    ) : (
+                        <div
+                            style={{
+                                textAlign: 'center',
+                                color: '#86909c',
+                                padding: '20px 0',
+                                fontSize: '14px',
+                            }}
+                        >
+                            暂无数据
+                        </div>
+                    )}
+                </Spin>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="knowledge-manager">
+            <DataManager
+                data={tableData}
+                loading={tableLoading}
+                pagination={pagination}
+                onPaginationChange={(p) => {
+                    setPagination(p);
+                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                    fetchTableData(values, p.pageSize, p.current);
+                }}
+                actions={{ onAdd: handleAdd }}
+                config={{
+                    displayMode: 'table',
+                    showModeToggle: false,
+                    tableColumns: columns,
+                    filterContent,
+                    showTree: true,
+                    treeContent,
+                }}
+                tableScrollHeight={tableScrollHeight}
+            />
+
+            {/* 新增对话框 */}
+            <Modal
+                title="新增知识点"
+                visible={addModalVisible}
+                onOk={confirmAdd}
+                onCancel={() => {
+                    setAddModalVisible(false);
+                    addFormRef.current?.resetFields();
+                }}
+            >
+                <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
+                    <Form ref={addFormRef} className="modal-form" layout="vertical">
                                 <Form.Item
                                     label="知识点名称"
                                     field="name"
@@ -725,32 +717,32 @@ function KnowledgeManager() {
                         </div>
                     </Modal>
 
-                    {/* 编辑对话框 */}
-                    <Modal
-                        title="编辑知识点"
-                        visible={editModalVisible}
-                        onCancel={() => {
-                            setEditModalVisible(false);
-                            editFormRef.current?.resetFields();
-                        }}
-                        onOk={confirmEdit}
-                        afterOpen={() => {
-                            if (currentRecord) {
-                                editFormRef.current?.setFieldsValue({
-                                    name: currentRecord.name,
-                                    description: currentRecord.description,
-                                    categoryId: currentRecord.categoryId,
-                                    subjectId: currentRecord.subjectId,
-                                    difficultyLevel: currentRecord.difficultyLevel,
-                                });
-                                if (currentRecord.subjectId) {
-                                    fetchCategoriesBySubject(currentRecord.subjectId);
-                                }
-                            }
-                        }}
-                    >
-                        <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
-                            <Form ref={editFormRef} className="modal-form" layout="vertical">
+            {/* 编辑对话框 */}
+            <Modal
+                title="编辑知识点"
+                visible={editModalVisible}
+                onCancel={() => {
+                    setEditModalVisible(false);
+                    editFormRef.current?.resetFields();
+                }}
+                onOk={confirmEdit}
+                afterOpen={() => {
+                    if (currentRecord) {
+                        editFormRef.current?.setFieldsValue({
+                            name: currentRecord.name,
+                            description: currentRecord.description,
+                            categoryId: currentRecord.categoryId,
+                            subjectId: currentRecord.subjectId,
+                            difficultyLevel: currentRecord.difficultyLevel,
+                        });
+                        if (currentRecord.subjectId) {
+                            fetchCategoriesBySubject(currentRecord.subjectId);
+                        }
+                    }
+                }}
+            >
+                <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
+                    <Form ref={editFormRef} className="modal-form" layout="vertical">
                                 <Form.Item
                                     label="知识点名称"
                                     field="name"
@@ -794,18 +786,16 @@ function KnowledgeManager() {
                         </div>
                     </Modal>
 
-                    {/* 删除确认对话框 */}
-                    <Modal
-                        title="删除知识点"
-                        visible={deleteModalVisible}
-                        onCancel={() => setDeleteModalVisible(false)}
-                        onOk={confirmDelete}
-                        confirmLoading={loading}
-                    >
-                        <p>确定要删除知识点 "{currentRecord?.name}" 吗？此操作不可撤销。</p>
-                    </Modal>
-                </Content>
-            </Layout>
+            {/* 删除确认对话框 */}
+            <Modal
+                title="删除知识点"
+                visible={deleteModalVisible}
+                onCancel={() => setDeleteModalVisible(false)}
+                onOk={confirmDelete}
+                confirmLoading={loading}
+            >
+                <p>确定要删除知识点 "{currentRecord?.name}" 吗？此操作不可撤销。</p>
+            </Modal>
         </div>
     );
 }

@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Button,
     Drawer,
@@ -7,26 +7,38 @@ import {
     Grid,
     Input,
     InputNumber,
-    Layout,
     Menu,
     Message,
     Modal,
-    Pagination,
     Select,
     Space,
-    Table,
     Tag,
 } from '@arco-design/web-react';
-import {IconDelete, IconInfo, IconList, IconPlus, IconRefresh, IconSearch, IconStop} from '@arco-design/web-react/icon';
-import {useNavigate} from 'react-router-dom';
+import {
+    IconDelete,
+    IconInfo,
+    IconList,
+    IconPlus,
+    IconSearch,
+    IconStop,
+} from '@arco-design/web-react/icon';
+import { useNavigate } from 'react-router-dom';
 import './style/index.less';
-import {addJob, deleteJob, getJobOptions, getQueueList, retryJob, searchJobs, stopJob,} from './api';
+import {
+    addJob,
+    deleteJob,
+    getJobOptions,
+    getQueueList,
+    retryJob,
+    searchJobs,
+    stopJob,
+} from './api';
 import LogDetails from './components/logDetails/index';
+import { DataManager } from '../../components/DataManager';
 
-const {Content} = Layout;
-const {TextArea} = Input;
-const {Option} = Select;
-const {Row, Col} = Grid;
+const { TextArea } = Input;
+const { Option } = Select;
+const { Row, Col } = Grid;
 
 function JobManager() {
     const navigate = useNavigate();
@@ -41,6 +53,7 @@ function JobManager() {
         showTotal: true,
         showJumper: true,
         showPageSize: true,
+        pageSizeOptions: [10, 20, 50, 100],
     });
     const [tableScrollHeight, setTableScrollHeight] = useState(420);
 
@@ -61,14 +74,14 @@ function JobManager() {
     const filterFormRef = useRef<any>(null);
 
     // 选项
-    const [jobOptions, setJobOptions] = useState([]);
-    const [queueOptions, setQueueOptions] = useState([]);
+    const [jobOptions, setJobOptions] = useState<any[]>([]);
+    const [queueOptions, setQueueOptions] = useState<any[]>([]);
     const [statusOptions] = useState([
-        {label: '待处理', value: 'PENDING'},
-        {label: '处理中', value: 'IN_PROGRESS'},
-        {label: '已完成', value: 'COMPLETED'},
-        {label: '失败', value: 'FAILED'},
-        {label: '已停止', value: 'STOPPED'},
+        { label: '待处理', value: 'PENDING' },
+        { label: '处理中', value: 'IN_PROGRESS' },
+        { label: '已完成', value: 'COMPLETED' },
+        { label: '失败', value: 'FAILED' },
+        { label: '已停止', value: 'STOPPED' },
     ]);
 
     // 时间格式化
@@ -101,6 +114,28 @@ function JobManager() {
         }
     };
 
+    // 菜单点击处理
+    const handleMenuClick = (key: string, _: any, record: any) => {
+        setCurrentRecord(record);
+        switch (key) {
+            case 'stop':
+                setStopModalVisible(true);
+                break;
+            case 'retry':
+                setRetryModalVisible(true);
+                break;
+            case 'log':
+                setCurrentJobId(record.id);
+                setLogModalVisible(true);
+                break;
+            case 'delete':
+                setDeleteModalVisible(true);
+                break;
+            default:
+                break;
+        }
+    };
+
     // 表格列定义
     const columns = [
         {
@@ -128,7 +163,7 @@ function JobManager() {
                 const map: Record<string, string> = {
                     HAND: '手工触发',
                     CRON: '定时触发',
-                    QUEUE_CRON: '定时队列触发'
+                    QUEUE_CRON: '定时队列触发',
                 };
                 return map[triggerType] || triggerType;
             },
@@ -146,13 +181,13 @@ function JobManager() {
             width: 120,
             render: (state: string) => {
                 const map: Record<string, any> = {
-                    RUNNING: {color: 'blue', text: '运行中'},
-                    SUCCESS: {color: 'green', text: '成功'},
-                    FAILED: {color: 'red', text: '失败'},
-                    STOPPED: {color: 'gold', text: '已终止'},
-                    PENDING: {color: 'gray', text: '待执行'},
+                    RUNNING: { color: 'blue', text: '运行中' },
+                    SUCCESS: { color: 'green', text: '成功' },
+                    FAILED: { color: 'red', text: '失败' },
+                    STOPPED: { color: 'gold', text: '已终止' },
+                    PENDING: { color: 'gray', text: '待执行' },
                 };
-                const it = map[state] || {color: 'arcoblue', text: state};
+                const it = map[state] || { color: 'arcoblue', text: state };
                 return <Tag color={it.color} bordered>{it.text}</Tag>;
             },
         },
@@ -160,35 +195,43 @@ function JobManager() {
             title: '操作',
             width: 100,
             align: 'center',
-            fixed: 'right' as any,
+            fixed: 'right' as const,
             render: (_: any, record: any) => (
                 <Space size="large" className="table-btn-group">
                     <Dropdown
                         position="bl"
                         droplist={
-                            <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}
-                                  className="handle-dropdown-menu">
+                            <Menu
+                                onClickMenuItem={(key, e) =>
+                                    handleMenuClick(key, e, record)
+                                }
+                                className="handle-dropdown-menu"
+                            >
                                 {record.state === 'RUNNING' && (
                                     <Menu.Item key="stop">
-                                        <IconStop style={{marginRight: 5}}/>
+                                        <IconStop style={{ marginRight: 5 }} />
                                         停止
                                     </Menu.Item>
                                 )}
                                 <Menu.Item key="log">
-                                    <IconInfo style={{marginRight: 5}}/>
+                                    <IconInfo style={{ marginRight: 5 }} />
                                     日志
                                 </Menu.Item>
                                 {['RUNNING'].indexOf(record.state) === -1 && (
                                     <Menu.Item key="delete">
-                                        <IconDelete style={{marginRight: 5}}/>
+                                        <IconDelete style={{ marginRight: 5 }} />
                                         删除
                                     </Menu.Item>
                                 )}
                             </Menu>
                         }
                     >
-                        <Button type="text" className="more-btn" onClick={(e) => e.stopPropagation()}>
-                            <IconList/>
+                        <Button
+                            type="text"
+                            className="more-btn"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <IconList />
                         </Button>
                     </Dropdown>
                 </Space>
@@ -196,50 +239,13 @@ function JobManager() {
         },
     ];
 
-    // 菜单点击处理
-    const handleMenuClick = (key: string, _: any, record: any) => {
-        setCurrentRecord(record);
-        switch (key) {
-            case 'stop':
-                setStopModalVisible(true);
-                break;
-            case 'retry':
-                setRetryModalVisible(true);
-                break;
-            case 'log':
-                setCurrentJobId(record.id);
-                setLogModalVisible(true);
-                break;
-            case 'delete':
-                setDeleteModalVisible(true);
-                break;
-            default:
-                break;
-        }
-    };
-
-    // 分页变化
-    const handlePageChange = (page, pageSize) => {
-        setPagination(prev => ({
-            ...prev,
-            current: page,
-            pageSize: pageSize,
-        }));
-        const values = filterFormRef.current?.getFieldsValue?.() || {};
-        fetchTableData({
-            ...values,
-            offset: (page - 1) * pageSize,
-            limit: pageSize,
-        });
-    };
-
     // 获取表格数据
-    const fetchTableData = async (params) => {
+    const fetchTableData = async (params: any) => {
         try {
             setTableLoading(true);
             const response = await searchJobs(params);
             setTableData(response.data.content || []);
-            setPagination(prev => ({
+            setPagination((prev) => ({
                 ...prev,
                 total: response.data.totalElements || 0,
             }));
@@ -251,8 +257,8 @@ function JobManager() {
     };
 
     // 搜索表格数据
-    const searchTableData = (params) => {
-        setPagination(prev => ({
+    const searchTableData = (params: any) => {
+        setPagination((prev) => ({
             ...prev,
             current: 1,
         }));
@@ -260,6 +266,17 @@ function JobManager() {
             ...params,
             offset: 0,
             limit: pagination.pageSize,
+        });
+    };
+
+    // 分页变化
+    const handlePaginationChange = (newPagination: any) => {
+        setPagination(newPagination);
+        const values = filterFormRef.current?.getFieldsValue?.() || {};
+        fetchTableData({
+            ...values,
+            offset: (newPagination.current - 1) * newPagination.pageSize,
+            limit: newPagination.pageSize,
         });
     };
 
@@ -281,7 +298,12 @@ function JobManager() {
                 const fieldName = `params_${key}`;
                 let val = rest[fieldName];
 
-                if (def.type === 'number' && val !== undefined && val !== null && val !== '') {
+                if (
+                    def.type === 'number' &&
+                    val !== undefined &&
+                    val !== null &&
+                    val !== ''
+                ) {
                     val = Number(val);
                 }
 
@@ -336,7 +358,6 @@ function JobManager() {
             addFormRef.current.setFieldsValue(resetValues);
         }
     };
-
 
     // 删除确认
     const handleDeleteConfirm = async () => {
@@ -424,225 +445,243 @@ function JobManager() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const filterContent = (
+        <Form
+            ref={filterFormRef}
+            layout="horizontal"
+            className="filter-form"
+            style={{ marginTop: '10px' }}
+            onValuesChange={() => {
+                const values = filterFormRef.current?.getFieldsValue?.() || {};
+                searchTableData(values);
+            }}
+        >
+            <Row gutter={16}>
+                <Col span={6}>
+                    <Form.Item field="taskClass" label="任务">
+                        <Select placeholder="请选择任务类名" allowClear>
+                            {jobOptions.map((opt) => (
+                                <Option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                </Col>
+                <Col span={6}>
+                    <Form.Item field="queueName" label="队列">
+                        <Select placeholder="请选择队列名称" allowClear>
+                            {queueOptions.map((opt) => (
+                                <Option key={opt.id} value={opt.queueName}>
+                                    {opt.queueLabel || opt.queueName}
+                                </Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                </Col>
+
+                <Col span={6}>
+                    <Form.Item field="state" label="状态">
+                        <Select placeholder="请选择状态" allowClear>
+                            {statusOptions.map((opt) => (
+                                <Select.Option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                </Col>
+                <Col
+                    span={6}
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'flex-start',
+                        alignItems: 'flex-end',
+                        paddingBottom: '16px',
+                    }}
+                >
+                    <Space>
+                        <Button
+                            type="primary"
+                            icon={<IconSearch />}
+                            onClick={() => {
+                                const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                searchTableData(values);
+                            }}
+                        >
+                            搜索
+                        </Button>
+                    </Space>
+                </Col>
+            </Row>
+        </Form>
+    );
+
     return (
         <div className="job-manager">
-            <Layout>
-                <Content>
-                    {/* 筛选表单 */}
-                    <Form
-                        ref={filterFormRef}
-                        layout="horizontal"
-                        className="filter-form"
-                        style={{marginTop: '10px'}}
-                        onValuesChange={() => {
-                            const values = filterFormRef.current?.getFieldsValue?.() || {};
-                            searchTableData(values);
-                        }}
-                    >
-                        <Row gutter={16}>
-                            <Col span={6}>
-                                <Form.Item field="taskClass" label="任务">
-                                    <Select placeholder="请选择任务类名" allowClear>
-                                        {jobOptions.map(opt => (
-                                            <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={6}>
-                                <Form.Item field="queueName" label="队列">
-                                    <Select placeholder="请选择队列名称" allowClear>
-                                        {queueOptions.map(opt => (
-                                            <Option key={opt.id}
-                                                    value={opt.queueName}>{opt.queueLabel || opt.queueName}</Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
+            <DataManager
+                data={tableData}
+                loading={tableLoading}
+                pagination={pagination}
+                onPaginationChange={handlePaginationChange}
+                actions={{
+                    onAdd: handleAdd,
+                }}
+                config={{
+                    displayMode: 'table',
+                    showModeToggle: false,
+                    tableColumns: columns,
+                    filterContent: filterContent,
+                }}
+                tableScrollHeight={tableScrollHeight}
+            />
 
-                            <Col span={6}>
-                                <Form.Item field="state" label="状态">
-                                    <Select placeholder="请选择状态" allowClear>
-                                        {statusOptions.map(opt => (
-                                            <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
-                                        ))}
-                                    </Select>
+            {/* 新增对话框 */}
+            <Modal
+                title="新增作业"
+                visible={addModalVisible}
+                onOk={handleAddConfirm}
+                onCancel={() => setAddModalVisible(false)}
+                width={600}
+            >
+                <div
+                    style={{
+                        maxHeight: '60vh',
+                        overflowY: 'auto',
+                        paddingRight: '10px',
+                    }}
+                >
+                    <Form ref={addFormRef} layout="vertical" className="modal-form">
+                        <Form.Item
+                            label="任务类型"
+                            field="taskClass"
+                            rules={[{ required: true, message: '请选择任务类型' }]}
+                        >
+                            <Select
+                                placeholder="请选择任务类型"
+                                onChange={handleTaskClassChange}
+                                allowClear
+                            >
+                                {jobOptions.map((opt: any) => (
+                                    <Option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                        <Form.Item label="队列名称" field="queueName">
+                            <Select placeholder="请选择队列" allowClear>
+                                {queueOptions.map((opt) => (
+                                    <Option key={opt.id} value={opt.queueName}>
+                                        {opt.queueLabel || opt.queueName}
+                                    </Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                        {Object.keys(selectedParamDef || {}).map((key) => {
+                            const def = selectedParamDef[key] || {};
+                            const fieldName = `params_${key}`;
+                            const requiredRule = def.required
+                                ? [{ required: true, message: `请输入${def.label || key}` }]
+                                : [];
+                            if (def.type === 'number') {
+                                return (
+                                    <Form.Item
+                                        key={key}
+                                        label={def.label || key}
+                                        field={fieldName}
+                                        rules={requiredRule}
+                                        initialValue={def.default}
+                                    >
+                                        <InputNumber
+                                            style={{ width: '100%' }}
+                                            placeholder={def.placeholder || '请输入数字'}
+                                        />
+                                    </Form.Item>
+                                );
+                            }
+                            if (def.type === 'array') {
+                                return (
+                                    <Form.Item
+                                        key={key}
+                                        label={def.label || key}
+                                        field={fieldName}
+                                        rules={requiredRule}
+                                    >
+                                        <TextArea
+                                            placeholder={
+                                                def.placeholder ||
+                                                '请输入数组，支持JSON或逗号/换行分隔'
+                                            }
+                                            autoSize={{ minRows: 3, maxRows: 6 }}
+                                        />
+                                    </Form.Item>
+                                );
+                            }
+                            return (
+                                <Form.Item
+                                    key={key}
+                                    label={def.label || key}
+                                    field={fieldName}
+                                    rules={requiredRule}
+                                    initialValue={def.default}
+                                >
+                                    <Input placeholder={def.placeholder || '请输入内容'} />
                                 </Form.Item>
-                            </Col>
-                            <Col span={6} style={{
-                                display: 'flex',
-                                justifyContent: 'flex-start',
-                                alignItems: 'flex-end',
-                                paddingBottom: '16px'
-                            }}>
-                                <Space>
-                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                        searchTableData(values);
-                                    }}>
-                                        搜索
-                                    </Button>
-                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
-                                        新增
-                                    </Button>
-                                </Space>
-                            </Col>
-                        </Row>
+                            );
+                        })}
+                        <Form.Item label="优先级" field="priority" initialValue={0}>
+                            <InputNumber style={{ width: '100%' }} min={0} max={10} />
+                        </Form.Item>
                     </Form>
+                </div>
+            </Modal>
 
-                    {/* 表格 */}
-                    <Table
-                        columns={columns}
-                        data={tableData}
-                        loading={tableLoading}
-                        pagination={false}
-                        scroll={{y: tableScrollHeight}}
-                        rowKey="id"
-                    />
+            {/* 删除确认 */}
+            <Modal
+                title="确认删除"
+                visible={deleteModalVisible}
+                onOk={handleDeleteConfirm}
+                onCancel={() => setDeleteModalVisible(false)}
+            >
+                <div className="delete-modal">
+                    确定要删除该作业吗？此操作不可恢复。
+                </div>
+            </Modal>
 
-                    {/* 分页 */}
-                    <div className="pagination-wrapper">
-                        <Pagination
-                            {...pagination}
-                            onChange={handlePageChange}
-                        />
-                    </div>
+            {/* 停止作业确认 */}
+            <Modal
+                title="确认停止"
+                visible={stopModalVisible}
+                onOk={handleStopConfirm}
+                onCancel={() => setStopModalVisible(false)}
+            >
+                <div className="delete-modal">确定要停止该作业吗？</div>
+            </Modal>
 
-                    {/* 新增对话框 */}
-                    <Modal
-                        title="新增作业"
-                        visible={addModalVisible}
-                        onOk={handleAddConfirm}
-                        onCancel={() => setAddModalVisible(false)}
-                        width={600}
-                    >
-                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                            <Form ref={addFormRef} layout="vertical" className="modal-form">
-                                <Form.Item
-                                    label="任务类型"
-                                    field="taskClass"
-                                    rules={[{required: true, message: '请选择任务类型'}]}
-                                >
-                                    <Select placeholder="请选择任务类型" onChange={handleTaskClassChange} allowClear>
-                                        {jobOptions.map((opt: any) => (
-                                            <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                                <Form.Item
-                                    label="队列名称"
-                                    field="queueName"
-                                >
-                                    <Select placeholder="请选择队列" allowClear>
-                                        {queueOptions.map(opt => (
-                                            <Option key={opt.id}
-                                                    value={opt.queueName}>{opt.queueLabel || opt.queueName}</Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                                {Object.keys(selectedParamDef || {}).map((key) => {
-                                    const def = selectedParamDef[key] || {};
-                                    const fieldName = `params_${key}`;
-                                    const requiredRule = def.required
-                                        ? [{ required: true, message: `请输入${def.label || key}` }]
-                                        : [];
-                                    if (def.type === 'number') {
-                                        return (
-                                            <Form.Item
-                                                key={key}
-                                                label={def.label || key}
-                                                field={fieldName}
-                                                rules={requiredRule}
-                                                initialValue={def.default}
-                                            >
-                                                <InputNumber
-                                                    style={{width: '100%'}}
-                                                    placeholder={def.placeholder || '请输入数字'}
-                                                />
-                                            </Form.Item>
-                                        );
-                                    }
-                                    if (def.type === 'array') {
-                                        return (
-                                            <Form.Item
-                                                key={key}
-                                                label={def.label || key}
-                                                field={fieldName}
-                                                rules={requiredRule}
-                                            >
-                                                <TextArea
-                                                    placeholder={def.placeholder || '请输入数组，支持JSON或逗号/换行分隔'}
-                                                    autoSize={{ minRows: 3, maxRows: 6 }}
-                                                />
-                                            </Form.Item>
-                                        );
-                                    }
-                                    return (
-                                        <Form.Item
-                                            key={key}
-                                            label={def.label || key}
-                                            field={fieldName}
-                                            rules={requiredRule}
-                                            initialValue={def.default}
-                                        >
-                                            <Input placeholder={def.placeholder || '请输入内容'} />
-                                        </Form.Item>
-                                    );
-                                })}
-                                <Form.Item label="优先级" field="priority" initialValue={0}>
-                                    <InputNumber style={{width: '100%'}} min={0} max={10}/>
-                                </Form.Item>
-                            </Form>
-                        </div>
-                    </Modal>
+            {/* 重试作业确认 */}
+            <Modal
+                title="确认重试"
+                visible={retryModalVisible}
+                onOk={handleRetryConfirm}
+                onCancel={() => setRetryModalVisible(false)}
+            >
+                <div className="delete-modal">确定要重试该作业吗？</div>
+            </Modal>
 
-
-                    {/* 删除确认 */}
-                    <Modal
-                        title="确认删除"
-                        visible={deleteModalVisible}
-                        onOk={handleDeleteConfirm}
-                        onCancel={() => setDeleteModalVisible(false)}
-                    >
-                        <div className="delete-modal">确定要删除该作业吗？此操作不可恢复。</div>
-                    </Modal>
-
-                    {/* 停止作业确认 */}
-                    <Modal
-                        title="确认停止"
-                        visible={stopModalVisible}
-                        onOk={handleStopConfirm}
-                        onCancel={() => setStopModalVisible(false)}
-                    >
-                        <div className="delete-modal">确定要停止该作业吗？</div>
-                    </Modal>
-
-                    {/* 重试作业确认 */}
-                    <Modal
-                        title="确认重试"
-                        visible={retryModalVisible}
-                        onOk={handleRetryConfirm}
-                        onCancel={() => setRetryModalVisible(false)}
-                    >
-                        <div className="delete-modal">确定要重试该作业吗？</div>
-                    </Modal>
-
-                    {/* 日志查看 */}
-                    <Drawer
-                        title="作业日志"
-                        visible={logModalVisible}
-                        onCancel={() => setLogModalVisible(false)}
-                        width={800}
-                        placement="right"
-                        footer={null}
-                    >
-                        <div style={{height: '100%'}}>
-                            <LogDetails jobId={currentJobId}/>
-                        </div>
-                    </Drawer>
-
-                </Content>
-            </Layout>
+            {/* 日志查看 */}
+            <Drawer
+                title="作业日志"
+                visible={logModalVisible}
+                onCancel={() => setLogModalVisible(false)}
+                width={800}
+                placement="right"
+                footer={null}
+            >
+                <div style={{ height: '100%' }}>
+                    <LogDetails jobId={currentJobId} />
+                </div>
+            </Drawer>
         </div>
     );
 }

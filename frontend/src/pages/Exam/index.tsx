@@ -10,15 +10,12 @@ import {
     Grid,
     Input,
     InputNumber,
-    Layout,
     Menu,
     Message,
     Modal,
-    Pagination,
     Select,
     Space,
     Switch,
-    Table,
     Tag,
 } from '@arco-design/web-react';
 import './style/index.less';
@@ -45,9 +42,9 @@ import ExamQuestionManager from './components/ExamQuestionManager';
 import {getAllSubjects} from '../Subject/api';
 import {getCategoriesBySubjectId} from '../Category/api';
 import {ExamDto, ExamQueryDto, ExamStatus, FormRef, PaginationConfig, StatusOption} from './types';
+import { DataManager } from '../../components/DataManager';
 
 const {TextArea} = Input;
-const {Content} = Layout;
 const {Row, Col} = Grid;
 
  function ExamManager(): React.ReactElement {
@@ -455,62 +452,64 @@ const {Row, Col} = Grid;
         return () => window.removeEventListener('resize', handleResize);
     }, []);
     
+    const filterContent = (
+        <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
+            const values = filterFormRef.current?.getFieldsValue?.() || {};
+            searchTableData(values);
+        }}>
+            <Row gutter={16}>
+                <Col span={5}>
+                    <Form.Item field="name" label="名称">
+                        <Input placeholder="请输入试卷名称"/>
+                    </Form.Item>
+                </Col>
+                <Col span={5}>
+                    <Form.Item field="status" label="状态">
+                        <Select placeholder="请选择试卷状态" allowClear>
+                            {statusOptions.map(opt => (
+                                <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                </Col>
+                <Col span={10} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
+                    <Space>
+                        <Button type="primary" icon={<IconSearch/>} onClick={() => {
+                            const values = filterFormRef.current?.getFieldsValue?.() || {};
+                            searchTableData(values);
+                        }}>
+                            搜索
+                        </Button>
+                    </Space>
+                </Col>
+            </Row>
+        </Form>
+    );
+
     return (
-        <Layout className="exam-manager">
-            <Content>
-                {/* 筛选表单 */}
-                <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
+        <div className="exam-manager">
+            <DataManager
+                data={tableData}
+                loading={tableLoading}
+                pagination={pagination}
+                onPaginationChange={(p) => {
+                    setPagination(p);
                     const values = filterFormRef.current?.getFieldsValue?.() || {};
-                    searchTableData(values);
-                }}>
-                    <Row gutter={16}>
-                        <Col span={5}>
-                            <Form.Item field="name" label="名称">
-                                <Input placeholder="请输入试卷名称"/>
-                            </Form.Item>
-                        </Col>
-                        <Col span={5}>
-                            <Form.Item field="status" label="状态">
-                                <Select placeholder="请选择试卷状态" allowClear>
-                                    {statusOptions.map(opt => (
-                                        <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={10} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
-                            <Space>
-                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                        searchTableData(values);
-                                    }}>
-                                        搜索
-                                    </Button>
-                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={openSmartGenerateModal}>
-                                        新建
-                                    </Button>
-                                </Space>
-                        </Col>
-                    </Row>
-                </Form>
-                <Table
-                    columns={columns}
-                    data={tableData}
-                    loading={tableLoading}
-                    pagination={false}
-                    scroll={{y: tableScrollHeight}}
-                    rowKey="id"
-                />
-
-                {/* 分页 */}
-                <div className="pagination-wrapper">
-                    <Pagination
-                        {...pagination}
-                        onChange={handlePaginationChange}
-                    />
-                </div>
-                </Content>
-
+                    const mapped: Partial<ExamQueryDto> = {
+                        keyWord: values?.name,
+                        status: values?.status,
+                    };
+                    fetchTableData(mapped, p.pageSize, p.current);
+                }}
+                actions={{ onAdd: openSmartGenerateModal }}
+                config={{
+                    displayMode: 'table',
+                    showModeToggle: false,
+                    tableColumns: columns,
+                    filterContent,
+                }}
+                tableScrollHeight={tableScrollHeight}
+            />
 
                 {/* 智能生成试卷模态框 */}
                 <Modal

@@ -48,7 +48,7 @@ dependencies {
     // https://mvnrepository.com/artifact/org.apache.tika/tika-core
     implementation("org.apache.tika:tika-core:3.2.3")
 
-    runtimeOnly 'mysql:mysql-connector-java:8.0.33'
+    implementation 'org.postgresql:postgresql:42.6.0'
     runtimeOnly 'com.h2database:h2'
 
     implementation 'org.apache.commons:commons-lang3:3.12.0'

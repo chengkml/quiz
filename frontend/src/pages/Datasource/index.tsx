@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Button, Form, Grid, Input, Message, Modal, Select, Space, Table, Tag, Dropdown, Menu} from '@arco-design/web-react';
+import {Button, Form, Grid, Input, Message, Modal, Select, Space, Tag, Dropdown, Menu} from '@arco-design/web-react';
 import {IconMore} from '@arco-design/web-react/icon';
 import './style/index.less';
 import {
@@ -14,6 +14,7 @@ import {
     testConnection,
     updateDatasource,
 } from './api';
+import { DataManager } from '../../components/DataManager';
 
 const Option = Select.Option;
 
@@ -353,66 +354,70 @@ const handleTestConnection = async (record: any) => {
         },
     ];
 
-    return (
-        <div className="datasource-page" ref={containerRef}>
-            {/* 筛选表单 */}
-            <Form layout="horizontal" form={searchForm} initialValues={searchParams} className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
+    const filterContent = (
+        <Form
+            layout="horizontal"
+            form={searchForm}
+            initialValues={searchParams}
+            className="filter-form"
+            style={{marginTop: '10px'}}
+            onValuesChange={() => {
                 const values = searchForm.getFieldsValue();
                 setSearchParams(values);
                 fetchTableData({current: 1, pageSize: pagination.pageSize, total: 0});
-            }}>
-                <Grid.Row gutter={16}>
-                    <Grid.Col span={6}>
-                        <Form.Item label="名称" field="name">
-                            <Input allowClear placeholder="输入名称关键字" style={{width: 220}}/>
-                        </Form.Item>
-                    </Grid.Col>
-                    <Grid.Col span={6}>
-                        <Form.Item label="启用状态" field="active">
-                            <Select allowClear placeholder="请选择" style={{width: 160}}>
-                                <Option value="true">启用</Option>
-                                <Option value="false">禁用</Option>
-                            </Select>
-                        </Form.Item>
-                    </Grid.Col>
-                    <Grid.Col span={6}>
-                        <Space>
-                            <Button type="primary" onClick={handleSearch}>
-                                查询
-                            </Button>
-                            <Button onClick={handleReset}>
-                                重置
-                            </Button>
-                        </Space>
-                    </Grid.Col>
-                    <Grid.Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
-                        <Space>
-                            <Button type="primary" onClick={openAddModal}>
-                                新增数据源
-                            </Button>
-                        </Space>
-                    </Grid.Col>
-                </Grid.Row>
-            </Form>
+            }}
+        >
+            <Grid.Row gutter={16}>
+                <Grid.Col span={6}>
+                    <Form.Item label="名称" field="name">
+                        <Input allowClear placeholder="输入名称关键字" style={{width: 220}}/>
+                    </Form.Item>
+                </Grid.Col>
+                <Grid.Col span={6}>
+                    <Form.Item label="启用状态" field="active">
+                        <Select allowClear placeholder="请选择" style={{width: 160}}>
+                            <Option value="true">启用</Option>
+                            <Option value="false">禁用</Option>
+                        </Select>
+                    </Form.Item>
+                </Grid.Col>
+                <Grid.Col span={6}>
+                    <Space>
+                        <Button type="primary" onClick={handleSearch}>查询</Button>
+                        <Button onClick={handleReset}>重置</Button>
+                    </Space>
+                </Grid.Col>
+            </Grid.Row>
+        </Form>
+    );
 
-            {/* 表格 */}
-            <Table
-                rowKey="id"
-                loading={tableLoading}
-                columns={columns}
+    return (
+        <div className="datasource-page" ref={containerRef}>
+            <DataManager
                 data={tableData}
+                loading={tableLoading}
                 pagination={{
                     current: pagination.current,
                     pageSize: pagination.pageSize,
                     total: pagination.total,
                     showTotal: true,
-                    onChange: (current, pageSize) => {
-                        const next = {current, pageSize, total: pagination.total};
-                        setPagination(next);
-                        fetchTableData(next);
-                    },
+                    showJumper: true,
+                    showPageSize: true,
+                    pageSizeOptions: [10, 20, 50, 100],
                 }}
-                border={false}
+                onPaginationChange={(p) => {
+                    setPagination(p);
+                    fetchTableData(p);
+                }}
+                actions={{
+                    onAdd: openAddModal,
+                }}
+                config={{
+                    displayMode: 'table',
+                    showModeToggle: false,
+                    tableColumns: columns,
+                    filterContent,
+                }}
             />
 
             {/* 新增对话框 */}
@@ -506,7 +511,6 @@ const handleTestConnection = async (record: any) => {
                 </div>
             </Modal>
 
-            {/* 表结构采集与查看 */}
             <Modal
                 title="表结构采集"
                 visible={schemaModalVisible}
@@ -524,7 +528,6 @@ const handleTestConnection = async (record: any) => {
                     <div>正在加载 schema...</div>
                 ) : (
                     <div>
-                        {/* 选择 schema */}
                         <div style={{marginBottom: 12}}>
                             <Space>
                                 <span>选择 Schema：</span>

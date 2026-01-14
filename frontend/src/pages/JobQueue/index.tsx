@@ -9,10 +9,8 @@ import {
     Menu,
     Message,
     Modal,
-    Pagination,
     Select,
     Space,
-    Table,
     Tag,
 } from '@arco-design/web-react';
 import {
@@ -23,6 +21,7 @@ import {
     IconPlus,
     IconSearch, IconUndo
 } from '@arco-design/web-react/icon';
+import DataManager from '@/components/DataManager';
 import './style/index.less';
 import {
     checkQueueNameUniq,
@@ -362,56 +361,55 @@ function JobQueueManager() {
         <div className="job-queue-manager">
             <Layout>
                 <Content>
-                    {/* 筛选表单 */}
-                    <Form 
-                        ref={filterFormRef} 
-                        layout="horizontal" 
-                        className="filter-form" 
-                        style={{marginTop: '10px'}}
-                        onValuesChange={() => {
-                            const values = filterFormRef.current?.getFieldsValue?.() || {};
-                            searchTableData(values);
-                        }}
-                    >
-                        <Row gutter={16}>
-                            <Col span={6}>
-                                <Form.Item field="keyWord" label="关键词">
-                                    <Input placeholder="请输入队列名称或中文名"/>
-                                </Form.Item>
-                            </Col>
-                            <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
-                                <Space>
-                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                        searchTableData(values);
-                                    }}>
-                                        搜索
-                                    </Button>
-                                    <Button type="primary" status="success" icon={<IconPlus/>} onClick={handleAdd}>
-                                        新增
-                                    </Button>
-                                </Space>
-                            </Col>
-                        </Row>
-                    </Form>
-
-                    {/* 表格 */}
-                    <Table
-                        columns={columns}
+                    <DataManager
                         data={tableData}
                         loading={tableLoading}
-                        pagination={false}
-                        scroll={{y: tableScrollHeight}}
-                        rowKey="id"
+                        pagination={pagination}
+                        onPaginationChange={(next) => {
+                            setPagination(next);
+                            const values = filterFormRef.current?.getFieldsValue?.() || {};
+                            fetchTableData(values, next.pageSize, next.current);
+                        }}
+                        actions={{
+                            onAdd: handleAdd,
+                        }}
+                        config={{
+                            displayMode: 'table',
+                            showModeToggle: false,
+                            filterContent: (
+                                <Form 
+                                    ref={filterFormRef} 
+                                    layout="horizontal" 
+                                    className="filter-form" 
+                                    style={{marginTop: '10px'}}
+                                    onValuesChange={() => {
+                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                        searchTableData(values);
+                                    }}
+                                >
+                                    <Row gutter={16}>
+                                        <Col span={6}>
+                                            <Form.Item field="keyWord" label="关键词">
+                                                <Input placeholder="请输入队列名称或中文名"/>
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
+                                            <Space>
+                                                <Button type="primary" icon={<IconSearch/>} onClick={() => {
+                                                    const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                                    searchTableData(values);
+                                                }}>
+                                                    搜索
+                                                </Button>
+                                            </Space>
+                                        </Col>
+                                    </Row>
+                                </Form>
+                            ),
+                            tableColumns: columns,
+                        }}
+                        tableScrollHeight={tableScrollHeight}
                     />
-
-                    {/* 分页 */}
-                    <div className="pagination-wrapper">
-                        <Pagination
-                            {...pagination}
-                            onChange={handlePageChange}
-                        />
-                    </div>
 
                     {/* 新增对话框 */}
                     <Modal
