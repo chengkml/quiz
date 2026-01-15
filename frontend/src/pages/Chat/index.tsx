@@ -13,7 +13,7 @@ import {
 } from '@arco-design/web-react';
 import {
   IconPlus,
-  IconReload,
+  IconRefresh,
   IconSend,
 } from '@arco-design/web-react/icon';
 import {
@@ -216,7 +216,7 @@ const ChatPage: React.FC = () => {
               新建会话
             </Button>
             <Button
-              icon={<IconReload />}
+              icon={<IconRefresh />}
               onClick={() => loadSessions(0)}
             />
           </Space>

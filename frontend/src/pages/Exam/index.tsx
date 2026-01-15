@@ -585,8 +585,8 @@ const {Row, Col} = Grid;
                         />
                     )}
                 </Drawer>
-        </Layout>
-    );
-}
+            </div>
+        );
+    }
 
 export default ExamManager;
