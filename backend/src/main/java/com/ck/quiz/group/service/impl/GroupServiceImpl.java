@@ -43,7 +43,7 @@ public class GroupServiceImpl implements GroupService {
     @Override
     public Page<GroupDto> search(String userId, GroupQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
-                "select g.*, u.user_name create_user_name from group g left join user u on g.create_user = u.user_id where 1=1 ");
+                "select g.*, u.user_name create_user_name from group g left join users u on g.create_user = u.user_id where 1=1 ");
         StringBuilder countSql = new StringBuilder("select count(1) from group g where 1=1 ");
         Map<String, Object> params = new HashMap<>();
 

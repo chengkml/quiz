@@ -152,7 +152,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
         StringBuilder sql = new StringBuilder(
                 "SELECT e.event_id AS id, e.title, e.description, e.status, e.start_time, e.end_time, e.all_day, " +
                         "e.create_date, e.create_user, e.update_date, e.update_user, e.completed_at, u.user_name create_user_name " +
-                        "FROM calendar_event e LEFT JOIN user u ON u.user_id = e.create_user "
+                        "FROM calendar_event e LEFT JOIN users u ON u.user_id = e.create_user "
         );
 
         StringBuilder countSql = new StringBuilder(

@@ -46,7 +46,7 @@ public class SystemMessage {
      * 消息内容
      */
     @Lob
-    @Column(name = "content", columnDefinition = "LONGTEXT", nullable = false)
+    @Column(name = "content", columnDefinition = "TEXT", nullable = false)
     private String content;
 
     /**

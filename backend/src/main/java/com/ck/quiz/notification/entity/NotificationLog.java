@@ -42,14 +42,14 @@ public class NotificationLog {
      * 通知内容
      */
     @Lob
-    @Column(name = "message_content", columnDefinition = "LONGTEXT", nullable = false)
+    @Column(name = "message_content", columnDefinition = "TEXT", nullable = false)
     private String messageContent;
 
     /**
      * 异常信息
      */
     @Lob
-    @Column(name = "error_message", columnDefinition = "LONGTEXT")
+    @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
     /**
@@ -57,7 +57,7 @@ public class NotificationLog {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "level", length = 20, nullable = false)
-    private LogLevel level = LogLevel.ERROR;
+    private LogLevel level;
 
     /**
      * 创建时间

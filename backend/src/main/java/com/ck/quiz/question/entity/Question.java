@@ -43,7 +43,7 @@ public class Question {
      * 题干
      */
     @Lob
-    @Column(name = "content", nullable = false, columnDefinition = "LONGTEXT")
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
     /**
@@ -75,7 +75,7 @@ public class Question {
      * {}
      */
     @Lob
-    @Column(name = "options", columnDefinition = "LONGTEXT")
+    @Column(name = "options", columnDefinition = "TEXT")
     private String options;
 
     /**
@@ -95,14 +95,14 @@ public class Question {
      * ["物理层负责比特流的传输，常见设备有中继器、集线器、网桥等。"]
      */
     @Lob
-    @Column(name = "answer", columnDefinition = "LONGTEXT")
+    @Column(name = "answer", columnDefinition = "TEXT")
     private String answer;
 
     /**
      * 解析
      */
     @Lob
-    @Column(name = "explanation", columnDefinition = "LONGTEXT")
+    @Column(name = "explanation", columnDefinition = "TEXT")
     private String explanation;
 
     /**

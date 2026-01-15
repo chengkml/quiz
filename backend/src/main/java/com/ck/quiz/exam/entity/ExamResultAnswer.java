@@ -25,7 +25,7 @@ public class ExamResultAnswer {
     private ExamQuestion examQuestion;
 
     @Lob
-    @Column(name = "user_answer", columnDefinition = "LONGTEXT")
+    @Column(name = "user_answer", columnDefinition = "TEXT")
     private String userAnswer;
 
     @Column(name = "is_correct", nullable = false)

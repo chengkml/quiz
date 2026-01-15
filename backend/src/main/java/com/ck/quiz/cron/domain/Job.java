@@ -41,7 +41,7 @@ public class Job {
     private String queueName;
 
     @Lob
-    @Column(name = "task_params", columnDefinition = "LONGTEXT")
+    @Column(name = "task_params", columnDefinition = "TEXT")
     @Comment("任务参数")
     private String taskParams;
 
@@ -70,7 +70,7 @@ public class Job {
     private String logPath;
 
     @Lob
-    @Column(name = "error_message", columnDefinition = "LONGTEXT")
+    @Column(name = "error_message", columnDefinition = "TEXT")
     @Comment("错误信息")
     private String errorMessage;
 

@@ -87,8 +87,8 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                         "u.create_date, u.create_user, cu.user_name as create_user_name, " +
                         "u.update_date, u.update_user, uu.user_name as update_user_name " +
                         "from user u " +
-                        "left join user cu on u.create_user = cu.user_id " +
-                        "left join user uu on u.update_user = uu.user_id " +
+                        "left join users cu on u.create_user = cu.user_id " +
+                        "left join users uu on u.update_user = uu.user_id " +
                         "where 1=1 "
         );
         StringBuilder countSql = new StringBuilder(

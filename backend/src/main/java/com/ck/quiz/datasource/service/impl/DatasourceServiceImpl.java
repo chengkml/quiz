@@ -161,7 +161,7 @@ public class DatasourceServiceImpl implements DatasourceService {
                 "SELECT ds.ds_id AS id, ds.name, ds.driver, ds.jdbc_url, ds.username, ds.description, ds.active, " +
                         "ds.create_date, ds.create_user, ds.update_date, ds.update_user, u.user_name create_user_name "
                         +
-                        "FROM datasource ds LEFT JOIN user u ON u.user_id = ds.create_user ");
+                        "FROM datasource ds LEFT JOIN users u ON u.user_id = ds.create_user ");
 
         StringBuilder countSql = new StringBuilder(
                 "SELECT COUNT(1) FROM datasource ds ");

@@ -43,7 +43,7 @@ public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMM
                         "m.api_key, m.api_endpoint, m.context_window, m.input_price_per_1k, m.output_price_per_1k, " +
                         "m.is_default, m.create_date, m.create_user, m.update_date, m.update_user, " +
                         "u.user_name AS create_user_name " +
-                        "FROM llm_model m LEFT JOIN user u ON u.user_id = m.create_user "
+                        "FROM llm_model m LEFT JOIN users u ON u.user_id = m.create_user "
         );
 
         StringBuilder countSql = new StringBuilder("SELECT COUNT(1) FROM llm_model m ");

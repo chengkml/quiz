@@ -81,7 +81,7 @@ public class WxAppServiceImpl implements WxAppService {
     @Override
     public Page<WxAppDto> searchTodos(WxAppQueryDto queryDto) {
         // SQL 基础查询
-        StringBuilder sql = new StringBuilder("select a.*, u.user_name update_user_name from wx_app a left join user u on u.user_id = a.update_user where 1=1 ");
+        StringBuilder sql = new StringBuilder("select a.*, u.user_name update_user_name from wx_app a left join users u on u.user_id = a.update_user where 1=1 ");
         StringBuilder countSql = new StringBuilder("select count(1) from wx_app a where 1=1 ");
         Map<String, Object> params = new HashMap<>();
         int pageSize = queryDto.getLimit();
@@ -136,7 +136,7 @@ public class WxAppServiceImpl implements WxAppService {
                                 "select m.*, a.app_name, u.user_name " +
                                         "from wx_user_mapping m " +
                                         "inner join wx_app a on m.app_id = a.app_id " +
-                                        "left join user u on u.user_id = m.user_id " +
+                                        "left join users u on u.user_id = m.user_id " +
                                         "where a.app_id = :appId",
                                 params
                         )

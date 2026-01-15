@@ -35,7 +35,7 @@ public class CalendarEvent {
 
     @Comment("描述")
     @Lob
-    @Column(name = "description", columnDefinition = "LONGTEXT")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Comment("状态：SCHEDULED, COMPLETED, CANCELLED")

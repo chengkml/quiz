@@ -16,7 +16,7 @@ import java.util.List;
  * 用户信息实体表
  */
 @Entity
-@Table(name = "user", indexes = {
+@Table(name = "users", indexes = {
         @Index(name = "idx_user_user_id", columnList = "user_id"),
         @Index(name = "idx_user_email", columnList = "email"),
         @Index(name = "idx_user_phone", columnList = "phone")

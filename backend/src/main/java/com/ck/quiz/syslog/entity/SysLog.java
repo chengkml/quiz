@@ -42,12 +42,12 @@ public class SysLog extends Model {
     private String requestMethod;
 
     @Lob
-    @Column(name = "request_params", columnDefinition = "LONGTEXT")
+    @Column(name = "request_params", columnDefinition = "TEXT")
     @Comment("请求参数")
     private String requestParams;
 
     @Lob
-    @Column(name = "response_data", columnDefinition = "LONGTEXT")
+    @Column(name = "response_data", columnDefinition = "TEXT")
     @Comment("响应数据")
     private String responseData;
 
@@ -56,7 +56,7 @@ public class SysLog extends Model {
     private String success;
 
     @Lob
-    @Column(name = "error_message", columnDefinition = "LONGTEXT")
+    @Column(name = "error_message", columnDefinition = "TEXT")
     @Comment("错误信息")
     private String errorMessage;
 
@@ -72,4 +72,3 @@ public class SysLog extends Model {
     @Comment("耗时毫秒")
     private Long costTime;
 }
-

@@ -27,20 +27,24 @@ spring:
   
   # 数据库配置 - 可以在这里覆盖核心模块的配置
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/quiz
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:1qaz!QAZ}
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://223.109.142.84:5432/postgres?currentSchema=public
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:1qazZAQ!}
     
   # JPA配置
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: false
+    show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
+      javax:
+        persistence:
+          default:
+            schema: public
   ai:
     openai:
       base-url: https://api.siliconflow.cn

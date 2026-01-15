@@ -39,7 +39,7 @@ public class PendingJob {
     private String taskClass;
 
     @Lob
-    @Column(name = "task_params", columnDefinition = "LONGTEXT")
+    @Column(name = "task_params", columnDefinition = "TEXT")
     @Comment("任务参数")
     private String taskParams;
 

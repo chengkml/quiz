@@ -353,7 +353,7 @@ public class QuestionServiceImpl implements QuestionService {
         StringBuilder sql = new StringBuilder(
                 "SELECT q.question_id AS id, q.type, q.content, q.options, q.answer, q.explanation, " +
                         "q.create_date, q.create_user, q.update_date, q.update_user, u.user_name create_user_name " +
-                        "FROM question q left join user u on u.user_id = q.create_user ");
+                        "FROM question q left join users u on u.user_id = q.create_user ");
 
         StringBuilder countSql = new StringBuilder(
                 "SELECT COUNT(1) FROM question q ");

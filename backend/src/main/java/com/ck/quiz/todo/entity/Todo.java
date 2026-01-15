@@ -26,7 +26,7 @@ public class Todo extends Model {
     private String title;
 
     @Lob
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(columnDefinition = "TEXT")
     @Comment("详细描述")
     private String description;
 

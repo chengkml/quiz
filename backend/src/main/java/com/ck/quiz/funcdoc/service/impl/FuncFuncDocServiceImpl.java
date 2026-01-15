@@ -508,7 +508,7 @@ public class FuncFuncDocServiceImpl implements FuncDocService {
 
         StringBuilder sql = new StringBuilder(
                 "SELECT d.*, u.user_name upload_user_name " +
-                        "FROM func_doc d LEFT JOIN user u ON d.upload_user = u.user_id WHERE 1=1 "
+                        "FROM func_doc d LEFT JOIN users u ON d.upload_user = u.user_id WHERE 1=1 "
         );
 
         StringBuilder countSql = new StringBuilder(

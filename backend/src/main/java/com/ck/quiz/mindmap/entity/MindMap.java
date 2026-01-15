@@ -39,14 +39,14 @@ public class MindMap {
      * 导图描述
      */
     @Lob
-    @Column(name = "description", columnDefinition = "LONGTEXT")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     /**
      * 导图整体JSON结构（完整导图数据）
      */
     @Lob
-    @Column(name = "map_data", columnDefinition = "LONGTEXT")
+    @Column(name = "map_data", columnDefinition = "TEXT")
     private String mapData;
 
     /**

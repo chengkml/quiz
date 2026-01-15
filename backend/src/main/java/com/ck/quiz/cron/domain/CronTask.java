@@ -49,7 +49,7 @@ public class CronTask {
     private String taskClass;
 
     @Lob
-    @Column(name = "fire_params", columnDefinition = "LONGTEXT")
+    @Column(name = "fire_params", columnDefinition = "TEXT")
     @Comment("触发参数")
     private String fireParams;
 
