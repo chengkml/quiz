@@ -86,9 +86,7 @@ jar {
     archiveClassifier = ''    // ❗生成正常 plain jar，不带 -plain
     archiveFileName = 'quiz-1.0.0.jar'
     
-    // 排除配置文件，使其不打包到 jar 中（部署时使用外部配置）
-    // 注意：开发时这些文件仍在 classpath 中
-    exclude('application.yml')
+    // 排除配置文件：只排除应用特定配置，application.yml 作为基础配置打包在jar内
     exclude('application-dev.yml')
     exclude('application-prod.yml')
 }

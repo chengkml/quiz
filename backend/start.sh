@@ -7,7 +7,7 @@
 APP_NAME="quiz"
 JAR_FILE="/opt/quiz/quiz-1.0.0.jar"
 LIB_DIR="/opt/quiz/lib"        # 依赖 Jar 所在目录
-CONFIG_DIR="/opt/quiz/config"  # 外部配置文件目录
+CONFIG_FILE="/opt/quiz/application-prod.yml"  # 外部配置文件
 MAIN_CLASS="com.ck.quiz.QuizApplication"
 PORT=${PORT:-8089}
 PROFILE=${SPRING_PROFILES_ACTIVE:-prod}  # 默认生产环境
@@ -33,12 +33,12 @@ if [ -f "$PID_FILE" ]; then
     rm -f "$PID_FILE"
 fi
 
-# 启动新进程（使用外部配置文件和指定的 Profile）
+# 启动新进程（classpath:application.yml 为基础，外部application-prod.yml覆盖）
 echo "[$(date)] Starting $MAIN_CLASS on port $PORT with profile: $PROFILE ..."
-nohup java -Dfile.encoding=UTF-8 -cp "$JAR_FILE:$LIB_DIR/*:$CONFIG_DIR" "$MAIN_CLASS" \
+nohup java -Dfile.encoding=UTF-8 -cp "$JAR_FILE:$LIB_DIR/*" "$MAIN_CLASS" \
     --server.port="$PORT" \
     --spring.profiles.active="$PROFILE" \
-    --spring.config.location="file:$CONFIG_DIR/" \
+    --spring.config.location="classpath:/,file:/opt/quiz/" \
     >> "$LOG_FILE" 2>&1 &
 
 # 写入 PID 文件
@@ -46,7 +46,7 @@ echo $! > "$PID_FILE"
 
 echo "[$(date)] $APP_NAME started in background. PID: $(cat $PID_FILE)"
 echo "Log file: $LOG_FILE"
-echo "Config directory: $CONFIG_DIR"
+echo "Config file: $CONFIG_FILE"
 echo "Profile: $PROFILE"
 
 
