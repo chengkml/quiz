@@ -85,6 +85,9 @@ jar {
     enabled = true
     archiveClassifier = ''    // ❗生成正常 plain jar，不带 -plain
     archiveFileName = 'quiz-1.0.0.jar'
+    
+    // 排除 application.yml，使其不打包到 jar 中
+    exclude('application.yml')
 }
 
 // -------------------------------------

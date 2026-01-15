@@ -25,7 +25,6 @@ public class Todo extends Model {
     @Comment("标题")
     private String title;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     @Comment("详细描述")
     private String description;

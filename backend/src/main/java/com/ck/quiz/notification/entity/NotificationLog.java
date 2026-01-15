@@ -41,14 +41,12 @@ public class NotificationLog {
     /**
      * 通知内容
      */
-    @Lob
     @Column(name = "message_content", columnDefinition = "TEXT", nullable = false)
     private String messageContent;
 
     /**
      * 异常信息
      */
-    @Lob
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
