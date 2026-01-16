@@ -40,7 +40,7 @@ const disassociateKnowledge = params => axios.post('/question/disassociate-knowl
 const getQuestionKnowledge = questionId => axios.get(`/question/${questionId}/knowledge`);
 
 // 获取所有学科列表
-const getAllSubjects = () => axios.get('/subject/list/user/all');
+const getAllSubjects = () => axios.get('/subject/list');
 
 // 根据学科ID获取分类列表
 const getCategoriesBySubjectId = (subjectId) => axios.get(`/categories/subject/${subjectId}`);

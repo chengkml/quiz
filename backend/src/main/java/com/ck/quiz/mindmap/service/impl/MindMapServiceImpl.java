@@ -160,7 +160,7 @@ public class MindMapServiceImpl implements MindMapService {
         StringBuilder sql = new StringBuilder(
                 "SELECT m.map_id AS id, m.map_name, m.description, m.map_data, " +
                         "m.create_date, m.create_user, u.user_name create_user_name, m.update_date, m.update_user " +
-                        "FROM mind_map m left join user u on u.user_id = m.create_user "
+                        "FROM mind_map m left join users u on u.user_id = m.create_user "
         );
 
         StringBuilder countSql = new StringBuilder(

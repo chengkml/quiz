@@ -427,7 +427,7 @@ public class QuestionServiceImpl implements QuestionService {
                     FROM question_knowledge_rela r
                     INNER JOIN knowledge k ON r.knowledge_id = k.knowledge_id
                     INNER JOIN category c ON k.category_id = c.category_id
-                    INNER JOIN subject s ON c.subject_id = s.subject_id
+                    INNER JOIN subject s ON c.subject_id = s.id
                     WHERE r.question_id IN (:questionIds)
                     """;
 
@@ -628,7 +628,7 @@ public class QuestionServiceImpl implements QuestionService {
                     LEFT JOIN question_knowledge_rela r ON q.question_id = r.question_id
                     LEFT JOIN knowledge k ON r.knowledge_id = k.knowledge_id
                     LEFT JOIN category c ON k.category_id = c.category_id
-                    LEFT JOIN subject s ON c.subject_id = s.subject_id
+                    LEFT JOIN subject s ON c.subject_id = s.id
                     WHERE q.create_user = :createUser and s.name is not null
                     GROUP BY s.name
                     ORDER BY count DESC

@@ -54,7 +54,12 @@ public class JobQueueService {
             dto.setQueueLabel((String) map.get("queueLabel"));
             dto.setQueueSize(map.get("queueSize") == null ? 0 : ((Number) map.get("queueSize")).intValue());
             dto.setState((String) map.get("state"));
-            dto.setCreateTime((LocalDateTime) map.get("createTime"));
+            Object createTime = map.get("createTime");
+            if (createTime instanceof java.sql.Timestamp) {
+                dto.setCreateTime(((java.sql.Timestamp) createTime).toLocalDateTime());
+            } else if (createTime instanceof LocalDateTime) {
+                dto.setCreateTime((LocalDateTime) createTime);
+            }
             dtoList.add(dto);
         });
 

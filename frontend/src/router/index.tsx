@@ -47,8 +47,12 @@ import NotificationPage from "@/pages/Notification/Page";
 import ExceptionLogPage from "@/pages/Notification/ExceptionLogPage";
 import SystemMessagePage from "@/pages/SystemMessage";
 import SystemParamManagement from "@/pages/SystemParam";
+import McpServerManager from "@/pages/McpServer";
+import McpToolManager from "@/pages/McpTool";
 import SimpleExample from "@/components/DataManager/docs/EXAMPLE";
 import AdvancedExample from "@/components/DataManager/docs/ADVANCED_EXAMPLE";
+import OrchestrationManager from "@/pages/Orchestration";
+import CanvasEditor from "@/pages/Orchestration/CanvasEditor";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -244,6 +248,21 @@ const protectedPages = [
     requiredPath: "systemparam",
   },
   {
+    path: "mcp-server",
+    element: <McpServerManager />,
+    requiredPath: "mcp-server",
+  },
+  {
+    path: "mcp-tool",
+    element: <McpToolManager />,
+    requiredPath: "mcp-tool",
+  },
+  {
+    path: "orchestration",
+    element: <OrchestrationManager />,
+    requiredPath: "orchestration",
+  },
+  {
     path: "example",
     element: <SimpleExample />,
     requiredPath: "example",
@@ -324,6 +343,7 @@ export const router = createBrowserRouter(
         { path: "mindmap/edit", element: <MindMapEditPage /> },
         { path: "mindmap/edit/:id", element: <MindMapEditPage /> },
         { path: "mermaid-mgr/:id", element: <MermaidFromMgr /> },
+        { path: "orchestration/edit/:id", element: <CanvasEditor /> },
         // 非菜单页：文档详情页和功能点页
         { path: "funcDoc/detail/:id", element: <FuncDocDetail /> },
         { path: "funcDoc/features/:id", element: <FuncDocFeatures /> },

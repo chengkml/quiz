@@ -86,13 +86,13 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 "select u.user_id, u.user_name, u.password, u.email, u.phone, u.state, u.logo, " +
                         "u.create_date, u.create_user, cu.user_name as create_user_name, " +
                         "u.update_date, u.update_user, uu.user_name as update_user_name " +
-                        "from user u " +
+                        "from users u " +
                         "left join users cu on u.create_user = cu.user_id " +
                         "left join users uu on u.update_user = uu.user_id " +
                         "where 1=1 "
         );
         StringBuilder countSql = new StringBuilder(
-                "select count(1) from user u where 1=1 "
+                "select count(1) from users u where 1=1 "
         );
         Map<String, Object> params = new HashMap<>();
 

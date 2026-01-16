@@ -147,7 +147,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Override
     @Transactional(readOnly = true)
     public Page<KnowledgeDto> searchKnowledge(KnowledgeQueryDto queryDto) {
-        StringBuilder sql = new StringBuilder("select k.*, u.user_name create_user_name, s.name subject_name, c.name category_name from knowledge k left join users u on u.user_id = k.create_user left join subject s on s.subject_id = k.subject_id left join category c on c.category_id = k.category_id where 1=1 ");
+        StringBuilder sql = new StringBuilder("select k.*, u.user_name create_user_name, s.name subject_name, c.name category_name from knowledge k left join users u on u.user_id = k.create_user left join subject s on s.id = k.subject_id left join category c on c.category_id = k.category_id where 1=1 ");
         StringBuilder countSql = new StringBuilder("select count(1) from knowledge k where 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
