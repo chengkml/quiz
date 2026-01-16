@@ -128,18 +128,30 @@ const DataManager: React.FC<DataManagerProps> = ({
       </div>
     );
 
+  const handlePaginationChange = (page: number, pageSize?: number) => {
+    const nextPageSize = pageSize ?? pagination?.pageSize ?? 10;
+    onPaginationChange?.({
+      ...pagination,
+      current: page,
+      pageSize: nextPageSize,
+    });
+  };
+
+  const handlePageSizeChange = (pageSize: number) => {
+    onPaginationChange?.({
+      ...pagination,
+      current: 1,
+      pageSize,
+    });
+  };
+
   // 分页组件
   const paginationBar = pagination && (
     <div className="data-manager-pagination">
       <Pagination
         {...pagination}
-        onChange={(page, pageSize) => {
-          onPaginationChange?.({
-            ...pagination,
-            current: page,
-            pageSize,
-          });
-        }}
+        onChange={handlePaginationChange}
+        onPageSizeChange={handlePageSizeChange}
       />
     </div>
   );

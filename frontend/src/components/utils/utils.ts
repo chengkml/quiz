@@ -33,6 +33,7 @@ export const renderFormField = (
     render,
     allowClear,
     labelWidth,
+    onChange,
   } = fieldConfig;
 
   const formRules = required
@@ -59,12 +60,19 @@ export const renderFormField = (
 
   let fieldNode: React.ReactNode = null;
 
+  // 创建 onChange 处理函数
+  const handleChange = onChange && form ? (value: any) => {
+    const allValues = form.getFieldsValue();
+    onChange(value, allValues);
+  } : undefined;
+
   switch (type) {
     case "input":
     case "text":
       fieldNode = React.createElement(Input, {
         placeholder: placeholder || `请输入${label}`,
         disabled: disabled,
+        onChange: handleChange,
       });
       break;
 
@@ -73,6 +81,7 @@ export const renderFormField = (
         placeholder: placeholder || `请输入${label}`,
         disabled: disabled,
         rows: 4,
+        onChange: handleChange,
       });
       break;
 
@@ -80,6 +89,7 @@ export const renderFormField = (
       fieldNode = React.createElement(InputNumber, {
         placeholder: placeholder || `请输入${label}`,
         disabled: disabled,
+        onChange: handleChange,
       });
       break;
 
@@ -89,6 +99,7 @@ export const renderFormField = (
         disabled: disabled,
         options: options,
         allowClear: allowClear,
+        onChange: handleChange,
       });
       break;
 
@@ -96,13 +107,14 @@ export const renderFormField = (
       fieldNode = React.createElement(DatePicker, {
         placeholder: placeholder || `请选择${label}`,
         disabled: disabled,
+        onChange: handleChange,
       });
       break;
 
     case "checkbox":
       fieldNode = React.createElement(
         Checkbox,
-        { disabled: disabled },
+        { disabled: disabled, onChange: handleChange },
         label
       );
       break;
@@ -111,6 +123,7 @@ export const renderFormField = (
       fieldNode = React.createElement(Radio.Group, {
         disabled: disabled,
         options: options,
+        onChange: handleChange,
       });
       break;
 
@@ -118,6 +131,7 @@ export const renderFormField = (
       fieldNode = React.createElement(Input, {
         placeholder: placeholder || `请输入${label}`,
         disabled: disabled,
+        onChange: handleChange,
       });
   }
 

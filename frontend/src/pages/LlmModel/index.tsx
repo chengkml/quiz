@@ -1,6 +1,8 @@
 import React, {useEffect, useRef, useState} from 'react';
 import UserAvatar from '@/components/UserAvatar';
 import { DataManager } from '@/components/DataManager';
+import FilterForm from '@/components/FilterForm';
+import { FormFieldConfig } from '@/components/types/types';
 import {
     Button,
     Dropdown,
@@ -49,6 +51,13 @@ function LlmModelManager() {
     });
     const [tableScrollHeight, setTableScrollHeight] = useState(420);
 
+    // 搜索条件
+    const [searchParams, setSearchParams] = useState({
+        name: '',
+        provider: '',
+        type: '',
+    });
+
     // 当前记录与弹窗
     const [currentRecord, setCurrentRecord] = useState<any | null>(null);
     const [addModalVisible, setAddModalVisible] = useState(false);
@@ -69,6 +78,33 @@ function LlmModelManager() {
         {label: '文本', value: 'TEXT'},
         {label: '视觉', value: 'VISION'},
         {label: '语音', value: 'VOICE'},
+    ];
+
+    // 搜索表单配置
+    const searchFormFields: FormFieldConfig[] = [
+        {
+            field: 'name',
+            label: '名称',
+            type: 'input',
+            placeholder: '请输入名称关键字',
+            span: 6,
+        },
+        {
+            field: 'provider',
+            label: '提供者',
+            type: 'input',
+            placeholder: '请输入提供者',
+            span: 6,
+        },
+        {
+            field: 'type',
+            label: '类型',
+            type: 'select',
+            placeholder: '请选择类型',
+            options: typeOptions,
+            span: 6,
+            allowClear: true,
+        },
     ];
 
     // 时间格式化（与其它页面一致的相对/绝对展示）
@@ -103,7 +139,7 @@ function LlmModelManager() {
     };
 
     // 获取表格数据
-    const fetchTableData = async (params: any = {}, pageSize: number = pagination.pageSize, current: number = pagination.current) => {
+    const fetchTableData = async (params: any = searchParams, pageSize: number = pagination.pageSize, current: number = pagination.current) => {
         setTableLoading(true);
         try {
             const targetParams = {
@@ -128,14 +164,23 @@ function LlmModelManager() {
         }
     };
 
+    // 搜索处理
+    const handleSearch = (values) => {
+        const filterValues = Object.fromEntries(
+            Object.entries(values).filter(([_, v]) => v !== '' && v !== undefined)
+        );
+        setSearchParams((prev) => ({ ...prev, ...filterValues }));
+        setPagination((prev) => ({ ...prev, current: 1 }));
+        fetchTableData(filterValues, pagination.pageSize, 1);
+    };
+
     // 搜索
     const searchTableData = (params: any) => {
         fetchTableData(params, pagination.pageSize, 1);
     };
 
     const handlePaginationChange = (nextPagination: any) => {
-        const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
-        fetchTableData(filterParams, nextPagination.pageSize, nextPagination.current);
+        fetchTableData(searchParams, nextPagination.pageSize, nextPagination.current);
     };
 
     // 新增
@@ -305,63 +350,27 @@ function LlmModelManager() {
             setTableScrollHeight(newHeight);
         };
         calculateTableHeight();
-        const defaultParams = {};
-        fetchTableData(defaultParams);
-        setTimeout(() => {
-            filterFormRef.current?.setFieldsValue?.(defaultParams);
-        }, 50);
+        fetchTableData();
         const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     const filterContent = (
-        <Form
+        <FilterForm
             ref={filterFormRef}
-            layout="horizontal"
-            className="filter-form"
-            style={{marginTop: '10px'}}
-            onValuesChange={() => {
-                const values = filterFormRef.current?.getFieldsValue?.() || {};
-                searchTableData(values);
+            initialValues={searchParams}
+            formFields={searchFormFields}
+            onSearch={handleSearch}
+            onReset={() => {
+                const resetParams = { name: '', provider: '', type: '' };
+                setSearchParams(resetParams);
+                setPagination((prev) => ({ ...prev, current: 1 }));
+                fetchTableData(resetParams, pagination.pageSize, 1);
+                Message.info('已重置筛选条件');
             }}
-        >
-            <Row gutter={16}>
-                <Col span={6}>
-                    <Form.Item field="name" label="名称">
-                        <Input placeholder="请输入名称关键字"/>
-                    </Form.Item>
-                </Col>
-                <Col span={6}>
-                    <Form.Item field="provider" label="提供者">
-                        <Input placeholder="请输入提供者" />
-                    </Form.Item>
-                </Col>
-                <Col span={6}>
-                    <Form.Item field="type" label="类型">
-                        <Select placeholder="请选择类型" allowClear>
-                            {typeOptions.map(opt => (
-                                <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={6} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
-                    <Space>
-                        <Button
-                            type="primary"
-                            icon={<IconSearch/>}
-                            onClick={() => {
-                                const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                searchTableData(values);
-                            }}
-                        >
-                            搜索
-                        </Button>
-                    </Space>
-                </Col>
-            </Row>
-        </Form>
+            min={3}
+        />
     );
 
     return (

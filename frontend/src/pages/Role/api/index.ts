@@ -9,6 +9,12 @@ const updateRole = params => axios.put('/role/update', params);
 // 删除角色
 const deleteRole = roleId => axios.delete(`/role/delete/${roleId}`);
 
+// 启用角色
+const enableRole = roleId => axios.post(`/role/${roleId}/enable`);
+
+// 禁用角色
+const disableRole = roleId => axios.post(`/role/${roleId}/disable`);
+
 // 获取角色详情
 const getRoleById = roleId => axios.get(`/role/get/${roleId}`);
 
@@ -17,6 +23,11 @@ const getRoleByName = roleName => axios.get(`/role/name/${roleName}`);
 
 // 分页查询角色
 const getRoles = params => axios.post('/role/search', params);
+
+// 检查角色ID是否唯一
+const checkRoleId = (roleId) => {
+  return axios.get('/role/check/id', { params: { id: roleId } });
+};
 
 // 检查角色名称是否存在
 const checkRoleName = (roleName, excludeRoleId = null) => {
@@ -31,9 +42,12 @@ export {
   createRole,
   updateRole,
   deleteRole,
+  enableRole,
+  disableRole,
   getRoleById,
   getRoleByName,
   getRoles,
+  checkRoleId,
   checkRoleName
 };
 

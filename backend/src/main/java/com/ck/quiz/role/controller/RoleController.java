@@ -24,6 +24,26 @@ public class RoleController extends BaseController<RoleCreateDto, RoleUpdateDto,
     @Autowired
     private RoleService roleService;
 
+    @Operation(summary = "启用角色", description = "启用指定角色")
+    @PostMapping("/{id}/enable")
+    public ResponseEntity<RoleDto> enableRole(@PathVariable("id") String id) {
+        return ResponseEntity.ok(roleService.enableRole(id));
+    }
+
+    @Operation(summary = "禁用角色", description = "禁用指定角色")
+    @PostMapping("/{id}/disable")
+    public ResponseEntity<RoleDto> disableRole(@PathVariable("id") String id) {
+        return ResponseEntity.ok(roleService.disableRole(id));
+    }
+
+    @GetMapping("/check/id")
+    @Operation(summary = "检查角色ID", description = "检查角色ID是否已存在")
+    public ResponseEntity<Boolean> checkRoleId(
+            @Parameter(description = "角色ID", required = true) @RequestParam("id") String id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(roleService.checkIdUniq(authentication.getName(), id));
+    }
+
     @Operation(summary = "检查角色名称", description = "检查角色名称是否已存在")
     @GetMapping("/check/name")
     public ResponseEntity<Boolean> checkRoleName(

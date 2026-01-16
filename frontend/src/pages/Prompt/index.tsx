@@ -221,15 +221,15 @@ function PromptTemplateManagement() {
     setLoading(true);
     try {
       const queryParams = {
-        name: searchParams.name || params.name,
-        page: pagination.current - 1,
+        keyWord: searchParams.name || params.name || "",
+        pageNum: pagination.current - 1,
         pageSize: pagination.pageSize,
       };
 
       const response = await getPromptTemplateList(queryParams);
       // 兼容 Page 对象结构
-      const content = response.data?.content || response.data?.items || [];
-      const total = response.data?.totalElements || response.data?.total || 0;
+      const content = response.data?.content || [];
+      const total = response.data?.totalElements || 0;
 
       setData(content);
       setPagination((prev) => ({

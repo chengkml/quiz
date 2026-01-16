@@ -18,7 +18,7 @@ import org.springframework.util.StringUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -53,17 +53,26 @@ public class RoleServiceImpl extends BaseServiceImpl<RoleCreateDto, RoleUpdateDt
                 limitSql,
                 params,
                 (rs, rowNum) -> {
-                    RoleDto r = new RoleDto();
-                    r.setId(rs.getString("id"));
-                    r.setName(rs.getString("name"));
-                    r.setDescr(rs.getString("descr"));
-                    r.setState(UserRole.RoleState.valueOf(rs.getString("state")));
-                    r.setCreateUser(rs.getString("create_user"));
-                    r.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
-                    r.setUpdateDate(
-                            rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime()
-                                    : null);
-                    return r;
+                    UserRole role = new UserRole();
+                    role.setId(rs.getString("id"));
+                    role.setName(rs.getString("name"));
+                    role.setDescr(rs.getString("descr"));
+                    role.setState(UserRole.RoleState.valueOf(rs.getString("state")));
+                    role.setCreateUser(rs.getString("create_user"));
+                    role.setUpdateUser(rs.getString("update_user"));
+                    
+                    java.sql.Timestamp createTimestamp = rs.getTimestamp("create_date");
+                    if (createTimestamp != null) {
+                        role.setCreateDate(createTimestamp.toLocalDateTime());
+                    }
+                    
+                    java.sql.Timestamp updateTimestamp = rs.getTimestamp("update_date");
+                    if (updateTimestamp != null) {
+                        role.setUpdateDate(updateTimestamp.toLocalDateTime());
+                    }
+                    
+                    RoleDto dto = convertToDto(role, true);
+                    return dto;
                 });
 
         // 组装分页对象
@@ -99,6 +108,38 @@ public class RoleServiceImpl extends BaseServiceImpl<RoleCreateDto, RoleUpdateDt
     @Override
     protected UserRole newModel() {
         return new UserRole();
+    }
+
+    @Override
+    public boolean checkIdUniq(String userId, String id) {
+        if (!StringUtils.hasText(id)) {
+            return true;
+        }
+        return !roleRepository.existsById(id);
+    }
+
+    @Override
+    public RoleDto enableRole(String id) {
+        Optional<UserRole> roleOpt = roleRepository.findById(id);
+        if (!roleOpt.isPresent()) {
+            throw new IllegalArgumentException("Role not found: " + id);
+        }
+        UserRole role = roleOpt.get();
+        role.setState(UserRole.RoleState.ENABLED);
+        UserRole saved = roleRepository.save(role);
+        return convertToDto(saved, true);
+    }
+
+    @Override
+    public RoleDto disableRole(String id) {
+        Optional<UserRole> roleOpt = roleRepository.findById(id);
+        if (!roleOpt.isPresent()) {
+            throw new IllegalArgumentException("Role not found: " + id);
+        }
+        UserRole role = roleOpt.get();
+        role.setState(UserRole.RoleState.DISABLED);
+        UserRole saved = roleRepository.save(role);
+        return convertToDto(saved, true);
     }
 
 }

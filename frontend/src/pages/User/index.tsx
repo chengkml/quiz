@@ -251,6 +251,11 @@ function UserManager() {
         { label: "禁用", value: "DISABLED" },
       ],
       span: 8,
+      allowClear: true,
+      onChange: (value, allValues) => {
+        // 状态改变时自动触发查询
+        handleSearch(allValues);
+      },
     },
   ];
 
@@ -379,7 +384,6 @@ function UserManager() {
       onReset={() => {
         setSearchParams({ name: "", state: "" });
         setPagination((prev) => ({ ...prev, current: 1 }));
-        Message.info("已重置筛选条件");
       }}
       min={3}
     />
@@ -422,7 +426,9 @@ function UserManager() {
         await enableUser(record.userId);
         Message.success("用户已启用");
       }
-      // 重新获取数据
+      // 重新获取数据（直接调用以确保列表刷新）
+      await fetchUsers(pagination.current - 1, searchParams);
+      // 如果需要跳回首页可保留重置
       setPagination((prev) => ({ ...prev, current: 1 }));
     } catch (error) {
       Message.error("操作失败");
@@ -539,12 +545,7 @@ function UserManager() {
     }
   };
 
-  // 搜索条件变化时重新获取数据
-  useEffect(() => {
-    fetchUsers(0, searchParams);
-  }, [searchParams, fetchUsers]);
-
-  // 分页变化时获取数据
+  // 分页或搜索条件变化时获取数据
   useEffect(() => {
     fetchUsers(pagination.current - 1, searchParams);
   }, [pagination.current, fetchUsers, searchParams]);

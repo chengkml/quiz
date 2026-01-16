@@ -4,7 +4,6 @@ import {
   Button,
   Drawer,
   Dropdown,
-  Grid,
   Layout,
   Menu,
   Message,
@@ -15,9 +14,13 @@ import {
 } from "@arco-design/web-react";
 import "./style/index.less";
 import {
+  checkRoleId,
   checkRoleName,
   createRole,
   deleteRole,
+  disableRole,
+  enableRole,
+  getRoleById,
   getRoleMenuTree,
   getRoles,
   replaceRoleMenus,
@@ -28,11 +31,13 @@ import {
   IconEdit,
   IconList,
   IconMenu,
+  IconUser,
 } from "@arco-design/web-react/icon";
 import { getMenuTree } from "@/pages/Menu/api";
 import { DataManager, AddEditModal } from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
 import { FormFieldConfig } from "@/components/types/types";
+import renderDate from "@/utils/timeUtil";
 
 const { Content } = Layout;
 
@@ -55,6 +60,7 @@ function RoleManager() {
   // 搜索条件
   const [searchParams, setSearchParams] = useState({
     roleName: "",
+    state: "",
   });
 
   // 对话框状态
@@ -81,17 +87,10 @@ function RoleManager() {
     }
 
     try {
-      // 检查角色ID是否已存在（通过查询角色列表）
-      const response = await getRoles({
-        keyWord: "",
-        pageNum: 0,
-        pageSize: 1000,
-      });
-
-      const existingRole = response.data.content.find(
-        (role) => role.id === value
-      );
-      if (existingRole) {
+      // 使用check/id接口校验角色ID是否唯一
+      const response = await checkRoleId(value);
+      // 接口返回true表示ID唯一(不存在)，false表示ID已存在
+      if (response?.data === false) {
         callback("角色ID已存在");
       } else {
         callback();
@@ -111,7 +110,7 @@ function RoleManager() {
     try {
       const excludeRoleId = currentRole?.id || null;
       const response = await checkRoleName(value, excludeRoleId);
-      if (response.data) {
+      if (!response.data) {
         callback("角色名称已存在");
       } else {
         callback();
@@ -160,50 +159,13 @@ function RoleManager() {
       dataIndex: "createDate",
       key: "createDate",
       width: 160,
-      render: (value) => {
-        if (!value) return "--";
-
-        const now = new Date();
-        const date = new Date(value);
-        const diffMs = now.getTime() - date.getTime();
-        const diffSeconds = Math.floor(diffMs / 1000);
-        const diffMinutes = Math.floor(diffSeconds / 60);
-        const diffHours = Math.floor(diffMinutes / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        // 今天
-        if (diffDays === 0) {
-          if (diffSeconds < 60) {
-            return `${diffSeconds}秒前`;
-          } else if (diffMinutes < 60) {
-            return `${diffMinutes}分钟前`;
-          } else {
-            return `${diffHours}小时前`;
-          }
-        }
-        // 昨天
-        else if (diffDays === 1) {
-          const hours = String(date.getHours()).padStart(2, "0");
-          const minutes = String(date.getMinutes()).padStart(2, "0");
-          return `昨天 ${hours}:${minutes}`;
-        }
-        // 昨天之前
-        else {
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-          const hours = String(date.getHours()).padStart(2, "0");
-          const minutes = String(date.getMinutes()).padStart(2, "0");
-          const seconds = String(date.getSeconds()).padStart(2, "0");
-          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-        }
-      },
+      render: (value) => renderDate(value),
     },
     {
       title: "创建人",
       dataIndex: "createUserName",
       key: "createUserName",
-      width: 100,
+      width: 140,
       render: (name, record) => (
         <UserAvatar name={name || (record?.createUser ?? "")} showName />
       ),
@@ -213,44 +175,7 @@ function RoleManager() {
       dataIndex: "updateDate",
       key: "updateDate",
       width: 160,
-      render: (value) => {
-        if (!value) return "--";
-
-        const now = new Date();
-        const date = new Date(value);
-        const diffMs = now.getTime() - date.getTime();
-        const diffSeconds = Math.floor(diffMs / 1000);
-        const diffMinutes = Math.floor(diffSeconds / 60);
-        const diffHours = Math.floor(diffMinutes / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        // 今天
-        if (diffDays === 0) {
-          if (diffSeconds < 60) {
-            return `${diffSeconds}秒前`;
-          } else if (diffMinutes < 60) {
-            return `${diffMinutes}分钟前`;
-          } else {
-            return `${diffHours}小时前`;
-          }
-        }
-        // 昨天
-        else if (diffDays === 1) {
-          const hours = String(date.getHours()).padStart(2, "0");
-          const minutes = String(date.getMinutes()).padStart(2, "0");
-          return `昨天 ${hours}:${minutes}`;
-        }
-        // 昨天之前
-        else {
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-          const hours = String(date.getHours()).padStart(2, "0");
-          const minutes = String(date.getMinutes()).padStart(2, "0");
-          const seconds = String(date.getSeconds()).padStart(2, "0");
-          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-        }
-      },
+      render: (value) => renderDate(value),
     },
     {
       title: "操作",
@@ -277,10 +202,10 @@ function RoleManager() {
                   <IconEdit style={{ marginRight: "5px" }} />
                   编辑
                 </Menu.Item>
-                {/* <Menu.Item key="toggle">
+                <Menu.Item key="toggle">
                   <IconUser style={{ marginRight: "5px" }} />
                   {record.state === "ENABLED" ? "禁用" : "启用"}
-                </Menu.Item> */}
+                </Menu.Item>
                 <Menu.Item key="delete">
                   <IconDelete style={{ marginRight: "5px" }} />
                   删除
@@ -312,17 +237,17 @@ function RoleManager() {
       placeholder: "请输入角色名称",
       span: 6,
     },
-    // {
-    //   field: "state",
-    //   label: "状态",
-    //   type: "select",
-    //   placeholder: "请选择状态",
-    //   options: [
-    //     { label: "启用", value: "ENABLED" },
-    //     { label: "禁用", value: "DISABLED" },
-    //   ],
-    //   span: 6,
-    // },
+    {
+      field: "state",
+      label: "状态",
+      type: "select",
+      placeholder: "请选择状态",
+      options: [
+        { label: "启用", value: "ENABLED" },
+        { label: "禁用", value: "DISABLED" },
+      ],
+      span: 6,
+    },
   ];
 
   // 新增/编辑表单配置
@@ -375,6 +300,7 @@ function RoleManager() {
     try {
       const queryParams = {
         keyWord: searchParams.roleName || params.roleName || "",
+        state: searchParams.state || params.state || "",
         pageNum: pagination.current - 1,
         pageSize: pagination.pageSize,
       };
@@ -414,7 +340,7 @@ function RoleManager() {
       formFields={searchFormFields}
       onSearch={handleSearch}
       onReset={() => {
-        const resetParams = { roleName: "" };
+        const resetParams = { roleName: "", state: "" };
         setSearchParams(resetParams);
         setPagination((prev) => ({ ...prev, current: 1 }));
         fetchRoles(resetParams);
@@ -423,6 +349,23 @@ function RoleManager() {
       min={3}
     />
   );
+
+  // 切换角色状态
+  const handleToggleState = async (record) => {
+    try {
+      if (record.state === "ENABLED") {
+        await disableRole(record.id);
+        Message.success("角色已禁用");
+      } else {
+        await enableRole(record.id);
+        Message.success("角色已启用");
+      }
+      fetchRoles();
+    } catch (error) {
+      Message.error("操作失败");
+      console.error("切换角色状态失败:", error);
+    }
+  };
 
   // 处理菜单点击
   const handleMenuClick = (key, event, record) => {
@@ -433,6 +376,8 @@ function RoleManager() {
       handleDelete(record);
     } else if (key === "assign") {
       handleAssignMenus(record);
+    } else if (key === "toggle") {
+      handleToggleState(record);
     }
   };
 

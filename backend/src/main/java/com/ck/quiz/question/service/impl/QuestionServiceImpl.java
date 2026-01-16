@@ -350,6 +350,8 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     @Transactional(readOnly = true)
     public Page<QuestionDto> searchQuestions(QuestionQueryDto queryDto) {
+        // 动态构建通用SQL，兼容多种数据库
+        // 避免使用数据库特定函数，通过标准SQL实现查询
         StringBuilder sql = new StringBuilder(
                 "SELECT q.question_id AS id, q.type, q.content, q.options, q.answer, q.explanation, " +
                         "q.create_date, q.create_user, q.update_date, q.update_user, u.user_name create_user_name " +
@@ -358,6 +360,7 @@ public class QuestionServiceImpl implements QuestionService {
         StringBuilder countSql = new StringBuilder(
                 "SELECT COUNT(1) FROM question q ");
 
+        // 根据查询条件动态添加关联表
         if (queryDto.getCategoryIds() != null || queryDto.getSubjectId() != null) {
             sql.append(
                     " LEFT JOIN question_knowledge_rela r on q.question_id = r.question_id LEFT JOIN knowledge k on k.knowledge_id = r.knowledge_id ");
@@ -381,6 +384,7 @@ public class QuestionServiceImpl implements QuestionService {
         JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(), " AND k.subject_id = :subjectId ", params, sql,
                 countSql);
 
+        // 使用标准的LIKE语句，兼容所有主流数据库
         JdbcQueryHelper.lowerLike("keyWord", queryDto.getContent(), " AND LOWER(q.content) LIKE :keyWord ", params,
                 jdbcTemplate, sql, countSql);
 
@@ -426,7 +430,7 @@ public class QuestionServiceImpl implements QuestionService {
                            s.name subject_name
                     FROM question_knowledge_rela r
                     INNER JOIN knowledge k ON r.knowledge_id = k.knowledge_id
-                    INNER JOIN category c ON k.category_id = c.category_id
+                    INNER JOIN category c ON k.category_id = c.id
                     INNER JOIN subject s ON c.subject_id = s.id
                     WHERE r.question_id IN (:questionIds)
                     """;
@@ -597,22 +601,40 @@ public class QuestionServiceImpl implements QuestionService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Map<String, Object> params = new HashMap<>();
         params.put("createUser", authentication.getName());
-        // 使用SQL查询近7天的题目数量，按日期分组
+        
+        // 使用通用SQL，兼容各种数据库
         String sql = """
-                    SELECT
-                      DATE_FORMAT(create_date, '%Y-%m-%d') AS date,
-                      COUNT(*) AS count
+                    SELECT create_date
                     FROM question
-                    WHERE create_user = :createUser and DATE(create_date) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-                    GROUP BY DATE_FORMAT(create_date, '%Y-%m-%d')
-                    ORDER BY date ASC
+                    WHERE create_user = :createUser
+                    ORDER BY create_date ASC
                 """;
 
-        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
-            String date = rs.getString("date");
-            Long count = rs.getLong("count");
-            return Map.entry(date, count);
-        }).stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        List<java.time.LocalDateTime> dates = jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            java.sql.Timestamp timestamp = rs.getTimestamp("create_date");
+            return timestamp != null ? timestamp.toLocalDateTime() : null;
+        }).stream().filter(Objects::nonNull).toList();
+        
+        // 获取最近7天的日期范围
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate sevenDaysAgo = today.minusDays(6);
+        
+        // 在代码中按日期分组统计
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (java.time.LocalDate date = sevenDaysAgo; !date.isAfter(today); date = date.plusDays(1)) {
+            String dateStr = date.toString();
+            result.put(dateStr, 0L);
+        }
+        
+        // 统计各日期的题目数量
+        for (java.time.LocalDateTime dateTime : dates) {
+            String dateStr = dateTime.toLocalDate().toString();
+            if (result.containsKey(dateStr)) {
+                result.put(dateStr, result.get(dateStr) + 1);
+            }
+        }
+        
+        return result;
     }
 
     @Override
@@ -621,25 +643,48 @@ public class QuestionServiceImpl implements QuestionService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Map<String, Object> params = new HashMap<>();
         params.put("createUser", authentication.getName());
-        // 使用SQL查询各学科的题目数量
+        
+        // 简化SQL，只查询需要的数据，在代码中处理关联和统计
         String sql = """
-                    SELECT s.name as subject_name, COUNT(DISTINCT q.question_id) as count
+                    SELECT DISTINCT q.question_id, s.name as subject_name
                     FROM question q
                     LEFT JOIN question_knowledge_rela r ON q.question_id = r.question_id
                     LEFT JOIN knowledge k ON r.knowledge_id = k.knowledge_id
-                    LEFT JOIN category c ON k.category_id = c.category_id
+                    LEFT JOIN category c ON k.category_id = c.id
                     LEFT JOIN subject s ON c.subject_id = s.id
-                    WHERE q.create_user = :createUser and s.name is not null
-                    GROUP BY s.name
-                    ORDER BY count DESC
+                    WHERE q.create_user = :createUser
                 """;
 
-        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
-            String subjectName = rs.getString("subject_name");
-            Long count = rs.getLong("count");
-            return Map.entry(subjectName, count);
-        }).stream().filter(entry -> entry.getKey() != null)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        // 查询所有数据，在代码中进行统计和排序
+        List<Map<String, Object>> records = jdbcTemplate.queryForList(sql, params);
+        
+        // 在代码中按学科名称分组统计
+        Map<String, Long> countMap = new LinkedHashMap<>();
+        Set<String> seenQuestions = new HashSet<>();
+        
+        for (Map<String, Object> record : records) {
+            String subjectName = (String) record.get("subject_name");
+            String questionId = (String) record.get("question_id");
+            
+            // 过滤掉学科为null的记录
+            if (subjectName != null && questionId != null) {
+                String key = subjectName + ":" + questionId;
+                if (!seenQuestions.contains(key)) {
+                    seenQuestions.add(key);
+                    countMap.put(subjectName, countMap.getOrDefault(subjectName, 0L) + 1);
+                }
+            }
+        }
+        
+        // 按计数降序排序
+        return countMap.entrySet().stream()
+                .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
+                .collect(Collectors.toMap(
+                    Map.Entry::getKey,
+                    Map.Entry::getValue,
+                    (e1, e2) -> e1,
+                    LinkedHashMap::new
+                ));
     }
 
     @Override
@@ -648,22 +693,40 @@ public class QuestionServiceImpl implements QuestionService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Map<String, Object> params = new HashMap<>();
         params.put("createUser", authentication.getName());
-        // 使用SQL查询近30天的题目数量，按日期分组
+        
+        // 使用通用SQL，兼容各种数据库
         String sql = """
-                    SELECT
-                      DATE_FORMAT(create_date, '%Y-%m-%d') AS date,
-                      COUNT(*) AS count
+                    SELECT create_date
                     FROM question
-                    WHERE create_user = :createUser and DATE(create_date) >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
-                    GROUP BY DATE_FORMAT(create_date, '%Y-%m-%d')
-                    ORDER BY date ASC
+                    WHERE create_user = :createUser
+                    ORDER BY create_date ASC
                 """;
 
-        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
-            String date = rs.getString("date");
-            Long count = rs.getLong("count");
-            return Map.entry(date, count);
-        }).stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        List<java.time.LocalDateTime> dates = jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            java.sql.Timestamp timestamp = rs.getTimestamp("create_date");
+            return timestamp != null ? timestamp.toLocalDateTime() : null;
+        }).stream().filter(Objects::nonNull).toList();
+        
+        // 获取最近30天的日期范围
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate thirtyDaysAgo = today.minusDays(29);
+        
+        // 在代码中按日期分组统计
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (java.time.LocalDate date = thirtyDaysAgo; !date.isAfter(today); date = date.plusDays(1)) {
+            String dateStr = date.toString();
+            result.put(dateStr, 0L);
+        }
+        
+        // 统计各日期的题目数量
+        for (java.time.LocalDateTime dateTime : dates) {
+            String dateStr = dateTime.toLocalDate().toString();
+            if (result.containsKey(dateStr)) {
+                result.put(dateStr, result.get(dateStr) + 1);
+            }
+        }
+        
+        return result;
     }
 
 }

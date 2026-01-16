@@ -18,6 +18,7 @@ export interface FormFieldConfig {
   render?: (fieldValue: any, allValues: any) => React.ReactNode;
   allowClear?: boolean;
   labelWidth?: number | string;
+  onChange?: (value: any, allValues?: any) => void;
 }
 
 export type DisplayMode = 'shortCard' | 'longCard' | 'table';

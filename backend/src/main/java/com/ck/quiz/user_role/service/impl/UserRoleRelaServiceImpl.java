@@ -10,6 +10,7 @@ import com.ck.quiz.user_role.service.UserRoleRelaService;
 import com.ck.quiz.utils.IdHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
@@ -31,15 +32,21 @@ public class UserRoleRelaServiceImpl implements UserRoleRelaService {
     private UserRoleRelaRepository userRoleRelaRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<RoleDto> getUserRoles(String userId) {
-        return userRoleRelaRepository.findByUser(userRepository.findByUserId(userId).get()).stream()
-                .map(UserRoleRela::getRole)       // 直接取角色实体
+        List<UserRoleRela> relas = userRoleRelaRepository.findByUser(userRepository.findByUserId(userId).get());
+        return relas.stream()
+                .map(UserRoleRela::getRole)
                 .filter(Objects::nonNull)
-                .map(role -> roleService.convertToDto(role, true))
+                .map(role -> {
+                    // 2. 此时在事务内，convertToDto 触发懒加载会自动发 SQL 抓取数据
+                    return roleService.convertToDto(role, true);
+                })
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional
     public List<RoleDto> replaceUserRoles(String userId, List<String> roleIds) {
         // 1. 校验用户是否存在
         var userOpt = userRepository.findByUserId(userId);

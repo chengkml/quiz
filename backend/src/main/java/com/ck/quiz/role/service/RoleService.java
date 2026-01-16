@@ -11,4 +11,10 @@ public interface RoleService extends BaseService<RoleCreateDto, RoleUpdateDto, R
 
     boolean checkNameUniq(String userId, String name, String excludeId);
 
+    boolean checkIdUniq(String userId, String id);
+
+    RoleDto enableRole(String id);
+
+    RoleDto disableRole(String id);
+
 }
