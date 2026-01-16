@@ -14,7 +14,7 @@ import {
 import {
   IconDelete,
   IconEdit,
-  IconHeartbeat,
+  IconHeart,
   IconList,
   IconRefresh,
   IconSearch,
@@ -263,7 +263,7 @@ function McpServerManager() {
         <Space>
           <Button
             size="small"
-            icon={<IconHeartbeat />}
+            icon={<IconHeart />}
             onClick={e => {
               e.stopPropagation();
               handleHealthCheck(record);

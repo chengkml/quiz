@@ -52,11 +52,28 @@ public class McpServerServiceImpl extends
     }
 
     @Override
+    public McpServerDto create(McpServerCreateDto createDto) {
+        // 检查 identifier 是否已存在
+        McpServer existing = repository.findByIdentifier(createDto.getIdentifier());
+        if (existing != null) {
+            throw new IllegalArgumentException("服务器标识已存在: " + createDto.getIdentifier());
+        }
+        return super.create(createDto);
+    }
+
+    @Override
     public McpServerDto update(String userId, McpServerUpdateDto updateDto) {
         McpServer server = repository.findById(updateDto.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Server not found: " + updateDto.getId()));
         if (server.getCreateUser() != null && !server.getCreateUser().equals(userId)) {
             throw new IllegalArgumentException("No permission to update server: " + updateDto.getId());
+        }
+        // 检查更新的 identifier 是否已被其他记录使用
+        if (updateDto.getIdentifier() != null && !updateDto.getIdentifier().equals(server.getIdentifier())) {
+            McpServer existing = repository.findByIdentifier(updateDto.getIdentifier());
+            if (existing != null) {
+                throw new IllegalArgumentException("服务器标识已存在: " + updateDto.getIdentifier());
+            }
         }
         if (updateDto.getName() != null) {
             server.setName(updateDto.getName());

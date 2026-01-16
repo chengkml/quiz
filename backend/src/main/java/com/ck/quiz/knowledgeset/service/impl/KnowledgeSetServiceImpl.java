@@ -9,6 +9,8 @@ import com.ck.quiz.knowledgeset.entity.KnowledgeSet;
 import com.ck.quiz.knowledgeset.repository.KnowledgeSetRepository;
 import com.ck.quiz.knowledgeset.service.KnowledgeSetService;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -38,7 +40,11 @@ public class KnowledgeSetServiceImpl extends BaseServiceImpl<KnowledgeSetCreateD
 
     @Override
     public KnowledgeSetDto create(KnowledgeSetCreateDto createDto) {
-        String userId = userService.getCurrentUserId();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("用户未登录");
+        }
+        String userId = authentication.getName();
         if (repository.existsByNameAndCreateUser(createDto.getName(), userId)) {
             throw new DuplicateKeyException("知识集名称已存在");
         }
@@ -100,4 +106,3 @@ public class KnowledgeSetServiceImpl extends BaseServiceImpl<KnowledgeSetCreateD
         return JdbcQueryHelper.toPage(jdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
     }
 }
-

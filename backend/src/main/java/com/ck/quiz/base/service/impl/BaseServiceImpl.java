@@ -95,15 +95,26 @@ public abstract class BaseServiceImpl<C extends CreateDto, U extends UpdateDto, 
         }
         String createUserId = model.getCreateUser();
         String updateUserId = model.getUpdateUser();
-        userService.getUserMapByIds(
-                List.of(createUserId, updateUserId)).forEach((userId, userDto) -> {
-                    if (userId.equals(createUserId)) {
-                        dto.setCreateUserName(userDto.getUserName());
-                    }
-                    if (userId.equals(updateUserId)) {
-                        dto.setUpdateUserName(userDto.getUserName());
-                    }
-                });
+        
+        // 过滤掉 null 值，避免 List.of() 抛出 NullPointerException
+        List<String> userIds = new ArrayList<>();
+        if (createUserId != null) {
+            userIds.add(createUserId);
+        }
+        if (updateUserId != null) {
+            userIds.add(updateUserId);
+        }
+        
+        if (!userIds.isEmpty()) {
+            userService.getUserMapByIds(userIds).forEach((userId, userDto) -> {
+                if (userId.equals(createUserId)) {
+                    dto.setCreateUserName(userDto.getUserName());
+                }
+                if (userId.equals(updateUserId)) {
+                    dto.setUpdateUserName(userDto.getUserName());
+                }
+            });
+        }
         return dto;
     }
 
