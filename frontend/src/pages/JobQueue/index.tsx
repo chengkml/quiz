@@ -23,6 +23,8 @@ import {
   IconUndo,
 } from "@arco-design/web-react/icon";
 import DataManager from "@/components/DataManager";
+import FilterForm from "@/components/FilterForm";
+import { FormFieldConfig, PaginationConfig } from "@/components/types/types";
 import "./style/index.less";
 import {
   checkQueueNameUniq,
@@ -43,7 +45,7 @@ function JobQueueManager() {
   // 表格数据与状态
   const [tableData, setTableData] = useState<any[]>([]);
   const [tableLoading, setTableLoading] = useState(false);
-  const [pagination, setPagination] = useState({
+  const [pagination, setPagination] = useState<PaginationConfig>({
     current: 1,
     pageSize: 20,
     total: 0,
@@ -59,13 +61,18 @@ function JobQueueManager() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
+  // 搜索参数
+  const [searchParams, setSearchParams] = useState({
+    keyWord: "",
+  });
+
   // 表单引用
   const addFormRef = useRef<any>(null);
   const editFormRef = useRef<any>(null);
   const filterFormRef = useRef<any>(null);
 
   // 队列状态映射（仅用于显示）
-  const stateMap = {
+  const stateMap: Record<string, { color: string; text: string }> = {
     ENABLED: { color: "green", text: "启用" },
     DISABLED: { color: "gray", text: "禁用" },
   };
@@ -74,6 +81,16 @@ function JobQueueManager() {
   const stateOptions = [
     { value: "ENABLED", label: "启用" },
     { value: "DISABLED", label: "禁用" },
+  ];
+
+  // 搜索表单配置
+  const searchFormFields: FormFieldConfig[] = [
+    {
+      field: "keyWord",
+      label: "关键词",
+      type: "input",
+      placeholder: "请输入队列名称或中文名",
+    },
   ];
 
   // 时间格式化（与其它页面一致的相对/绝对展示）
@@ -115,11 +132,10 @@ function JobQueueManager() {
   ) => {
     setTableLoading(true);
     try {
-      // 移除状态过滤，只保留关键词搜索
       const targetParams = {
         limit: pageSize,
         offset: (current - 1) * pageSize,
-        keyWord: params.keyWord || "",
+        keyWord: params.keyWord || searchParams.keyWord || "",
       };
       const response = await searchQueues(targetParams);
       if (response.data) {
@@ -138,15 +154,20 @@ function JobQueueManager() {
     }
   };
 
-  // 搜索
-  const searchTableData = (params: any) => {
-    fetchTableData(params, pagination.pageSize, 1);
+  // 搜索处理
+  const handleSearch = (values: any) => {
+    // 过滤空值
+    const filterValues = Object.fromEntries(
+      Object.entries(values).filter(([_, v]) => v !== "" && v !== undefined)
+    );
+    setSearchParams((prev) => ({ ...prev, ...filterValues }));
+    setPagination((prev) => ({ ...prev, current: 1 }));
+    fetchTableData(filterValues, pagination.pageSize, 1);
   };
 
   // 分页变化
   const handlePageChange = (current: number, pageSize: number) => {
-    const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
-    fetchTableData(filterParams, pageSize, current);
+    fetchTableData(searchParams, pageSize, current);
   };
 
   // 新增
@@ -181,8 +202,8 @@ function JobQueueManager() {
         addFormRef.current?.resetFields?.();
         fetchTableData();
       }
-    } catch (error) {
-      if (error?.fields) return; // 表单校验错误
+    } catch (error: unknown) {
+      if ((error as any)?.fields) return; // 表单校验错误
       Message.error("队列创建失败");
     }
   };
@@ -209,8 +230,8 @@ function JobQueueManager() {
         editFormRef.current?.resetFields?.();
         fetchTableData();
       }
-    } catch (error) {
-      if (error?.fields) return;
+    } catch (error: unknown) {
+      if ((error as any)?.fields) return;
       Message.error("队列大小更新失败");
     }
   };
@@ -383,8 +404,7 @@ function JobQueueManager() {
         pagination={pagination}
         onPaginationChange={(next) => {
           setPagination(next);
-          const values = filterFormRef.current?.getFieldsValue?.() || {};
-          fetchTableData(values, next.pageSize, next.current);
+          fetchTableData(searchParams, next.pageSize, next.current);
         }}
         actions={{
           onAdd: handleAdd,
@@ -393,47 +413,20 @@ function JobQueueManager() {
           displayMode: "table",
           showModeToggle: false,
           filterContent: (
-            <Form
+            <FilterForm
               ref={filterFormRef}
-              layout="horizontal"
-              className="filter-form"
-              style={{ marginTop: "10px" }}
-              onValuesChange={() => {
-                const values = filterFormRef.current?.getFieldsValue?.() || {};
-                searchTableData(values);
+              initialValues={searchParams}
+              formFields={searchFormFields}
+              onSearch={handleSearch}
+              onReset={() => {
+                const resetParams = { keyWord: "" };
+                setSearchParams(resetParams);
+                setPagination((prev) => ({ ...prev, current: 1 }));
+                fetchTableData(resetParams);
+                Message.info("已重置筛选条件");
               }}
-            >
-              <Row gutter={16}>
-                <Col span={6}>
-                  <Form.Item field="keyWord" label="关键词">
-                    <Input placeholder="请输入队列名称或中文名" />
-                  </Form.Item>
-                </Col>
-                <Col
-                  span={6}
-                  style={{
-                    display: "flex",
-                    justifyContent: "flex-start",
-                    alignItems: "flex-end",
-                    paddingBottom: "16px",
-                  }}
-                >
-                  <Space>
-                    <Button
-                      type="primary"
-                      icon={<IconSearch />}
-                      onClick={() => {
-                        const values =
-                          filterFormRef.current?.getFieldsValue?.() || {};
-                        searchTableData(values);
-                      }}
-                    >
-                      搜索
-                    </Button>
-                  </Space>
-                </Col>
-              </Row>
-            </Form>
+              min={1}
+            />
           ),
           tableColumns: columns,
         }}
@@ -473,8 +466,7 @@ function JobQueueManager() {
               <Input
                 type="number"
                 placeholder="请输入队列大小"
-                min={1}
-                defaultValue={100}
+                min="1"
               />
             </Form.Item>
             <Form.Item label="状态" field="state">

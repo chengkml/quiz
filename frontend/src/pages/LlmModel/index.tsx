@@ -3,6 +3,7 @@ import UserAvatar from '@/components/UserAvatar';
 import { DataManager } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
+import renderDate from '@/utils/timeUtil';
 import {
     Button,
     Dropdown,
@@ -107,37 +108,6 @@ function LlmModelManager() {
         },
     ];
 
-    // 时间格式化（与其它页面一致的相对/绝对展示）
-    const formatDateTime = (value?: string) => {
-        if (!value) return '-';
-        const date = new Date(value);
-        if (isNaN(date.getTime())) return '-';
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffSeconds = Math.floor(diffMs / 1000);
-        const diffMinutes = Math.floor(diffSeconds / 60);
-        const diffHours = Math.floor(diffMinutes / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        if (diffDays === 0) {
-            if (diffSeconds < 60) return `${diffSeconds}秒前`;
-            if (diffMinutes < 60) return `${diffMinutes}分钟前`;
-            return `${diffHours}小时前`;
-        } else if (diffDays === 1) {
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            return `昨天 ${hours}:${minutes}`;
-        } else {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const seconds = String(date.getSeconds()).padStart(2, '0');
-            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-        }
-    };
-
     // 获取表格数据
     const fetchTableData = async (params: any = searchParams, pageSize: number = pagination.pageSize, current: number = pagination.current) => {
         setTableLoading(true);
@@ -165,7 +135,7 @@ function LlmModelManager() {
     };
 
     // 搜索处理
-    const handleSearch = (values) => {
+    const handleSearch = (values: any) => {
         const filterValues = Object.fromEntries(
             Object.entries(values).filter(([_, v]) => v !== '' && v !== undefined)
         );
@@ -316,7 +286,7 @@ function LlmModelManager() {
         { title: '创建人', dataIndex: 'createUserName', width: 140, render: (_: any, record: any) => (
             <UserAvatar name={record.createUserName || record.createUser || ''} showName />
         ) },
-        { title: '创建时间', dataIndex: 'createDate', width: 180, render: (value: string) => formatDateTime(value) },
+        { title: '创建时间', dataIndex: 'createDate', width: 180, render: (value: string) => renderDate(value) },
         {
             title: '操作',
             width: 120,

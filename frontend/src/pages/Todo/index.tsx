@@ -15,6 +15,8 @@ import {
   Tag,
 } from "@arco-design/web-react";
 import DataManager from "@/components/DataManager";
+import FilterForm from "@/components/FilterForm";
+import { FormFieldConfig } from "@/components/types/types";
 import UserAvatar from "@/components/UserAvatar";
 import {
   IconCheck,
@@ -26,6 +28,7 @@ import {
   IconSearch,
 } from "@arco-design/web-react/icon";
 import { useNavigate } from "react-router-dom";
+import renderDate from "@/utils/timeUtil";
 import "./style/index.less";
 import {
   createTodo,
@@ -58,6 +61,13 @@ function TodoManager() {
   const [tableScrollHeight, setTableScrollHeight] = useState(420);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
 
+  // 搜索条件
+  const [searchParams, setSearchParams] = useState({
+    title: "",
+    status: "PENDING",
+    priority: "",
+  });
+
   // 当前记录与弹窗
   const [currentRecord, setCurrentRecord] = useState<any | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -81,40 +91,38 @@ function TodoManager() {
     { label: "高", value: "HIGH" },
   ];
 
-  // 时间格式化（与其它页面一致的相对/绝对展示）
-  const formatDateTime = (value?: string) => {
-    if (!value) return "-";
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return "-";
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffDays === 0) {
-      if (diffSeconds < 60) return `${diffSeconds}秒前`;
-      if (diffMinutes < 60) return `${diffMinutes}分钟前`;
-      return `${diffHours}小时前`;
-    } else if (diffDays === 1) {
-      const hours = String(date.getHours()).padStart(2, "0");
-      const minutes = String(date.getMinutes()).padStart(2, "0");
-      return `昨天 ${hours}:${minutes}`;
-    } else {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      const hours = String(date.getHours()).padStart(2, "0");
-      const minutes = String(date.getMinutes()).padStart(2, "0");
-      const seconds = String(date.getSeconds()).padStart(2, "0");
-      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    }
-  };
+  // 搜索表单配置
+  const searchFormFields: FormFieldConfig[] = [
+    {
+      field: "title",
+      label: "标题",
+      type: "input",
+      placeholder: "请输入标题关键字",
+      span: 6,
+    },
+    {
+      field: "status",
+      label: "状态",
+      type: "select",
+      placeholder: "请选择状态",
+      options: statusOptions,
+      span: 6,
+      allowClear: true,
+    },
+    {
+      field: "priority",
+      label: "优先级",
+      type: "select",
+      placeholder: "请选择优先级",
+      options: priorityOptions,
+      span: 8,
+      allowClear: true,
+    },
+  ];
 
   // 获取表格数据
   const fetchTableData = async (
-    params: any = {},
+    params: any = searchParams,
     pageSize: number = pagination.pageSize,
     current: number = pagination.current
   ) => {
@@ -144,6 +152,16 @@ function TodoManager() {
     }
   };
 
+  // 搜索处理
+  const handleSearch = (values: any) => {
+    const filterValues = Object.fromEntries(
+      Object.entries(values).filter(([_, v]) => v !== "" && v !== undefined)
+    );
+    setSearchParams((prev) => ({ ...prev, ...filterValues }));
+    setPagination((prev) => ({ ...prev, current: 1 }));
+    fetchTableData(filterValues, pagination.pageSize, 1);
+  };
+
   // 搜索
   const searchTableData = (params: any) => {
     fetchTableData(params, pagination.pageSize, 1);
@@ -151,13 +169,11 @@ function TodoManager() {
 
   // 分页变化
   const handlePaginationChange = (nextPagination: any) => {
-    setPagination((prev) => ({
-      ...prev,
-      current: nextPagination.current,
-      pageSize: nextPagination.pageSize,
-    }));
-    const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
-    fetchTableData(filterParams, nextPagination.pageSize, nextPagination.current);
+    fetchTableData(
+      searchParams,
+      nextPagination.pageSize,
+      nextPagination.current
+    );
   };
 
   // 新增
@@ -184,7 +200,7 @@ function TodoManager() {
         addFormRef.current?.resetFields?.();
         fetchTableData();
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error?.fields) return; // 表单校验错误
       Message.error("待办创建失败");
     }
@@ -226,7 +242,7 @@ function TodoManager() {
         editFormRef.current?.resetFields?.();
         fetchTableData();
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error?.fields) return;
       Message.error("待办更新失败");
     }
@@ -343,7 +359,7 @@ function TodoManager() {
       title: "截止时间",
       dataIndex: "dueDate",
       width: 180,
-      render: (value: string) => formatDateTime(value),
+      render: (value: string) => renderDate(value),
     },
     {
       title: "创建人",
@@ -360,7 +376,7 @@ function TodoManager() {
       title: "创建时间",
       dataIndex: "createDate",
       width: 180,
-      render: (value: string) => formatDateTime(value),
+      render: (value: string) => renderDate(value),
     },
     {
       title: "操作",
@@ -419,224 +435,155 @@ function TodoManager() {
       setTableScrollHeight(newHeight);
     };
     calculateTableHeight();
-    // 默认查询待处理状态的任务
-    const defaultParams = { status: "PENDING" };
-    fetchTableData(defaultParams);
-    // 设置表单默认值
-    setTimeout(() => {
-      filterFormRef.current?.setFieldsValue?.(defaultParams);
-    }, 50);
+    // 使用searchParams（默认status为PENDING）获取数据
+    fetchTableData(searchParams);
     const handleResize = () => calculateTableHeight();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const filterContent = (
-    <Form
+    <FilterForm
       ref={filterFormRef}
-      layout="horizontal"
-      className="filter-form"
-      onValuesChange={() => {
-        const values = filterFormRef.current?.getFieldsValue?.() || {};
-        searchTableData(values);
-      }}
-    >
-      <Row gutter={16}>
-        <Col span={6}>
-          <Form.Item field="title" label="标题">
-            <Input placeholder="请输入标题关键字" />
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item field="status" label="状态">
-            <Select placeholder="请选择状态" allowClear>
-              {statusOptions.map((opt) => (
-                <Select.Option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item field="priority" label="优先级">
-            <Select placeholder="请选择优先级" allowClear>
-              {priorityOptions.map((opt) => (
-                <Select.Option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col
-          span={6}
-          style={{
-            display: "flex",
-            justifyContent: "flex-start",
-            alignItems: "flex-end",
-            paddingBottom: "16px",
-          }}
-        >
-          <Space>
-            <Button
-              type="primary"
-              icon={<IconSearch />}
-              onClick={() => {
-                const values =
-                  filterFormRef.current?.getFieldsValue?.() || {};
-                searchTableData(values);
-              }}
-            >
-              搜索
-            </Button>
-            {/* 新增按钮现在移到了 DataManager 的 actions 中 */}
-          </Space>
-        </Col>
-      </Row>
-    </Form>
+      formFields={searchFormFields}
+      onSearch={handleSearch}
+    />
   );
 
   return (
     <div className="todo-manager">
-      <Layout>
-        <Content>
-          <DataManager
-            data={tableData}
-            loading={tableLoading}
-            pagination={pagination}
-            onPaginationChange={handlePaginationChange}
-            actions={{
-              onAdd: handleAdd,
-            }}
-            config={{
-              showModeToggle: false,
-              displayMode: 'table',
-              filterContent,
-              tableColumns: columns,
-            }}
-            tableScrollHeight={tableScrollHeight}
-          />
+      <DataManager
+        data={tableData}
+        loading={tableLoading}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        actions={{
+          onAdd: handleAdd,
+        }}
+        config={{
+          showModeToggle: false,
+          displayMode: "table",
+          filterContent,
+          tableColumns: columns,
+        }}
+        tableScrollHeight={tableScrollHeight}
+      />
 
-          {/* 新增对话框 */}
-          <Modal
-            title="新增待办"
-            visible={addModalVisible}
-            onOk={handleAddConfirm}
-            onCancel={() => setAddModalVisible(false)}
-          >
-            <div
-              style={{
-                maxHeight: "60vh",
-                overflowY: "auto",
-                paddingRight: "10px",
-              }}
+      {/* 新增对话框 */}
+      <Modal
+        title="新增待办"
+        visible={addModalVisible}
+        onOk={handleAddConfirm}
+        onCancel={() => setAddModalVisible(false)}
+      >
+        <div
+          style={{
+            maxHeight: "60vh",
+            overflowY: "auto",
+            paddingRight: "10px",
+          }}
+        >
+          <Form ref={addFormRef} layout="vertical" className="modal-form">
+            <Form.Item
+              label="标题"
+              field="title"
+              rules={[{ required: true, message: "请输入标题" }]}
             >
-              <Form ref={addFormRef} layout="vertical" className="modal-form">
-                <Form.Item
-                  label="标题"
-                  field="title"
-                  rules={[{ required: true, message: "请输入标题" }]}
-                >
-                  <Input placeholder="请输入标题" />
-                </Form.Item>
-                <Form.Item label="详细描述" field="description">
-                  <TextArea
-                    placeholder="请输入详细描述"
-                    autoSize={{ minRows: 3, maxRows: 6 }}
-                  />
-                </Form.Item>
-                <Form.Item label="状态" field="status">
-                  <Select placeholder="请选择状态" allowClear>
-                    {statusOptions.map((opt) => (
-                      <Option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item label="优先级" field="priority">
-                  <Select placeholder="请选择优先级" allowClear>
-                    {priorityOptions.map((opt) => (
-                      <Option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item label="截止时间" field="dueDate">
-                  <DatePicker showTime style={{ width: "100%" }} />
-                </Form.Item>
-              </Form>
-            </div>
-          </Modal>
+              <Input placeholder="请输入标题" />
+            </Form.Item>
+            <Form.Item label="详细描述" field="description">
+              <TextArea
+                placeholder="请输入详细描述"
+                autoSize={{ minRows: 3, maxRows: 6 }}
+              />
+            </Form.Item>
+            <Form.Item label="状态" field="status">
+              <Select placeholder="请选择状态" allowClear>
+                {statusOptions.map((opt) => (
+                  <Option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item label="优先级" field="priority">
+              <Select placeholder="请选择优先级" allowClear>
+                {priorityOptions.map((opt) => (
+                  <Option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item label="截止时间" field="dueDate">
+              <DatePicker showTime style={{ width: "100%" }} />
+            </Form.Item>
+          </Form>
+        </div>
+      </Modal>
 
-          {/* 编辑对话框 */}
-          <Modal
-            title="编辑待办"
-            visible={editModalVisible}
-            onOk={handleEditConfirm}
-            onCancel={() => setEditModalVisible(false)}
-          >
-            <div
-              style={{
-                maxHeight: "60vh",
-                overflowY: "auto",
-                paddingRight: "10px",
-              }}
+      {/* 编辑对话框 */}
+      <Modal
+        title="编辑待办"
+        visible={editModalVisible}
+        onOk={handleEditConfirm}
+        onCancel={() => setEditModalVisible(false)}
+      >
+        <div
+          style={{
+            maxHeight: "60vh",
+            overflowY: "auto",
+            paddingRight: "10px",
+          }}
+        >
+          <Form ref={editFormRef} layout="vertical" className="modal-form">
+            <Form.Item
+              label="标题"
+              field="title"
+              rules={[{ required: true, message: "请输入标题" }]}
             >
-              <Form ref={editFormRef} layout="vertical" className="modal-form">
-                <Form.Item
-                  label="标题"
-                  field="title"
-                  rules={[{ required: true, message: "请输入标题" }]}
-                >
-                  <Input placeholder="请输入标题" />
-                </Form.Item>
-                <Form.Item label="详细描述" field="description">
-                  <TextArea
-                    placeholder="请输入详细描述"
-                    autoSize={{ minRows: 3, maxRows: 6 }}
-                  />
-                </Form.Item>
-                <Form.Item label="状态" field="status">
-                  <Select placeholder="请选择状态" allowClear>
-                    {statusOptions.map((opt) => (
-                      <Option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item label="优先级" field="priority">
-                  <Select placeholder="请选择优先级" allowClear>
-                    {priorityOptions.map((opt) => (
-                      <Option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item label="截止时间" field="dueDate">
-                  <DatePicker showTime style={{ width: "100%" }} />
-                </Form.Item>
-              </Form>
-            </div>
-          </Modal>
+              <Input placeholder="请输入标题" />
+            </Form.Item>
+            <Form.Item label="详细描述" field="description">
+              <TextArea
+                placeholder="请输入详细描述"
+                autoSize={{ minRows: 3, maxRows: 6 }}
+              />
+            </Form.Item>
+            <Form.Item label="状态" field="status">
+              <Select placeholder="请选择状态" allowClear>
+                {statusOptions.map((opt) => (
+                  <Option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item label="优先级" field="priority">
+              <Select placeholder="请选择优先级" allowClear>
+                {priorityOptions.map((opt) => (
+                  <Option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item label="截止时间" field="dueDate">
+              <DatePicker showTime style={{ width: "100%" }} />
+            </Form.Item>
+          </Form>
+        </div>
+      </Modal>
 
-          {/* 删除确认 */}
-          <Modal
-            title="确认删除"
-            visible={deleteModalVisible}
-            onOk={handleDeleteConfirm}
-            onCancel={() => setDeleteModalVisible(false)}
-          >
-            <div className="delete-modal">
-              确定要删除该待办吗？此操作不可恢复。
-            </div>
-          </Modal>
-        </Content>
-      </Layout>
+      {/* 删除确认 */}
+      <Modal
+        title="确认删除"
+        visible={deleteModalVisible}
+        onOk={handleDeleteConfirm}
+        onCancel={() => setDeleteModalVisible(false)}
+      >
+        <div className="delete-modal">确定要删除该待办吗？此操作不可恢复。</div>
+      </Modal>
     </div>
   );
 }

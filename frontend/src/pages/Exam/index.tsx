@@ -43,16 +43,25 @@ import {getAllSubjects} from '../Subject/api';
 import {getCategoriesBySubjectId} from '../Category/api';
 import {ExamDto, ExamQueryDto, ExamStatus, FormRef, PaginationConfig, StatusOption} from './types';
 import { DataManager } from '../../components/DataManager';
+import FilterForm from '@/components/FilterForm';
+import { FormFieldConfig } from '@/components/types/types';
+import renderDate from '@/utils/timeUtil';
 
 const {TextArea} = Input;
 const {Row, Col} = Grid;
 
  function ExamManager(): React.ReactElement {
     const navigate = useNavigate();
-    // 状态管理
+    // 表格数据与状态
     const [tableData, setTableData] = useState<ExamDto[]>([]);
     const [tableLoading, setTableLoading] = useState<boolean>(false);
     const [tableScrollHeight, setTableScrollHeight] = useState<number>(420);
+
+    // 搜索条件
+    const [searchParams, setSearchParams] = useState({
+        name: '',
+        status: '',
+    });
 
     // 对话框状态
     const [deleteModalVisible, setDeleteModalVisible] = useState<boolean>(false);
@@ -74,7 +83,7 @@ const {Row, Col} = Grid;
     const [smartGenerating, setSmartGenerating] = useState<boolean>(false);
 
     // 表单引用
-    const filterFormRef = useRef<FormRef['current']>();
+    const filterFormRef = useRef<any>(null);
 
     // 分页配置
     const [pagination, setPagination] = useState<PaginationConfig>({
@@ -147,44 +156,7 @@ const {Row, Col} = Grid;
             title: '创建时间',
             dataIndex: 'createDate',
             width: 170,
-            render: (value) => {
-                if (!value) return '--';
-
-                const now = new Date();
-                const date = new Date(value);
-                const diffMs = now.getTime() - date.getTime();
-                const diffSeconds = Math.floor(diffMs / 1000);
-                const diffMinutes = Math.floor(diffSeconds / 60);
-                const diffHours = Math.floor(diffMinutes / 60);
-                const diffDays = Math.floor(diffHours / 24);
-
-                // 今天
-                if (diffDays === 0) {
-                    if (diffSeconds < 60) {
-                        return `${diffSeconds}秒前`;
-                    } else if (diffMinutes < 60) {
-                        return `${diffMinutes}分钟前`;
-                    } else {
-                        return `${diffHours}小时前`;
-                    }
-                }
-                // 昨天
-                else if (diffDays === 1) {
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    return `昨天 ${hours}:${minutes}`;
-                }
-                // 昨天之前
-                else {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const seconds = String(date.getSeconds()).padStart(2, '0');
-                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-                }
-            },
+            render: (value: string) => renderDate(value),
         },
         {
             title: '操作',
@@ -251,11 +223,16 @@ const {Row, Col} = Grid;
     ];
 
     // 获取表格数据
-    const fetchTableData = async (params: Partial<ExamQueryDto> = {}, pageSize: number = pagination.pageSize, current: number = pagination.current): Promise<void> => {
+    const fetchTableData = async (
+        params: any = searchParams,
+        pageSize: number = pagination.pageSize,
+        current: number = pagination.current
+    ): Promise<void> => {
         setTableLoading(true);
         try {
             const targetParams: ExamQueryDto = {
-                ...params,
+                keyWord: params?.name,
+                status: params?.status,
                 pageNum: current - 1,
                 pageSize: pageSize,
             };
@@ -276,14 +253,19 @@ const {Row, Col} = Grid;
         }
     };
 
-    // 搜索表格数据
-    const searchTableData = (params: any): void => {
-        // 将筛选表单的 name 映射为后端的 keyWord
-        const mapped: Partial<ExamQueryDto> = {
-            keyWord: params?.name,
-            status: params?.status,
-        };
-        fetchTableData(mapped, pagination.pageSize, 1);
+    // 搜索处理
+    const handleSearch = (values: any) => {
+        const filterValues = Object.fromEntries(
+            Object.entries(values).filter(([_, v]) => v !== '' && v !== undefined)
+        );
+        setSearchParams((prev) => ({ ...prev, ...filterValues }));
+        setPagination((prev) => ({ ...prev, current: 1 }));
+        fetchTableData(filterValues, pagination.pageSize, 1);
+    };
+
+    // 分页变化
+    const handlePaginationChange = (nextPagination: any) => {
+        fetchTableData(searchParams, nextPagination.pageSize, nextPagination.current);
     };
 
     // 处理菜单点击
@@ -420,70 +402,55 @@ const {Row, Col} = Grid;
             await deleteExam(currentRecord.id);
             Message.success('试卷删除成功');
             setDeleteModalVisible(false);
-            fetchTableData();
+            fetchTableData(searchParams, pagination.pageSize, Math.max(1, pagination.current - 1));
         } catch (error) {
             Message.error('试卷删除失败');
         }
     };
 
-    // 分页变化
-    const handlePaginationChange = (current: number, pageSize: number): void => {
-        fetchTableData({}, pageSize, current);
-    };
-
     // 计算表格高度的函数
     const calculateTableHeight = () => {
         const windowHeight = window.innerHeight;
-        const otherElementsHeight = 250; // 其他元素占用的高度
+        const otherElementsHeight = 250;
         const newHeight = Math.max(200, windowHeight - otherElementsHeight);
         setTableScrollHeight(newHeight);
     };
 
     // 初始化数据
     useEffect(() => {
-        fetchTableData();
-        // 初始化表格高度
+        fetchTableData(searchParams);
         calculateTableHeight();
-        // 添加窗口大小改变事件监听
         const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
-        
-        // 清理函数
         return () => window.removeEventListener('resize', handleResize);
     }, []);
     
+    // 搜索表单字段配置
+    const searchFormFields: FormFieldConfig[] = [
+        {
+            field: 'name',
+            label: '试卷名称',
+            type: 'input',
+            placeholder: '请输入试卷名称',
+            span: 6,
+        },
+        {
+            field: 'status',
+            label: '状态',
+            type: 'select',
+            placeholder: '请选择试卷状态',
+            options: statusOptions,
+            span: 6,
+            allowClear: true,
+        },
+    ];
+
     const filterContent = (
-        <Form ref={filterFormRef} layout="horizontal" className="filter-form" style={{marginTop: '10px'}} onValuesChange={() => {
-            const values = filterFormRef.current?.getFieldsValue?.() || {};
-            searchTableData(values);
-        }}>
-            <Row gutter={16}>
-                <Col span={5}>
-                    <Form.Item field="name" label="名称">
-                        <Input placeholder="请输入试卷名称"/>
-                    </Form.Item>
-                </Col>
-                <Col span={5}>
-                    <Form.Item field="status" label="状态">
-                        <Select placeholder="请选择试卷状态" allowClear>
-                            {statusOptions.map(opt => (
-                                <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={10} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', paddingBottom: '16px'}}>
-                    <Space>
-                        <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                            const values = filterFormRef.current?.getFieldsValue?.() || {};
-                            searchTableData(values);
-                        }}>
-                            搜索
-                        </Button>
-                    </Space>
-                </Col>
-            </Row>
-        </Form>
+        <FilterForm
+            ref={filterFormRef}
+            formFields={searchFormFields}
+            onSearch={handleSearch}
+        />
     );
 
     return (
@@ -492,15 +459,7 @@ const {Row, Col} = Grid;
                 data={tableData}
                 loading={tableLoading}
                 pagination={pagination}
-                onPaginationChange={(p) => {
-                    setPagination(p);
-                    const values = filterFormRef.current?.getFieldsValue?.() || {};
-                    const mapped: Partial<ExamQueryDto> = {
-                        keyWord: values?.name,
-                        status: values?.status,
-                    };
-                    fetchTableData(mapped, p.pageSize, p.current);
-                }}
+                onPaginationChange={handlePaginationChange}
                 actions={{ onAdd: openSmartGenerateModal }}
                 config={{
                     displayMode: 'table',

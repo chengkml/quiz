@@ -1,14 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Button,
   Form,
-  Grid,
   Input,
-  Layout,
   Message,
   Modal,
-  Select,
   Space,
   Table,
   Dropdown,
@@ -19,10 +15,11 @@ import {
   IconEdit,
   IconList,
   IconPlus,
-  IconSearch,
   IconUser,
 } from "@arco-design/web-react/icon";
 import { DataManager } from "@/components/DataManager";
+import FilterForm from "@/components/FilterForm";
+import { FormFieldConfig } from "@/components/types/types";
 import "./style/index.less";
 import {
   createWxApp,
@@ -35,13 +32,9 @@ import {
   WxAppUserResponse,
 } from "./api";
 
-const { Content } = Layout;
 const { TextArea } = Input;
-const { Option } = Select;
-const { Row, Col } = Grid;
 
 function WxAppManager() {
-  const navigate = useNavigate();
 
   // 表格数据与状态
   const [tableData, setTableData] = useState<WxAppResponse[]>([]);
@@ -72,6 +65,16 @@ function WxAppManager() {
   const addFormRef = useRef<any>(null);
   const editFormRef = useRef<any>(null);
   const filterFormRef = useRef<any>(null);
+
+  const cleanFilterValues = (values: Record<string, any> = {}) =>
+    Object.fromEntries(
+      Object.entries(values).filter(
+        ([, value]) => value !== undefined && value !== null && value !== ""
+      )
+    );
+
+  const getCurrentFilterValues = () =>
+    cleanFilterValues(filterFormRef.current?.getFilterValues?.() || {});
 
   // 时间格式化
   const formatDateTime = (value?: string) => {
@@ -139,7 +142,9 @@ function WxAppManager() {
 
   // 搜索
   const searchTableData = (params: any) => {
-    fetchTableData(params, pagination.pageSize, 1);
+    const cleaned = cleanFilterValues(params);
+    setPagination((prev) => ({ ...prev, current: 1 }));
+    fetchTableData(cleaned, pagination.pageSize, 1);
   };
 
   // 分页变化
@@ -149,7 +154,7 @@ function WxAppManager() {
       current: nextPagination.current,
       pageSize: nextPagination.pageSize,
     }));
-    const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
+    const filterParams = getCurrentFilterValues();
     fetchTableData(
       filterParams,
       nextPagination.pageSize,
@@ -172,7 +177,7 @@ function WxAppManager() {
         Message.success("微信小程序创建成功");
         setAddModalVisible(false);
         addFormRef.current?.resetFields?.();
-        fetchTableData();
+        fetchTableData(getCurrentFilterValues());
       }
     } catch (error) {
       if (error?.fields) return; // 表单校验错误
@@ -215,7 +220,7 @@ function WxAppManager() {
         Message.success("微信小程序更新成功");
         setEditModalVisible(false);
         editFormRef.current?.resetFields?.();
-        fetchTableData();
+        fetchTableData(getCurrentFilterValues());
       }
     } catch (error) {
       if (error?.fields) return;
@@ -260,7 +265,7 @@ function WxAppManager() {
       await deleteWxApp(currentRecord.id);
       Message.success("微信小程序删除成功");
       setDeleteModalVisible(false);
-      fetchTableData();
+      fetchTableData(getCurrentFilterValues());
     } catch (error) {
       Message.error("微信小程序删除失败");
     }
@@ -370,54 +375,36 @@ function WxAppManager() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const searchFormFields: FormFieldConfig[] = [
+    {
+      field: "appName",
+      label: "名称",
+      type: "input",
+      placeholder: "请输入小程序名称",
+      span: 8,
+    },
+  ];
+
   const filterContent = (
-    <Form
-      ref={filterFormRef}
-      layout="horizontal"
-      className="filter-form"
-      onValuesChange={() => {
-        const values = filterFormRef.current?.getFieldsValue?.() || {};
-        searchTableData(values);
-      }}
+    <div
+      style={{ display: "flex", gap: 12, alignItems: "flex-start" }}
+      className="wxapp-filter-content"
     >
-      <Row gutter={16}>
-        <Col span={6}>
-          <Form.Item field="appName" label="名称">
-            <Input placeholder="请输入小程序名称" />
-          </Form.Item>
-        </Col>
-        <Col
-          span={6}
-          style={{
-            display: "flex",
-            justifyContent: "flex-start",
-            alignItems: "flex-end",
-            paddingBottom: "16px",
-          }}
-        >
-          <Space>
-            <Button
-              type="primary"
-              icon={<IconSearch />}
-              onClick={() => {
-                const values = filterFormRef.current?.getFieldsValue?.() || {};
-                searchTableData(values);
-              }}
-            >
-              搜索
-            </Button>
-            <Button
-              type="primary"
-              status="success"
-              icon={<IconPlus />}
-              onClick={handleAdd}
-            >
-              新增
-            </Button>
-          </Space>
-        </Col>
-      </Row>
-    </Form>
+      <FilterForm
+        ref={filterFormRef}
+        initialValues={{ appName: "" }}
+        formFields={searchFormFields}
+        onValuesChange={(_, values) => searchTableData(values)}
+        onSearch={searchTableData}
+        onReset={() => {
+          setPagination((prev) => ({ ...prev, current: 1 }));
+          fetchTableData({}, pagination.pageSize, 1);
+        }}
+        min={3}
+        labelWidth={80}
+        style={{ flex: 1 }}
+      />
+    </div>
   );
 
   return (

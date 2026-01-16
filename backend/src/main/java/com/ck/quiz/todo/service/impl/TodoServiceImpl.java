@@ -80,7 +80,7 @@ public class TodoServiceImpl extends BaseServiceImpl<TodoCreateDto, TodoUpdateDt
         }
 
         // 排序
-        JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
+        JdbcQueryHelper.order("create_date", "desc", sql);
 
         // 分页
         String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
