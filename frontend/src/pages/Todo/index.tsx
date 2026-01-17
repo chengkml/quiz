@@ -24,8 +24,6 @@ import {
   IconEdit,
   IconList,
   IconMindMapping,
-  IconPlus,
-  IconSearch,
 } from "@arco-design/web-react/icon";
 import { useNavigate } from "react-router-dom";
 import renderDate from "@/utils/timeUtil";
@@ -63,9 +61,9 @@ function TodoManager() {
 
   // 搜索条件
   const [searchParams, setSearchParams] = useState({
-    title: "",
+    title: null,
     status: "PENDING",
-    priority: "",
+    priority: null,
   });
 
   // 当前记录与弹窗

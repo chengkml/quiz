@@ -87,7 +87,7 @@ public class TodoServiceImpl extends BaseServiceImpl<TodoCreateDto, TodoUpdateDt
 
         List<TodoDto> list = namedParameterJdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
             TodoDto dto = new TodoDto();
-            dto.setId(rs.getString("todo_id"));
+            dto.setId(rs.getString("id"));
             dto.setTitle(rs.getString("title"));
             dto.setDescription(rs.getString("description"));
             dto.setStatus(rs.getString("status") != null ? Todo.Status.valueOf(rs.getString("status")) : null);

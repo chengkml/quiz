@@ -56,6 +56,8 @@ const DataManager: React.FC<DataManagerProps> = ({
     treeData = [],
     selectedTreeKeys,
     onTreeSelect,
+    expandedKeys = [],
+    onTreeExpand,
     showTreeFilter = false,
   } = config;
 
@@ -224,7 +226,9 @@ const DataManager: React.FC<DataManagerProps> = ({
               <Tree
                 treeData={filteredTreeData}
                 selectedKeys={selectedTreeKeys}
+                expandedKeys={expandedKeys}
                 onSelect={onTreeSelect}
+                onExpand={onTreeExpand}
                 autoExpandParent={!!treeKeyword}
               />
             )}

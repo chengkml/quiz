@@ -66,6 +66,10 @@ export interface DataManagerConfig<T = any> {
   onTreeSelect?: (keys: string[]) => void;
   // 当前选中树节点
   selectedTreeKeys?: string[];
+  // 树展开的节点
+  expandedKeys?: string[];
+  // 树展开回调
+  onTreeExpand?: (keys: string[]) => void;
   // 是否显示树过滤
   showTreeFilter?: boolean;
   // 过滤表单回调

@@ -43,6 +43,7 @@ function UserManager() {
   // 状态管理
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [tableScrollHeight, setTableScrollHeight] = useState(200);
 
   // DataManager 分页状态
   const [pagination, setPagination] = useState({
@@ -550,6 +551,22 @@ function UserManager() {
     fetchUsers(pagination.current - 1, searchParams);
   }, [pagination.current, fetchUsers, searchParams]);
 
+  // 计算表格高度自适应
+  useEffect(() => {
+    const calculateTableHeight = () => {
+      const windowHeight = window.innerHeight;
+      const otherElementsHeight = 330;
+      const newHeight = Math.max(100, windowHeight - otherElementsHeight);
+
+      setTableScrollHeight((prev) => {
+        if (prev === newHeight) return prev;
+        return newHeight;
+      });
+    };
+
+    calculateTableHeight();
+  }, []);
+
   // 分页改变处理
   const handlePaginationChange = React.useCallback((newPagination) => {
     setPagination((prev) => ({
@@ -574,7 +591,7 @@ function UserManager() {
           filterContent,
           tableColumns: columns, // 使用自定义列配置（包含操作列）
         }}
-        tableScrollHeight={200}
+        tableScrollHeight={tableScrollHeight}
       />
 
       {/* 新增/编辑用户对话框 (统一使用 AddEditModal) */}

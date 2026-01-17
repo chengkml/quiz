@@ -9,25 +9,18 @@ import com.ck.quiz.category.entity.Category;
 import com.ck.quiz.category.repository.CategoryRepository;
 import com.ck.quiz.category.service.CategoryService;
 import com.ck.quiz.knowledge.service.KnowledgeService;
-import com.ck.quiz.question.dto.QuestionCreateDto;
 import com.ck.quiz.question.service.QuestionService;
 import com.ck.quiz.subject.dto.SubjectDto;
 import com.ck.quiz.subject.service.SubjectService;
-import com.ck.quiz.thpool.CommonPool;
-import com.ck.quiz.utils.HumpHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.*;

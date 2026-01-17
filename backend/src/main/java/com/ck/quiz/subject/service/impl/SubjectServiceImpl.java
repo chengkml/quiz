@@ -64,7 +64,7 @@ public class SubjectServiceImpl extends BaseServiceImpl<SubjectCreateDto, Subjec
                 params,
                 (rs, rowNum) -> {
                     SubjectDto s = new SubjectDto();
-                    s.setId(rs.getString("subject_id"));
+                    s.setId(rs.getString("id"));
                     s.setName(rs.getString("name"));
                     s.setCreateUser(rs.getString("create_user"));
                     s.setDescr(rs.getString("descr"));
