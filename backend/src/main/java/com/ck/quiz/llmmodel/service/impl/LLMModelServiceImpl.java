@@ -10,21 +10,13 @@ import com.ck.quiz.llmmodel.repository.LLMModelRepository;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import org.springframework.data.domain.Page;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMModelUpdateDto, LLMModelQueryDto, LLMModelDto, LLMModel, LLMModelRepository> implements LLMModelService {
-
-    private NamedParameterJdbcTemplate jdbcTemplate;
-
-    public void setJdbcTemplate(NamedParameterJdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     @Override
     protected LLMModelDto newDto() {
@@ -54,7 +46,7 @@ public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMM
         java.util.Map<String, Object> params = new java.util.HashMap<>();
 
         if (queryDto.getKeyWord() != null && !queryDto.getKeyWord().isEmpty()) {
-            JdbcQueryHelper.lowerLike("nameKey", queryDto.getKeyWord(), " AND LOWER(m.name) LIKE :nameKey ", params, jdbcTemplate, sql, countSql);
+            JdbcQueryHelper.lowerLike("nameKey", queryDto.getKeyWord(), " AND LOWER(m.name) LIKE :nameKey ", params, namedParameterJdbcTemplate, sql, countSql);
         }
 
         if (queryDto.getProvider() != null && !queryDto.getProvider().isEmpty()) {
@@ -71,9 +63,9 @@ public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMM
 
         JdbcQueryHelper.order("create_date", "desc", sql);
 
-        String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
+        String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
 
-        List<LLMModelDto> list = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
+        List<LLMModelDto> list = namedParameterJdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
             LLMModelDto dto = new LLMModelDto();
             dto.setId(rs.getString("id"));
             dto.setName(rs.getString("name"));
@@ -93,7 +85,7 @@ public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMM
             return dto;
         });
 
-        return JdbcQueryHelper.toPage(jdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
+        return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
     }
 
     @Override

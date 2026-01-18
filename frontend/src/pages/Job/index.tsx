@@ -19,10 +19,11 @@ import {
     IconInfo,
     IconList,
     IconPlus,
-    IconSearch,
     IconStop,
 } from '@arco-design/web-react/icon';
 import { useNavigate } from 'react-router-dom';
+import FilterForm from '@/components/FilterForm';
+import { FormFieldConfig } from '@/components/types/types';
 import './style/index.less';
 import {
     addJob,
@@ -83,6 +84,9 @@ function JobManager() {
         { label: '失败', value: 'FAILED' },
         { label: '已停止', value: 'STOPPED' },
     ]);
+
+    // 筛选表单字段配置
+    const [filterFormFields, setFilterFormFields] = useState<FormFieldConfig[]>([]);
 
     // 时间格式化
     const formatDateTime = (value?: string) => {
@@ -272,12 +276,22 @@ function JobManager() {
     // 分页变化
     const handlePaginationChange = (newPagination: any) => {
         setPagination(newPagination);
-        const values = filterFormRef.current?.getFieldsValue?.() || {};
+        const values = filterFormRef.current?.getFilterValues?.() || {};
         fetchTableData({
             ...values,
             offset: (newPagination.current - 1) * newPagination.pageSize,
             limit: newPagination.pageSize,
         });
+    };
+
+    // 搜索
+    const handleSearch = (values: any) => {
+        searchTableData(values);
+    };
+
+    // 重置
+    const handleReset = () => {
+        searchTableData({});
     };
 
     // 新增按钮点击
@@ -339,7 +353,7 @@ function JobManager() {
             Message.success('新增作业成功');
             setAddModalVisible(false);
             // 刷新表格
-            const filterValues = filterFormRef.current?.getFieldsValue?.() || {};
+            const filterValues = filterFormRef.current?.getFilterValues?.() || {};
             searchTableData(filterValues);
         } catch (error) {
             Message.error('新增作业失败');
@@ -366,7 +380,7 @@ function JobManager() {
             Message.success('删除作业成功');
             setDeleteModalVisible(false);
             // 刷新表格
-            const filterValues = filterFormRef.current?.getFieldsValue?.() || {};
+            const filterValues = filterFormRef.current?.getFilterValues?.() || {};
             searchTableData(filterValues);
         } catch (error) {
             Message.error('删除作业失败');
@@ -380,7 +394,7 @@ function JobManager() {
             Message.success('停止作业成功');
             setStopModalVisible(false);
             // 刷新表格
-            const filterValues = filterFormRef.current?.getFieldsValue?.() || {};
+            const filterValues = filterFormRef.current?.getFilterValues?.() || {};
             searchTableData(filterValues);
         } catch (error) {
             Message.error('停止作业失败');
@@ -394,7 +408,7 @@ function JobManager() {
             Message.success('重试作业成功');
             setRetryModalVisible(false);
             // 刷新表格
-            const filterValues = filterFormRef.current?.getFieldsValue?.() || {};
+            const filterValues = filterFormRef.current?.getFilterValues?.() || {};
             searchTableData(filterValues);
         } catch (error) {
             Message.error('重试作业失败');
@@ -415,106 +429,90 @@ function JobManager() {
         const fetchJobOptions = async () => {
             try {
                 const response = await getJobOptions();
-                setJobOptions(response.data || []);
+                const jobs = response.data || [];
+                setJobOptions(jobs);
+                
+                // 更新筛选表单字段
+                updateFilterFormFields(jobs, queueOptions, statusOptions);
             } catch (error) {
                 Message.error('获取作业选项失败');
             }
         };
-        fetchJobOptions();
 
         // 获取队列列表
         const fetchQueueList = async () => {
             try {
                 const response = await getQueueList();
-                setQueueOptions(response.data || []);
+                const queues = response.data || [];
+                setQueueOptions(queues);
+                
+                // 更新筛选表单字段
+                updateFilterFormFields(jobOptions, queues, statusOptions);
             } catch (error) {
                 Message.error('获取队列列表失败');
             }
         };
+
+        fetchJobOptions();
         fetchQueueList();
 
         // 默认查询所有作业
         const defaultParams = {};
         fetchTableData(defaultParams);
-        // 设置表单默认值
-        setTimeout(() => {
-            filterFormRef.current?.setFieldsValue?.(defaultParams);
-        }, 50);
+        
         const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const filterContent = (
-        <Form
-            ref={filterFormRef}
-            layout="horizontal"
-            className="filter-form"
-            style={{ marginTop: '10px' }}
-            onValuesChange={() => {
-                const values = filterFormRef.current?.getFieldsValue?.() || {};
-                searchTableData(values);
-            }}
-        >
-            <Row gutter={16}>
-                <Col span={6}>
-                    <Form.Item field="taskClass" label="任务">
-                        <Select placeholder="请选择任务类名" allowClear>
-                            {jobOptions.map((opt) => (
-                                <Option key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                </Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={6}>
-                    <Form.Item field="queueName" label="队列">
-                        <Select placeholder="请选择队列名称" allowClear>
-                            {queueOptions.map((opt) => (
-                                <Option key={opt.id} value={opt.queueName}>
-                                    {opt.queueLabel || opt.queueName}
-                                </Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                </Col>
+    // 更新筛选表单字段配置
+    const updateFilterFormFields = (jobs: any[], queues: any[], status: any[]) => {
+        const fields: FormFieldConfig[] = [
+            {
+                field: 'taskClass',
+                label: '任务',
+                type: 'select',
+                placeholder: '请选择任务类名',
+                span: 6,
+                allowClear: true,
+                options: jobs.map(opt => ({
+                    label: opt.label,
+                    value: opt.value,
+                })),
+            },
+            {
+                field: 'queueName',
+                label: '队列',
+                type: 'select',
+                placeholder: '请选择队列名称',
+                span: 6,
+                allowClear: true,
+                options: queues.map(opt => ({
+                    label: opt.queueLabel || opt.queueName,
+                    value: opt.queueName,
+                })),
+            },
+            {
+                field: 'state',
+                label: '状态',
+                type: 'select',
+                placeholder: '请选择状态',
+                span: 6,
+                allowClear: true,
+                options: status,
+            },
+        ];
+        setFilterFormFields(fields);
+    };
 
-                <Col span={6}>
-                    <Form.Item field="state" label="状态">
-                        <Select placeholder="请选择状态" allowClear>
-                            {statusOptions.map((opt) => (
-                                <Select.Option key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col
-                    span={6}
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'flex-start',
-                        alignItems: 'flex-end',
-                        paddingBottom: '16px',
-                    }}
-                >
-                    <Space>
-                        <Button
-                            type="primary"
-                            icon={<IconSearch />}
-                            onClick={() => {
-                                const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                searchTableData(values);
-                            }}
-                        >
-                            搜索
-                        </Button>
-                    </Space>
-                </Col>
-            </Row>
-        </Form>
+    const filterContent = (
+        <FilterForm
+            ref={filterFormRef}
+            formFields={filterFormFields}
+            min={3}
+            onSearch={handleSearch}
+            onReset={handleReset}
+        />
     );
 
     return (

@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Form, Grid, Input, Message, Modal, Select, Space, Tag, Dropdown, Menu } from '@arco-design/web-react';
-import { IconDelete, IconEdit, IconPlus, IconRefresh, IconSearch, IconList } from '@arco-design/web-react/icon';
+import { Button, Form, Grid, Input, Message, Modal, Select, Tag, Dropdown, Menu } from '@arco-design/web-react';
+import { IconDelete, IconEdit, IconPlus, IconRefresh, IconList } from '@arco-design/web-react/icon';
 import { DataManager } from '@/components/DataManager';
+import FilterForm from '@/components/FilterForm';
+import { FormFieldConfig } from '@/components/types/types';
 import './style/index.less';
 import { getCronTaskList, deleteCronTask, saveCronTask, triggerCronTask, getTaskOptions, CronTaskDto } from './api';
 import { getQueueList } from '../Job/api';
@@ -44,6 +46,9 @@ function CronTaskManager() {
   const [queueOptions, setQueueOptions] = useState<any[]>([]);
   // 任务类型选项
   const [taskOptions, setTaskOptions] = useState<any[]>([]);
+
+  // 筛选表单字段配置
+  const [filterFormFields, setFilterFormFields] = useState<FormFieldConfig[]>([]);
 
   // 时间格式化
   const formatDateTime = (value?: string) => {
@@ -130,9 +135,8 @@ function CronTaskManager() {
 
   // 重置
   const handleReset = () => {
-    filterFormRef.current?.resetFields();
-    const values = filterFormRef.current?.getFieldsValue?.() || {};
-    handleSearch(values);
+    filterFormRef.current?.resetForm();
+    handleSearch({});
   };
 
   // 分页变化
@@ -253,23 +257,68 @@ function CronTaskManager() {
     const fetchQueueList = async () => {
       try {
         const response = await getQueueList();
-        setQueueOptions(response.data || []);
+        const queues = response.data || [];
+        setQueueOptions(queues);
+        
+        // 更新筛选表单字段（依赖队列数据）
+        updateFilterFormFields(statusOptions, queues, taskOptions);
       } catch (error) {
         Message.error('获取队列列表失败');
       }
     };
-    fetchQueueList();
+    
     // 获取任务类型选项
     const fetchTaskOptions = async () => {
       try {
         const response = await getTaskOptions();
-        setTaskOptions(response.data || []);
+        const tasks = response.data || [];
+        setTaskOptions(tasks);
+        
+        // 更新筛选表单字段（依赖任务类型数据）
+        updateFilterFormFields(statusOptions, queueOptions, tasks);
       } catch (error) {
         Message.error('获取任务类型选项失败');
       }
     };
+    
+    fetchQueueList();
     fetchTaskOptions();
-  }, [pagination.current, pagination.pageSize]);
+  }, []);
+
+  // 更新筛选表单字段配置
+  const updateFilterFormFields = (status: any[], queues: any[], tasks: any[]) => {
+    const fields: FormFieldConfig[] = [
+      {
+        field: 'keyWord',
+        label: '关键词',
+        type: 'input',
+        placeholder: '请输入关键词',
+        span: 8,
+      },
+      {
+        field: 'queueName',
+        label: '队列',
+        type: 'select',
+        placeholder: '请选择队列名称',
+        span: 6,
+        allowClear: true,
+        options: queues.map(opt => ({
+          label: opt.queueLabel || opt.queueName,
+          value: opt.queueName,
+        })),
+      },
+      {
+        field: 'state',
+        label: '状态',
+        type: 'select',
+        placeholder: '请选择状态',
+        span: 6,
+        allowClear: true,
+        options: status,
+      },
+    ];
+    setFilterFormFields(fields);
+  };
 
   // 初始化表格高度并监听窗口变化
   useEffect(() => {
@@ -288,67 +337,13 @@ function CronTaskManager() {
   }, []);
 
   const filterContent = (
-    <Form
+    <FilterForm
       ref={filterFormRef}
-      layout="horizontal"
-      style={{ marginTop: '10px' }}
-      className="filter-form"
-    >
-      <Row gutter={16}>
-        <Col span={6}>
-          <Form.Item field="keyWord" label="关键词">
-            <Input placeholder="请输入关键词" prefix={<IconSearch />} />
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item field="queueName" label="队列">
-            <Select placeholder="请选择队列名称" allowClear>
-              {queueOptions.map(opt => (
-                <Option key={opt.id} value={opt.queueName}>
-                  {opt.queueLabel || opt.queueName}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item field="state" label="状态">
-            <Select placeholder="请选择状态" allowClear>
-              {statusOptions.map(option => (
-                <Option key={option.value} value={option.value}>
-                  {option.label}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col
-          span={6}
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-start',
-            alignItems: 'flex-end',
-            paddingBottom: '16px',
-          }}
-        >
-          <Space size="medium">
-            <Button
-              type="primary"
-              icon={<IconSearch />}
-              onClick={() => {
-                const values = filterFormRef.current?.getFieldsValue?.() || {};
-                handleSearch(values);
-              }}
-            >
-              搜索
-            </Button>
-            <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>
-              新增
-            </Button>
-          </Space>
-        </Col>
-      </Row>
-    </Form>
+      formFields={filterFormFields}
+      min={3}
+      onSearch={handleSearch}
+      onReset={handleReset}
+    />
   );
 
   return (
@@ -376,7 +371,6 @@ function CronTaskManager() {
         visible={addModalVisible}
         onOk={handleSave}
         onCancel={() => setAddModalVisible(false)}
-        width={600}
       >
         <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
           <Form ref={addFormRef} layout="vertical" className="modal-form">

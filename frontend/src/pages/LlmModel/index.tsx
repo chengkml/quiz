@@ -88,14 +88,14 @@ function LlmModelManager() {
             label: '名称',
             type: 'input',
             placeholder: '请输入名称关键字',
-            span: 6,
+            span: 7,
         },
         {
             field: 'provider',
             label: '提供者',
             type: 'input',
             placeholder: '请输入提供者',
-            span: 6,
+            span: 7,
         },
         {
             field: 'type',
@@ -103,7 +103,7 @@ function LlmModelManager() {
             type: 'select',
             placeholder: '请选择类型',
             options: typeOptions,
-            span: 6,
+            span: 7,
             allowClear: true,
         },
     ];
@@ -114,8 +114,8 @@ function LlmModelManager() {
         try {
             const targetParams = {
                 ...params,
-                page: current - 1,
-                size: pageSize,
+                pageNum: current - 1,
+                pageSize: pageSize,
             };
             const response = await getModelList(targetParams);
             if (response.data) {

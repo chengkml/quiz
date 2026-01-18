@@ -381,7 +381,7 @@ const AppLayout: React.FC = () => {
                 <IconLock/>
                 修改密码
             </MenuItem>
-            <MenuItem key="divider" style={{height: '1px', backgroundColor: '#f2f3f5', margin: '4px 0'}} disabled/>
+            <MenuItem key="divider" style={{height: '1px', backgroundColor: 'var(--color-fill-2)', margin: '4px 0'}} disabled/>
             <MenuItem key="logout">
                 <IconPoweroff/>
                 退出登录
@@ -392,9 +392,9 @@ const AppLayout: React.FC = () => {
     return (
         <Layout className='app-layout'>
             <Header className="app-header" style={{
-                backgroundColor: '#fff',
+                backgroundColor: 'var(--color-bg-2)',
                 padding: '10px 24px',
-                borderBottom: '1px solid #f0f0f0',
+                borderBottom: '1px solid var(--color-border-2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between'
@@ -418,7 +418,7 @@ const AppLayout: React.FC = () => {
                         onVisibleChange={handleMessageDropdownVisible}
                         droplist={
                             <div className="system-message-dropdown" style={{ width: 340, maxHeight: 400, padding: 0 }}>
-                                <div style={{ padding: '12px 16px', fontWeight: 500, borderBottom: '1px solid #f0f0f0' }}>系统消息</div>
+                                <div style={{ padding: '12px 16px', fontWeight: 500, borderBottom: '1px solid var(--color-border-2)' }}>系统消息</div>
                                 <Spin loading={messageLoading} style={{ minHeight: 180, width: '100%' }}>
                                     {messageList && messageList.length > 0 ? (
                                         <List
@@ -427,14 +427,14 @@ const AppLayout: React.FC = () => {
                                             style={{ maxHeight: 260, overflowY: 'auto', margin: 0, padding: 0 }}
                                             render={(item: SystemMessageDto) => {
                                                 const typeIconMap: Record<string, JSX.Element> = {
-                                                    SUCCESS: <IconCheckCircleFill style={{color:'#52c41a'}} />,
-                                                    ERROR: <IconNotification style={{color:'#ff4d4f'}} />,
-                                                    WARNING: <IconNotification style={{color:'#faad14'}} />,
-                                                    INFO: <IconNotification style={{color:'#1890ff'}} />,
-                                                    SYSTEM: <IconNotification style={{color:'#888'}} />,
-                                                    NOTIFICATION: <IconNotification style={{color:'#3578e5'}} />,
+                                                    SUCCESS: <IconCheckCircleFill style={{color:'var(--color-success-6)'}} />,
+                                                    ERROR: <IconNotification style={{color:'var(--color-danger-6)'}} />,
+                                                    WARNING: <IconNotification style={{color:'var(--color-warning-6)'}} />,
+                                                    INFO: <IconNotification style={{color:'var(--color-primary-6)'}} />,
+                                                    SYSTEM: <IconNotification style={{color:'var(--color-text-3)'}} />,
+                                                    NOTIFICATION: <IconNotification style={{color:'var(--color-primary-6)'}} />,
                                                 };
-                                                const typeIcon = typeIconMap[item.type] || <IconNotification style={{color:'#3578e5'}} />;
+                                                const typeIcon = typeIconMap[item.type] || <IconNotification style={{color:'var(--color-primary-6)'}} />;
                                                 return (
                                                     <div
                                                         key={item.id}
@@ -461,7 +461,7 @@ const AppLayout: React.FC = () => {
                                                                         {typeIcon}
                                                                         <span style={{fontWeight:600}}>{item.title}</span>
                                                                         <span style={{flex:1}}></span>
-                                                                        <span style={{color:'#b0b0b0',fontSize:13}}>{renderDate(item.createDate)}</span>
+                                                                        <span style={{color:'var(--color-text-3)',fontSize:13}}>{renderDate(item.createDate)}</span>
                                                                     </div>
                                                                 ),
                                                                 content: (
@@ -479,7 +479,7 @@ const AppLayout: React.FC = () => {
                                                         <div className="system-message-title" style={{width:'100%',display:'flex',alignItems:'center',gap:8}}>
                                                             {typeIcon}
                                                             <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.title}</span>
-                                                            <span style={{color:'#b0b0b0',fontSize:13}}>{renderDate(item.createDate)}</span>
+                                                            <span style={{color:'var(--color-text-3)',fontSize:13}}>{renderDate(item.createDate)}</span>
                                                         </div>
                                                     </div>
                                                 );
@@ -489,7 +489,7 @@ const AppLayout: React.FC = () => {
                                         <Empty description="暂无未读消息" style={{ margin: '32px 0' }} />
                                     )}
                                 </Spin>
-                                <div style={{ borderTop: '1px solid #f0f0f0', padding: '8px 16px', textAlign: 'right' }}>
+                                <div style={{ borderTop: '1px solid var(--color-border-2)', padding: '8px 16px', textAlign: 'right' }}>
                                     <Button type="text" size="small" onClick={handleViewAll}>
                                         查看全部
                                     </Button>
@@ -517,7 +517,7 @@ const AppLayout: React.FC = () => {
                                     <UserAvatar
                                         name={user?.userName || ''}
                                         size={24}
-                                        style={{ backgroundColor: '#165DFF', color: '#fff' }}
+                                        style={{ backgroundColor: 'var(--color-primary-light-4)', color: 'var(--color-white)' }}
                                     />
                                     <span className="user-name">{user?.userName}</span>
                                 </Space>

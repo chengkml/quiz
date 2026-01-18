@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -108,9 +109,11 @@ public class WxAppServiceImpl implements WxAppService {
             dto.setAppName((String) row.get("app_name"));
             dto.setAppSecret((String) row.get("app_secret"));
             dto.setAppDescr((String) row.get("app_descr"));
-            dto.setCreateDate((LocalDateTime) row.get("create_date"));
+            Timestamp createDate = (Timestamp) row.get("create_date");
+            dto.setCreateDate(createDate != null ? createDate.toLocalDateTime() : null);
             dto.setCreateUser((String) row.get("create_user"));
-            dto.setUpdateDate((LocalDateTime) row.get("update_date"));
+            Timestamp updateDate = (Timestamp) row.get("update_date");
+            dto.setUpdateDate(updateDate != null ? updateDate.toLocalDateTime() : null);
             dto.setUpdateUser((String) row.get("update_user"));
             dto.setUpdateUserName((String) row.get("update_user_name"));
             dtoList.add(dto);

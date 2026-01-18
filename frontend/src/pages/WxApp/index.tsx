@@ -386,11 +386,7 @@ function WxAppManager() {
   ];
 
   const filterContent = (
-    <div
-      style={{ display: "flex", gap: 12, alignItems: "flex-start" }}
-      className="wxapp-filter-content"
-    >
-      <FilterForm
+    <FilterForm
         ref={filterFormRef}
         initialValues={{ appName: "" }}
         formFields={searchFormFields}
@@ -404,7 +400,6 @@ function WxAppManager() {
         labelWidth={80}
         style={{ flex: 1 }}
       />
-    </div>
   );
 
   return (
