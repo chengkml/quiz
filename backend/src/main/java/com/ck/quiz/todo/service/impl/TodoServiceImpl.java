@@ -38,7 +38,9 @@ import java.util.Optional;
  */
 @Service
 @Transactional
-public class TodoServiceImpl extends BaseServiceImpl<TodoCreateDto, TodoUpdateDto, TodoQueryDto, TodoDto, Todo, TodoRepository> implements TodoService {
+public class TodoServiceImpl
+        extends BaseServiceImpl<TodoCreateDto, TodoUpdateDto, TodoQueryDto, TodoDto, Todo, TodoRepository>
+        implements TodoService {
 
     @Autowired
     private TodoRepository todoRepository;
@@ -54,53 +56,59 @@ public class TodoServiceImpl extends BaseServiceImpl<TodoCreateDto, TodoUpdateDt
     @Override
     public Page<TodoDto> search(String userId, TodoQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
-                "SELECT t.* FROM todo t WHERE 1=1 "
-        );
+                "SELECT t.* FROM todo t WHERE 1=1 ");
 
         StringBuilder countSql = new StringBuilder(
-                "SELECT COUNT(1) FROM todo t WHERE 1=1 "
-        );
+                "SELECT COUNT(1) FROM todo t WHERE 1=1 ");
 
         Map<String, Object> params = new HashMap<>();
 
         // 动态条件
-        JdbcQueryHelper.lowerLike("titleKey", queryDto.getTitle(), " AND LOWER(t.title) LIKE :titleKey ", params, namedParameterJdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("titleKey", queryDto.getTitle(), " AND LOWER(t.title) LIKE :titleKey ", params,
+                namedParameterJdbcTemplate, sql, countSql);
 
         if (queryDto.getStatus() != null) {
-            JdbcQueryHelper.equals("status", queryDto.getStatus().name(), " AND t.status = :status ", params, sql, countSql);
+            JdbcQueryHelper.equals("status", queryDto.getStatus().name(), " AND t.status = :status ", params, sql,
+                    countSql);
         }
 
         if (queryDto.getPriority() != null) {
-            JdbcQueryHelper.equals("priority", queryDto.getPriority().name(), " AND t.priority = :priority ", params, sql, countSql);
+            JdbcQueryHelper.equals("priority", queryDto.getPriority().name(), " AND t.priority = :priority ", params,
+                    sql, countSql);
         }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
-            JdbcQueryHelper.equals("createUser", authentication.getName(), " AND t.create_user = :createUser ", params, sql, countSql);
+            JdbcQueryHelper.equals("createUser", authentication.getName(), " AND t.create_user = :createUser ", params,
+                    sql, countSql);
         }
 
         // 排序
         JdbcQueryHelper.order("create_date", "desc", sql);
 
         // 分页
-        String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
+        String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(),
+                queryDto.getPageSize());
 
         List<TodoDto> list = namedParameterJdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
             TodoDto dto = new TodoDto();
             dto.setId(rs.getString("id"));
             dto.setTitle(rs.getString("title"));
-            dto.setDescription(rs.getString("description"));
+            dto.setDescr(rs.getString("descr"));
             dto.setStatus(rs.getString("status") != null ? Todo.Status.valueOf(rs.getString("status")) : null);
             dto.setPriority(rs.getString("priority") != null ? Todo.Priority.valueOf(rs.getString("priority")) : null);
             dto.setDueDate(rs.getTimestamp("due_date") != null ? rs.getTimestamp("due_date").toLocalDateTime() : null);
-            dto.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
+            dto.setCreateDate(
+                    rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             dto.setCreateUser(rs.getString("create_user"));
-            dto.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
+            dto.setUpdateDate(
+                    rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;
         });
 
-        return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
+        return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list,
+                queryDto.getPageNum(), queryDto.getPageSize());
     }
 
     @Override
@@ -117,7 +125,7 @@ public class TodoServiceImpl extends BaseServiceImpl<TodoCreateDto, TodoUpdateDt
     public MindMapDto initMindMap(String todoId) {
         Optional<MindMap> op = mindMapRepository.findById(todoId);
         if (op.isPresent()) {
-            return mindMapService.getMindMapById(todoId);
+            return mindMapService.get(op.get().getCreateUser(), todoId);
         }
         Optional<Todo> optionalTodo = todoRepository.findById(todoId);
         if (optionalTodo.isEmpty()) {
@@ -127,7 +135,7 @@ public class TodoServiceImpl extends BaseServiceImpl<TodoCreateDto, TodoUpdateDt
         MindMap mindMap = new MindMap();
         mindMap.setId(todoId);
         mindMap.setMapName(todo.getTitle());
-        mindMap.setDescription(todo.getDescription());
+        mindMap.setDescr(todo.getDescr());
         mindMap.setMapData(loadTemplate(todo.getTitle(), "templates/mind_map_init.tpl"));
 
         // 设置创建人和拥有者信息
@@ -141,7 +149,21 @@ public class TodoServiceImpl extends BaseServiceImpl<TodoCreateDto, TodoUpdateDt
         mindMap.setUpdateDate(LocalDateTime.now());
 
         MindMap updatedMindMap = mindMapRepository.save(mindMap);
-        return mindMapService.convertToDto(updatedMindMap);
+        return mindMapService.convertToDto(updatedMindMap, true);
+    }
+
+    @Override
+    public TodoDto complete(String userId, String id) {
+        Optional<Todo> optionalTodo = todoRepository.findById(id);
+        if (optionalTodo.isEmpty()) {
+            throw new RuntimeException("待办不存在，ID: " + id);
+        }
+        Todo todo = optionalTodo.get();
+        todo.setStatus(Todo.Status.COMPLETED);
+        todo.setUpdateUser(userId);
+        todo.setUpdateDate(LocalDateTime.now());
+        Todo updatedTodo = todoRepository.save(todo);
+        return convertToDto(updatedTodo, true);
     }
 
     private String loadTemplate(String title, String path) {
@@ -150,7 +172,7 @@ public class TodoServiceImpl extends BaseServiceImpl<TodoCreateDto, TodoUpdateDt
             try (Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
                 String jsonStr = FileCopyUtils.copyToString(reader);
                 return jsonStr.replace("{{title}}", title);
-            }catch (Exception e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         } catch (Exception e) {

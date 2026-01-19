@@ -15,6 +15,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "待办管理", description = "待办任务的创建、更新、删除、查询等接口")
@@ -31,6 +33,15 @@ public class TodoController extends BaseController<TodoCreateDto, TodoUpdateDto,
             @Parameter(description = "待办ID", required = true)
             @PathVariable("todoId") String todoId) {
         return ResponseEntity.ok(todoService.initMindMap(todoId));
+    }
+
+    @Operation(summary = "完成待办", description = "根据待办ID标记待办为完成")
+    @PostMapping("/{id}/complete")
+    public ResponseEntity<TodoDto> complete(
+            @Parameter(description = "待办ID", required = true)
+            @PathVariable("id") String id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(todoService.complete(authentication.getName(), id));
     }
 
     @Override

@@ -15,7 +15,7 @@ public class TodoCreateDto extends CreateDto{
     @NotBlank(message = "标题不能为空")
     private String title;
 
-    private String description;
+    private String descr;
 
     private Todo.Status status = Todo.Status.PENDING;
 

@@ -31,9 +31,9 @@ public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMM
     @Override
     public Page<LLMModelDto> search(String userId, LLMModelQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
-                "SELECT m.id, m.name, m.provider, m.type, m.description, " +
-                        "m.api_key, m.api_endpoint, m.context_window, m.input_price_per_1k, m.output_price_per_1k, " +
-                        "m.is_default, m.create_date, m.create_user, m.update_date, m.update_user, " +
+                "SELECT m.id, m.name, m.provider, m.type, m.descr, " +
+                        "m.api_key, m.api_endpoint, m.context_window, m.input_price_per1k, m.output_price_per1k, " +
+                        "m.is_default, m.create_date, m.create_user, m.update_date, m.update_user, m.config, " +
                         "u.user_name AS create_user_name " +
                         "FROM llm_model m LEFT JOIN users u ON u.user_id = m.create_user "
         );
@@ -72,11 +72,13 @@ public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMM
             dto.setProvider(rs.getString("provider"));
             dto.setType(rs.getString("type") != null ? LLMModel.ModelType.valueOf(rs.getString("type")) : null);
             dto.setDescr(rs.getString("descr"));
+            dto.setApiKey(rs.getString("api_key"));
             dto.setApiEndpoint(rs.getString("api_endpoint"));
             dto.setContextWindow(rs.getObject("context_window") != null ? rs.getInt("context_window") : null);
-            dto.setInputPricePer1k(rs.getObject("input_price_per_1k") != null ? rs.getDouble("input_price_per_1k") : null);
-            dto.setOutputPricePer1k(rs.getObject("output_price_per_1k") != null ? rs.getDouble("output_price_per_1k") : null);
+            dto.setInputPricePer1k(rs.getObject("input_price_per1k") != null ? rs.getDouble("input_price_per1k") : null);
+            dto.setOutputPricePer1k(rs.getObject("output_price_per1k") != null ? rs.getDouble("output_price_per1k") : null);
             dto.setIsDefault(rs.getString("is_default"));
+            dto.setConfig(rs.getString("config"));
             dto.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             dto.setCreateUser(rs.getString("create_user"));
             dto.setCreateUserName(rs.getString("create_user_name"));

@@ -8,7 +8,6 @@ import {
     Button,
     Dropdown,
     Form,
-    Grid,
     Input,
     Menu,
     Message,
@@ -22,7 +21,6 @@ import {
     IconDelete,
     IconEdit,
     IconList,
-    IconSearch
 } from '@arco-design/web-react/icon';
 import './style/index.less';
 import {
@@ -35,7 +33,6 @@ import {
 
 const {TextArea} = Input;
 const {Option} = Select;
-const {Row, Col} = Grid;
 
 function LlmModelManager() {
 
@@ -54,9 +51,9 @@ function LlmModelManager() {
 
     // 搜索条件
     const [searchParams, setSearchParams] = useState({
-        name: '',
-        provider: '',
-        type: '',
+        name: null,
+        provider: null,
+        type: null,
     });
 
     // 当前记录与弹窗
@@ -333,7 +330,7 @@ function LlmModelManager() {
             formFields={searchFormFields}
             onSearch={handleSearch}
             onReset={() => {
-                const resetParams = { name: '', provider: '', type: '' };
+                const resetParams = { name: null, provider: null, type: null };
                 setSearchParams(resetParams);
                 setPagination((prev) => ({ ...prev, current: 1 }));
                 fetchTableData(resetParams, pagination.pageSize, 1);

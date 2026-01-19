@@ -29,6 +29,7 @@ import { useNavigate } from "react-router-dom";
 import renderDate from "@/utils/timeUtil";
 import "./style/index.less";
 import {
+  completeTodo,
   createTodo,
   deleteTodo,
   getTodoList,
@@ -62,7 +63,7 @@ function TodoManager() {
   // 搜索条件
   const [searchParams, setSearchParams] = useState({
     title: null,
-    status: "PENDING",
+    status: null,
     priority: null,
   });
 
@@ -130,8 +131,6 @@ function TodoManager() {
         ...params,
         pageNum: current - 1,
         pageSize: pageSize,
-        sortColumn: "create_date",
-        sortType: "desc",
       };
       const response = await getTodoList(targetParams);
       if (response.data) {
@@ -212,7 +211,7 @@ function TodoManager() {
       editFormRef.current?.setFieldsValue?.({
         id: record.id,
         title: record.title,
-        description: record.description,
+        descr: record.descr,
         status: record.status,
         priority: record.priority,
         dueDate: record.dueDate ? dayjs(record.dueDate) : null,
@@ -227,7 +226,7 @@ function TodoManager() {
         const payload = {
           id: currentRecord.id,
           title: values.title,
-          description: values.description,
+          descr: values.descr,
           status: values.status,
           priority: values.priority,
           dueDate: values.dueDate
@@ -284,11 +283,7 @@ function TodoManager() {
   // 完成待办
   const handleComplete = async (record: any) => {
     try {
-      const payload = {
-        id: record.id,
-        status: "COMPLETED",
-      };
-      await updateTodo(payload);
+      await completeTodo(record.id);
       Message.success("待办已完成");
       fetchTableData();
     } catch (error) {
@@ -489,7 +484,7 @@ function TodoManager() {
             >
               <Input placeholder="请输入标题" />
             </Form.Item>
-            <Form.Item label="详细描述" field="description">
+            <Form.Item label="详细描述" field="descr">
               <TextArea
                 placeholder="请输入详细描述"
                 autoSize={{ minRows: 3, maxRows: 6 }}
@@ -542,7 +537,7 @@ function TodoManager() {
             >
               <Input placeholder="请输入标题" />
             </Form.Item>
-            <Form.Item label="详细描述" field="description">
+            <Form.Item label="详细描述" field="descr">
               <TextArea
                 placeholder="请输入详细描述"
                 autoSize={{ minRows: 3, maxRows: 6 }}

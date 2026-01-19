@@ -11,4 +11,6 @@ import com.ck.quiz.todo.entity.Todo;
 public interface TodoService extends BaseService<TodoCreateDto, TodoUpdateDto, TodoQueryDto, TodoDto, Todo> {
 
     MindMapDto initMindMap(String todoId);
+
+    TodoDto complete(String userId, String id);
 }

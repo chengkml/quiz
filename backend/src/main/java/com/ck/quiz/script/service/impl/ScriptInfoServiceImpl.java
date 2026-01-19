@@ -105,7 +105,53 @@ public class ScriptInfoServiceImpl extends BaseServiceImpl<ScriptInfoCreateDto, 
 
     @Override
     public Page<Map<String, Object>> searchJobs(int offset, int limit, String scriptId, String state, String taskClass, String queueName, String triggerType, String startTimeLt, String startTimeGt, String taskId, String keyWord) {
-        return null;
+        // 通过 ScriptJob 关联查询脚本对应的所有 Job 记录
+        StringBuilder sql = new StringBuilder(
+                "select j.*,q.queue_label from job j " +
+                "left join job_queue q on j.queue_name = q.queue_name " +
+                "inner join script_job sj on j.id = sj.job_id " +
+                "where sj.script_id = :scriptId ");
+        StringBuilder countSql = new StringBuilder("select count(*) from job j " +
+                "inner join script_job sj on j.id = sj.job_id " +
+                "where sj.script_id = :scriptId ");
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("scriptId", scriptId);
+
+        // 状态过滤
+        JdbcQueryHelper.equals("state", state, "and j.state = :state ", params, sql, countSql);
+
+        JdbcQueryHelper.equals("taskClass", taskClass, "and j.task_class = :taskClass ", params, sql, countSql);
+
+        JdbcQueryHelper.equals("queueName", queueName, "and j.queue_name = :queueName ", params, sql, countSql);
+
+        JdbcQueryHelper.equals("triggerType", triggerType, "and j.trigger_type = :triggerType ", params, sql, countSql);
+
+        // 任务ID过滤
+        JdbcQueryHelper.equals("taskId", taskId, "and j.task_id = :taskId ", params, sql, countSql);
+
+        // 关键字搜索
+        JdbcQueryHelper.lowerLike("keyWord", keyWord, "and lower(j.id) like :keyWord ", params, namedParameterJdbcTemplate, sql, countSql);
+
+        // 排序
+        sql.append(" order by j.create_time desc ");
+
+        // 分页
+        int pageSize = limit;
+        int pageNum = offset / pageSize;
+        String limitSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), pageNum, pageSize);
+
+        // 查询数据
+        java.util.List<Map<String, Object>> rows = namedParameterJdbcTemplate.queryForList(limitSql, params);
+
+        // 组装分页对象
+        return JdbcQueryHelper.toPage(
+                namedParameterJdbcTemplate,
+                countSql.toString(),
+                params,
+                rows,
+                pageNum,
+                pageSize);
     }
 
     @Override

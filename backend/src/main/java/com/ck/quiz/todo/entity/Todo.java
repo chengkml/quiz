@@ -27,7 +27,7 @@ public class Todo extends Model {
 
     @Column(columnDefinition = "TEXT")
     @Comment("详细描述")
-    private String description;
+    private String descr;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)

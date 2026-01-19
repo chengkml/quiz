@@ -1,54 +1,37 @@
 import axios from '@/core/src/http';
 
-// 分页查询脚本信息
-export const getScriptInfoList = (params) => {
-  // 确保分页参数格式正确
-  const queryParams = {
-    page: params.page || 1,
-    pageSize: params.pageSize || 10,
-    ...params
-  };
-  return axios.get('/script/info', { params: queryParams });
+// 分页查询脚本信息（POST /api/script/info/search）
+export const getScriptInfoList = (body: any) => {
+  return axios.post('/api/script/info/search', body);
 };
 
-// 根据ID查询脚本信息
-export const getScriptInfoById = (id: string) => axios.get(`/script/info/${id}`);
+// 根据ID查询脚本信息（GET /api/script/info/get/{id}）
+export const getScriptInfoById = (id: string) => axios.get(`/api/script/info/get/${id}`);
 
-// 根据脚本编码查询脚本信息
-export const getScriptInfoByCode = (code: string) => axios.get(`/script/info/code/${code}`);
+// 根据脚本编码查询脚本信息（GET /api/script/info/code/{code}）
+export const getScriptInfoByCode = (code: string) => axios.get(`/api/script/info/code/${code}`);
 
-// 创建脚本信息
-export const createScriptInfo = (params) => axios.post('/script/info', params);
+// 创建脚本信息（POST /api/script/info/create）
+export const createScriptInfo = (params) => axios.post('/api/script/info/create', params);
 
-// 更新脚本信息
-export const updateScriptInfo = (params) => axios.put('/script/info', params);
+// 更新脚本信息（PUT /api/script/info/update）
+export const updateScriptInfo = (params) => axios.put('/api/script/info/update', params);
 
-// 删除脚本信息
-export const deleteScriptInfo = (id: string) => axios.delete(`/script/info/${id}`);
+// 删除脚本信息（DELETE /api/script/info/delete/{id}）
+export const deleteScriptInfo = (id: string) => axios.delete(`/api/script/info/delete/${id}`);
 
-// 批量删除脚本
-export const batchDeleteScriptInfo = (ids) => axios.delete('/script/info/batch', { data: ids });
+// 启用/禁用脚本（通过更新 state 字段）
+export const enableScript = (id: string) => axios.put('/api/script/info/update', { id, state: 'ENABLED' });
+export const disableScript = (id: string) => axios.put('/api/script/info/update', { id, state: 'DISABLED' });
 
-// 启用脚本
-export const enableScriptInfo = (id) => axios.put('/script/info/enable', { id });
+// 执行脚本（POST /api/script/info/{id}/exec?queueId=xxx）
+export const execScript = (id: string, queueId: string) => axios.post(`/api/script/info/${id}/exec`, null, { params: { queueId } });
 
-// 禁用脚本
-export const disableScriptInfo = (id) => axios.put('/script/info/disable', { id });
+// 查询脚本执行任务列表（GET /api/script/info/jobs）
+export const searchJobs = (params) => axios.get('/api/script/info/jobs', { params });
 
-// 启用脚本
-export const enableScript = (id: string) => axios.put(`/script/info/${id}/enable`);
-
-// 禁用脚本
-export const disableScript = (id: string) => axios.put(`/script/info/${id}/disable`);
-
-// 执行脚本
-export const execScript = (id: string, queueId: string) => axios.post(`/script/info/${id}/exec`, null, { params: { queueId } });
-
-// 查询脚本执行任务列表
-export const searchJobs = (params) => axios.get('/script/info/jobs', { params: params });
-
-// 删除作业
-export const deleteJob = (jobId: string) => axios.post(`/script/info/delete/job/${jobId}`);
+// 删除作业（POST /api/script/info/delete/job/{jobId}）
+export const deleteJob = (jobId: string) => axios.post(`/api/script/info/delete/job/${jobId}`);
 
 export default {
   getScriptInfoList,
@@ -57,7 +40,6 @@ export default {
   createScriptInfo,
   updateScriptInfo,
   deleteScriptInfo,
-  batchDeleteScriptInfo,
   enableScript,
   disableScript,
   execScript,

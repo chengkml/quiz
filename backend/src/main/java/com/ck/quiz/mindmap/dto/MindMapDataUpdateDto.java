@@ -1,28 +1,15 @@
 package com.ck.quiz.mindmap.dto;
 
+import com.ck.quiz.base.dto.UpdateDto;
+
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
-/**
- * 思维导图数据更新 DTO
- * 用于更新思维导图的实际数据内容
- */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class MindMapDataUpdateDto {
+@EqualsAndHashCode(callSuper = true)
+public class MindMapDataUpdateDto extends UpdateDto {
 
-    /**
-     * 思维导图唯一标识
-     */
-    @NotBlank(message = "思维导图ID不能为空")
-    private String id;
-
-    /**
-     * 导图整体JSON结构（完整导图数据）
-     */
     @NotBlank(message = "导图数据不能为空")
     private String mapData;
 }
