@@ -2,10 +2,10 @@ import axios from '@/core/src/http';
 import { MindMapData } from '../types';
 
 // 获取思维导图列表（分页查询）
-const getMindMapList = params => axios.get('/mindmap', {params});
+const getMindMapList = params => axios.post('/mindmap/search', params);
 
 // 获取思维导图详情
-const getMindMapById = id => axios.get(`/mindmap/${id}`);
+const getMindMapById = id => axios.get(`/mindmap/get/${id}`);
 
 // 创建思维导图
 const createMindMap = params => axios.post('/mindmap/create', params);
@@ -34,7 +34,7 @@ const updateMindMap = async (params) => {
 const deleteMindMap = async id => {
   console.log('调用删除接口，ID:', id);
   try {
-    const response = await axios.delete(`/mindmap/${id}`);
+    const response = await axios.delete(`/mindmap/delete/${id}`);
     console.log('删除接口响应:', response);
     return response;
   } catch (error) {
@@ -44,7 +44,7 @@ const deleteMindMap = async id => {
 };
 
 // 获取当前用户的思维导图列表
-const getUserMindMaps = () => axios.get('/mindmap/user/mine');
+const getUserMindMaps = () => axios.get('/mindmap/list');
 
 // 获取共享的思维导图列表
 const getSharedMindMaps = () => axios.get('/mindmap/shared');

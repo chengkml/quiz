@@ -91,20 +91,20 @@ public class TodoServiceImpl
                 queryDto.getPageSize());
 
         List<TodoDto> list = namedParameterJdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
-            TodoDto dto = new TodoDto();
-            dto.setId(rs.getString("id"));
-            dto.setTitle(rs.getString("title"));
-            dto.setDescr(rs.getString("descr"));
-            dto.setStatus(rs.getString("status") != null ? Todo.Status.valueOf(rs.getString("status")) : null);
-            dto.setPriority(rs.getString("priority") != null ? Todo.Priority.valueOf(rs.getString("priority")) : null);
-            dto.setDueDate(rs.getTimestamp("due_date") != null ? rs.getTimestamp("due_date").toLocalDateTime() : null);
-            dto.setCreateDate(
+            Todo todo = new Todo();
+            todo.setId(rs.getString("id"));
+            todo.setTitle(rs.getString("title"));
+            todo.setDescr(rs.getString("descr"));
+            todo.setStatus(rs.getString("status") != null ? Todo.Status.valueOf(rs.getString("status")) : null);
+            todo.setPriority(rs.getString("priority") != null ? Todo.Priority.valueOf(rs.getString("priority")) : null);
+            todo.setDueDate(rs.getTimestamp("due_date") != null ? rs.getTimestamp("due_date").toLocalDateTime() : null);
+            todo.setCreateDate(
                     rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
-            dto.setCreateUser(rs.getString("create_user"));
-            dto.setUpdateDate(
+            todo.setCreateUser(rs.getString("create_user"));
+            todo.setUpdateDate(
                     rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
-            dto.setUpdateUser(rs.getString("update_user"));
-            return dto;
+            todo.setUpdateUser(rs.getString("update_user"));
+            return convertToDto(todo, true);
         });
 
         return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list,

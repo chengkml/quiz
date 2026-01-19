@@ -1,5 +1,7 @@
 package com.ck.quiz.mindmap.controller;
 
+import com.ck.quiz.base.controller.BaseController;
+import com.ck.quiz.base.service.BaseService;
 import com.ck.quiz.mindmap.dto.*;
 import com.ck.quiz.mindmap.service.MindMapService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "思维导图管理", description = "思维导图相关的API接口")
 @RestController
 @RequestMapping("/api/mindmap")
-public class MindMapController {
+public class MindMapController extends BaseController<MindMapCreateDto, MindMapUpdateDto, MindMapQueryDto, MindMapDto> {
 
     @Autowired
     private MindMapService mindMapService;
@@ -30,5 +32,10 @@ public class MindMapController {
     public ResponseEntity<MindMapDto> updateMindMapData(
             @Parameter(description = "思维导图数据更新", required = true) @Valid @RequestBody MindMapDataUpdateDto mindMapDataUpdateDto) {
         return ResponseEntity.ok(mindMapService.updateMindMapData(mindMapDataUpdateDto));
+    }
+
+    @Override
+    protected BaseService<MindMapCreateDto, MindMapUpdateDto, MindMapQueryDto, MindMapDto, ?> getService() {
+        return mindMapService;
     }
 }

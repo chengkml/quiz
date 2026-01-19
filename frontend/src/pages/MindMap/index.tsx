@@ -64,7 +64,7 @@ const MindMapListPage: React.FC = () => {
   const [isEdit, setIsEdit] = useState(false);
 
   // 表单引用
-  const addFormRef = useRef<any>(null);
+  // AddEditModal 内置表单，无需额外 ref
   const editFormRef = useRef<any>(null);
   const filterFormRef = useRef<any>(null);
 
@@ -110,7 +110,6 @@ const MindMapListPage: React.FC = () => {
     );
     setSearchParams((prev) => ({ ...prev, ...filterValues }));
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchTableData(filterValues, pagination.pageSize, 1);
   };
 
   // 分页变化
@@ -122,42 +121,41 @@ const MindMapListPage: React.FC = () => {
     );
   };
 
-  // 初始化与高度自适应
+  // 计算表格高度自适应
   useEffect(() => {
     const calculateTableHeight = () => {
       const windowHeight = window.innerHeight;
-      const otherElementsHeight = 250;
-      const newHeight = Math.max(200, windowHeight - otherElementsHeight);
-      setTableScrollHeight(newHeight);
+      const otherElementsHeight = 330;
+      const newHeight = Math.max(100, windowHeight - otherElementsHeight);
+
+      setTableScrollHeight((prev) => {
+        if (prev === newHeight) return prev;
+        return newHeight;
+      });
     };
+
     calculateTableHeight();
-    // 使用searchParams（默认为空）获取数据
-    fetchTableData(searchParams);
-    const handleResize = () => calculateTableHeight();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // 初始化获取数据
+  useEffect(() => {
+    fetchTableData(searchParams, pagination.pageSize, pagination.current);
+  }, [searchParams, pagination.current, pagination.pageSize]);
 
   // 处理新增
   const handleAdd = () => {
     setIsEdit(false);
     setCurrentRecord(null);
     setAddModalVisible(true);
-    setTimeout(() => addFormRef.current?.resetFields?.(), 50);
   };
 
-  const handleAddConfirm = async () => {
+  const handleAddConfirm = async (values: any) => {
     try {
-      const values = await addFormRef.current?.validate?.();
-      if (values) {
-        await createMindMap(values);
-        Message.success("思维导图创建成功");
-        setAddModalVisible(false);
-        addFormRef.current?.resetFields?.();
-        fetchTableData();
-      }
+      await createMindMap(values);
+      Message.success("思维导图创建成功");
+      setAddModalVisible(false);
+      fetchTableData(searchParams, pagination.pageSize, pagination.current);
     } catch (error: any) {
-      if (error?.fields) return;
       Message.error("思维导图创建失败");
     }
   };
@@ -171,7 +169,7 @@ const MindMapListPage: React.FC = () => {
       editFormRef.current?.setFieldsValue?.({
         id: record.id,
         mapName: record.mapName,
-        description: record.description || "",
+        descr: record.descr || "",
       });
     }, 50);
   };
@@ -232,8 +230,8 @@ const MindMapListPage: React.FC = () => {
     },
     {
       title: "描述",
-      dataIndex: "description",
-      key: "description",
+      dataIndex: "descr",
+      key: "descr",
       ellipsis: true,
       width: 200,
     },
@@ -327,7 +325,7 @@ const MindMapListPage: React.FC = () => {
       rules: [{ required: true, message: "请输入思维导图名称" }],
     },
     {
-      field: "description",
+      field: "descr",
       label: "描述",
       type: "textarea",
       placeholder: "请输入描述（可选）",
@@ -373,7 +371,6 @@ const MindMapListPage: React.FC = () => {
         onOk={handleAddConfirm}
         onCancel={() => {
           setAddModalVisible(false);
-          addFormRef.current?.resetFields?.();
         }}
       />
 

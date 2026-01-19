@@ -4,9 +4,7 @@ import {
   DatePicker,
   Dropdown,
   Form,
-  Grid,
   Input,
-  Layout,
   Menu,
   Message,
   Modal,
@@ -38,10 +36,8 @@ import {
 } from "./api";
 import dayjs from "dayjs";
 
-const { Content } = Layout;
 const { TextArea } = Input;
 const { Option } = Select;
-const { Row, Col } = Grid;
 
 function TodoManager() {
   const navigate = useNavigate();
@@ -156,12 +152,6 @@ function TodoManager() {
     );
     setSearchParams((prev) => ({ ...prev, ...filterValues }));
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchTableData(filterValues, pagination.pageSize, 1);
-  };
-
-  // 搜索
-  const searchTableData = (params: any) => {
-    fetchTableData(params, pagination.pageSize, 1);
   };
 
   // 分页变化
@@ -315,6 +305,7 @@ function TodoManager() {
     {
       title: "状态",
       dataIndex: "status",
+      align: "center",
       width: 120,
       render: (status: string) => {
         const map: Record<string, any> = {
@@ -333,6 +324,7 @@ function TodoManager() {
     {
       title: "优先级",
       dataIndex: "priority",
+      align: "center",
       width: 120,
       render: (priority: string) => {
         const map: Record<string, any> = {
@@ -419,21 +411,26 @@ function TodoManager() {
     },
   ];
 
-  // 初始化与高度自适应
+  // 计算表格高度自适应
   useEffect(() => {
     const calculateTableHeight = () => {
       const windowHeight = window.innerHeight;
-      const otherElementsHeight = 250;
-      const newHeight = Math.max(200, windowHeight - otherElementsHeight);
-      setTableScrollHeight(newHeight);
+      const otherElementsHeight = 330;
+      const newHeight = Math.max(100, windowHeight - otherElementsHeight);
+
+      setTableScrollHeight((prev) => {
+        if (prev === newHeight) return prev;
+        return newHeight;
+      });
     };
+
     calculateTableHeight();
-    // 使用searchParams（默认status为PENDING）获取数据
-    fetchTableData(searchParams);
-    const handleResize = () => calculateTableHeight();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // 初始化获取数据
+  useEffect(() => {
+    fetchTableData(searchParams, pagination.pageSize, pagination.current);
+  }, [searchParams, pagination.current, pagination.pageSize]);
 
   const filterContent = (
     <FilterForm
