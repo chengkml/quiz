@@ -11,11 +11,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -36,13 +38,34 @@ public class ChatController {
         return ResponseEntity.ok(chatService.chat(userId, request));
     }
 
-    @PostMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "发送消息并获取流式回复")
-    public Flux<ChatCompletionResponse> streamCompletions(
+    public SseEmitter streamCompletions(
             @Valid @RequestBody ChatCompletionRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userId = authentication != null ? authentication.getName() : null;
-        return chatService.streamChat(userId, request);
+
+        // Default timeout 0 means no timeout; SSE stays open while downstream emits.
+        SseEmitter emitter = new SseEmitter(0L);
+
+        emitter.onTimeout(emitter::complete);
+        emitter.onCompletion(() -> {});
+
+        chatService.streamChat(userId, request)
+                .publishOn(Schedulers.boundedElastic())
+                .doOnError(emitter::completeWithError)
+                .doOnComplete(emitter::complete)
+                .subscribe(response -> {
+                    try {
+                        emitter.send(SseEmitter.event()
+                                .id(String.valueOf(System.nanoTime()))
+                                .data(response));
+                    } catch (Exception e) {
+                        emitter.completeWithError(e);
+                    }
+                });
+
+        return emitter;
     }
 
     @GetMapping("/sessions")

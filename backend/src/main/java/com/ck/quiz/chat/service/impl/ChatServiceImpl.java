@@ -81,18 +81,6 @@ public class ChatServiceImpl implements ChatService {
         chatMessageRepository.save(assistantMessage);
         session.setTitle(resolveSessionTitle(session.getTitle(), userMessage.getContent()));
         session.setStatus("ACTIVE");
-        ChatConfig config = request.getConfig();
-        if (config != null) {
-            if (StringUtils.hasText(config.getModelName())) {
-                session.setModelName(config.getModelName());
-            }
-            if (config.getTemperature() != null) {
-                session.setTemperature(config.getTemperature());
-            }
-            if (config.getMaxTokens() != null) {
-                session.setMaxTokens(config.getMaxTokens());
-            }
-        }
         chatSessionRepository.save(session);
         List<ChatMessage> latestMessages = chatMessageRepository.findBySessionIdOrderByCreateDateAsc(session.getId());
         List<ChatMessage> trimmed = trimHistory(latestMessages, maxHistoryMessages);
@@ -157,18 +145,6 @@ public class ChatServiceImpl implements ChatService {
 
                     session.setTitle(resolveSessionTitle(session.getTitle(), userMessage.getContent()));
                     session.setStatus("ACTIVE");
-                    ChatConfig config = request.getConfig();
-                    if (config != null) {
-                        if (StringUtils.hasText(config.getModelName())) {
-                            session.setModelName(config.getModelName());
-                        }
-                        if (config.getTemperature() != null) {
-                            session.setTemperature(config.getTemperature());
-                        }
-                        if (config.getMaxTokens() != null) {
-                            session.setMaxTokens(config.getMaxTokens());
-                        }
-                    }
                     chatSessionRepository.save(session);
                 });
     }

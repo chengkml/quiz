@@ -194,6 +194,9 @@ const ChatPage: React.FC = () => {
           },
         };
 
+        // Track assistant message id through the stream so subsequent chunks still match
+        let assistantMsgId = tempAssistantMsgId;
+
         // 使用 ref 来追踪当前的 sessionId，避免闭包问题
       // 但这里我们简单处理，因为流过程中 sessionId 应该是一致的（由后端返回）
 
@@ -210,17 +213,22 @@ const ChatPage: React.FC = () => {
 
           setMessages((prev) => {
             const newMessages = [...prev];
+            const messageIdFromServer = response.messages?.[0]?.id;
             const targetMsgIndex = newMessages.findIndex(
-              (m) => m.id === tempAssistantMsgId
+              (m) =>
+                m.id === assistantMsgId ||
+                (messageIdFromServer && m.id === messageIdFromServer)
             );
             if (targetMsgIndex !== -1) {
               const targetMsg = newMessages[targetMsgIndex];
+              const nextId = messageIdFromServer || targetMsg.id;
               newMessages[targetMsgIndex] = {
                 ...targetMsg,
+                id: nextId,
                 content: targetMsg.content + delta,
-                // 可以更新 id 为真实 id，但这需要后端返回 messageId，目前 delta 里有
-                id: response.messages?.[0]?.id || targetMsg.id, 
+                createdAt: response.messages?.[0]?.createdAt || targetMsg.createdAt,
               };
+              assistantMsgId = nextId; // ensure later chunks still find the message
             }
             return newMessages;
           });
