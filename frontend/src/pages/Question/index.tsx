@@ -7,14 +7,12 @@ import {
     Collapse,
     Dropdown,
     Form,
-    Grid,
     Input,
     InputNumber,
     Menu,
     Message,
     Modal,
     Select,
-    Space,
     Spin,
     Tag,
     Tooltip,
@@ -25,7 +23,6 @@ import {
     associateKnowledge,
     batchCreateQuestion,
     deleteQuestion,
-    generateQuestions,
     generateQuestionsStreamUrl,
     getAllSubjects,
     getCategoriesBySubjectId,
@@ -34,14 +31,15 @@ import {
     getModelsByType,
     updateQuestion,
 } from './api';
-import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconEye, IconList} from '@arco-design/web-react/icon';
 import DynamicQuestionForm from '@/components/DynamicQuestionForm';
 import { DataManager } from '../../components/DataManager';
 import {createKnowledge} from '../Knowledge/api';
 import renderDate from "@/utils/timeUtil";
+import FilterForm from '@/components/FilterForm';
+import { FormFieldConfig } from '@/components/types/types';
 
 const {TextArea} = Input;
-const {Row, Col} = Grid;
 
 function QuestionManager() {
     // 状态管理
@@ -275,7 +273,7 @@ function QuestionManager() {
 
     // 获取表格数据
     const fetchTableData = async (inParams, inPageSize, inPageNum , inSubjectId , inCategoryIds) => {
-        const params = inParams || filterFormRef.current?.getFieldsValue?.();
+        const params = inParams || filterFormRef.current?.getFilterValues?.() || {};
         const pageSize = inPageSize || pagination.pageSize;
         const pageNum = inPageNum || pagination.current;
         const subjectId = inSubjectId || currentTreeNode?.subjectId;
@@ -348,7 +346,7 @@ function QuestionManager() {
 
     // 初始化数据
     useEffect(() => {
-        fetchTableData();
+        fetchTableData({}, 20, 1);
         fetchSubjects();
         fetchSubjectCategoryTree();
     }, []);
@@ -552,11 +550,9 @@ function QuestionManager() {
     useEffect(() => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
-            // 减去页面其他元素的高度，如头部、筛选区域、分页等
-            // 这里可以根据实际页面布局调整计算逻辑
-            const otherElementsHeight = 250; // 预估其他元素占用的高度
+            const otherElementsHeight = 330; // 与待办页面一致的占位高度
             const newHeight = Math.max(100, windowHeight - otherElementsHeight);
-            setTableScrollHeight(newHeight);
+            setTableScrollHeight((prev) => (prev === newHeight ? prev : newHeight));
         };
 
         // 初始计算
@@ -984,6 +980,36 @@ function QuestionManager() {
         );
     };
 
+    // 搜索表单配置
+    const searchFormFields: FormFieldConfig[] = [
+        {
+            field: 'content',
+            label: '关键字',
+            type: 'input',
+            placeholder: '请输入题干内容关键词',
+            span: 8,
+        },
+    ];
+
+    // 搜索处理
+    const handleSearch = (values: any) => {
+        fetchTableData(values, pagination.pageSize, 1);
+    };
+
+    // 重置处理
+    const handleReset = () => {
+        fetchTableData({}, pagination.pageSize, 1);
+    };
+
+    const filterContent = (
+        <FilterForm
+            ref={filterFormRef}
+            formFields={searchFormFields}
+            onSearch={handleSearch}
+            onReset={handleReset}
+        />
+    );
+
     return (
         <div className="question-manager">
             <DataManager
@@ -993,60 +1019,17 @@ function QuestionManager() {
                 onPaginationChange={(p) => {
                     fetchTableData(null, p.pageSize, p.current);
                 }}
+                actions={{
+                    onAdd: handleGenerate,
+                }}
                 config={{
                     displayMode: 'table',
-                    filterContent: (
-                        <Form
-                            ref={filterFormRef}
-                            layout="horizontal"
-                            className="filter-form"
-                            style={{marginTop: '10px'}}
-                            onValuesChange={(params) => {
-                                fetchTableData(params);
-                            }}
-                        >
-                            <Row gutter={16}>
-                                <Col span={8}>
-                                    <Form.Item field="content" label="关键字">
-                                        <Input placeholder="请输入题干内容关键词"/>
-                                    </Form.Item>
-                                </Col>
-                                <Col
-                                    span={8}
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'flex-start',
-                                        alignItems: 'flex-end',
-                                        paddingBottom: '16px',
-                                    }}
-                                >
-                                    <Space>
-                                        <Button
-                                            type="primary"
-                                            icon={<IconSearch/>}
-                                            onClick={() => {
-                                                fetchTableData();
-                                            }}
-                                        >
-                                            搜索
-                                        </Button>
-                                        <Button
-                                            type="primary"
-                                            status="success"
-                                            icon={<IconPlus/>}
-                                            onClick={handleGenerate}
-                                        >
-                                            新增
-                                        </Button>
-                                    </Space>
-                                </Col>
-                            </Row>
-                        </Form>
-                    ),
+                    showModeToggle: false,
+                    filterContent,
                     showTree: true,
                     treeContent: (
-                        <div style={{height: '100%'}}>
-                            <div style={{padding: '12px', borderBottom: '1px solid #e5e6eb'}}>
+                        <div style={{height: '100%'}} className="tree-container">
+                            <div style={{paddingBottom: '12px'}}>
                                 <Input.Search
                                     placeholder="搜索学科分类"
                                     allowClear
@@ -1057,7 +1040,7 @@ function QuestionManager() {
                                     }}
                                 />
                             </div>
-                            <div style={{padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto'}}>
+                            <div style={{height: 'calc(100% - 50px)'}}>
                                 <Spin loading={treeLoading}>
                                     {filteredTreeData.length > 0 ? (
                                         <Tree

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   Button,
   Card,
@@ -8,7 +8,6 @@ import {
   Message,
   Tag,
   Typography,
-  Badge
 } from '@arco-design/web-react';
 import UserAvatar from '@/components/UserAvatar';
 import './style/index.less';
@@ -44,6 +43,11 @@ function SubjectManager() {
   const [addEditVisible, setAddEditVisible] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<any>(null);
+
+  // 初始化数据
+  useEffect(() => {
+    fetchData({}, 1, 20);
+  }, []);
 
   // 获取数据
   const fetchData = useCallback(async (params = {}, page?: number, pageSize?: number) => {

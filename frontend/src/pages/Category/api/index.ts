@@ -1,54 +1,40 @@
 import axios from '@/core/src/http';
 
 // 获取分类列表（分页查询）
-const getCategoryList = params => axios.post('/categories/search', params);
+const getCategoryList = (params: any) => axios.post('/category/search', params);
 
 // 获取分类详情
-const getCategoryById = id => axios.get(`/categories/${id}`);
-
-// 根据名称获取分类
-const getCategoryByName = name => axios.get(`/categories/name/${name}`);
+const getCategoryById = (id: string) => axios.get(`/category/get/${id}`);
 
 // 创建分类
-const createCategory = params => axios.post('/categories', params);
+const createCategory = (params: any) => axios.post('/category/create', params);
 
 // 更新分类
-const updateCategory = params => axios.put('/categories', params);
+const updateCategory = (params: any) => axios.put('/category/update', params);
 
 // 删除分类
-const deleteCategory = id => axios.delete(`/categories/${id}`);
+const deleteCategory = (id: string) => axios.delete(`/category/delete/${id}`);
 
-// 获取所有分类
-const getAllCategories = () => axios.get('/categories/all');
+// 获取所有分类（简列表）
+const getAllCategories = () => axios.get('/category/list');
 
-// 根据学科ID获取分类
-const getCategoriesBySubjectId = subjectId => axios.get(`/categories/subject/${subjectId}`);
-
-// 根据父分类ID获取子分类
-const getCategoriesByParentId = parentId => axios.get(`/categories/parent/${parentId}`);
-
-// 根据层级获取分类
-const getCategoriesByLevel = level => axios.get(`/categories/level/${level}`);
-
-// 检查分类名称是否存在
-const checkCategoryNameExists = (name, excludeId = null) => {
-  const params = { name };
-  if (excludeId) {
-    params.excludeId = excludeId;
-  }
-  return axios.get('/categories/check-name', { params });
+// 检查分类名称是否存在（后端: /category/check/name?categoryName=xxx&excludeCategoryId=xxx）
+const checkCategoryNameExists = (categoryName: string, excludeCategoryId?: string) => {
+  const params: any = { categoryName };
+  if (excludeCategoryId) params.excludeCategoryId = excludeCategoryId;
+  return axios.get('/category/check/name', { params });
 };
+
+// 获取学科分类树
+const getSubjectCategoryTree = () => axios.get('/category/subject-category-tree');
 
 export {
   getCategoryList,
   getCategoryById,
-  getCategoryByName,
   createCategory,
   updateCategory,
   deleteCategory,
   getAllCategories,
-  getCategoriesBySubjectId,
-  getCategoriesByParentId,
-  getCategoriesByLevel,
-  checkCategoryNameExists
+  checkCategoryNameExists,
+  getSubjectCategoryTree,
 };

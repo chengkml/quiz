@@ -684,7 +684,7 @@ function QuestionManager() {
   };
 
   return (
-    <div className="question-manager">
+    <div className="mermaid-mgr-manager">
       <Layout>
         <Sider
           resizeDirections={["right"]}

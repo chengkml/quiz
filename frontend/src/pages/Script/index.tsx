@@ -5,10 +5,8 @@ import {
   Drawer,
   Dropdown,
   Form,
-  Grid,
   Input,
   InputNumber,
-  Layout,
   Menu,
   Message,
   Modal,
@@ -26,9 +24,6 @@ import {
   IconList,
   IconLock,
   IconPlayArrow,
-  IconPlus,
-  IconRefresh,
-  IconSearch,
   IconStop,
   IconUnlock,
 } from "@arco-design/web-react/icon";
@@ -39,8 +34,6 @@ import { FormFieldConfig } from "@/components/types/types";
 import {
   createScriptInfo,
   deleteScriptInfo,
-  disableScript,
-  enableScript,
   execScript,
   getScriptInfoList,
   searchJobs,
@@ -51,10 +44,6 @@ import { getQueueList } from "@/pages/JobQueue/api";
 import { retryJob, stopJob } from "@/pages/Job/api";
 import LogDetails from "@/pages/Job/components/logDetails";
 
-const { Content } = Layout;
-const { TextArea } = Input;
-const { Option } = Select;
-const { Row, Col } = Grid;
 
 function ScriptManager() {
   // 表格数据与状态
@@ -114,19 +103,6 @@ function ScriptManager() {
   const stateOptions = [
     { label: "启用", value: "ENABLED" },
     { label: "禁用", value: "DISABLED" },
-  ];
-  // 脚本类型选项（暂未使用）
-  const scriptTypeOptions = [
-    { label: "Python", value: "PYTHON" },
-    { label: "Python3", value: "PYTHON3" },
-    { label: "Shell", value: "SHELL" },
-    { label: "Node.js", value: "NODE" },
-    { label: "Java Jar", value: "JAVA_JAR" },
-    { label: "Java Class", value: "JAVA_CLASS" },
-    { label: "HTTP", value: "HTTP" },
-    { label: "Command", value: "COMMAND" },
-    { label: "Remote SSH", value: "REMOTE_SSH" },
-    { label: "Other", value: "OTHER" },
   ];
 
   // 时间格式化
@@ -346,7 +322,8 @@ function ScriptManager() {
     setTableLoading(true);
     try {
       // 后端搜索仅支持 keyWord + 分页
-      const keyWord = params?.scriptName || params?.code || params?.scriptCode || "";
+      const keyWord =
+        params?.scriptName || params?.code || params?.scriptCode || "";
       const targetBody = {
         keyWord,
         pageNum: current - 1,
@@ -410,9 +387,9 @@ function ScriptManager() {
         // 仅提交后端 UpdateDto 支持的字段
         const payload = {
           id: currentRecord.id,
-          scriptName: values.name || '',
-          execCmd: values.execCmd || '',
-          remoteScript: values.remoteScript ? 'true' : 'false',
+          scriptName: values.name || "",
+          execCmd: values.execCmd || "",
+          remoteScript: values.remoteScript ? "true" : "false",
           host: values.host,
           port: values.port,
           username: values.username,
@@ -509,7 +486,7 @@ function ScriptManager() {
   // 启用脚本
   const handleEnable = async (record: any) => {
     try {
-      await enableScript(record.id);
+      await updateScriptInfo({ id: record.id, state: "ENABLED" });
       Message.success("脚本启用成功");
       const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
       fetchTableData(filterParams);
@@ -527,7 +504,7 @@ function ScriptManager() {
   // 禁用脚本
   const handleDisable = async (record: any) => {
     try {
-      await disableScript(record.id);
+      await updateScriptInfo({ id: record.id, state: "DISABLED" });
       Message.success("脚本禁用成功");
       const filterParams = filterFormRef.current?.getFieldsValue?.() || {};
       fetchTableData(filterParams);
@@ -771,9 +748,9 @@ function ScriptManager() {
   useEffect(() => {
     const calculateTableHeight = () => {
       const windowHeight = window.innerHeight;
-      const otherElementsHeight = 240;
-      const newHeight = Math.max(200, windowHeight - otherElementsHeight);
-      setTableScrollHeight(newHeight);
+      const otherElementsHeight = 330; // 与待办页面一致的占位高度，避免视图溢出
+      const newHeight = Math.max(100, windowHeight - otherElementsHeight);
+      setTableScrollHeight((prev) => (prev === newHeight ? prev : newHeight));
     };
     calculateTableHeight();
     // 默认查询所有脚本
@@ -797,35 +774,33 @@ function ScriptManager() {
 
   return (
     <div className="script-manager">
-      <Layout>
-        <Content>
-          {(() => {
-            const filterContent = (
-              <FilterForm
-                ref={filterFormRef}
-                formFields={searchFormFields}
-                onSearch={handleSearch}
-              />
-            );
-            return (
-              <DataManager
-                data={tableData}
-                loading={tableLoading}
-                pagination={pagination}
-                onPaginationChange={handlePaginationChange}
-                actions={{ onAdd: handleAdd }}
-                config={{
-                  showModeToggle: false,
-                  displayMode: "table",
-                  filterContent,
-                  tableColumns: columns,
-                }}
-                tableScrollHeight={tableScrollHeight}
-              />
-            );
-          })()}
+      {(() => {
+        const filterContent = (
+          <FilterForm
+            ref={filterFormRef}
+            formFields={searchFormFields}
+            onSearch={handleSearch}
+          />
+        );
+        return (
+          <DataManager
+            data={tableData}
+            loading={tableLoading}
+            pagination={pagination}
+            onPaginationChange={handlePaginationChange}
+            actions={{ onAdd: handleAdd }}
+            config={{
+              showModeToggle: false,
+              displayMode: "table",
+              filterContent,
+              tableColumns: columns,
+            }}
+            tableScrollHeight={tableScrollHeight}
+          />
+        );
+      })()}
 
-          {/* 作业停止模态框 */}
+      {/* 作业停止模态框 */}
       <Modal
         title="确认停止作业"
         visible={stopModalVisible}
@@ -1151,8 +1126,6 @@ function ScriptManager() {
           <Pagination {...jobsPagination} onChange={handleJobsPageChange} />
         </div>
       </Modal>
-        </Content>
-      </Layout>
     </div>
   );
 }

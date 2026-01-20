@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Message } from '@arco-design/web-react';
-import { createCategory, getCategoriesBySubjectId } from '../api';
+import { createCategory, getCategoryList } from '../api';
 import { getAllSubjects } from '../../Subject/api';
 
 interface AddCategoryModalProps {
@@ -39,8 +39,8 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
     
     try {
       setCategoryLoading(true);
-      const response = await getCategoriesBySubjectId(subjectId);
-      setCategories(response.data || []);
+      const response = await getCategoryList({ subjectId, pageNum: 0, pageSize: 1000 });
+      setCategories(response.data?.content || []);
       // 清空父分类选择，因为学科已经改变
       form.setFieldValue('parentId', undefined);
     } catch (error) {

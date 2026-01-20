@@ -121,6 +121,7 @@ public class RoleMenuServiceImpl implements RoleMenuService {
         List<Menu> menus = roleMenuRelas.stream()
                 .map(RoleMenuRela::getMenu)
                 .distinct()
+                .sorted((m1, m2) -> Integer.compare(m1.getSeq(), m2.getSeq()))
                 .collect(Collectors.toList());
 
         // 4. 构建菜单树

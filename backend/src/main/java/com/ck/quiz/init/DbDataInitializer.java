@@ -230,10 +230,10 @@ public class DbDataInitializer implements CommandLineRunner {
                     createDto.setDescription(param.description);
                     createDto.setIsEncrypted(param.isEncrypted);
                     createDto.setIsReadonly(false);
-                    createDto.setStatus(SystemParam.ParamStatus.ACTIVE.name());
+                    createDto.setStatus(SystemParam.ParamStatus.ACTIVE);
                     createDto.setSortOrder(param.sortOrder);
 
-                    systemParamService.createParam(createDto);
+                    systemParamService.create(createDto);
                     insertedCount++;
                     log.info("已初始化邮件配置参数: {} = {}", param.paramName, param.paramValue);
                 }
@@ -256,91 +256,91 @@ public class DbDataInitializer implements CommandLineRunner {
         List<MailConfigParam> params = new ArrayList<>();
 
         params.add(new MailConfigParam(
-                "mail.host",
-                "smtp.example.com",
-                "smtp.example.com",
-                "STRING",
-                "邮件配置",
-                "SMTP服务器地址（如：smtp.qq.com、smtp.163.com、smtp.gmail.com）",
-                false,
-                1
+            "mail.host",
+            "smtp.example.com",
+            "smtp.example.com",
+            SystemParam.ParamType.STRING,
+            "邮件配置",
+            "SMTP服务器地址（如：smtp.qq.com、smtp.163.com、smtp.gmail.com）",
+            false,
+            1
         ));
 
         params.add(new MailConfigParam(
-                "mail.port",
-                "587",
-                "587",
-                "NUMBER",
-                "邮件配置",
-                "SMTP服务器端口（常用端口：25、465、587）",
-                false,
-                2
+            "mail.port",
+            "587",
+            "587",
+            SystemParam.ParamType.NUMBER,
+            "邮件配置",
+            "SMTP服务器端口（常用端口：25、465、587）",
+            false,
+            2
         ));
 
         params.add(new MailConfigParam(
-                "mail.username",
-                "your-email@example.com",
-                "your-email@example.com",
-                "STRING",
-                "邮件配置",
-                "发件人邮箱地址",
-                false,
-                3
+            "mail.username",
+            "your-email@example.com",
+            "your-email@example.com",
+            SystemParam.ParamType.STRING,
+            "邮件配置",
+            "发件人邮箱地址",
+            false,
+            3
         ));
 
         params.add(new MailConfigParam(
-                "mail.password",
-                "your-password",
-                "your-password",
-                "STRING",
-                "邮件配置",
-                "邮箱密码或授权码（建议使用授权码）",
-                true,
-                4
+            "mail.password",
+            "your-password",
+            "your-password",
+            SystemParam.ParamType.STRING,
+            "邮件配置",
+            "邮箱密码或授权码（建议使用授权码）",
+            true,
+            4
         ));
 
         params.add(new MailConfigParam(
-                "mail.encoding",
-                "UTF-8",
-                "UTF-8",
-                "STRING",
-                "邮件配置",
-                "邮件编码格式",
-                false,
-                5
+            "mail.encoding",
+            "UTF-8",
+            "UTF-8",
+            SystemParam.ParamType.STRING,
+            "邮件配置",
+            "邮件编码格式",
+            false,
+            5
         ));
 
         params.add(new MailConfigParam(
-                "mail.smtp.auth",
-                "true",
-                "true",
-                "BOOLEAN",
-                "邮件配置",
-                "启用SMTP身份验证",
-                false,
-                6
+            "mail.smtp.auth",
+            "true",
+            "true",
+            SystemParam.ParamType.BOOLEAN,
+            "邮件配置",
+            "启用SMTP身份验证",
+            false,
+            6
         ));
 
         params.add(new MailConfigParam(
-                "mail.smtp.starttls.enable",
-                "true",
-                "true",
-                "BOOLEAN",
-                "邮件配置",
-                "启用STARTTLS加密传输",
-                false,
-                7
+            "mail.smtp.starttls.enable",
+            "true",
+            "true",
+            SystemParam.ParamType.BOOLEAN,
+            "邮件配置",
+            "启用STARTTLS加密传输",
+            false,
+            7
         ));
 
         params.add(new MailConfigParam(
-                "mail.smtp.starttls.required",
-                "true",
-                "true",
-                "BOOLEAN",
-                "邮件配置",
-                "要求必须使用STARTTLS",
-                false,
-                8
+            "mail.smtp.starttls.required",
+            "true",
+            "true",
+            SystemParam.ParamType.BOOLEAN,
+            "邮件配置",
+            "要求必须使用STARTTLS",
+            false,
+            8
         ));
 
         return params;
@@ -353,14 +353,14 @@ public class DbDataInitializer implements CommandLineRunner {
         String paramName;
         String paramValue;
         String defaultValue;
-        String paramType;
+        SystemParam.ParamType paramType;
         String category;
         String description;
         Boolean isEncrypted;
         Integer sortOrder;
 
         MailConfigParam(String paramName, String paramValue, String defaultValue,
-                        String paramType, String category, String description,
+                        SystemParam.ParamType paramType, String category, String description,
                         Boolean isEncrypted, Integer sortOrder) {
             this.paramName = paramName;
             this.paramValue = paramValue;

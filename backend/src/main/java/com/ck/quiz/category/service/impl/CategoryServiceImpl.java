@@ -75,11 +75,11 @@ public class CategoryServiceImpl extends
                 queryDto.getPageNum(),
                 queryDto.getPageSize());
 
-        List<CategoryDto> categories = namedParameterJdbcTemplate.query(
+        List<Category> categories = namedParameterJdbcTemplate.query(
                 limitSql,
                 params,
                 (rs, rowNum) -> {
-                    CategoryDto c = new CategoryDto();
+                    Category c = new Category();
                     c.setId(rs.getString("id"));
                     c.setName(rs.getString("name"));
                     c.setParentId(rs.getString("parent_id"));
@@ -99,7 +99,7 @@ public class CategoryServiceImpl extends
                 namedParameterJdbcTemplate,
                 countSql.toString(),
                 params,
-                categories,
+                convertToDtos(categories),
                 queryDto.getPageNum(),
                 queryDto.getPageSize());
     }

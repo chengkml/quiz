@@ -1,25 +1,24 @@
 package com.ck.quiz.config.dto;
 
-import lombok.AllArgsConstructor;
+import com.ck.quiz.base.dto.CreateDto;
+import com.ck.quiz.config.entity.SystemParam;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
-/**
- * 系统参数创建DTO
- */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class SystemParamCreateDto {
+@EqualsAndHashCode(callSuper = true)
+public class SystemParamCreateDto extends CreateDto {
 
+    @NotBlank(message = "参数名称不能为空")
     private String paramName;
     private String paramValue;
     private String defaultValue;
-    private String paramType;
+    private SystemParam.ParamType paramType = SystemParam.ParamType.STRING;
     private String category;
     private String description;
-    private Boolean isEncrypted;
-    private Boolean isReadonly;
-    private String status;
+    private Boolean isEncrypted = false;
+    private Boolean isReadonly = false;
+    private SystemParam.ParamStatus status = SystemParam.ParamStatus.ACTIVE;
     private Integer sortOrder;
 }

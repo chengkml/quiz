@@ -1,20 +1,14 @@
 package com.ck.quiz.config.dto;
 
-import lombok.AllArgsConstructor;
+import com.ck.quiz.base.dto.QueryDto;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
-/**
- * 系统参数查询DTO
- */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class SystemParamQueryDto {
+@EqualsAndHashCode(callSuper = true)
+public class SystemParamQueryDto extends QueryDto {
 
     private String paramName;
     private String category;
     private String status;
-    private Integer page = 0;
-    private Integer size = 20;
 }

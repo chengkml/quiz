@@ -63,7 +63,7 @@ const getAllSubjects = () => axios.get('/subject/list');
 const getCategoriesBySubjectId = (subjectId) => axios.get(`/categories/subject/${subjectId}`);
 
 // 获取学科分类树
-const getSubjectCategoryTree = () => axios.get('/categories/subject/category/tree');
+const getSubjectCategoryTree = () => axios.get('/category/subject-category-tree');
 
 // 根据模型类型获取模型列表（例如 TEXT）
 const getModelsByType = (type) => axios.get(`/model/list/${type}`);

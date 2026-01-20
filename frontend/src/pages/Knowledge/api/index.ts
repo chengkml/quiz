@@ -25,10 +25,10 @@ const checkKnowledgeNameExists = params => axios.get('/knowledge/check-name', {p
 const getAllCategories = () => axios.get('/categories/all');
 
 // 获取所有学科列表
-const getAllSubjects = () => axios.get('/subject/list/all');
+const getAllSubjects = () => axios.get('/subject/list');
 
 // 获取学科分类树
-const getSubjectCategoryTree = () => axios.get('/categories/subject/category/tree');
+const getSubjectCategoryTree = () => axios.get('/category/subject-category-tree');
 
 // 根据学科ID获取分类列表
 const getCategoriesBySubjectId = (subjectId) => axios.get(`/categories/subject/${subjectId}`);

@@ -158,7 +158,7 @@ function RoleManager() {
       title: "创建时间",
       dataIndex: "createDate",
       key: "createDate",
-      width: 160,
+      width: 170,
       render: (value) => renderDate(value),
     },
     {
@@ -169,13 +169,6 @@ function RoleManager() {
       render: (name, record) => (
         <UserAvatar name={name || (record?.createUser ?? "")} showName />
       ),
-    },
-    {
-      title: "更新时间",
-      dataIndex: "updateDate",
-      key: "updateDate",
-      width: 160,
-      render: (value) => renderDate(value),
     },
     {
       title: "操作",

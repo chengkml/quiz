@@ -1,25 +1,22 @@
 package com.ck.quiz.config.dto;
 
-import lombok.AllArgsConstructor;
+import com.ck.quiz.base.dto.UpdateDto;
+import com.ck.quiz.config.entity.SystemParam;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
-/**
- * 系统参数更新DTO
- */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class SystemParamUpdateDto {
+@EqualsAndHashCode(callSuper = true)
+public class SystemParamUpdateDto extends UpdateDto {
 
-    private String id;
     private String paramName;
     private String paramValue;
     private String defaultValue;
+    private SystemParam.ParamType paramType;
     private String category;
     private String description;
     private Boolean isEncrypted;
     private Boolean isReadonly;
-    private String status;
+    private SystemParam.ParamStatus status;
     private Integer sortOrder;
 }

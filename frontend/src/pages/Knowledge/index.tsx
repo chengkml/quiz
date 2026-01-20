@@ -4,17 +4,14 @@ import {
     Button,
     Dropdown,
     Form,
-    Grid,
     Input,
     Layout,
     Menu,
     Message,
     Modal,
-    Pagination,
     Select,
     Space,
     Spin,
-    Table,
     Tree,
 } from '@arco-design/web-react';
 import './style/index.less';
@@ -23,19 +20,14 @@ import {
     deleteKnowledge,
     getAllCategories,
     getAllSubjects,
-    getCategoriesBySubjectId,
     getKnowledgeList,
     getKnowledgeQuestions,
     getSubjectCategoryTree,
     updateKnowledge,
 } from './api';
 import { DataManager } from '../../components/DataManager';
-import { IconDelete, IconEdit, IconList, IconPlus, IconSearch } from '@arco-design/web-react/icon';
-import Sider from '@arco-design/web-react/es/Layout/sider';
-
-const { TextArea } = Input;
-const { Content } = Layout;
-const { Row, Col } = Grid;
+import { IconDelete, IconEdit, IconList, IconPlus } from '@arco-design/web-react/icon';
+import FilterForm from '@/components/FilterForm';
 
 function KnowledgeManager() {
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
@@ -76,7 +68,7 @@ function KnowledgeManager() {
     const [questionsLoading, setQuestionsLoading] = useState(false);
 
     // 表单引用
-    const filterFormRef = useRef();
+    const filterFormRef = useRef<any>();
     const addFormRef = useRef();
     const editFormRef = useRef();
 
@@ -383,13 +375,13 @@ function KnowledgeManager() {
         }
         try {
             setCategoriesLoading(true);
-            const response = await getCategoriesBySubjectId(subjectId);
-            if (response.data) {
-                setCategories(response.data.map((item) => ({
-                    label: item.name,
-                    value: item.id,
-                })));
-            }
+            // 通过知识点分页接口按学科筛选，获取较大页以填充下拉
+            const response = await getKnowledgeList({ subjectId, pageNum: 0, pageSize: 1000 });
+            const list = response.data?.content || [];
+            setCategories(list.map((item: any) => ({
+                label: item.categoryName,
+                value: item.categoryId,
+            })));
         } catch (error) {
             console.error('获取分类列表失败:', error);
             Message.error('获取分类列表失败');
@@ -490,9 +482,9 @@ function KnowledgeManager() {
     useEffect(() => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
-            const otherElementsHeight = 250;
-            const newHeight = Math.max(200, windowHeight - otherElementsHeight);
-            setTableScrollHeight(newHeight);
+            const otherElementsHeight = 330; // 与待办页面一致的占位高度
+            const newHeight = Math.max(100, windowHeight - otherElementsHeight);
+            setTableScrollHeight((prev) => (prev === newHeight ? prev : newHeight));
         };
         calculateTableHeight();
 
@@ -500,61 +492,66 @@ function KnowledgeManager() {
         fetchSubjects();
         fetchSubjectCategoryTree();
 
-        setTimeout(() => {
-            filterFormRef.current?.setFieldsValue?.({});
-        }, 50);
-
         const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+    const searchFormFields = [
+        {
+            field: 'knowledgeName',
+            label: '关键字',
+            type: 'input',
+            placeholder: '请输入关键字',
+            span: 8,
+        },
+        {
+            field: 'subjectId',
+            label: '学科',
+            type: 'select',
+            options: subjects,
+            allowClear: true,
+            span: 8,
+        },
+        {
+            field: 'categoryId',
+            label: '分类',
+            type: 'select',
+            options: categories,
+            allowClear: true,
+            disabled: !filterFormRef.current?.getFilterValues?.()?.subjectId,
+            span: 8,
+        },
+    ];
 
     const filterContent = (
-        <Form
+        <FilterForm
             ref={filterFormRef}
-            layout="horizontal"
-            className="filter-form"
-            style={{ marginTop: '10px' }}
-            onValuesChange={() => {
-                const values = filterFormRef.current?.getFieldsValue?.() || {};
+            formFields={searchFormFields}
+            onValuesChange={(changeValue: any, values: any) => {
+                // 当学科变更时，联动分类下拉并清空已选分类
+                if (Object.prototype.hasOwnProperty.call(changeValue, 'subjectId')) {
+                    const subjectId = changeValue.subjectId;
+                    setCurrentSubjectId(subjectId || null);
+                    filterFormRef.current?.setFieldsValue?.({ categoryId: undefined });
+                    fetchCategoriesBySubject(subjectId);
+                }
                 searchTableData(values);
             }}
-        >
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Form.Item field="knowledgeName" label="关键字">
-                        <Input placeholder="请输入关键字" />
-                    </Form.Item>
-                </Col>
-                <Col
-                    span={6}
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'flex-start',
-                        alignItems: 'flex-end',
-                        paddingBottom: '16px',
-                    }}
-                >
-                    <Space>
-                        <Button
-                            type="primary"
-                            icon={<IconSearch />}
-                            onClick={() => {
-                                const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                searchTableData(values);
-                            }}
-                        >
-                            搜索
-                        </Button>
-                    </Space>
-                </Col>
-            </Row>
-        </Form>
+            onSearch={(values: any) => {
+                searchTableData(values);
+            }}
+            onReset={() => {
+                setCurrentSubjectId(null);
+                setCurrentCategoryIds(null);
+                setCategories([]);
+                fetchTableData();
+            }}
+        />
     );
 
     const treeContent = (
         <div style={{ height: '100%' }}>
-            <div style={{ padding: '12px', borderBottom: '1px solid #e5e6eb' }}>
+            <div style={{ paddingBottom: '12px' }}>
                 <Input.Search
                     placeholder="搜索学科分类"
                     allowClear
@@ -565,7 +562,7 @@ function KnowledgeManager() {
                     }}
                 />
             </div>
-            <div style={{ padding: '12px', height: 'calc(100% - 60px)', overflow: 'auto' }}>
+            <div style={{ height: 'calc(100% - 50px)' }}>
                 <Spin loading={treeLoading}>
                     {filteredTreeData.length > 0 ? (
                         <Tree

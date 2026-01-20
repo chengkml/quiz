@@ -47,12 +47,6 @@ const ShortCardList: React.FC<ShortCardListProps> = ({
     onView,
   };
 
-  const cardColorMap = {
-    small: 'rgba(15, 23, 42, 0.05)',
-    medium: 'rgba(15, 23, 42, 0.08)',
-    large: 'rgba(15, 23, 42, 0.1)',
-  };
-
   const cardPaddingMap = {
     small: '12px',
     medium: '16px',

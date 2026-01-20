@@ -1,34 +1,22 @@
 package com.ck.quiz.config.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import com.ck.quiz.base.dto.Dto;
+import com.ck.quiz.config.entity.SystemParam;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
-import java.time.LocalDateTime;
-
-/**
- * 系统参数DTO
- */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class SystemParamDto {
+@EqualsAndHashCode(callSuper = true)
+public class SystemParamDto extends Dto {
 
-    private String id;
     private String paramName;
     private String paramValue;
     private String defaultValue;
-    private String paramType;
+    private SystemParam.ParamType paramType;
     private String category;
     private String description;
     private Boolean isEncrypted;
     private Boolean isReadonly;
-    private String status;
+    private SystemParam.ParamStatus status;
     private Integer sortOrder;
-    private String createUser;
-    private LocalDateTime createDate;
-    private String updateUser;
-    private LocalDateTime updateDate;
 }

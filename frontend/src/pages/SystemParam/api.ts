@@ -30,13 +30,13 @@ export const deleteParam = (id: string): Promise<ApiResponse> =>
  * 根据ID查询参数
  */
 export const getParamById = (id: string): Promise<ApiResponse<SystemParamDto>> =>
-  axios.get(`/system-param/${id}`);
+  axios.get(`/system-param/get/${id}`);
 
 /**
  * 分页查询参数
  */
 export const searchParams = (params: SystemParamQueryDto): Promise<PageResponse<SystemParamDto>> =>
-  axios.get('/system-param/search', { params });
+  axios.post('/system-param/search', params);
 
 /**
  * 根据分类查询所有参数
@@ -44,25 +44,11 @@ export const searchParams = (params: SystemParamQueryDto): Promise<PageResponse<
 export const getParamsByCategory = (category: string): Promise<ApiResponse<SystemParamDto[]>> =>
   axios.get(`/system-param/category/${category}`);
 
-/**
- * 批量更新参数
- */
-export const batchUpdateParams = (data: SystemParamUpdateDto[]): Promise<ApiResponse> =>
-  axios.put('/system-param/batch-update', data);
-
-/**
- * 重置参数为默认值
- */
-export const resetParamToDefault = (id: string): Promise<ApiResponse<SystemParamDto>> =>
-  axios.put(`/system-param/reset/${id}`);
-
 export default {
   createParam,
   updateParam,
   deleteParam,
   getParamById,
   searchParams,
-  getParamsByCategory,
-  batchUpdateParams,
-  resetParamToDefault
+  getParamsByCategory
 };

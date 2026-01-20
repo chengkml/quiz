@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Message } from '@arco-design/web-react';
-import { updateCategory, getCategoriesBySubjectId } from '../api';
+import { updateCategory, getCategoryList } from '../api';
 import { getAllSubjects } from '../../Subject/api';
 
 interface EditCategoryModalProps {
@@ -41,9 +41,9 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
 
     try {
       setCategoriesLoading(true);
-      const response = await getCategoriesBySubjectId(subjectId);
+      const response = await getCategoryList({ subjectId, pageNum: 0, pageSize: 1000 });
       // 过滤掉当前分类，避免选择自己作为父分类
-      const filteredCategories = (response.data || []).filter((cat: any) => cat.id !== record?.id);
+      const filteredCategories = (response.data?.content || []).filter((cat: any) => cat.id !== record?.id);
       setCategories(filteredCategories);
     } catch (error) {
       console.error('获取分类列表失败:', error);

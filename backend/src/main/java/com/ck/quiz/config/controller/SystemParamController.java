@@ -1,137 +1,52 @@
 package com.ck.quiz.config.controller;
 
+import com.ck.quiz.base.controller.BaseController;
+import com.ck.quiz.base.service.BaseService;
 import com.ck.quiz.config.dto.SystemParamCreateDto;
 import com.ck.quiz.config.dto.SystemParamDto;
 import com.ck.quiz.config.dto.SystemParamQueryDto;
 import com.ck.quiz.config.dto.SystemParamUpdateDto;
 import com.ck.quiz.config.service.SystemParamService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 系统参数管理控制器
  */
+@Tag(name = "系统参数管理", description = "系统参数的创建、更新、删除、查询等接口")
 @RestController
 @RequestMapping("/api/system-param")
-@RequiredArgsConstructor
-public class SystemParamController {
+public class SystemParamController
+        extends BaseController<SystemParamCreateDto, SystemParamUpdateDto, SystemParamQueryDto, SystemParamDto> {
 
-    private final SystemParamService paramService;
+    @Autowired
+    private SystemParamService paramService;
 
-    /**
-     * 创建参数
-     */
-    @PostMapping("/create")
-    public Map<String, Object> createParam(@RequestBody SystemParamCreateDto createDto) {
-        SystemParamDto dto = paramService.createParam(createDto);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("data", dto);
-        return result;
+    @Operation(summary = "根据参数名查询参数", description = "根据参数名称查询单个参数信息")
+    @GetMapping("/by-name/{paramName}")
+    public ResponseEntity<SystemParamDto> getParamByName(
+            @Parameter(description = "参数名称", required = true) @PathVariable("paramName") String paramName) {
+        return ResponseEntity.ok(paramService.getParamByName(paramName));
     }
 
-    /**
-     * 更新参数
-     */
-    @PutMapping("/update")
-    public Map<String, Object> updateParam(@RequestBody SystemParamUpdateDto updateDto) {
-        SystemParamDto dto = paramService.updateParam(updateDto);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("data", dto);
-        return result;
-    }
-
-    /**
-     * 删除参数
-     */
-    @DeleteMapping("/delete/{id}")
-    public Map<String, Object> deleteParam(@PathVariable String id) {
-        paramService.deleteParam(id);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("message", "删除成功");
-        return result;
-    }
-
-    /**
-     * 根据ID查询参数
-     */
-    @GetMapping("/{id}")
-    public Map<String, Object> getParamById(@PathVariable String id) {
-        SystemParamDto dto = paramService.getParamById(id);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("data", dto);
-        return result;
-    }
-
-    /**
-     * 根据参数名查询参数
-     */
-    @GetMapping("/name/{paramName}")
-    public Map<String, Object> getParamByName(@PathVariable String paramName) {
-        SystemParamDto dto = paramService.getParamByName(paramName);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("data", dto);
-        return result;
-    }
-
-    /**
-     * 分页查询参数
-     */
-    @GetMapping("/search")
-    public Map<String, Object> searchParams(SystemParamQueryDto queryDto) {
-        Page<SystemParamDto> page = paramService.searchParams(queryDto);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("content", page.getContent());
-        result.put("totalElements", page.getTotalElements());
-        result.put("totalPages", page.getTotalPages());
-        result.put("number", page.getNumber());
-        result.put("size", page.getSize());
-        return result;
+    @Override
+    protected BaseService<SystemParamCreateDto, SystemParamUpdateDto, SystemParamQueryDto, SystemParamDto, ?> getService() {
+        return paramService;
     }
 
     /**
      * 根据分类查询所有参数
      */
     @GetMapping("/category/{category}")
-    public Map<String, Object> getParamsByCategory(@PathVariable String category) {
+    public ResponseEntity<List<SystemParamDto>> getParamsByCategory(@PathVariable String category) {
         List<SystemParamDto> list = paramService.getParamsByCategory(category);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("data", list);
-        return result;
-    }
-
-    /**
-     * 批量更新参数
-     */
-    @PutMapping("/batch-update")
-    public Map<String, Object> batchUpdateParams(@RequestBody List<SystemParamUpdateDto> updateDtos) {
-        paramService.batchUpdateParams(updateDtos);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("message", "批量更新成功");
-        return result;
-    }
-
-    /**
-     * 重置参数为默认值
-     */
-    @PutMapping("/reset/{id}")
-    public Map<String, Object> resetParamToDefault(@PathVariable String id) {
-        SystemParamDto dto = paramService.resetParamToDefault(id);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("data", dto);
-        return result;
+        return ResponseEntity.ok(list);
     }
 }
