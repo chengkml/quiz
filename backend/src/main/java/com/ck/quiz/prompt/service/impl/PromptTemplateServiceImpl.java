@@ -102,6 +102,9 @@ public class PromptTemplateServiceImpl extends BaseServiceImpl<PromptTemplateCre
     @Override
     public PromptTemplateDto getByName(String name) {
         PromptTemplate template = templateRepository.findByName(name);
+        if (template == null) {
+            throw new RuntimeException("Prompt template not found with name: " + name);
+        }
         return convertToDto(template, true);
     }
 }

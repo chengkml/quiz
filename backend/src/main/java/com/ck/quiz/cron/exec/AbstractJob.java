@@ -41,7 +41,10 @@ public abstract class AbstractJob {
             throw new RuntimeException("未查询到任务id为【" + jobId + "】的job任务");
         }
         Map<String, Object> job = list.get(0);
-        LocalDateTime startTime = (LocalDateTime) job.get("startTime");
+        Object startTimeObj = job.get("startTime");
+        LocalDateTime startTime = startTimeObj instanceof java.sql.Timestamp 
+                ? ((java.sql.Timestamp) startTimeObj).toLocalDateTime() 
+                : (LocalDateTime) startTimeObj;
         String taskParamsStr = MapUtils.getString(job, "taskParams");
         Map<String, Object> taskParams = new HashMap<>();
         if (StringUtils.isNotBlank(taskParamsStr)) {

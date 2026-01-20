@@ -6,7 +6,7 @@ spring:
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:1qazZAQ!}
     hikari:
-      auto-commit: false
+      auto-commit: true
       maximum-pool-size: 30
       minimum-idle: 10
       connection-timeout: 30000
