@@ -5,8 +5,7 @@ import com.ck.quiz.knowledge.dto.KnowledgeDto;
 import com.ck.quiz.knowledge.entity.Knowledge;
 import com.ck.quiz.knowledge.repository.KnowledgeRepository;
 import com.ck.quiz.knowledge.service.KnowledgeService;
-import com.ck.quiz.llmmodel.entity.LLMModel;
-import com.ck.quiz.llmmodel.repository.LLMModelRepository;
+import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.question.dto.QuestionCreateDto;
@@ -23,8 +22,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -65,7 +62,7 @@ public class QuestionServiceImpl implements QuestionService {
     private PromptTemplateService promptTemplateService;
 
     @Autowired
-    private LLMModelRepository llmModelRepository;
+    private LLMModelService llmModelService;
 
     @Override
     @Transactional
@@ -125,29 +122,18 @@ public class QuestionServiceImpl implements QuestionService {
         new Thread(() -> {
             ObjectMapper objectMapper = new ObjectMapper();
             try {
-                // 查询模型配置
-                LLMModel model = resolveModel(modelName);
-                if (model == null) {
+                OpenAiChatModel chatModel;
+                try {
+                    chatModel = llmModelService.getChatModel(modelName);
+                } catch (Exception ex) {
                     try {
-                        emitter.send("[ERROR]未找到指定的文本模型，请先在模型管理中配置模型");
-                    } catch (Exception ex) {
+                        emitter.send("[ERROR]" + ex.getMessage());
+                    } catch (Exception sendEx) {
                         // ignore
                     }
-                    emitter.completeWithError(new RuntimeException("未找到指定的文本模型，请先在模型管理中配置模型"));
+                    emitter.completeWithError(ex);
                     return;
                 }
-
-                OpenAiApi openAiApi = OpenAiApi.builder()
-                        .apiKey(model.getApiKey())
-                        .baseUrl(model.getApiEndpoint())
-                        .build();
-                OpenAiChatOptions options = OpenAiChatOptions.builder()
-                        .model(model.getName())
-                        .build();
-                OpenAiChatModel chatModel = OpenAiChatModel.builder()
-                        .openAiApi(openAiApi)
-                        .defaultOptions(options)
-                        .build();
                 ChatClient chat = ChatClient.builder(chatModel).build();
 
                 // 使用流式 API 调用大模型，实时推送内容到前端
@@ -477,19 +463,7 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public List<QuestionCreateDto> generateQuestions(String knowledgeDescr, int num, String modelName) {
-        // 查询模型配置
-        LLMModel model = resolveModel(modelName);
-        if (model == null) {
-            throw new RuntimeException("未找到指定的文本模型，请先在模型管理中配置模型");
-        }
-        OpenAiApi openAiApi = OpenAiApi.builder().apiKey(model.getApiKey()).baseUrl(model.getApiEndpoint())
-                .build();
-        OpenAiChatOptions options = OpenAiChatOptions.builder().model(model.getName())
-                .build();
-        OpenAiChatModel chatModel = OpenAiChatModel.builder()
-                .openAiApi(openAiApi)
-                .defaultOptions(options)
-                .build();
+        OpenAiChatModel chatModel = llmModelService.getChatModel(modelName);
         ChatClient chat = ChatClient.builder(chatModel).build();
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -518,19 +492,7 @@ public class QuestionServiceImpl implements QuestionService {
         }
     }
 
-    /**
-     * 解析模型配置
-     * 
-     * @param modelName 模型名称（可选）
-     * @return 模型配置，如果未指定模型名则返回默认模型
-     */
-    private LLMModel resolveModel(String modelName) {
-        if (StringUtils.hasText(modelName)) {
-            return llmModelRepository.findByName(modelName).orElse(null);
-        } else {
-            return llmModelRepository.findByTypeAndIsDefault(LLMModel.ModelType.TEXT, "1").orElse(null);
-        }
-    }
+
 
 
     @Override

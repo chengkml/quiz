@@ -9,13 +9,16 @@ import com.ck.quiz.chat.dto.ChatSessionDto;
 import com.ck.quiz.chat.dto.ChatUsageDto;
 import com.ck.quiz.chat.entity.ChatMessage;
 import com.ck.quiz.chat.entity.ChatSession;
-import com.ck.quiz.chat.llm.SpringAiChatClientFacade;
+
 import com.ck.quiz.chat.repository.ChatMessageRepository;
 import com.ck.quiz.chat.repository.ChatSessionRepository;
 import com.ck.quiz.chat.service.ChatService;
+import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.utils.IdHelper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
+
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -39,10 +42,8 @@ import java.util.stream.Collectors;
 public class ChatServiceImpl implements ChatService {
 
     private final ChatSessionRepository chatSessionRepository;
-
     private final ChatMessageRepository chatMessageRepository;
-
-    private final SpringAiChatClientFacade chatClientFacade;
+    private final LLMModelService llmModelService;
 
     @Value("${chat.max-history-messages:20}")
     private int maxHistoryMessages;
@@ -67,7 +68,9 @@ public class ChatServiceImpl implements ChatService {
         chatMessageRepository.save(userMessage);
         history.add(userMessage);
         String combinedPrompt = buildCombinedPrompt(history);
-        String answer = chatClientFacade.chat(combinedPrompt);
+        OpenAiChatModel chatModel = llmModelService.getChatModel(session.getModelName());
+        ChatClient client = ChatClient.builder(chatModel).build();
+        String answer = client.prompt().user(combinedPrompt).call().content();
         ChatMessage assistantMessage = new ChatMessage();
         assistantMessage.setId(IdHelper.genUuid());
         assistantMessage.setSessionId(session.getId());
@@ -127,7 +130,9 @@ public class ChatServiceImpl implements ChatService {
 
         StringBuilder contentBuilder = new StringBuilder();
 
-        return chatClientFacade.stream(combinedPrompt)
+        OpenAiChatModel chatModel = llmModelService.getChatModel(session.getModelName());
+        ChatClient client = ChatClient.builder(chatModel).build();
+        return client.prompt().user(combinedPrompt).stream().content()
                 .map(content -> {
                     contentBuilder.append(content);
                     ChatCompletionResponse response = new ChatCompletionResponse();

@@ -7,8 +7,7 @@ import com.ck.quiz.calendar.dto.CalendarEventUpdateDto;
 import com.ck.quiz.calendar.entity.CalendarEvent;
 import com.ck.quiz.calendar.repository.CalendarEventRepository;
 import com.ck.quiz.calendar.service.CalendarEventService;
-import com.ck.quiz.llmmodel.entity.LLMModel;
-import com.ck.quiz.llmmodel.repository.LLMModelRepository;
+import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.utils.IdHelper;
@@ -18,8 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -55,7 +52,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
     private PromptTemplateService promptTemplateService;
 
     @Autowired
-    private LLMModelRepository llmModelRepository;
+    private LLMModelService llmModelService;
 
     @Override
     @Transactional
@@ -225,20 +222,6 @@ public class CalendarEventServiceImpl implements CalendarEventService {
         }
     }
 
-    /**
-     * 解析模型配置
-     * 
-     * @param modelName 模型名称（可选）
-     * @return 模型配置，如果未指定模型名则返回默认模型
-     */
-    private LLMModel resolveModel(String modelName) {
-        if (StringUtils.hasText(modelName)) {
-            return llmModelRepository.findByName(modelName).orElse(null);
-        } else {
-            return llmModelRepository.findByTypeAndIsDefault(LLMModel.ModelType.TEXT, "1").orElse(null);
-        }
-    }
-
     private String buildEventPrompt(String eventDescription) {
         PromptTemplateDto promptTemplateDto = promptTemplateService.getByName("calendarEventGenerate");
         String targetPrompt = promptTemplateDto.getContent().replace("{{eventDescr}}", eventDescription);
@@ -255,29 +238,20 @@ public class CalendarEventServiceImpl implements CalendarEventService {
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.findAndRegisterModules(); // 自动注册所有可用的模块，包括 JavaTimeModule
             try {
-                // 查询模型配置
-                LLMModel model = resolveModel(null);
-                if (model == null) {
-                    try {
-                        emitter.send("[ERROR]未找到指定的文本模型，请先在模型管理中配置模型");
-                    } catch (Exception ex) {
-                        log.error("发送错误消息失败", ex);
+                OpenAiChatModel chatModel;
+                try {
+                    // 查询模型配置
+                    chatModel = llmModelService.getChatModel(null);
+                } catch (Exception ex) {
+                     try {
+                        emitter.send("[ERROR]" + ex.getMessage());
+                    } catch (Exception sendEx) {
+                        log.error("发送错误消息失败", sendEx);
                     }
-                    emitter.completeWithError(new RuntimeException("未找到指定的文本模型，请先在模型管理中配置模型"));
+                    emitter.completeWithError(ex);
                     return;
                 }
 
-                OpenAiApi openAiApi = OpenAiApi.builder()
-                        .apiKey(model.getApiKey())
-                        .baseUrl(model.getApiEndpoint())
-                        .build();
-                OpenAiChatOptions options = OpenAiChatOptions.builder()
-                        .model(model.getName())
-                        .build();
-                OpenAiChatModel chatModel = OpenAiChatModel.builder()
-                        .openAiApi(openAiApi)
-                        .defaultOptions(options)
-                        .build();
                 ChatClient chat = ChatClient.builder(chatModel).build();
 
                 // 使用流式 API 调用大模型，实时推送内容到前端

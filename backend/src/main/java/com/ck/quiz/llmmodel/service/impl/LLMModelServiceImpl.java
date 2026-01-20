@@ -9,14 +9,25 @@ import com.ck.quiz.llmmodel.entity.LLMModel;
 import com.ck.quiz.llmmodel.repository.LLMModelRepository;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.utils.JdbcQueryHelper;
+
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMModelUpdateDto, LLMModelQueryDto, LLMModelDto, LLMModel, LLMModelRepository> implements LLMModelService {
+public class LLMModelServiceImpl extends
+        BaseServiceImpl<LLMModelCreateDto, LLMModelUpdateDto, LLMModelQueryDto, LLMModelDto, LLMModel, LLMModelRepository>
+        implements LLMModelService {
+
+    @Autowired
+    private LLMModelRepository llmModelRepository;
 
     @Override
     protected LLMModelDto newDto() {
@@ -35,8 +46,7 @@ public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMM
                         "m.api_key, m.api_endpoint, m.context_window, m.input_price_per1k, m.output_price_per1k, " +
                         "m.is_default, m.create_date, m.create_user, m.update_date, m.update_user, m.config, " +
                         "u.user_name AS create_user_name " +
-                        "FROM llm_model m LEFT JOIN users u ON u.user_id = m.create_user "
-        );
+                        "FROM llm_model m LEFT JOIN users u ON u.user_id = m.create_user ");
 
         StringBuilder countSql = new StringBuilder("SELECT COUNT(1) FROM llm_model m ");
 
@@ -46,11 +56,13 @@ public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMM
         java.util.Map<String, Object> params = new java.util.HashMap<>();
 
         if (queryDto.getKeyWord() != null && !queryDto.getKeyWord().isEmpty()) {
-            JdbcQueryHelper.lowerLike("nameKey", queryDto.getKeyWord(), " AND LOWER(m.name) LIKE :nameKey ", params, namedParameterJdbcTemplate, sql, countSql);
+            JdbcQueryHelper.lowerLike("nameKey", queryDto.getKeyWord(), " AND LOWER(m.name) LIKE :nameKey ", params,
+                    namedParameterJdbcTemplate, sql, countSql);
         }
 
         if (queryDto.getProvider() != null && !queryDto.getProvider().isEmpty()) {
-            JdbcQueryHelper.equals("provider", queryDto.getProvider(), " AND m.provider = :provider ", params, sql, countSql);
+            JdbcQueryHelper.equals("provider", queryDto.getProvider(), " AND m.provider = :provider ", params, sql,
+                    countSql);
         }
 
         if (queryDto.getType() != null) {
@@ -58,12 +70,14 @@ public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMM
         }
 
         if (queryDto.getIsDefault() != null && !queryDto.getIsDefault().isEmpty()) {
-            JdbcQueryHelper.equals("isDefault", queryDto.getIsDefault(), " AND m.is_default = :isDefault ", params, sql, countSql);
+            JdbcQueryHelper.equals("isDefault", queryDto.getIsDefault(), " AND m.is_default = :isDefault ", params, sql,
+                    countSql);
         }
 
         JdbcQueryHelper.order("create_date", "desc", sql);
 
-        String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
+        String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(),
+                queryDto.getPageSize());
 
         List<LLMModelDto> list = namedParameterJdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
             LLMModelDto dto = new LLMModelDto();
@@ -75,19 +89,24 @@ public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMM
             dto.setApiKey(rs.getString("api_key"));
             dto.setApiEndpoint(rs.getString("api_endpoint"));
             dto.setContextWindow(rs.getObject("context_window") != null ? rs.getInt("context_window") : null);
-            dto.setInputPricePer1k(rs.getObject("input_price_per1k") != null ? rs.getDouble("input_price_per1k") : null);
-            dto.setOutputPricePer1k(rs.getObject("output_price_per1k") != null ? rs.getDouble("output_price_per1k") : null);
+            dto.setInputPricePer1k(
+                    rs.getObject("input_price_per1k") != null ? rs.getDouble("input_price_per1k") : null);
+            dto.setOutputPricePer1k(
+                    rs.getObject("output_price_per1k") != null ? rs.getDouble("output_price_per1k") : null);
             dto.setIsDefault(rs.getString("is_default"));
             dto.setConfig(rs.getString("config"));
-            dto.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
+            dto.setCreateDate(
+                    rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             dto.setCreateUser(rs.getString("create_user"));
             dto.setCreateUserName(rs.getString("create_user_name"));
-            dto.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
+            dto.setUpdateDate(
+                    rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;
         });
 
-        return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
+        return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list,
+                queryDto.getPageNum(), queryDto.getPageSize());
     }
 
     @Override
@@ -114,6 +133,34 @@ public class LLMModelServiceImpl extends BaseServiceImpl<LLMModelCreateDto, LLMM
                 model.setIsDefault("0");
                 repository.save(model);
             }
+        }
+    }
+
+    @Override
+    public OpenAiChatModel getChatModel(String modelName) {
+        LLMModel model = resolveModel(modelName);
+        if (model == null) {
+            throw new RuntimeException("未找到指定的模型，请先在模型管理中配置模型");
+        }
+        OpenAiApi openAiApi = OpenAiApi.builder()
+                .apiKey(model.getApiKey())
+                .baseUrl(model.getApiEndpoint())
+                .build();
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(model.getName())
+                .build();
+        OpenAiChatModel chatModel = OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
+        return chatModel;
+    }
+
+    private LLMModel resolveModel(String modelName) {
+        if (StringUtils.hasText(modelName)) {
+            return llmModelRepository.findByName(modelName).orElse(null);
+        } else {
+            return llmModelRepository.findByTypeAndIsDefault(LLMModel.ModelType.TEXT, "1").orElse(null);
         }
     }
 }
