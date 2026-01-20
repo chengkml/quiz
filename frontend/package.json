@@ -38,9 +38,11 @@
     "qs": "^6.14.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-markdown": "^8.0.7",
     "react-redux": "^9.2.0",
     "react-router-dom": "^6.10.0",
     "react-sortable-hoc": "^2.0.0",
+    "remark-gfm": "^3.0.1",
     "sockjs-client": "1.5.2",
     "underscore": "^1.13.7"
   },

@@ -2,6 +2,7 @@ package com.ck.quiz.chat.llm;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 @Service
 public class SpringAiChatClientFacade {
@@ -14,6 +15,10 @@ public class SpringAiChatClientFacade {
 
     public String chat(String content) {
         return chatClient.prompt().user(content).call().content();
+    }
+
+    public Flux<String> stream(String content) {
+        return chatClient.prompt().user(content).stream().content();
     }
 }
 

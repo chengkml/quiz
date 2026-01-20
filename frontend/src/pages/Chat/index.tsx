@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Avatar,
   Button,
-  Card,
   Empty,
   Input,
   Layout,
-  List,
   Message,
+  Select,
   Space,
   Spin,
   Typography,
@@ -15,16 +15,23 @@ import {
   IconPlus,
   IconRefresh,
   IconSend,
+  IconUser,
+  IconRobot,
 } from '@arco-design/web-react/icon';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import './style.css';
 import {
   getChatMessages,
   getChatSessions,
   sendChatCompletion,
+  fetchStream,
+  getLLMModelsByType,
 } from './api';
 
 const { Sider, Content } = Layout;
 const { TextArea } = Input;
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 interface ChatSession {
   sessionId: string;
@@ -40,6 +47,12 @@ interface ChatMessage {
   createdAt?: string;
 }
 
+interface LLMModel {
+  id: string;
+  name: string;
+  isDefault: string;
+}
+
 const ChatPage: React.FC = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
@@ -51,8 +64,21 @@ const ChatPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
 
+  const [models, setModels] = useState<LLMModel[]>([]);
+  const [currentModel, setCurrentModel] = useState<string>('');
+
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const loadSessions = async (page = 0) => {
     setSessionsLoading(true);
@@ -93,17 +119,38 @@ const ChatPage: React.FC = () => {
 
   useEffect(() => {
     loadSessions(0);
+    loadModels();
   }, []);
+
+  const loadModels = async () => {
+    try {
+      const res = await getLLMModelsByType('TEXT');
+      if (res.data) {
+        setModels(res.data);
+        const defaultModel = res.data.find((m: any) => m.isDefault === '1');
+        if (defaultModel) setCurrentModel(defaultModel.name);
+        else if (res.data.length > 0) setCurrentModel(res.data[0].name);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const handleSelectSession = (session: ChatSession) => {
     setCurrentSessionId(session.sessionId);
     loadMessages(session.sessionId);
+    if (session.modelName) {
+      setCurrentModel(session.modelName);
+    }
   };
 
   const handleNewSession = () => {
     setCurrentSessionId(null);
     setMessages([]);
     setInputValue('');
+    const defaultModel = models.find((m) => m.isDefault === '1');
+    if (defaultModel) setCurrentModel(defaultModel.name);
+    else if (models.length > 0) setCurrentModel(models[0].name);
   };
 
   const handleSend = async () => {
@@ -113,28 +160,84 @@ const ChatPage: React.FC = () => {
       return;
     }
     setSending(true);
+
+    // 乐观更新：先显示用户的消息
+    const tempUserMsgId = Date.now().toString();
+    const tempUserMsg: ChatMessage = {
+      id: tempUserMsgId,
+      role: 'USER',
+      content: content,
+      createdAt: new Date().toLocaleString(),
+    };
+
+    // 预先创建一个空的 Assistant 消息用于流式显示
+    const tempAssistantMsgId = (Date.now() + 1).toString();
+    const tempAssistantMsg: ChatMessage = {
+      id: tempAssistantMsgId,
+      role: 'ASSISTANT',
+      content: '',
+      createdAt: new Date().toLocaleString(), // 初始时间
+    };
+
+    setMessages((prev) => [...prev, tempUserMsg, tempAssistantMsg]);
+    setInputValue('');
+
     try {
-      const payload = {
-        sessionId: currentSessionId || undefined,
-        message: {
-          role: 'USER',
-          content,
+        const payload = {
+          sessionId: currentSessionId || undefined,
+          message: {
+            role: 'USER',
+            content,
+          },
+          config: {
+            modelName: currentModel,
+          },
+        };
+
+        // 使用 ref 来追踪当前的 sessionId，避免闭包问题
+      // 但这里我们简单处理，因为流过程中 sessionId 应该是一致的（由后端返回）
+
+      await fetchStream(
+        '/chat/stream',
+        payload,
+        (delta, response) => {
+          // 如果是新会话，后端会在响应中返回 sessionId
+          if (response.sessionId) {
+             // 这里不能直接依赖 currentSessionId 闭包变量判断，因为它是旧的
+             // 但我们可以直接 set，因为如果是同一个 id也没关系
+             setCurrentSessionId(response.sessionId);
+          }
+
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            const targetMsgIndex = newMessages.findIndex(
+              (m) => m.id === tempAssistantMsgId
+            );
+            if (targetMsgIndex !== -1) {
+              const targetMsg = newMessages[targetMsgIndex];
+              newMessages[targetMsgIndex] = {
+                ...targetMsg,
+                content: targetMsg.content + delta,
+                // 可以更新 id 为真实 id，但这需要后端返回 messageId，目前 delta 里有
+                id: response.messages?.[0]?.id || targetMsg.id, 
+              };
+            }
+            return newMessages;
+          });
         },
-        config: undefined,
-      };
-      const response = await sendChatCompletion(payload);
-      const data = response.data;
-      if (data) {
-        setCurrentSessionId(data.sessionId);
-        if (Array.isArray(data.messages)) {
-          setMessages(data.messages);
+        () => {
+          setSending(false);
+          loadSessions(sessionsPage);
+        },
+        (err) => {
+          console.error(err);
+          Message.error('发送消息失败');
+          setSending(false);
+          // 可以考虑移除临时的错误消息或标记为错误
         }
-        setInputValue('');
-        loadSessions(sessionsPage);
-      }
+      );
     } catch (error) {
       Message.error('发送消息失败');
-    } finally {
       setSending(false);
     }
   };
@@ -151,36 +254,25 @@ const ChatPage: React.FC = () => {
   const renderMessageItem = (item: ChatMessage) => {
     const isUser = item.role?.toUpperCase() === 'USER';
     return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: isUser ? 'flex-end' : 'flex-start',
-          marginBottom: 12,
-        }}
-      >
-        <div
+      <div key={item.id} className={`message-item ${isUser ? 'user' : 'assistant'}`}>
+        <Avatar
+          className="message-avatar"
           style={{
-            maxWidth: '70%',
-            padding: '8px 12px',
-            borderRadius: 8,
-            backgroundColor: isUser ? 'var(--color-primary-light-1)' : '#f5f5f5',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
+            backgroundColor: isUser ? 'rgb(var(--primary-6))' : '#00d0b6',
           }}
         >
-          <Text
-            type="secondary"
-            style={{
-              fontSize: 12,
-              display: 'block',
-              marginBottom: 4,
-              textAlign: isUser ? 'right' : 'left',
-            }}
-          >
-            {isUser ? '我' : '助手'}
-            {item.createdAt ? ` · ${item.createdAt}` : ''}
-          </Text>
-          <Text>{item.content}</Text>
+          {isUser ? <IconUser /> : <IconRobot />}
+        </Avatar>
+        <div className="message-content-wrapper">
+          <div className="message-info">
+            <span>{isUser ? '我' : 'AI 助手'}</span>
+            {item.createdAt && <span>{item.createdAt}</span>}
+          </div>
+          <div className="message-bubble">
+            <div className="markdown-body">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content}</ReactMarkdown>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -191,22 +283,9 @@ const ChatPage: React.FC = () => {
     (currentSessionId ? currentSessionId : '新会话');
 
   return (
-    <Layout style={{ height: '100%', minHeight: 0 }}>
-      <Sider
-        width={260}
-        style={{
-          background: '#fff',
-          borderRight: '1px solid var(--color-border-2)',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div
-          style={{
-            padding: 16,
-            borderBottom: '1px solid var(--color-border-2)',
-          }}
-        >
+    <Layout className="chat-layout">
+      <Sider width={280} className="chat-sidebar">
+        <div className="sidebar-header">
           <Space>
             <Button
               type="primary"
@@ -221,144 +300,101 @@ const ChatPage: React.FC = () => {
             />
           </Space>
         </div>
-        <div
-          style={{
-            flex: 1,
-            overflow: 'auto',
-          }}
-        >
-          <Spin loading={sessionsLoading}>
+        <div className="session-list-container">
+          <Spin loading={sessionsLoading} style={{ display: 'block', minHeight: 100 }}>
             {sessions.length === 0 ? (
               <Empty
                 style={{ marginTop: 80 }}
-                description="暂无会话，先发一条消息试试"
+                description="暂无会话"
               />
             ) : (
-              <List
-                size="small"
-                border={false}
-                dataSource={sessions}
-                render={(item) => (
-                  <List.Item
-                    key={item.sessionId}
-                    onClick={() => handleSelectSession(item)}
-                    style={{
-                      cursor: 'pointer',
-                      padding: '8px 16px',
-                      backgroundColor:
-                        item.sessionId === currentSessionId
-                          ? 'var(--color-fill-2)'
-                          : undefined,
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          fontWeight: 500,
-                          marginBottom: 4,
-                          maxWidth: 200,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {item.title || item.sessionId}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: 'var(--color-text-3)',
-                        }}
-                      >
-                        {item.updatedAt || '-'}
-                      </div>
-                    </div>
-                  </List.Item>
-                )}
-              />
+              sessions.map((item) => (
+                <div
+                  key={item.sessionId}
+                  className={`session-item ${
+                    item.sessionId === currentSessionId ? 'active' : ''
+                  }`}
+                  onClick={() => handleSelectSession(item)}
+                >
+                  <div className="session-title">
+                    {item.title || item.sessionId}
+                  </div>
+                  <div className="session-time">{item.updatedAt || '-'}</div>
+                </div>
+              ))
             )}
           </Spin>
         </div>
         {sessionsTotal > sessionsPageSize && (
-          <div
-            style={{
-              padding: 12,
-              borderTop: '1px solid var(--color-border-2)',
-              fontSize: 12,
-              color: 'var(--color-text-3)',
-              textAlign: 'center',
-            }}
-          >
+          <div className="session-footer">
             共 {sessionsTotal} 条会话
           </div>
         )}
       </Sider>
       <Layout>
-        <Content
-          style={{
-            padding: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-          }}
-        >
-          <Card
-            title={currentSessionTitle}
-            bordered={false}
-            style={{
-              marginBottom: 12,
-              flex: 1,
-              minHeight: 0,
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                paddingRight: 8,
-              }}
-            >
-              <Spin loading={messagesLoading}>
-                {messages.length === 0 ? (
-                  <Empty description="暂无消息，输入内容开始对话" />
-                ) : (
-                  messages.map((m) => (
-                    <React.Fragment key={m.id}>
-                      {renderMessageItem(m)}
-                    </React.Fragment>
-                  ))
-                )}
-              </Spin>
+        <Content className="chat-main-content">
+          <div className="chat-header">
+            <Title heading={6} style={{ margin: 0, fontSize: 16 }}>
+              {currentSessionTitle}
+            </Title>
+          </div>
+          
+          <div className="chat-messages-container">
+            <Spin loading={messagesLoading} style={{ display: 'block', minHeight: 100 }}>
+              {messages.length === 0 ? (
+                <Empty description="暂无消息，输入内容开始对话" style={{ marginTop: 100 }} />
+              ) : (
+                messages.map((m) => renderMessageItem(m))
+              )}
+              <div ref={messagesEndRef} />
+            </Spin>
+          </div>
+
+          <div className="input-area-wrapper">
+            <div className="input-card">
+              <div style={{ marginBottom: 8 }}>
+                <Select
+                  bordered={false}
+                  triggerProps={{
+                    autoAlignPopupWidth: false,
+                    autoAlignPopupMinWidth: true,
+                    position: 'tl',
+                  }}
+                  style={{ width: 'auto', minWidth: 120, paddingLeft: 0 }}
+                  placeholder="请选择模型"
+                  value={currentModel}
+                  onChange={(value) => setCurrentModel(value)}
+                >
+                  {models.map((option) => (
+                    <Select.Option key={option.id} value={option.name}>
+                      {option.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </div>
+              <TextArea
+                className="custom-textarea"
+                placeholder="请输入要发送的内容..."
+                autoSize={{ minRows: 1, maxRows: 6 }}
+                value={inputValue}
+                onChange={setInputValue}
+                onKeyDown={handleInputKeyDown}
+                disabled={sending}
+              />
+              <div className="input-actions">
+                <span className="input-tip">Enter 发送，Shift + Enter 换行</span>
+                <Button
+                  type="primary"
+                  icon={<IconSend />}
+                  onClick={handleSend}
+                  loading={sending}
+                  size="small"
+                >
+                  发送
+                </Button>
+              </div>
             </div>
-          </Card>
-          <Card bordered={false}>
-            <TextArea
-              placeholder="请输入要发送的内容，Enter 发送，Shift+Enter 换行"
-              autoSize={{ minRows: 3, maxRows: 6 }}
-              value={inputValue}
-              onChange={setInputValue}
-              onKeyDown={handleInputKeyDown}
-              disabled={sending}
-            />
-            <div
-              style={{
-                marginTop: 8,
-                display: 'flex',
-                justifyContent: 'flex-end',
-              }}
-            >
-              <Button
-                type="primary"
-                icon={<IconSend />}
-                onClick={handleSend}
-                loading={sending}
-              >
-                发送
-              </Button>
-            </div>
-          </Card>
+          </div>
         </Content>
       </Layout>
     </Layout>

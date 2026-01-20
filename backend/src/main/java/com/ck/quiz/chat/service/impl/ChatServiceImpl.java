@@ -24,6 +24,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import reactor.core.publisher.Flux;
+
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -96,6 +98,74 @@ public class ChatServiceImpl implements ChatService {
         response.setMessages(trimmed.stream().map(this::toMessageDto).collect(Collectors.toList()));
         response.setUsage(null);
         return response;
+    }
+
+    @Override
+    public Flux<ChatCompletionResponse> streamChat(String userId, ChatCompletionRequest request) {
+        if (request == null || request.getMessage() == null || !StringUtils.hasText(request.getMessage().getContent())) {
+            throw new IllegalArgumentException("message content cannot be empty");
+        }
+
+        ChatSession session = resolveSession(userId, request);
+        List<ChatMessage> history = chatMessageRepository.findBySessionIdOrderByCreateDateAsc(session.getId());
+        ChatMessagePayload payload = request.getMessage();
+
+        ChatMessage userMessage = new ChatMessage();
+        userMessage.setId(IdHelper.genUuid());
+        userMessage.setSessionId(session.getId());
+        userMessage.setRole("USER");
+        userMessage.setContent(payload.getContent());
+        userMessage.setSeq(history.isEmpty() ? 1 : history.get(history.size() - 1).getSeq() + 1);
+        userMessage.setErrorFlag(Boolean.FALSE);
+        chatMessageRepository.save(userMessage);
+
+        history.add(userMessage);
+        String combinedPrompt = buildCombinedPrompt(history);
+
+        String assistantMessageId = IdHelper.genUuid();
+        int assistantSeq = userMessage.getSeq() + 1;
+
+        StringBuilder contentBuilder = new StringBuilder();
+
+        return chatClientFacade.stream(combinedPrompt)
+                .map(content -> {
+                    contentBuilder.append(content);
+                    ChatCompletionResponse response = new ChatCompletionResponse();
+                    response.setSessionId(session.getSessionUuid());
+                    ChatMessageDto msgDto = new ChatMessageDto();
+                    msgDto.setId(assistantMessageId);
+                    msgDto.setRole("ASSISTANT");
+                    msgDto.setContent(content);
+                    response.setMessages(Collections.singletonList(msgDto));
+                    return response;
+                })
+                .doOnComplete(() -> {
+                    String fullContent = contentBuilder.toString();
+                    ChatMessage assistantMessage = new ChatMessage();
+                    assistantMessage.setId(assistantMessageId);
+                    assistantMessage.setSessionId(session.getId());
+                    assistantMessage.setRole("ASSISTANT");
+                    assistantMessage.setContent(fullContent);
+                    assistantMessage.setSeq(assistantSeq);
+                    assistantMessage.setErrorFlag(Boolean.FALSE);
+                    chatMessageRepository.save(assistantMessage);
+
+                    session.setTitle(resolveSessionTitle(session.getTitle(), userMessage.getContent()));
+                    session.setStatus("ACTIVE");
+                    ChatConfig config = request.getConfig();
+                    if (config != null) {
+                        if (StringUtils.hasText(config.getModelName())) {
+                            session.setModelName(config.getModelName());
+                        }
+                        if (config.getTemperature() != null) {
+                            session.setTemperature(config.getTemperature());
+                        }
+                        if (config.getMaxTokens() != null) {
+                            session.setMaxTokens(config.getMaxTokens());
+                        }
+                    }
+                    chatSessionRepository.save(session);
+                });
     }
 
     @Override

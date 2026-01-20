@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -33,6 +34,15 @@ public class ChatController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userId = authentication != null ? authentication.getName() : null;
         return ResponseEntity.ok(chatService.chat(userId, request));
+    }
+
+    @PostMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "发送消息并获取流式回复")
+    public Flux<ChatCompletionResponse> streamCompletions(
+            @Valid @RequestBody ChatCompletionRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userId = authentication != null ? authentication.getName() : null;
+        return chatService.streamChat(userId, request);
     }
 
     @GetMapping("/sessions")

@@ -5,12 +5,15 @@ import com.ck.quiz.chat.dto.ChatCompletionResponse;
 import com.ck.quiz.chat.dto.ChatMessageDto;
 import com.ck.quiz.chat.dto.ChatSessionDto;
 import org.springframework.data.domain.Page;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
 public interface ChatService {
 
     ChatCompletionResponse chat(String userId, ChatCompletionRequest request);
+
+    Flux<ChatCompletionResponse> streamChat(String userId, ChatCompletionRequest request);
 
     Page<ChatSessionDto> listSessions(String userId, int page, int size);
 
