@@ -17,7 +17,7 @@ type ViewType = 'month' | 'week' | 'year';
 interface ScheduleItem {
     id: string;
     title: string;
-    description: string;
+    descr: string;
     startTime: string;
     endTime: string;
     allDay?: boolean;
@@ -47,7 +47,7 @@ const statusBadgeColorMap: Record<string, 'blue' | 'green' | 'red'> = {
 const toScheduleItem = (event: any): ScheduleItem => ({
     id: event.id,
     title: event.title,
-    description: event.description,
+    descr: event.descr,
     startTime: event.startTime,
     endTime: event.endTime,
     allDay: event.allDay,
@@ -120,7 +120,7 @@ function ScheduleManager() {
                 {
                     id: '1',
                     title: '项目会议',
-                    description: '每周项目进度讨论',
+                    descr: '每周项目进度讨论',
                     startTime: dayjs(currentDate).format('YYYY-MM-DD') + 'T10:00:00',
                     endTime: dayjs(currentDate).format('YYYY-MM-DD') + 'T11:30:00',
                     status: 'COMPLETED',
@@ -129,7 +129,7 @@ function ScheduleManager() {
                 {
                     id: '2',
                     title: '团队建设',
-                    description: '团队活动日',
+                    descr: '团队活动日',
                     startTime: dayjs(currentDate).add(2, 'day').format('YYYY-MM-DD') + 'T14:00:00',
                     endTime: dayjs(currentDate).add(2, 'day').format('YYYY-MM-DD') + 'T17:00:00',
                     status: 'SCHEDULED',
@@ -219,7 +219,7 @@ function ScheduleManager() {
             setTimeout(() => {
                 formRef.current?.setFieldsValue?.({
                     title: schedule.title,
-                    description: schedule.description,
+                    descr: schedule.descr,
                     startTime: dayjs(schedule.startTime),
                     endTime: dayjs(schedule.endTime),
                     status: schedule.status,
@@ -365,8 +365,8 @@ function ScheduleManager() {
         if (eventData.title) {
             formData.title = eventData.title;
         }
-        if (eventData.description) {
-            formData.description = eventData.description;
+        if (eventData.descr) {
+            formData.descr = eventData.descr;
         }
         if (eventData.startTime) {
             formData.startTime = dayjs(eventData.startTime);
@@ -412,7 +412,7 @@ function ScheduleManager() {
             if (values) {
                 const payload = {
                     title: values.title,
-                    description: values.description,
+                    descr: values.descr,
                     status: values.status,
                     startTime: dayjs(values.startTime).format('YYYY-MM-DDTHH:mm:ss'),
                     endTime: dayjs(values.endTime).format('YYYY-MM-DDTHH:mm:ss'),
@@ -677,7 +677,7 @@ function ScheduleManager() {
                                             e.stopPropagation();
                                             openModal(schedule);
                                         }}
-                                        title={`${schedule.title}\n${schedule.description || ''}\n${dayjs(schedule.startTime).format('HH:mm')}-${dayjs(schedule.endTime).format('HH:mm')}`}
+                                        title={`${schedule.title}\n${schedule.descr || ''}\n${dayjs(schedule.startTime).format('HH:mm')}-${dayjs(schedule.endTime).format('HH:mm')}`}
                                     >
                                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px'}}>
                                             <span style={{fontWeight: 600, fontSize: '13px'}}>{schedule.title}</span>
@@ -705,7 +705,7 @@ function ScheduleManager() {
                                                 </Button>
                                             )}
                                         </div>
-                                        {schedule.description && (
+                                        {schedule.descr && (
                                             <div style={{
                                                 fontSize: '12px',
                                                 opacity: 0.75,
@@ -714,7 +714,7 @@ function ScheduleManager() {
                                                 textOverflow: 'ellipsis',
                                                 whiteSpace: 'nowrap'
                                             }}>
-                                                {schedule.description}
+                                                {schedule.descr}
                                             </div>
                                         )}
                                         {schedule.completedAt && (
@@ -989,10 +989,10 @@ function ScheduleManager() {
                                         {generatedEventData.allDay ? <Tag color="blue" size="small">全天</Tag> : null}
                                     </div>
                                 </div>
-                                {generatedEventData.description && (
+                                {generatedEventData.descr && (
                                     <div style={{marginBottom: '8px'}}>
                                         <div style={{fontWeight: 600}}>描述</div>
-                                        <div style={{whiteSpace: 'pre-wrap'}}>{generatedEventData.description}</div>
+                                        <div style={{whiteSpace: 'pre-wrap'}}>{generatedEventData.descr}</div>
                                     </div>
                                 )}
                                 <Space>
@@ -1048,7 +1048,7 @@ function ScheduleManager() {
                     </Form.Item>
                     <Form.Item
                         label="描述"
-                        field="description"
+                        field="descr"
                     >
                         <Input.TextArea placeholder="请输入日程描述" rows={3}/>
                     </Form.Item>
@@ -1104,7 +1104,7 @@ function ScheduleManager() {
                 <div style={{marginBottom: '16px'}}>
                     <div style={{fontWeight: 600, marginBottom: '8px'}}>日程: {completingSchedule?.title}</div>
                     <div style={{fontSize: '14px', color: 'var(--color-text-3)'}}>
-                        {completingSchedule?.description}
+                        {completingSchedule?.descr}
                     </div>
                 </div>
                 <div style={{fontSize: '14px', color: 'var(--color-text-3)'}}>

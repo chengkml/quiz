@@ -13,7 +13,7 @@ public class CalendarEventUpdateDto extends UpdateDto {
 
     private String title;
 
-    private String description;
+    private String descr;
 
     private CalendarEvent.Status status;
 

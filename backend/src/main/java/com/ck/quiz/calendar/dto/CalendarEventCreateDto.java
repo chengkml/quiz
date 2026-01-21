@@ -17,7 +17,7 @@ public class CalendarEventCreateDto extends CreateDto {
     @NotBlank(message = "标题不能为空")
     private String title;
 
-    private String description;
+    private String descr;
 
     private CalendarEvent.Status status = CalendarEvent.Status.SCHEDULED;
 
