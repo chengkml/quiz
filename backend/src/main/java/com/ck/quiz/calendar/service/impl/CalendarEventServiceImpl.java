@@ -1,5 +1,6 @@
 package com.ck.quiz.calendar.service.impl;
 
+import com.ck.quiz.base.service.impl.BaseServiceImpl;
 import com.ck.quiz.calendar.dto.CalendarEventCreateDto;
 import com.ck.quiz.calendar.dto.CalendarEventDto;
 import com.ck.quiz.calendar.dto.CalendarEventQueryDto;
@@ -10,22 +11,21 @@ import com.ck.quiz.calendar.service.CalendarEventService;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
 import com.ck.quiz.prompt.service.PromptTemplateService;
-import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.LocalDateTime;
@@ -34,19 +34,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * 日程管理服务实现类
- */
+@Slf4j
 @Service
-public class CalendarEventServiceImpl implements CalendarEventService {
-
-    private static final Logger log = LoggerFactory.getLogger(CalendarEventServiceImpl.class);
+@Transactional
+public class CalendarEventServiceImpl
+        extends BaseServiceImpl<CalendarEventCreateDto, CalendarEventUpdateDto, CalendarEventQueryDto, CalendarEventDto, CalendarEvent, CalendarEventRepository>
+        implements CalendarEventService {
 
     @Autowired
     private CalendarEventRepository calendarEventRepository;
-
-    @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
     private PromptTemplateService promptTemplateService;
@@ -55,116 +51,22 @@ public class CalendarEventServiceImpl implements CalendarEventService {
     private LLMModelService llmModelService;
 
     @Override
-    @Transactional
-    public CalendarEventDto createEvent(CalendarEventCreateDto createDto) {
-        validateTimeRange(createDto.getStartTime(), createDto.getEndTime());
-        CalendarEvent event = new CalendarEvent();
-        event.setId(IdHelper.genUuid());
-        event.setTitle(createDto.getTitle());
-        event.setDescription(createDto.getDescription());
-        event.setStatus(createDto.getStatus() != null ? createDto.getStatus() : CalendarEvent.Status.SCHEDULED);
-        event.setStartTime(createDto.getStartTime());
-        event.setEndTime(createDto.getEndTime());
-        event.setAllDay(createDto.getAllDay() != null ? createDto.getAllDay() : Boolean.FALSE);
-        CalendarEvent saved = calendarEventRepository.save(event);
-        return convertToDto(saved);
-    }
-
-    @Override
-    @Transactional
-    public CalendarEventDto updateEvent(CalendarEventUpdateDto updateDto) {
-        Optional<CalendarEvent> optionalEvent = calendarEventRepository.findById(updateDto.getId());
-        if (optionalEvent.isEmpty()) {
-            throw new RuntimeException("事件不存在，ID: " + updateDto.getId());
-        }
-        CalendarEvent event = optionalEvent.get();
-
-        if (StringUtils.hasText(updateDto.getTitle())) {
-            event.setTitle(updateDto.getTitle());
-        }
-        if (updateDto.getDescription() != null) {
-            event.setDescription(updateDto.getDescription());
-        }
-        if (updateDto.getStatus() != null) {
-            event.setStatus(updateDto.getStatus());
-        }
-        if (updateDto.getStartTime() != null) {
-            event.setStartTime(updateDto.getStartTime());
-        }
-        if (updateDto.getEndTime() != null) {
-            event.setEndTime(updateDto.getEndTime());
-        }
-        if (updateDto.getAllDay() != null) {
-            event.setAllDay(updateDto.getAllDay());
-        }
-        if (updateDto.getCompletedAt() != null) {
-            event.setCompletedAt(updateDto.getCompletedAt());
-        }
-
-        validateTimeRange(event.getStartTime(), event.getEndTime());
-
-        CalendarEvent saved = calendarEventRepository.save(event);
-        return convertToDto(saved);
-    }
-
-    @Override
-    @Transactional
-    public CalendarEventDto deleteEvent(String eventId) {
-        Optional<CalendarEvent> optionalEvent = calendarEventRepository.findById(eventId);
-        if (optionalEvent.isEmpty()) {
-            throw new RuntimeException("事件不存在，ID: " + eventId);
-        }
-        CalendarEvent event = optionalEvent.get();
-        calendarEventRepository.delete(event);
-        return convertToDto(event);
-    }
-
-    @Override
-    @Transactional
-    public CalendarEventDto completeEvent(String eventId, LocalDateTime completedAt) {
-        Optional<CalendarEvent> optionalEvent = calendarEventRepository.findById(eventId);
-        if (optionalEvent.isEmpty()) {
-            throw new RuntimeException("事件不存在，ID: " + eventId);
-        }
-        CalendarEvent event = optionalEvent.get();
-        event.setStatus(CalendarEvent.Status.COMPLETED);
-        event.setCompletedAt(completedAt != null ? completedAt : LocalDateTime.now());
-        CalendarEvent saved = calendarEventRepository.save(event);
-        return convertToDto(saved);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public CalendarEventDto getEventById(String eventId) {
-        Optional<CalendarEvent> optionalEvent = calendarEventRepository.findById(eventId);
-        if (optionalEvent.isEmpty()) {
-            throw new RuntimeException("事件不存在，ID: " + eventId);
-        }
-        return convertToDto(optionalEvent.get());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<CalendarEventDto> searchEvents(CalendarEventQueryDto queryDto) {
+    public Page<CalendarEventDto> search(String userId, CalendarEventQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
-                "SELECT e.event_id AS id, e.title, e.description, e.status, e.start_time, e.end_time, e.all_day, " +
-                        "e.create_date, e.create_user, e.update_date, e.update_user, e.completed_at, u.user_name create_user_name " +
-                        "FROM calendar_event e LEFT JOIN users u ON u.user_id = e.create_user "
-        );
+                "SELECT e.* FROM calendar_event e WHERE 1=1 ");
 
         StringBuilder countSql = new StringBuilder(
-                "SELECT COUNT(1) FROM calendar_event e "
-        );
-
-        sql.append(" WHERE 1=1 ");
-        countSql.append(" WHERE 1=1 ");
+                "SELECT COUNT(1) FROM calendar_event e WHERE 1=1 ");
 
         Map<String, Object> params = new HashMap<>();
 
-        JdbcQueryHelper.lowerLike("titleKey", queryDto.getTitle(), " AND LOWER(e.title) LIKE :titleKey ", params, jdbcTemplate, sql, countSql);
+        // 动态条件
+        JdbcQueryHelper.lowerLike("titleKey", queryDto.getTitle(), " AND LOWER(e.title) LIKE :titleKey ", params,
+                namedParameterJdbcTemplate, sql, countSql);
 
         if (queryDto.getStatus() != null) {
-            JdbcQueryHelper.equals("status", queryDto.getStatus().name(), " AND e.status = :status ", params, sql, countSql);
+            JdbcQueryHelper.equals("status", queryDto.getStatus().name(), " AND e.status = :status ", params, sql,
+                    countSql);
         }
 
         if (queryDto.getStartTimeFrom() != null) {
@@ -181,45 +83,61 @@ public class CalendarEventServiceImpl implements CalendarEventService {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
-            JdbcQueryHelper.equals("createUser", authentication.getName(), " AND e.create_user = :createUser ", params, sql, countSql);
+            JdbcQueryHelper.equals("createUser", authentication.getName(), " AND e.create_user = :createUser ", params,
+                    sql, countSql);
         }
 
-        JdbcQueryHelper.order(queryDto.getSortColumn(), queryDto.getSortType(), sql);
+        // 排序
+        JdbcQueryHelper.order("create_date", "desc", sql);
 
-        String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
+        // 分页
+        String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(),
+                queryDto.getPageSize());
 
-        List<CalendarEventDto> list = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
-            CalendarEventDto dto = new CalendarEventDto();
-            dto.setId(rs.getString("id"));
-            dto.setTitle(rs.getString("title"));
-            dto.setDescription(rs.getString("description"));
-            dto.setStatus(rs.getString("status") != null ? CalendarEvent.Status.valueOf(rs.getString("status")) : null);
-            dto.setStartTime(rs.getTimestamp("start_time") != null ? rs.getTimestamp("start_time").toLocalDateTime() : null);
-            dto.setEndTime(rs.getTimestamp("end_time") != null ? rs.getTimestamp("end_time").toLocalDateTime() : null);
-            dto.setAllDay(rs.getObject("all_day") != null ? rs.getBoolean("all_day") : null);
-            dto.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
-            dto.setCreateUser(rs.getString("create_user"));
-            dto.setCreateUserName(rs.getString("create_user_name"));
-            dto.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
-            dto.setUpdateUser(rs.getString("update_user"));
-            dto.setCompletedAt(rs.getTimestamp("completed_at") != null ? rs.getTimestamp("completed_at").toLocalDateTime() : null);
-            return dto;
+        List<CalendarEventDto> list = namedParameterJdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
+            CalendarEvent event = new CalendarEvent();
+            event.setId(rs.getString("id"));
+            event.setTitle(rs.getString("title"));
+            event.setDescr(rs.getString("descr"));
+            event.setStatus(rs.getString("status") != null ? CalendarEvent.Status.valueOf(rs.getString("status")) : null);
+            event.setStartTime(rs.getTimestamp("start_time") != null ? rs.getTimestamp("start_time").toLocalDateTime() : null);
+            event.setEndTime(rs.getTimestamp("end_time") != null ? rs.getTimestamp("end_time").toLocalDateTime() : null);
+            event.setAllDay(rs.getObject("all_day") != null ? rs.getBoolean("all_day") : null);
+            event.setCompletedAt(rs.getTimestamp("completed_at") != null ? rs.getTimestamp("completed_at").toLocalDateTime() : null);
+            event.setCreateDate(
+                    rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
+            event.setCreateUser(rs.getString("create_user"));
+            event.setUpdateDate(
+                    rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
+            event.setUpdateUser(rs.getString("update_user"));
+            return convertToDto(event, true);
         });
 
-        return JdbcQueryHelper.toPage(jdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
+        return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list,
+                queryDto.getPageNum(), queryDto.getPageSize());
     }
 
     @Override
-    public CalendarEventDto convertToDto(CalendarEvent calendarEvent) {
-        CalendarEventDto dto = new CalendarEventDto();
-        BeanUtils.copyProperties(calendarEvent, dto);
-        return dto;
+    protected CalendarEventDto newDto() {
+        return new CalendarEventDto();
     }
 
-    private void validateTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
-        if (startTime != null && endTime != null && endTime.isBefore(startTime)) {
-            throw new RuntimeException("结束时间不能早于开始时间");
+    @Override
+    protected CalendarEvent newModel() {
+        return new CalendarEvent();
+    }
+
+    @Override
+    public CalendarEventDto complete(String userId, String eventId) {
+        Optional<CalendarEvent> optionalEvent = calendarEventRepository.findById(eventId);
+        if (optionalEvent.isEmpty()) {
+            throw new RuntimeException("事件不存在，ID: " + eventId);
         }
+        CalendarEvent event = optionalEvent.get();
+        event.setStatus(CalendarEvent.Status.COMPLETED);
+        event.setCompletedAt(LocalDateTime.now());
+        CalendarEvent saved = calendarEventRepository.save(event);
+        return convertToDto(saved, true);
     }
 
     private String buildEventPrompt(String eventDescription) {

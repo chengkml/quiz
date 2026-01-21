@@ -13,7 +13,7 @@ public class QueryDto {
     private Integer pageNum = 0;
 
     @Min(value = 1, message = "每页数量不能小于1")
-    @Max(value = 100, message = "每页数量不能大于100")
+    @Max(value = 1000, message = "每页数量不能大于1000")
     private Integer pageSize = 20;
 
 }

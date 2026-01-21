@@ -68,12 +68,10 @@ function ScheduleManager() {
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
   const [completeModalVisible, setCompleteModalVisible] = useState(false);
   const [completingSchedule, setCompletingSchedule] = useState<ScheduleItem | null>(null);
-  const [customCompletedTime, setCustomCompletedTime] = useState(false);
     const [showEditForm, setShowEditForm] = useState(false);
 
     // 表单引用
     const formRef = React.useRef<any>(null);
-    const completeFormRef = React.useRef<any>(null);
 
     // AI 生成相关状态
     const [showGeneratePanel, setShowGeneratePanel] = useState(false);
@@ -441,34 +439,21 @@ function ScheduleManager() {
     // 打开完成日程对话框
     const openCompleteModal = (schedule: ScheduleItem) => {
         setCompletingSchedule(schedule);
-        setCustomCompletedTime(false);
         setCompleteModalVisible(true);
-        setTimeout(() => {
-            completeFormRef.current?.setFieldsValue?.({
-                completedAt: dayjs(),
-            });
-        }, 50);
     };
 
     // 完成日程
     const handleComplete = async () => {
         try {
-            const values = await completeFormRef.current?.validate?.();
-            if (values && completingSchedule) {
-                const payload: any = {
-                    id: completingSchedule.id,
-                };
-                if (customCompletedTime) {
-                    payload.completedAt = dayjs(values.completedAt).format('YYYY-MM-DDTHH:mm:ss');
-                }
-                await completeSchedule(payload);
+            if (completingSchedule) {
+                // 后端已修改为不再接收completedAt参数，完成时间由后端自动设置为当前时间
+                await completeSchedule(completingSchedule.id);
                 Message.success('日程已完成');
                 setCompleteModalVisible(false);
                 loadSchedules();
             }
         } catch (error) {
             console.error('完成日程出错:', error);
-            if ((error as any)?.fields) return;
             Message.error('操作失败');
         }
     };
@@ -1122,26 +1107,9 @@ function ScheduleManager() {
                         {completingSchedule?.description}
                     </div>
                 </div>
-                <Form ref={completeFormRef} layout="vertical">
-                    <Form.Item label="指定完成时间" style={{marginBottom: '12px'}}>
-                        <Switch 
-                            checked={customCompletedTime}
-                            onChange={setCustomCompletedTime}
-                        />
-                        <div style={{fontSize: '12px', color: 'var(--color-text-3)', marginTop: '4px'}}>
-                            {customCompletedTime ? '可以指定完成时间' : '将使用当前时间作为完成时间'}
-                        </div>
-                    </Form.Item>
-                    {customCompletedTime && (
-                        <Form.Item
-                            label="完成时间"
-                            field="completedAt"
-                            rules={[{required: true, message: '请选择完成时间'}]}
-                        >
-                            <DatePicker showTime placeholder="请选择完成时间" style={{width: '100%'}} />
-                        </Form.Item>
-                    )}
-                </Form>
+                <div style={{fontSize: '14px', color: 'var(--color-text-3)'}}>
+                    确认要将此日程标记为已完成吗？完成时间将自动设置为当前时间。
+                </div>
             </Modal>
         </div>
     );
