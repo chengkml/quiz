@@ -25,12 +25,10 @@ public class MindMap extends Model {
     @Column(name = "map_name", length = 255, nullable = false)
     private String mapName;
 
-    @Lob
     @Comment("导图描述")
     @Column(name = "descr", columnDefinition = "TEXT")
     private String descr;
 
-    @Lob
     @Comment("导图数据")
     @Column(name = "map_data", columnDefinition = "TEXT")
     private String mapData;

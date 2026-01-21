@@ -36,7 +36,6 @@ public class PendingJobLog {
     @Comment("实现类")
     private String taskClass;
 
-    @Lob
     @Column(name = "task_params", columnDefinition = "TEXT")
     @Comment("任务参数")
     private String taskParams;

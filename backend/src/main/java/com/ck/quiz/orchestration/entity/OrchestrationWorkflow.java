@@ -35,7 +35,6 @@ public class OrchestrationWorkflow extends Model {
     @Column(name = "name", length = 255, nullable = false)
     private String name;
 
-    @Lob
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 

@@ -28,11 +28,9 @@ public class OrchestrationWorkflowVersion extends Model {
     @Column(name = "version_number", nullable = false)
     private Integer versionNumber;
 
-    @Lob
     @Column(name = "definition_graph", columnDefinition = "TEXT")
     private String definitionGraph;
 
-    @Lob
     @Column(name = "remark", columnDefinition = "TEXT")
     private String remark;
 }

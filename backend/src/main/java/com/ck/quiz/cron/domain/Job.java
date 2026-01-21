@@ -40,7 +40,6 @@ public class Job {
     @Comment("队列")
     private String queueName;
 
-    @Lob
     @Column(name = "task_params", columnDefinition = "TEXT")
     @Comment("任务参数")
     private String taskParams;
@@ -69,7 +68,6 @@ public class Job {
     @Comment("日志文件路径")
     private String logPath;
 
-    @Lob
     @Column(name = "error_message", columnDefinition = "TEXT")
     @Comment("错误信息")
     private String errorMessage;

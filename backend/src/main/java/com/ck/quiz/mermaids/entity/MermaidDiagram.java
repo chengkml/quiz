@@ -35,14 +35,12 @@ public class MermaidDiagram {
     /**
      * 描述说明
      */
-    @Lob
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     /**
      * Mermaid 源码文本 (flowchart / sequence / class diagram 等完整内容)
      */
-    @Lob
     @Column(name = "diagram_data", columnDefinition = "TEXT")
     private String diagramData;
 

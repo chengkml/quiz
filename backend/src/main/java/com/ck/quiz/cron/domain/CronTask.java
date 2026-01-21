@@ -48,7 +48,6 @@ public class CronTask {
     @Comment("实现类")
     private String taskClass;
 
-    @Lob
     @Column(name = "fire_params", columnDefinition = "TEXT")
     @Comment("触发参数")
     private String fireParams;

@@ -24,7 +24,6 @@ public class ExamResultAnswer {
     @JoinColumn(name = "rela_id", nullable = false)
     private ExamQuestion examQuestion;
 
-    @Lob
     @Column(name = "user_answer", columnDefinition = "TEXT")
     private String userAnswer;
 

@@ -34,7 +34,6 @@ public class CalendarEvent {
     private String title;
 
     @Comment("描述")
-    @Lob
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 

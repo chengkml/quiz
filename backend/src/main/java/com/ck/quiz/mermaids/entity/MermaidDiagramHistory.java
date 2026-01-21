@@ -41,7 +41,6 @@ public class MermaidDiagramHistory {
     /**
      * Mermaid 源码文本
      */
-    @Lob
     @Column(name = "diagram_data", columnDefinition = "TEXT")
     private String diagramData;
 

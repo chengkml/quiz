@@ -43,7 +43,6 @@ public class Datasource {
     /**
      * JDBC 连接字符串
      */
-    @Lob
     @Column(name = "jdbc_url", nullable = false)
     private String jdbcUrl;
 

@@ -40,7 +40,6 @@ public class OrchestrationInstance extends Model {
     @Column(name = "trigger_type", length = 32, nullable = false)
     private TriggerType triggerType;
 
-    @Lob
     @Column(name = "trigger_params", columnDefinition = "TEXT")
     private String triggerParams;
 
@@ -50,7 +49,6 @@ public class OrchestrationInstance extends Model {
     @Column(name = "end_time")
     private LocalDateTime endTime;
 
-    @Lob
     @Column(name = "error_summary", columnDefinition = "TEXT")
     private String errorSummary;
 
