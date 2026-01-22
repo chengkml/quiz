@@ -18,6 +18,7 @@ import KnowledgeManagement from "@/pages/Knowledge";
 import UserManagement from "@/pages/User";
 import TodoManagement from "@/pages/Todo";
 import DocManagement from "@/pages/DocMgr";
+import FileManager from "@/pages/FileManager";
 import ScheduleManagement from "@/pages/Schedule";
 import ScriptManagement from "@/pages/Script";
 import JobQueueManagement from "@/pages/JobQueue";
@@ -49,6 +50,8 @@ import SystemMessagePage from "@/pages/SystemMessage";
 import SystemParamManagement from "@/pages/SystemParam";
 import McpServerManager from "@/pages/McpServer";
 import McpToolManager from "@/pages/McpTool";
+import KnowledgeSetManager from "@/pages/KnowledgeSet";
+import KnowledgeSourceManager from "@/pages/KnowledgeSource";
 import SimpleExample from "@/components/DataManager/docs/EXAMPLE";
 import AdvancedExample from "@/components/DataManager/docs/ADVANCED_EXAMPLE";
 import OrchestrationManager from "@/pages/Orchestration";
@@ -194,6 +197,7 @@ const protectedPages = [
   { path: "exam", element: <ExamManagement />, requiredPath: "exam" },
   { path: "todo", element: <TodoManagement />, requiredPath: "todo" },
   { path: "doc", element: <DocManagement />, requiredPath: "doc" },
+  { path: "file-manager", element: <FileManager />, requiredPath: "file-manager" },
   {
     path: "schedule",
     element: <ScheduleManagement />,
@@ -246,6 +250,11 @@ const protectedPages = [
     path: "systemparam",
     element: <SystemParamManagement />,
     requiredPath: "systemparam",
+  },
+  {
+    path: "knowledge-set",
+    element: <KnowledgeSetManager />,
+    requiredPath: "knowledge-set",
   },
   {
     path: "mcp-server",
@@ -344,6 +353,7 @@ export const router = createBrowserRouter(
         { path: "mindmap/edit/:id", element: <MindMapEditPage /> },
         { path: "mermaid-mgr/:id", element: <MermaidFromMgr /> },
         { path: "orchestration/edit/:id", element: <CanvasEditor /> },
+        { path: "knowledge-set/:id/sources", element: <KnowledgeSourceManager /> },
         // 非菜单页：文档详情页和功能点页
         { path: "funcDoc/detail/:id", element: <FuncDocDetail /> },
         { path: "funcDoc/features/:id", element: <FuncDocFeatures /> },

@@ -10,6 +10,7 @@ import com.ck.quiz.llmmodel.entity.LLMModel;
 import java.util.List;
 
 import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiEmbeddingModel;
 
 public interface LLMModelService extends BaseService<LLMModelCreateDto, LLMModelUpdateDto, LLMModelQueryDto, LLMModelDto, LLMModel> {
 
@@ -18,4 +19,6 @@ public interface LLMModelService extends BaseService<LLMModelCreateDto, LLMModel
     void setDefaultModel(String modelId);
 
     OpenAiChatModel getChatModel(String modelName);
+
+    OpenAiEmbeddingModel getEmbeddingModel(String modelName);
 }

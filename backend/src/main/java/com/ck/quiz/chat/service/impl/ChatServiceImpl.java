@@ -2,22 +2,23 @@ package com.ck.quiz.chat.service.impl;
 
 import com.ck.quiz.chat.dto.ChatCompletionRequest;
 import com.ck.quiz.chat.dto.ChatCompletionResponse;
-import com.ck.quiz.chat.dto.ChatConfig;
 import com.ck.quiz.chat.dto.ChatMessageDto;
 import com.ck.quiz.chat.dto.ChatMessagePayload;
 import com.ck.quiz.chat.dto.ChatSessionDto;
-import com.ck.quiz.chat.dto.ChatUsageDto;
 import com.ck.quiz.chat.entity.ChatMessage;
 import com.ck.quiz.chat.entity.ChatSession;
-
 import com.ck.quiz.chat.repository.ChatMessageRepository;
 import com.ck.quiz.chat.repository.ChatSessionRepository;
 import com.ck.quiz.chat.service.ChatService;
+import com.ck.quiz.knowledgeset.dto.VectorSearchFilter;
+import com.ck.quiz.knowledgeset.dto.VectorSearchResultDto;
+import com.ck.quiz.knowledgeset.service.VectorService;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.utils.IdHelper;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -26,7 +27,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
 import reactor.core.publisher.Flux;
 
 import java.time.format.DateTimeFormatter;
@@ -44,6 +44,7 @@ public class ChatServiceImpl implements ChatService {
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final LLMModelService llmModelService;
+    private final VectorService vectorService;
 
     @Value("${chat.max-history-messages:20}")
     private int maxHistoryMessages;
@@ -58,37 +59,30 @@ public class ChatServiceImpl implements ChatService {
         ChatSession session = resolveSession(userId, request);
         List<ChatMessage> history = chatMessageRepository.findBySessionIdOrderByCreateDateAsc(session.getId());
         ChatMessagePayload payload = request.getMessage();
-        ChatMessage userMessage = new ChatMessage();
-        userMessage.setId(IdHelper.genUuid());
-        userMessage.setSessionId(session.getId());
-        userMessage.setRole("USER");
-        userMessage.setContent(payload.getContent());
-        userMessage.setSeq(history.isEmpty() ? 1 : history.get(history.size() - 1).getSeq() + 1);
-        userMessage.setErrorFlag(Boolean.FALSE);
-        chatMessageRepository.save(userMessage);
+        
+        // Save User Message
+        ChatMessage userMessage = saveUserMessage(session.getId(), payload.getContent(), history);
         history.add(userMessage);
-        String combinedPrompt = buildCombinedPrompt(history);
+
+        // Retrieve Context (RAG)
+        String context = retrieveContext(payload.getContent(), request.getKnowledgeSetId(), session.getModelName());
+
+        // Build Prompt
+        Prompt prompt = buildPrompt(history, context);
+        
+        // Call LLM
         OpenAiChatModel chatModel = llmModelService.getChatModel(session.getModelName());
         ChatClient client = ChatClient.builder(chatModel).build();
-        String answer = client.prompt().user(combinedPrompt).call().content();
-        ChatMessage assistantMessage = new ChatMessage();
-        assistantMessage.setId(IdHelper.genUuid());
-        assistantMessage.setSessionId(session.getId());
-        assistantMessage.setRole("ASSISTANT");
-        assistantMessage.setContent(answer);
-        assistantMessage.setSeq(userMessage.getSeq() + 1);
-        assistantMessage.setErrorFlag(Boolean.FALSE);
-        chatMessageRepository.save(assistantMessage);
-        session.setTitle(resolveSessionTitle(session.getTitle(), userMessage.getContent()));
-        session.setStatus("ACTIVE");
-        chatSessionRepository.save(session);
-        List<ChatMessage> latestMessages = chatMessageRepository.findBySessionIdOrderByCreateDateAsc(session.getId());
-        List<ChatMessage> trimmed = trimHistory(latestMessages, maxHistoryMessages);
-        ChatCompletionResponse response = new ChatCompletionResponse();
-        response.setSessionId(session.getSessionUuid());
-        response.setMessages(trimmed.stream().map(this::toMessageDto).collect(Collectors.toList()));
-        response.setUsage(null);
-        return response;
+        String answer = client.prompt(prompt).call().content();
+        
+        // Save Assistant Message
+        saveAssistantMessage(session, answer, userMessage.getSeq() + 1);
+
+        // Update Session
+        updateSession(session, userMessage.getContent());
+
+        // Return Response
+        return buildResponse(session);
     }
 
     @Override
@@ -101,26 +95,24 @@ public class ChatServiceImpl implements ChatService {
         List<ChatMessage> history = chatMessageRepository.findBySessionIdOrderByCreateDateAsc(session.getId());
         ChatMessagePayload payload = request.getMessage();
 
-        ChatMessage userMessage = new ChatMessage();
-        userMessage.setId(IdHelper.genUuid());
-        userMessage.setSessionId(session.getId());
-        userMessage.setRole("USER");
-        userMessage.setContent(payload.getContent());
-        userMessage.setSeq(history.isEmpty() ? 1 : history.get(history.size() - 1).getSeq() + 1);
-        userMessage.setErrorFlag(Boolean.FALSE);
-        chatMessageRepository.save(userMessage);
-
+        // Save User Message
+        ChatMessage userMessage = saveUserMessage(session.getId(), payload.getContent(), history);
         history.add(userMessage);
-        String combinedPrompt = buildCombinedPrompt(history);
+
+        // Retrieve Context (RAG)
+        String context = retrieveContext(payload.getContent(), request.getKnowledgeSetId(), session.getModelName());
+
+        // Build Prompt
+        Prompt prompt = buildPrompt(history, context);
 
         String assistantMessageId = IdHelper.genUuid();
         int assistantSeq = userMessage.getSeq() + 1;
-
         StringBuilder contentBuilder = new StringBuilder();
 
         OpenAiChatModel chatModel = llmModelService.getChatModel(session.getModelName());
         ChatClient client = ChatClient.builder(chatModel).build();
-        return client.prompt().user(combinedPrompt).stream().content()
+        
+        return client.prompt(prompt).stream().content()
                 .map(content -> {
                     contentBuilder.append(content);
                     ChatCompletionResponse response = new ChatCompletionResponse();
@@ -134,19 +126,100 @@ public class ChatServiceImpl implements ChatService {
                 })
                 .doOnComplete(() -> {
                     String fullContent = contentBuilder.toString();
-                    ChatMessage assistantMessage = new ChatMessage();
-                    assistantMessage.setId(assistantMessageId);
-                    assistantMessage.setSessionId(session.getId());
-                    assistantMessage.setRole("ASSISTANT");
-                    assistantMessage.setContent(fullContent);
-                    assistantMessage.setSeq(assistantSeq);
-                    assistantMessage.setErrorFlag(Boolean.FALSE);
-                    chatMessageRepository.save(assistantMessage);
-
-                    session.setTitle(resolveSessionTitle(session.getTitle(), userMessage.getContent()));
-                    session.setStatus("ACTIVE");
-                    chatSessionRepository.save(session);
+                    saveAssistantMessageWithId(session, fullContent, assistantSeq, assistantMessageId);
+                    updateSession(session, userMessage.getContent());
                 });
+    }
+
+    private ChatMessage saveUserMessage(String sessionId, String content, List<ChatMessage> history) {
+        ChatMessage userMessage = new ChatMessage();
+        userMessage.setId(IdHelper.genUuid());
+        userMessage.setSessionId(sessionId);
+        userMessage.setRole("USER");
+        userMessage.setContent(content);
+        userMessage.setSeq(history.isEmpty() ? 1 : history.get(history.size() - 1).getSeq() + 1);
+        userMessage.setErrorFlag(Boolean.FALSE);
+        return chatMessageRepository.save(userMessage);
+    }
+
+    private void saveAssistantMessage(ChatSession session, String content, int seq) {
+        saveAssistantMessageWithId(session, content, seq, IdHelper.genUuid());
+    }
+
+    private void saveAssistantMessageWithId(ChatSession session, String content, int seq, String id) {
+        ChatMessage assistantMessage = new ChatMessage();
+        assistantMessage.setId(id);
+        assistantMessage.setSessionId(session.getId());
+        assistantMessage.setRole("ASSISTANT");
+        assistantMessage.setContent(content);
+        assistantMessage.setSeq(seq);
+        assistantMessage.setErrorFlag(Boolean.FALSE);
+        chatMessageRepository.save(assistantMessage);
+    }
+
+    private void updateSession(ChatSession session, String userContent) {
+        session.setTitle(resolveSessionTitle(session.getTitle(), userContent));
+        session.setStatus("ACTIVE");
+        chatSessionRepository.save(session);
+    }
+
+    private ChatCompletionResponse buildResponse(ChatSession session) {
+        List<ChatMessage> latestMessages = chatMessageRepository.findBySessionIdOrderByCreateDateAsc(session.getId());
+        List<ChatMessage> trimmed = trimHistory(latestMessages, maxHistoryMessages);
+        ChatCompletionResponse response = new ChatCompletionResponse();
+        response.setSessionId(session.getSessionUuid());
+        response.setMessages(trimmed.stream().map(this::toMessageDto).collect(Collectors.toList()));
+        response.setUsage(null);
+        return response;
+    }
+
+
+
+    private String retrieveContext(String query, String knowledgeSetId, String modelName) {
+        if (!StringUtils.hasText(knowledgeSetId)) {
+            return "";
+        }
+        
+        VectorSearchFilter filter = VectorSearchFilter.builder()
+                .knowledgeSetId(knowledgeSetId)
+                .build();
+                
+        List<VectorSearchResultDto> results = vectorService.search(query, 3, null, filter);
+        
+        if (results == null || results.isEmpty()) {
+            return "";
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < results.size(); i++) {
+            VectorSearchResultDto result = results.get(i);
+            sb.append(i + 1).append(". ").append(result.getChunk().getContent()).append("\n");
+        }
+        return sb.toString();
+    }
+
+    private Prompt buildPrompt(List<ChatMessage> history, String ragContext) {
+        List<ChatMessage> trimmed = trimHistory(history, maxHistoryMessages);
+        List<org.springframework.ai.chat.messages.Message> messages = new ArrayList<>();
+
+        // System Prompt
+        String systemText = "You are a helpful assistant.";
+        if (StringUtils.hasText(ragContext)) {
+            systemText += "\n\nPlease answer the user's question based on the following context:\n" + ragContext + 
+                          "\n\nIf the context does not contain the answer, please answer based on your own knowledge.";
+        }
+        messages.add(new org.springframework.ai.chat.messages.SystemMessage(systemText));
+
+        // History Messages
+        for (ChatMessage message : trimmed) {
+            String role = message.getRole();
+            if ("ASSISTANT".equalsIgnoreCase(role)) {
+                messages.add(new org.springframework.ai.chat.messages.AssistantMessage(message.getContent()));
+            } else if ("USER".equalsIgnoreCase(role)) {
+                messages.add(new UserMessage(message.getContent()));
+            }
+        }
+        return new Prompt(messages);
     }
 
     @Override
@@ -189,24 +262,8 @@ public class ChatServiceImpl implements ChatService {
         session.setTemperature(request.getConfig() != null ? request.getConfig().getTemperature() : null);
         session.setMaxTokens(request.getConfig() != null ? request.getConfig().getMaxTokens() : null);
         session.setStatus("ACTIVE");
+        session.setCreateUser(userId); // Ensure user is set
         return chatSessionRepository.save(session);
-    }
-
-    private String buildCombinedPrompt(List<ChatMessage> history) {
-        List<ChatMessage> trimmed = trimHistory(history, maxHistoryMessages);
-        StringBuilder sb = new StringBuilder();
-        for (ChatMessage message : trimmed) {
-            String role = message.getRole();
-            if ("ASSISTANT".equalsIgnoreCase(role)) {
-                sb.append("Assistant: ");
-            } else if ("SYSTEM".equalsIgnoreCase(role)) {
-                sb.append("System: ");
-            } else {
-                sb.append("User: ");
-            }
-            sb.append(message.getContent()).append("\n");
-        }
-        return sb.toString();
     }
 
     private List<ChatMessage> trimHistory(List<ChatMessage> history, int maxSize) {
@@ -259,4 +316,3 @@ public class ChatServiceImpl implements ChatService {
         return trimmed;
     }
 }
-

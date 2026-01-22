@@ -12,13 +12,13 @@ module.exports = merge(common, {
     proxy: {
       // 1. 处理 API 请求
       '/api': {
-        target: 'http://localhost:8089/quiz', // 建议不要在 target 末尾加斜杠
+        target: 'https://www.quizck.cn', // 建议不要在 target 末尾加斜杠
         changeOrigin: true,
         secure: false,
       },
       // 2. 处理 WebSocket 请求
       '/quiz-ws': {
-        target: 'http://localhost:8089/quiz',
+        target: 'https://www.quizck.cn',
         ws: true,
         changeOrigin: true,
         pathRewrite: { '^/quiz-ws': '/quiz-ws' },

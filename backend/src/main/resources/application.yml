@@ -35,3 +35,23 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   config: classpath:logback-spring.xml
+
+quiz:
+  file:
+    storage-type: local # local, sftp, s3
+    local:
+      base-path: ./data/files
+    sftp:
+      host: localhost
+      port: 22
+      username: user
+      password: password
+      private-key: 
+      base-path: /upload
+    s3:
+      access-key: minioadmin
+      secret-key: minioadmin
+      region: us-east-1
+      bucket: mybucket
+      endpoint: http://localhost:9000
+      base-path:

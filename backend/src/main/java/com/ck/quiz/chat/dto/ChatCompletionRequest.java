@@ -10,5 +10,7 @@ public class ChatCompletionRequest {
     private ChatMessagePayload message;
 
     private ChatConfig config;
+
+    private String knowledgeSetId; // 可选：指定知识集ID进行RAG检索
 }
 

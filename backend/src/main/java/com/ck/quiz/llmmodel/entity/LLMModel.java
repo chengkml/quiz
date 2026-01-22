@@ -61,6 +61,7 @@ public class LLMModel extends Model {
         TEXT,
         VISION,
         VOICE,
-        IMAGE
+        IMAGE,
+        EMBEDDING
     }
 }

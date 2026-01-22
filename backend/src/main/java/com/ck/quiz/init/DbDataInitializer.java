@@ -87,6 +87,9 @@ public class DbDataInitializer implements CommandLineRunner {
 
         // 初始化邮件配置参数
         initializeMailConfig();
+        
+        // 初始化文件存储配置参数
+        initializeFileConfig();
     }
 
     private void initializeMenu() {
@@ -213,10 +216,23 @@ public class DbDataInitializer implements CommandLineRunner {
      */
     private void initializeMailConfig() {
         log.info("开始检查并初始化邮件配置参数...");
-        List<MailConfigParam> mailParams = getMailConfigParams();
+        List<InitConfigParam> mailParams = getMailConfigParams();
+        initializeParams(mailParams, "邮件配置");
+    }
+
+    /**
+     * 初始化文件存储配置参数
+     */
+    private void initializeFileConfig() {
+        log.info("开始检查并初始化文件存储配置参数...");
+        List<InitConfigParam> fileParams = getFileConfigParams();
+        initializeParams(fileParams, "文件存储配置");
+    }
+
+    private void initializeParams(List<InitConfigParam> params, String configName) {
         int insertedCount = 0;
 
-        for (MailConfigParam param : mailParams) {
+        for (InitConfigParam param : params) {
             try {
                 // 检查参数是否已存在
                 if (systemParamRepository.findByParamName(param.paramName).isEmpty()) {
@@ -235,27 +251,27 @@ public class DbDataInitializer implements CommandLineRunner {
 
                     systemParamService.create(createDto);
                     insertedCount++;
-                    log.info("已初始化邮件配置参数: {} = {}", param.paramName, param.paramValue);
+                    log.info("已初始化{}: {} = {}", configName, param.paramName, param.paramValue);
                 }
             } catch (Exception e) {
-                log.error("初始化邮件配置参数失败: {}", param.paramName, e);
+                log.error("初始化{}失败: {}", configName, param.paramName, e);
             }
         }
 
         if (insertedCount > 0) {
-            log.info("成功初始化 {} 个邮件配置参数", insertedCount);
+            log.info("成功初始化 {} 个{}", insertedCount, configName);
         } else {
-            log.info("邮件配置参数已存在，无需初始化");
+            log.info("{}已存在，无需初始化", configName);
         }
     }
 
     /**
      * 获取邮件配置参数列表
      */
-    private List<MailConfigParam> getMailConfigParams() {
-        List<MailConfigParam> params = new ArrayList<>();
+    private List<InitConfigParam> getMailConfigParams() {
+        List<InitConfigParam> params = new ArrayList<>();
 
-        params.add(new MailConfigParam(
+        params.add(new InitConfigParam(
             "mail.host",
             "smtp.example.com",
             "smtp.example.com",
@@ -266,7 +282,7 @@ public class DbDataInitializer implements CommandLineRunner {
             1
         ));
 
-        params.add(new MailConfigParam(
+        params.add(new InitConfigParam(
             "mail.port",
             "587",
             "587",
@@ -277,7 +293,7 @@ public class DbDataInitializer implements CommandLineRunner {
             2
         ));
 
-        params.add(new MailConfigParam(
+        params.add(new InitConfigParam(
             "mail.username",
             "your-email@example.com",
             "your-email@example.com",
@@ -288,7 +304,7 @@ public class DbDataInitializer implements CommandLineRunner {
             3
         ));
 
-        params.add(new MailConfigParam(
+        params.add(new InitConfigParam(
             "mail.password",
             "your-password",
             "your-password",
@@ -299,7 +315,7 @@ public class DbDataInitializer implements CommandLineRunner {
             4
         ));
 
-        params.add(new MailConfigParam(
+        params.add(new InitConfigParam(
             "mail.encoding",
             "UTF-8",
             "UTF-8",
@@ -310,7 +326,7 @@ public class DbDataInitializer implements CommandLineRunner {
             5
         ));
 
-        params.add(new MailConfigParam(
+        params.add(new InitConfigParam(
             "mail.smtp.auth",
             "true",
             "true",
@@ -321,7 +337,7 @@ public class DbDataInitializer implements CommandLineRunner {
             6
         ));
 
-        params.add(new MailConfigParam(
+        params.add(new InitConfigParam(
             "mail.smtp.starttls.enable",
             "true",
             "true",
@@ -332,7 +348,7 @@ public class DbDataInitializer implements CommandLineRunner {
             7
         ));
 
-        params.add(new MailConfigParam(
+        params.add(new InitConfigParam(
             "mail.smtp.starttls.required",
             "true",
             "true",
@@ -347,9 +363,172 @@ public class DbDataInitializer implements CommandLineRunner {
     }
 
     /**
+     * 获取文件存储配置参数列表
+     */
+    private List<InitConfigParam> getFileConfigParams() {
+        List<InitConfigParam> params = new ArrayList<>();
+
+        params.add(new InitConfigParam(
+            "quiz.file.storage-type",
+            "local",
+            "local",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "文件存储类型 (local, sftp, s3)",
+            false,
+            1
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.local.base-path",
+            "./data/files",
+            "./data/files",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "本地存储基础路径",
+            false,
+            2
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.sftp.host",
+            "localhost",
+            "localhost",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "SFTP服务器地址",
+            false,
+            3
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.sftp.port",
+            "22",
+            "22",
+            SystemParam.ParamType.NUMBER,
+            "文件存储配置",
+            "SFTP服务器端口",
+            false,
+            4
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.sftp.username",
+            "user",
+            "user",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "SFTP用户名",
+            false,
+            5
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.sftp.password",
+            "password",
+            "",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "SFTP密码",
+            true,
+            6
+        ));
+        
+        params.add(new InitConfigParam(
+            "quiz.file.sftp.private-key",
+            "",
+            "",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "SFTP私钥文件路径（可选）",
+            false,
+            7
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.sftp.base-path",
+            "/upload",
+            "/upload",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "SFTP远程基础路径",
+            false,
+            8
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.s3.access-key",
+            "minioadmin",
+            "",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "S3 Access Key",
+            false,
+            9
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.s3.secret-key",
+            "minioadmin",
+            "",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "S3 Secret Key",
+            true,
+            10
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.s3.region",
+            "us-east-1",
+            "us-east-1",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "S3 Region",
+            false,
+            11
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.s3.bucket",
+            "mybucket",
+            "mybucket",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "S3 Bucket Name",
+            false,
+            12
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.s3.endpoint",
+            "http://localhost:9000",
+            "",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "S3 Endpoint URL (Optional)",
+            false,
+            13
+        ));
+
+        params.add(new InitConfigParam(
+            "quiz.file.s3.base-path",
+            "",
+            "",
+            SystemParam.ParamType.STRING,
+            "文件存储配置",
+            "S3存储基础路径 (Optional)",
+            false,
+            14
+        ));
+
+        return params;
+    }
+
+    /**
      * 邮件配置参数内部类
      */
-    private static class MailConfigParam {
+    private static class InitConfigParam {
         String paramName;
         String paramValue;
         String defaultValue;
@@ -359,7 +538,7 @@ public class DbDataInitializer implements CommandLineRunner {
         Boolean isEncrypted;
         Integer sortOrder;
 
-        MailConfigParam(String paramName, String paramValue, String defaultValue,
+        InitConfigParam(String paramName, String paramValue, String defaultValue,
                         SystemParam.ParamType paramType, String category, String description,
                         Boolean isEncrypted, Integer sortOrder) {
             this.paramName = paramName;

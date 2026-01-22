@@ -10,8 +10,11 @@ import com.ck.quiz.llmmodel.repository.LLMModelRepository;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.utils.JdbcQueryHelper;
 
+import org.springframework.ai.document.MetadataMode;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.OpenAiEmbeddingModel;
+import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -154,6 +157,31 @@ public class LLMModelServiceImpl extends
                 .defaultOptions(options)
                 .build();
         return chatModel;
+    }
+
+    @Override
+    public OpenAiEmbeddingModel getEmbeddingModel(String modelName) {
+        LLMModel model;
+        if (StringUtils.hasText(modelName)) {
+            model = llmModelRepository.findByName(modelName).orElse(null);
+        } else {
+            model = llmModelRepository.findByTypeAndIsDefault(LLMModel.ModelType.EMBEDDING, "1").orElse(null);
+        }
+
+        if (model == null) {
+            throw new RuntimeException("未找到指定的嵌入模型，请先在模型管理中配置");
+        }
+
+        OpenAiApi openAiApi = OpenAiApi.builder()
+                .apiKey(model.getApiKey())
+                .baseUrl(model.getApiEndpoint())
+                .build();
+
+        OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder()
+                .model(model.getName())
+                .build();
+
+        return new OpenAiEmbeddingModel(openAiApi, MetadataMode.EMBED, options);
     }
 
     private LLMModel resolveModel(String modelName) {
