@@ -36,4 +36,9 @@ public class KnowledgeCreateDto {
     @Size(max = 32, message = "学科ID长度不能超过32个字符")
     private String subjectId;
 
+    /**
+     * 知识点内容(HTML)
+     */
+    private String content;
+
 }

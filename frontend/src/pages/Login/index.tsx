@@ -44,7 +44,8 @@ class appLogin extends React.Component<LoginProps> {
             isUserPassword: true,
             isUserPasswordMore: true,
             verifyImgSrc: '_api/getPicture.jpeg/',
-            isCodeEqual: false
+            isCodeEqual: false,
+            loading: false
         };
 
 
@@ -158,7 +159,7 @@ class appLogin extends React.Component<LoginProps> {
     submitSuccess = (response) => {
         // 真实接口成功响应处理
         if (response && response.status === 200) {
-            this.rememberClick();
+            this.saveLoginInfo();
 
             // 构建用户信息对象
             const userInfo: LoginUserInfo = {
@@ -191,7 +192,7 @@ class appLogin extends React.Component<LoginProps> {
             const event = new CustomEvent('loginSuccess', { detail: { userInfo } });
             window.dispatchEvent(event);
         } else {
-            this.setState({isUserPassword: false});
+            this.setState({isUserPassword: false, loading: false});
             if (this.loginForm) {
                 this.loginForm.setFieldValue('infoData.userId', '');
                 this.loginForm.setFieldValue('infoData.pwd', '');
@@ -210,7 +211,7 @@ class appLogin extends React.Component<LoginProps> {
             .catch(err => {
                 console.log('登录失败:', err);
                 Message.error('登录失败，请检查用户名和密码');
-                this.setState({isUserPassword: false});
+                this.setState({isUserPassword: false, loading: false});
                 if (this.loginForm) {
                     this.loginForm.setFieldValue('infoData.userId', '');
                     this.loginForm.setFieldValue('infoData.pwd', '');
@@ -221,7 +222,7 @@ class appLogin extends React.Component<LoginProps> {
 
     // 登录
     loginClick = async () => {
-        this.setState({isUserPasswordMore: true, isUserPassword: true});
+        this.setState({isUserPasswordMore: true, isUserPassword: true, loading: true});
         const _self = this;
         if (isverifycode) {
             (async function verifyCode(self) {
@@ -257,6 +258,8 @@ class appLogin extends React.Component<LoginProps> {
                             checkcode: values.infoData.code,
                         };
                         _self.loginSubmit(paras);
+                    } else {
+                        _self.setState({ loading: false });
                     }
                 });
             })(this);
@@ -273,6 +276,8 @@ class appLogin extends React.Component<LoginProps> {
                         callback: 'none',
                     };
                     _self.loginSubmit(paras);
+                } else {
+                    _self.setState({ loading: false });
                 }
             });
         }
@@ -340,11 +345,20 @@ class appLogin extends React.Component<LoginProps> {
     linkClick = (url) => {
         window.open(url, '_blank',)
     }
-    rememberClick = () => {
-        const formLoginData = this.loginForm.getFieldsValue();
-        if (formLoginData.infoData.remember) {
-            localStorage.setItem('loginUserId', formLoginData.infoData.userId);
-            localStorage.setItem('loginPassword', formLoginData.infoData.pwd);
+    handleRememberChange = (checked: boolean) => {
+        this.setState(prevState => ({
+            infoData: {
+                ...prevState.infoData,
+                remember: checked
+            }
+        }));
+    };
+
+    saveLoginInfo = () => {
+        const { infoData } = this.state;
+        if (infoData.remember) {
+            localStorage.setItem('loginUserId', infoData.userId);
+            localStorage.setItem('loginPassword', infoData.pwd);
         } else {
             localStorage.removeItem('loginUserId');
             localStorage.removeItem('loginPassword');
@@ -382,15 +396,26 @@ class appLogin extends React.Component<LoginProps> {
 
     getUserPassword = () => {
         const userId = localStorage.getItem('loginUserId');
-        if (userId && userId.length > 0) {
-            this.setState({infoData: {userId: userId}});
-        }
         const password = localStorage.getItem('loginPassword');
-        if (password && password.length > 0) {
-            this.setState({infoData: {pwd: password}});
-        }
-        if (userId && userId.length > 0 && password && password.length > 0) {
-            this.setState({infoData: {remember: true}});
+        
+        if (userId && password) {
+            const newInfoData = {
+                ...this.state.infoData,
+                userId: userId,
+                pwd: password,
+                remember: true
+            };
+            
+            this.setState({ infoData: newInfoData });
+            
+            // 确保表单也被更新
+            setTimeout(() => {
+                if (this.loginForm) {
+                    this.loginForm.setFieldsValue({
+                        infoData: newInfoData
+                    });
+                }
+            }, 0);
         }
     };
 
@@ -552,7 +577,7 @@ class appLogin extends React.Component<LoginProps> {
                                 )}
                                 <FormItem wrapperCol={{offset: 5}} field="infoData.remember">
                                     <div className='item-remember'>
-                                        <Checkbox checked={infoData.remember} onChange={this.rememberClick}>
+                                        <Checkbox checked={infoData.remember} onChange={this.handleRememberChange}>
                                             记住密码
                                         </Checkbox>
                                     </div>
@@ -566,7 +591,7 @@ class appLogin extends React.Component<LoginProps> {
                                         offset: 5,
                                     }}
                                 >
-                                    <Button htmlType="submit" type="primary" onClick={this.loginClick}>
+                                    <Button htmlType="submit" type="primary" onClick={this.loginClick} loading={this.state.loading}>
                                         登录
                                     </Button>
                                 </FormItem>

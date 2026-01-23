@@ -115,7 +115,7 @@ export interface DataManagerProps<T = any> {
   // 加载状态
   loading?: boolean;
   // 分页配置
-  pagination: PaginationConfig;
+  pagination?: PaginationConfig;
   // 分页变化回调
   onPaginationChange?: (pagination: PaginationConfig) => void;
   // 行为配置
@@ -142,6 +142,15 @@ export interface DataManagerProps<T = any> {
   cardGutter?: number;
   // 卡片尺寸
   cardSize?: 'small' | 'medium' | 'large';
+  // 选项卡配置
+  tabs?: {
+    items: TabConfig[];
+    activeKey?: string;
+    onChange?: (key: string) => void;
+    onClose?: (key: string) => void;
+    defaultTabTitle?: string;
+    hideTabs?: boolean;
+  };
 }
 
 export interface AddEditModalProps {
@@ -161,6 +170,7 @@ export interface TabConfig {
   key: string;
   title: string;
   content: React.ReactNode;
+  closable?: boolean;
 }
 
 export interface DetailModalProps {

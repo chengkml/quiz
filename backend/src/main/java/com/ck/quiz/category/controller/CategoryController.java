@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "分类管理", description = "分类相关的API接口")
+@Tag(name = "目录管理", description = "目录相关的API接口")
 @RestController
 @RequestMapping("/api/category")
 public class CategoryController
@@ -28,17 +28,17 @@ public class CategoryController
     @Autowired
     private CategoryService categoryService;
 
-    @Operation(summary = "检查分类名称", description = "检查分类名称是否已存在")
+    @Operation(summary = "检查目录名称", description = "检查目录名称是否已存在")
     @GetMapping("/check/name")
     public ResponseEntity<Boolean> checkCategoryName(
-            @Parameter(description = "分类名称", required = true) @RequestParam("categoryName") String categoryName,
-            @Parameter(description = "排除的分类ID") @RequestParam(value = "excludeCategoryId", required = false) String excludeCategoryId) {
+            @Parameter(description = "目录名称", required = true) @RequestParam("categoryName") String categoryName,
+            @Parameter(description = "排除的目录ID") @RequestParam(value = "excludeCategoryId", required = false) String excludeCategoryId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return ResponseEntity
                 .ok(categoryService.checkNameUniq(authentication.getName(), categoryName, excludeCategoryId));
     }
 
-    @Operation(summary = "获取学科分类树", description = "获取学科分类树")
+    @Operation(summary = "获取学科目录树", description = "获取学科目录树")
     @GetMapping("/subject-category-tree")
     public ResponseEntity<List<SubjectDto>> getSubjectCategoryTree() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

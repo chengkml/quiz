@@ -11,8 +11,9 @@ interface UserContextType {
   login: (userInfo: LoginUserInfo) => void;
   logout: () => void;
   loading: boolean;
-  menuTree: MenuTreeDto[];
-  setMenuTree: (menuTree: MenuTreeDto[]) => void;
+  menuLoading: boolean;
+  menuTree: MenuTreeDto[] | null;
+  setMenuTree: (menuTree: MenuTreeDto[] | null) => void;
   loadMenuFromServer: () => Promise<void>;
 }
 
@@ -22,7 +23,8 @@ const initialUserState: UserContextType = {
   login: () => {},
   logout: () => {},
   loading: true,
-  menuTree: [],
+  menuLoading: false,
+  menuTree: null,
   setMenuTree: () => {},
   loadMenuFromServer: async () => {}
 };
@@ -37,7 +39,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState<LoginUserInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [menuTree, setMenuTree] = useState<MenuTreeDto[]>([]);
+  const [menuLoading, setMenuLoading] = useState(false);
+  const [menuTree, setMenuTree] = useState<MenuTreeDto[] | null>(null);
 
   // 递归查找第一个可访问的菜单项
   const findFirstAccessibleMenu = (menuList: MenuTreeDto[]): string | null => {
@@ -64,21 +67,38 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         console.warn('No user ID available for loading menu');
         return;
       }
-      
+
+      setMenuLoading(true);
       const response = await menuService.getUserMenuTree(user.userId);
-      if (response) {
-        if (response.length === 0) {
+      
+      let menus: MenuTreeDto[] = [];
+      let success = false;
+
+      // check if response is array (direct list)
+      if (Array.isArray(response)) {
+          menus = response;
+          success = true;
+      } 
+      // check if response is ApiResponse
+      else if (response && (response as any).success) {
+          menus = (response as any).data || [];
+          success = true;
+      }
+
+      if (success) {
+        if (menus.length === 0) {
           console.warn('菜单数据为空，跳转到NotFound页面');
+          // menuLoading will be set to false finally
           navigate('/frame/notfound');
           return;
         }
-        setMenuTree(response);
+        setMenuTree(menus);
         // 保存菜单信息到localStorage，供路由守卫使用
-        localStorage.setItem('menuInfo', JSON.stringify(response));
+        localStorage.setItem('menuInfo', JSON.stringify(menus));
 
         if(location.pathname === '/frame') {
           // 获取菜单数据成功且不为空时，跳转到第一个菜单
-          const firstMenuPath = findFirstAccessibleMenu(response);
+          const firstMenuPath = findFirstAccessibleMenu(menus);
           if (firstMenuPath) {
             console.log('跳转到第一个菜单:', firstMenuPath);
             navigate('/frame/'+firstMenuPath);
@@ -86,10 +106,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             console.warn('未找到可访问的菜单项');
           }
         }
-
       } else {
-        console.error('Failed to load menu from server:', response.message);
-        Message.error('加载菜单失败');
+        const errorMsg = (response as any)?.message || 'Unknown error';
+        console.error('Failed to load menu from server:', errorMsg);
+        Message.error('加载菜单失败: ' + errorMsg);
         setMenuTree([]);
         localStorage.removeItem('menuInfo');
         navigate('/frame/notfound');
@@ -100,6 +120,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       setMenuTree([]);
       localStorage.removeItem('menuInfo');
       navigate('/frame/notfound');
+    } finally {
+      setMenuLoading(false);
     }
   }, [user?.userId, navigate]);
 
@@ -147,6 +169,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     login,
     logout,
     loading,
+    menuLoading,
     menuTree,
     setMenuTree,
     loadMenuFromServer

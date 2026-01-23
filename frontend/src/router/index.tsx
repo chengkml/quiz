@@ -1,6 +1,7 @@
 // 导入必要的模块和组件
 import React from "react";
 import { createBrowserRouter, Navigate, useNavigate } from "react-router-dom";
+import { Spin } from "@arco-design/web-react";
 import Login from "@/pages/Login/LoginWrapper";
 import Layout from "@/components/Layout";
 import RoleManagement from "@/pages/Role";
@@ -28,7 +29,7 @@ import Home from "@/pages/Home";
 import NotFound from "@/pages/NotFound";
 import MindMapPage from "@/pages/MindMap";
 import MindMapEditPage from "@/pages/MindMap/Edit";
-import { UserProvider } from "@/contexts/UserContext";
+import { UserProvider, useUser } from "@/contexts/UserContext";
 import { MenuTreeDto, MenuType } from "@/types/menu";
 import Model from "@/pages/LlmModel";
 import FuncDocManager from "@/pages/FuncDoc";
@@ -129,10 +130,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   return <>{children}</>;
 };
 
-/**
- * 菜单权限路由守卫组件
- * 检查用户是否有访问当前页面的菜单权限
- */
 const MenuPermissionRoute: React.FC<{
   children: React.ReactNode;
   requiredPath: string;
@@ -143,26 +140,43 @@ const MenuPermissionRoute: React.FC<{
     return <Navigate to="/login" replace />;
   }
 
-  // 获取用户菜单信息
-  const menuInfoStr = localStorage.getItem("menuInfo");
-  if (!menuInfoStr) {
-    // 如果没有菜单信息，跳转到NotFound页面
-    return <Navigate to="/frame" replace />;
+  const { menuLoading, menuTree } = useUser();
+
+  // 如果正在加载菜单，或者菜单未初始化，显示加载中
+  if (menuLoading || menuTree === null) {
+    return (
+        <div style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '200px'
+        }}>
+            <Spin dot />
+        </div>
+    );
   }
 
-  try {
-    const menuTree: MenuTreeDto[] = JSON.parse(menuInfoStr);
+  // 如果菜单为空数组（已加载完但无菜单），则认为无权限或获取失败
+  if (menuTree.length === 0) {
+      // 尝试从localStorage兜底读取（以防context未及时更新但storage有值的情况）
+      // 这里主要信赖Context，但保留兼容逻辑
+      const menuInfoStr = localStorage.getItem("menuInfo");
+      if (!menuInfoStr) {
+          return <Navigate to="/frame/notfound" replace />;
+      }
+  }
 
-    // 检查是否有访问权限
-    // if (!hasMenuPermission(requiredPath, menuTree)) {
-    //   return <Navigate to="/frame/notfound" replace />;
-    // }
-
-    return <>{children}</>;
-  } catch (error) {
-    console.error("Failed to parse menu info:", error);
+  // 检查是否有访问权限 (如果有需要，可以取消注释并启用严格权限检查)
+  /*
+  const hasPermission = hasMenuPermission(requiredPath, menuTree);
+  if (!hasPermission) {
     return <Navigate to="/frame/notfound" replace />;
   }
+  */
+
+  return <>{children}</>;
 };
 
 /**

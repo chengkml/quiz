@@ -53,6 +53,13 @@ public class Knowledge {
     @Column(name = "subject_id", length = 32, nullable = false)
     private String subjectId;
 
+    /**
+     * 知识点内容(HTML)
+     */
+    @Lob
+    @Column(name = "content", columnDefinition = "LONGTEXT")
+    private String content;
+
     @Column(name = "create_date", updatable = false)
     private LocalDateTime createDate;
 

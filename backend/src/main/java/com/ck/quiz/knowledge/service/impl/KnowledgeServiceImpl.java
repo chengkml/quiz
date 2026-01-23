@@ -234,6 +234,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         dto.setName(knowledge.getName());
         dto.setCategoryId(knowledge.getCategoryId());
         dto.setSubjectId(knowledge.getSubjectId());
+        dto.setContent(knowledge.getContent());
         dto.setCreateDate(knowledge.getCreateDate());
         dto.setCreateUser(knowledge.getCreateUser());
         dto.setUpdateDate(knowledge.getUpdateDate());

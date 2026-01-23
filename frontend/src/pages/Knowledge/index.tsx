@@ -28,6 +28,7 @@ import {
 import { DataManager } from '../../components/DataManager';
 import { IconDelete, IconEdit, IconList, IconPlus } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
+import { CKEditor } from 'ckeditor4-react';
 
 function KnowledgeManager() {
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
@@ -710,6 +711,26 @@ function KnowledgeManager() {
                                         disabled={!addFormRef.current?.getFieldValue('subjectId')}
                                     />
                                 </Form.Item>
+                                <Form.Item
+                                    label="知识点内容"
+                                    field="content"
+                                    triggerPropName="initData"
+                                    trigger="onChange"
+                                    normalize={(value) => {
+                                        return value?.editor?.getData?.() || value;
+                                    }}
+                                >
+                                    <CKEditor
+                                        editorUrl="https://cdn.ckeditor.com/4.22.1/full/ckeditor.js"
+                                        config={{
+                                            height: 300,
+                                            // 允许源码编辑
+                                            allowedContent: true,
+                                            extraPlugins: 'sourcearea',
+                                            versionCheck: false,
+                                        }}
+                                    />
+                                </Form.Item>
                             </Form>
                         </div>
                     </Modal>
@@ -792,6 +813,39 @@ function KnowledgeManager() {
                 confirmLoading={loading}
             >
                 <p>确定要删除知识点 "{currentRecord?.name}" 吗？此操作不可撤销。</p>
+            </Modal>
+
+            {/* 详情对话框 */}
+            <Modal
+                title="知识点详情"
+                visible={detailModalVisible}
+                onCancel={() => setDetailModalVisible(false)}
+                footer={null}
+                style={{ width: '800px' }}
+            >
+                {detailRecord && (
+                    <div>
+                        <h3>{detailRecord.name}</h3>
+                        <div style={{ marginBottom: 16 }}>
+                            <Space>
+                                <span>学科: {detailRecord.subjectName || '--'}</span>
+                                <span>分类: {detailRecord.categoryName || '--'}</span>
+                                <span>创建时间: {detailRecord.createDate}</span>
+                            </Space>
+                        </div>
+                        <div
+                            className="knowledge-content"
+                            style={{
+                                border: '1px solid #e5e6eb',
+                                padding: '16px',
+                                borderRadius: '4px',
+                                minHeight: '200px',
+                                background: '#f7f8fa'
+                            }}
+                            dangerouslySetInnerHTML={{ __html: detailRecord.content || '暂无内容' }}
+                        />
+                    </div>
+                )}
             </Modal>
         </div>
     );

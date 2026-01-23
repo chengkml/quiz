@@ -46,6 +46,11 @@ public class KnowledgeDto {
     private String subjectName;
 
     /**
+     * 知识点内容(HTML)
+     */
+    private String content;
+
+    /**
      * 知识点创建时间
      */
     private LocalDateTime createDate;
