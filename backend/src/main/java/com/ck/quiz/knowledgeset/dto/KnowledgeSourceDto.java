@@ -14,6 +14,5 @@ public class KnowledgeSourceDto extends Dto {
     private String content;
     private String meta;
     private String descr;
-    private String tags;
     private String language;
 }

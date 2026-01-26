@@ -156,10 +156,10 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
                 <DragHandle />
             </div>
             <div style={{ width: 90, textAlign: 'center' }}>
-                <Tag color="blue">第{item.orderNo}题</Tag>
+                <Tag color="blue" bordered>第{item.orderNo}题</Tag>
             </div>
             <div style={{ width: 120 }}>
-                <Tag color="cyan">
+                <Tag color="cyan" bordered>
                     {item.question?.type === 'SINGLE'
                         ? '单选题'
                         : item.question?.type === 'MULTIPLE'
@@ -177,11 +177,12 @@ const ExamQuestionManager: React.FC<ExamQuestionManagerProps> = ({
                 </Tooltip>
             </div>
             <div style={{ width: 100, textAlign: 'center' }}>
-                <Tag color="green">{item.score}分</Tag>
+                <Tag color="green" bordered>{item.score}分</Tag>
             </div>
             <div style={{ width: 140, textAlign: 'center' }}>
                 <Tag
                     color={item.question?.difficultyLevel <= 2 ? 'green' : item.question?.difficultyLevel <= 4 ? 'orange' : 'red'}
+                    bordered
                 >
                     难度: {item.question?.difficultyLevel}级
                 </Tag>

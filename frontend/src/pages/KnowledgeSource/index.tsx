@@ -72,9 +72,9 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
             dataIndex: 'type',
             width: 100,
             render: (text: string) => {
-                if (text === 'FILE') return <Tag icon={<IconFile />}>文件</Tag>;
-                if (text === 'DB') return <Tag icon={<IconStorage />}>数据库表</Tag>;
-                return <Tag>{text}</Tag>;
+                if (text === 'FILE') return <Tag icon={<IconFile />} bordered>文件</Tag>;
+                if (text === 'DB') return <Tag icon={<IconStorage />} bordered>数据库表</Tag>;
+                return <Tag bordered>{text}</Tag>;
             }
         },
         {
@@ -87,7 +87,7 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
             title: '状态',
             dataIndex: 'status',
             width: 100,
-            render: (text: string) => text === 'ENABLE' ? <Tag color="green">启用</Tag> : <Tag>{text}</Tag>,
+            render: (text: string) => text === 'ENABLE' ? <Tag color="green" bordered>启用</Tag> : <Tag bordered>{text}</Tag>,
         },
         {
             title: '创建人',
@@ -255,7 +255,7 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
                             {item.name}
                         </div>
                         <Space size={4}>
-                            {item.status === 'ENABLE' ? <Tag color="green" size="small">启用</Tag> : <Tag size="small">{item.status}</Tag>}
+                            {item.status === 'ENABLE' ? <Tag color="green" size="small" bordered>启用</Tag> : <Tag size="small" bordered>{item.status}</Tag>}
                         </Space>
                     </div>
                 }
@@ -281,7 +281,7 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
             >
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <div style={{ marginBottom: 12 }}>
-                        {item.type === 'FILE' ? <Tag icon={<IconFile />}>文件</Tag> : (item.type === 'DB' ? <Tag icon={<IconStorage />}>数据库表</Tag> : <Tag>{item.type}</Tag>)}
+                        {item.type === 'FILE' ? <Tag icon={<IconFile />} bordered>文件</Tag> : (item.type === 'DB' ? <Tag icon={<IconStorage />} bordered>数据库表</Tag> : <Tag bordered>{item.type}</Tag>)}
                     </div>
                     <Typography.Paragraph
                         style={{ marginBottom: 12, color: 'var(--color-text-2)', fontSize: 14, minHeight: 42 }}

@@ -684,7 +684,7 @@ function ScheduleManager() {
                                         </div>
                                         <div style={{fontSize: '12px', opacity: 0.85, display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center'}}>
                                             <div style={{display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap'}}>
-                                                <Tag color={statusBadgeColorMap[schedule.status]} size="small" style={{fontSize: '11px'}}>
+                                                <Tag color={statusBadgeColorMap[schedule.status]} size="small" style={{fontSize: '11px'}} bordered>
                                                     {statusLabelMap[schedule.status]}
                                                 </Tag>
                                                 <span>🕐 {dayjs(schedule.startTime).format('HH:mm')} - {dayjs(schedule.endTime).format('HH:mm')}</span>
@@ -780,9 +780,9 @@ function ScheduleManager() {
                     <div className="year-month-stats">
                         {monthScheduleCount > 0 ? (
                             <>
-                                <Tag color="primary">{monthScheduleCount} 个日程</Tag>
+                                <Tag color="primary" bordered>{monthScheduleCount} 个日程</Tag>
                                 {completedCount > 0 && (
-                                    <Tag color="success">已完成 {completedCount} 个</Tag>
+                                    <Tag color="success" bordered>已完成 {completedCount} 个</Tag>
                                 )}
                             </>
                         ) : (
@@ -982,11 +982,11 @@ function ScheduleManager() {
                                 <div style={{marginBottom: '8px'}}>
                                     <div style={{fontWeight: 600}}>状态 / 全天</div>
                                     <div>
-                                        <Tag color={statusBadgeColorMap[generatedEventData.status || 'SCHEDULED']} size="small" style={{fontSize: '11px'}}>
+                                        <Tag color={statusBadgeColorMap[generatedEventData.status || 'SCHEDULED']} size="small" style={{fontSize: '11px'}} bordered>
                                             {statusLabelMap[generatedEventData.status || 'SCHEDULED']}
                                         </Tag>
                                         {' '}
-                                        {generatedEventData.allDay ? <Tag color="blue" size="small">全天</Tag> : null}
+                                        {generatedEventData.allDay ? <Tag color="blue" size="small" bordered>全天</Tag> : null}
                                     </div>
                                 </div>
                                 {generatedEventData.descr && (

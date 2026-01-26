@@ -3,8 +3,10 @@ package com.ck.quiz.knowledgeset.dto;
 import com.ck.quiz.base.dto.QueryDto;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class KnowledgeSetQueryDto extends QueryDto {
 
     @Size(max = 20, message = "状态长度不能超过20个字符")

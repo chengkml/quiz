@@ -75,19 +75,19 @@ function KnowledgeSetManager() {
             title: '标签',
             dataIndex: 'tags',
             width: 150,
-            render: (text: string) => text ? text.split(',').map((tag: string) => <Tag key={tag} style={{marginRight: 4}}>{tag}</Tag>) : '--',
+            render: (text: string) => text ? text.split(',').map((tag: string) => <Tag key={tag} style={{marginRight: 4}} bordered>{tag}</Tag>) : '--',
         },
         {
             title: '可见性',
             dataIndex: 'visibility',
             width: 100,
-            render: (text: string) => text === 'PUBLIC' ? <Tag color="green">公开</Tag> : <Tag color="red">私有</Tag>,
+            render: (text: string) => text === 'PUBLIC' ? <Tag color="green" bordered>公开</Tag> : <Tag color="red" bordered>私有</Tag>,
         },
         {
             title: '状态',
             dataIndex: 'status',
             width: 100,
-            render: (text: string) => text === 'ENABLE' ? <Tag color="green">启用</Tag> : <Tag color="red">禁用</Tag>,
+            render: (text: string) => text === 'ENABLE' ? <Tag color="green" bordered>启用</Tag> : <Tag color="red" bordered>禁用</Tag>,
         },
         {
             title: '创建人',
@@ -254,8 +254,8 @@ function KnowledgeSetManager() {
                             {item.name}
                         </div>
                         <Space size={4}>
-                            {item.visibility === 'PUBLIC' ? <Tag color="green" size="small">公开</Tag> : <Tag color="red" size="small">私有</Tag>}
-                            {item.status === 'ENABLE' ? <Tag color="green" size="small">启用</Tag> : <Tag color="red" size="small">禁用</Tag>}
+                            {item.visibility === 'PUBLIC' ? <Tag color="green" size="small" bordered>公开</Tag> : <Tag color="red" size="small" bordered>私有</Tag>}
+                            {item.status === 'ENABLE' ? <Tag color="green" size="small" bordered>启用</Tag> : <Tag color="red" size="small" bordered>禁用</Tag>}
                         </Space>
                     </div>
                 }
@@ -294,9 +294,9 @@ function KnowledgeSetManager() {
                         {item.tags ? (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                                 {item.tags.split(',').slice(0, 3).map((tag: string) => (
-                                    <Tag key={tag} size="small">{tag}</Tag>
+                                    <Tag key={tag} size="small" bordered>{tag}</Tag>
                                 ))}
-                                {item.tags.split(',').length > 3 && <Tag size="small">...</Tag>}
+                                {item.tags.split(',').length > 3 && <Tag size="small" bordered>...</Tag>}
                             </div>
                         ) : (
                             <span style={{ color: 'var(--color-text-3)', fontSize: 12 }}>无标签</span>

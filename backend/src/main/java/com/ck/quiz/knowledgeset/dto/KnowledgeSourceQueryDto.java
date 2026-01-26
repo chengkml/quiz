@@ -2,8 +2,10 @@ package com.ck.quiz.knowledgeset.dto;
 
 import com.ck.quiz.base.dto.QueryDto;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class KnowledgeSourceQueryDto extends QueryDto {
     private String knowledgeSetId;
     private String name;

@@ -4,10 +4,14 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class QueryDto {
 
     private String keyWord;
+    
+    private List<String> groups;
 
     @Min(value = 0, message = "页码不能小于0")
     private Integer pageNum = 0;

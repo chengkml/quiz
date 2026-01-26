@@ -13,6 +13,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -140,6 +144,117 @@ public class MindMapServiceImpl extends
     @Override
     protected MindMap newModel() {
         return new MindMap();
+    }
+
+    @Autowired
+    private com.ck.quiz.llmmodel.service.LLMModelService llmModelService;
+
+    @Override
+    public SseEmitter streamGenerateMindMap(String descr) {
+        SseEmitter emitter = new SseEmitter(0L);
+        // 在新线程中执行生成并实时流式发送
+        new Thread(() -> {
+            ObjectMapper objectMapper = new ObjectMapper();
+            try {
+                OpenAiChatModel chatModel;
+                try {
+                    // 查询模型配置
+                    chatModel = llmModelService.getChatModel(null);
+                } catch (Exception ex) {
+                    try {
+                        emitter.send("[ERROR]" + ex.getMessage());
+                    } catch (Exception sendEx) {
+                        // ignore
+                    }
+                    emitter.completeWithError(ex);
+                    return;
+                }
+
+                ChatClient chat = ChatClient.builder(chatModel).build();
+
+                // 构造提示词
+                String prompt = buildMindMapPrompt(descr);
+
+                StringBuilder fullContent = new StringBuilder();
+
+                // 使用流式调用
+                chat.prompt()
+                        .user(prompt)
+                        .stream()
+                        .content()
+                        .doOnNext(chunk -> {
+                            try {
+                                emitter.send(chunk);
+                                fullContent.append(chunk);
+                            } catch (Exception e) {
+                                // ignore
+                            }
+                        })
+                        .blockLast();
+
+                String content = fullContent.toString().trim();
+
+                // 尝试提取JSON部分 (兼容可能存在的Markdown代码块包裹)
+                if (content.contains("```json")) {
+                    content = content.substring(content.indexOf("```json") + 7);
+                    if (content.contains("```")) {
+                        content = content.substring(0, content.indexOf("```"));
+                    }
+                } else if (content.contains("```")) {
+                    content = content.substring(content.indexOf("```") + 3);
+                    if (content.contains("```")) {
+                        content = content.substring(0, content.indexOf("```"));
+                    }
+                }
+                content = content.trim();
+
+                // 验证 JSON 格式并压缩
+                Object jsonObject = objectMapper.readValue(content, Object.class);
+                String minifiedJson = objectMapper.writeValueAsString(jsonObject);
+
+                // 发送特定的解析标记和最终数据
+                emitter.send("\n\n[PARSE_RESULT]\n");
+                emitter.send("[MINDMAP]" + minifiedJson);
+                emitter.complete();
+
+            } catch (Exception e) {
+                try {
+                    emitter.send("[ERROR]生成思维导图失败: " + e.getMessage());
+                } catch (Exception ex) {
+                    // ignore
+                }
+                emitter.completeWithError(e);
+            }
+        }).start();
+        return emitter;
+    }
+
+    private String buildMindMapPrompt(String descr) {
+        return "你是一个思维导图生成助手。请根据用户的描述生成思维导图的数据结构。\n" +
+                "用户描述: " + descr + "\n" +
+                "请严格按照以下 JSON 格式返回数据，不要包含任何其他解释性文字，确保 JSON 格式合法。\n" +
+                "数据结构示例:\n" +
+                "{\n" +
+                "  \"nodeData\": {\n" +
+                "    \"id\": \"root\",\n" +
+                "    \"topic\": \"中心主题\",\n" +
+                "    \"root\": true\n" +
+                "  },\n" +
+                "  \"nodeChild\": [\n" +
+                "    {\n" +
+                "      \"nodeData\": {\n" +
+                "        \"id\": \"uuid1\",\n" +
+                "        \"topic\": \"子主题1\"\n" +
+                "      },\n" +
+                "      \"nodeChild\": []\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}\n" +
+                "注意：\n" +
+                "1. id 请使用随机 UUID 或唯一字符串。\n" +
+                "2. topic 是节点内容。\n" +
+                "3. root 节点必须包含 \"root\": true。\n" +
+                "4. 结构必须是 nodeData 和 nodeChild 的嵌套。";
     }
 
 }

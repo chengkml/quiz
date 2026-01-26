@@ -1,6 +1,7 @@
 package com.ck.quiz.config;
 
 import com.ck.quiz.filter.JwtAuthenticationFilter;
+import com.ck.quiz.filter.LoggingFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
@@ -10,7 +11,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -22,9 +22,11 @@ import java.util.Map;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final LoggingFilter loggingFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, LoggingFilter loggingFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.loggingFilter = loggingFilter;
     }
 
     @Bean
@@ -46,12 +48,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/wx/user/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/static/**", "/quiz-ws/**", "/**/*.html", "/**/*.css", "/**/*.js",
-                                "/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.gif", "/**/*.ico").permitAll()
-                        .anyRequest().authenticated()
-                )
+                                "/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.gif", "/**/*.ico")
+                        .permitAll()
+                        .anyRequest().authenticated())
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                )
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) -> {
                             String accept = request.getHeader("Accept");
@@ -66,24 +67,19 @@ public class SecurityConfig {
                                 // 如果是 API 请求 (如 Axios)，则返回 401 JSON
                                 response.setContentType("application/json;charset=UTF-8");
                                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                                
+
                                 Map<String, Object> errorResponse = new HashMap<>();
                                 errorResponse.put("code", 401);
                                 errorResponse.put("message", "未登录或登录已过期");
-                                
+
                                 response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponse));
                             }
                             // --- 修改部分结束 ---
-                        })
-                )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                        }))
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(loggingFilter, JwtAuthenticationFilter.class);
 
         return http.build();
-    }
-
-    @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
     @Bean

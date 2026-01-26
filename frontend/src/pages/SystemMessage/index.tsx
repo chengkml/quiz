@@ -206,7 +206,7 @@ function SystemMessageManager() {
       render: (_: any, record: SystemMessageItem) => {
         const flag = record.isRead ?? record.read;
         return (
-          <Tag color={flag ? "green" : "red"}>{flag ? "已读" : "未读"}</Tag>
+          <Tag color={flag ? "green" : "red"} bordered>{flag ? "已读" : "未读"}</Tag>
         );
       },
     },
@@ -242,7 +242,7 @@ function SystemMessageManager() {
       render: (_: any, record: SystemMessageItem) => {
         const flag = record.isRead ?? record.read;
         return (
-          <Tag color={flag ? "green" : "red"}>{flag ? "已读" : "未读"}</Tag>
+          <Tag color={flag ? "green" : "red"} bordered>{flag ? "已读" : "未读"}</Tag>
         );
       },
     },

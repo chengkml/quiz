@@ -1,19 +1,16 @@
 package com.ck.quiz.group.dto;
 
-import java.time.LocalDateTime;
+import com.ck.quiz.base.dto.Dto;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class GroupDto {
+@EqualsAndHashCode(callSuper = true)
+public class GroupDto extends Dto {
 
-    private String id;
     private String name;
     private String label;
-    private LocalDateTime createDate;
-    private String createUser;
-    private String createUserName;
-    private LocalDateTime updateDate;
-    private String updateUser;
-    private String updateUserName;
+    private String type;
+    private String descr;
 
 }

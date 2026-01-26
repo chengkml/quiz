@@ -3,7 +3,7 @@ import axios from '@/core/src/http';
 export interface SysLogQueryParams {
   module?: string;
   action?: string;
-  success?: boolean | string;
+  success?: string;
   requestUri?: string;
   pageNum?: number;
   pageSize?: number;
@@ -19,7 +19,7 @@ export interface SysLogDto {
   requestMethod?: string;
   requestParams?: string;
   responseData?: string;
-  success?: boolean;
+  success?: string;
   errorMessage?: string;
   ipAddress?: string;
   userAgent?: string;

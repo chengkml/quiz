@@ -10,6 +10,7 @@ import com.ck.quiz.syslog.repository.SysLogRepository;
 import com.ck.quiz.syslog.service.SysLogService;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import org.springframework.data.domain.Page;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -22,6 +23,12 @@ import java.util.Map;
 @Service
 @Transactional
 public class SysLogServiceImpl extends BaseServiceImpl<SysLogCreateDto, SysLogUpdateDto, SysLogQueryDto, SysLogDto, SysLog, SysLogRepository> implements SysLogService {
+
+    @Async
+    @Override
+    public void createSysLogAsync(SysLogCreateDto dto) {
+        create(dto);
+    }
 
     @Override
     public Page<SysLogDto> search(String userId, SysLogQueryDto queryDto) {

@@ -8,22 +8,19 @@ import {
     IconDownload,
     IconUndo,
     IconRedo,
-    IconZoomIn,
-    IconZoomOut,
-    IconExpand,
     IconPalette,
     IconClose,
-    IconSave
+    IconSave,
+    IconRobot
 } from '@arco-design/web-react/icon';
 import {
     createMindMap,
-    formatMindMapData,
     getMindMapById,
     parseMindMapData,
-    updateMindMap,
     updateMindMapData,
 } from '../api/mindMapService';
 import {MindMapData, MindMapDto} from '../types';
+import { Input, Modal } from '@arco-design/web-react';
 
 const { Content } = Layout;
 
@@ -39,6 +36,13 @@ const MindMapEditPage: React.FC = () => {
     const [mindMap, setMindMap] = useState<MindMapDto | null>(null);
     const [currentTheme, setCurrentTheme] = useState<string>('default');
     const [zoomLevel, setZoomLevel] = useState<number>(1);
+
+    // AI 生成相关状态
+    const [aiModalVisible, setAiModalVisible] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState("");
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiStreamContent, setAiStreamContent] = useState("");
+    const aiEventSourceRef = useRef<EventSource | null>(null);
 
     /** 初始化思维导图 */
     const doInitMindMap = useCallback((data?: MindMapData) => {
@@ -283,6 +287,98 @@ const MindMapEditPage: React.FC = () => {
         }
     };
 
+    /** AI 生成处理 */
+    const handleAIGenerate = () => {
+        setAiModalVisible(true);
+        setAiPrompt("");
+        setAiStreamContent("");
+    };
+
+    const handleStartGenerate = () => {
+        if (!aiPrompt.trim()) {
+            Message.warning('请输入描述');
+            return;
+        }
+
+        setAiLoading(true);
+        setAiStreamContent("");
+
+        // 关闭之前的连接
+        if (aiEventSourceRef.current) {
+            aiEventSourceRef.current.close();
+        }
+
+        const url = `/api/mindmap/generate/stream?descr=${encodeURIComponent(aiPrompt)}`;
+        /**
+         * 注意：通常 SSE 不支持自定义 Header（如 Token），
+         * 这里假设后端采用了 Cookie 认证或 Params 认证，
+         * 或者全局 axios 拦截器处理了 cookie。
+         * 如果需要 Header Token，可能需要 fetch-event-source 库。
+         * 此处参考 Schedule 模块直接使用 EventSource。
+         */
+        const es = new EventSource(url, { withCredentials: true });
+        aiEventSourceRef.current = es;
+
+        es.onopen = () => {
+            console.log("SSE 连接已打开");
+        };
+
+        es.onmessage = (event) => {
+            const data = event.data;
+            
+            if (data.startsWith("[MINDMAP]")) {
+                try {
+                    const jsonStr = data.substring("[MINDMAP]".length);
+                    const mindMapData = JSON.parse(jsonStr);
+                    
+                    // 转换结构适配 MindElixir
+                    // 后端返回的结构已经是 { nodeData:..., nodeChild: ... }
+                    // MindElixir 需要的也是这个结构
+                    doInitMindMap(mindMapData);
+                    
+                    Message.success('AI 生成成功');
+                    setAiModalVisible(false);
+                } catch (e) {
+                    console.error("解析 AI生成的思维导图失败", e);
+                    Message.error("解析数据失败");
+                } finally {
+                    es.close();
+                    setAiLoading(false);
+                }
+            } else if (data.startsWith("[ERROR]")) {
+                Message.error(data.substring("[ERROR]".length));
+                es.close();
+                setAiLoading(false);
+            } else if (data === "\n\n[PARSE_RESULT]\n") {
+                 // 忽略分隔符，准备接收最终结果
+            } else {
+                // 流式文本追加，展示思考过程
+                setAiStreamContent(prev => prev + data);
+            }
+        };
+
+        es.onerror = (error) => {
+            console.error("SSE Error:", error);
+            // 某些情况下 onerror 不代表完全失败，需结合业务
+             if (es.readyState === EventSource.CLOSED) {
+                 setAiLoading(false);
+             }
+             // 连接出错通常直接关闭
+             es.close();
+             setAiLoading(false);
+             Message.error("生成连接中断，请重试");
+        };
+    };
+
+    const handleCancelAI = () => {
+        if (aiEventSourceRef.current) {
+            aiEventSourceRef.current.close();
+            aiEventSourceRef.current = null;
+        }
+        setAiLoading(false);
+        setAiModalVisible(false);
+    };
+
     /** 转换为Markdown格式 */
     const convertToMarkdown = (data: any, level: number = 1): string => {
         let markdown = '';
@@ -439,6 +535,15 @@ const MindMapEditPage: React.FC = () => {
                         <Tooltip content="重做">
                             <Button icon={<IconRedo />} onClick={handleRedo} />
                         </Tooltip>
+                        <span className="toolbar-divider" />
+                        <Button 
+                            type="primary" 
+                            status="success"
+                            icon={<IconRobot />} 
+                            onClick={handleAIGenerate}
+                        >
+                            AI 生成
+                        </Button>
                     </div>
                     <div className="mindmap-toolbar-right">
                         <Tooltip content="切换主题">
@@ -458,6 +563,47 @@ const MindMapEditPage: React.FC = () => {
                 <div className="mindmap-editor-container" style={{flex: 1}}>
                     <div ref={mindMapRef} style={{height: '100%', width: '100%'}} />
                 </div>
+
+                {/* AI 生成弹窗 */}
+                <Modal
+                    title="AI 智能生成思维导图"
+                    visible={aiModalVisible}
+                    onOk={handleStartGenerate}
+                    onCancel={handleCancelAI}
+                    okText={aiLoading ? "生成中..." : "开始生成"}
+                    cancelText="取消"
+                    confirmLoading={aiLoading}
+                    maskClosable={!aiLoading}
+                >
+                    <div style={{ marginBottom: 10 }}>
+                        <span style={{ fontWeight: 'bold' }}>描述您的需求:</span>
+                        <Input.TextArea 
+                            placeholder="例如：生成一份关于Java集合框架的思维导图，包含List, Set, Map等..." 
+                            rows={4}
+                            value={aiPrompt}
+                            onChange={v => setAiPrompt(v)}
+                            disabled={aiLoading}
+                            style={{ marginTop: 8 }}
+                        />
+                    </div>
+                    
+                    {/* 流式输出展示区域 */}
+                    {(aiLoading || aiStreamContent) && (
+                        <div style={{ 
+                            marginTop: 16, 
+                            padding: 12, 
+                            background: '#f5f6f7', 
+                            borderRadius: 4,
+                            maxHeight: 200,
+                            overflowY: 'auto',
+                            whiteSpace: 'pre-wrap',
+                            fontSize: 12,
+                            color: '#666'
+                        }}>
+                           {aiStreamContent || "正在思考..."}
+                        </div>
+                    )}
+                </Modal>
             </Content>
         </Layout>
     );

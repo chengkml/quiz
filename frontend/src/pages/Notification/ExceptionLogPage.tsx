@@ -36,7 +36,7 @@ const columns = [
     title: "渠道类型",
     dataIndex: "channelType",
     width: 100,
-    render: (v: string) => <Tag color="arcoblue">{v}</Tag>,
+    render: (v: string) => <Tag color="arcoblue" bordered>{v}</Tag>,
   },
   {
     title: "发送人",

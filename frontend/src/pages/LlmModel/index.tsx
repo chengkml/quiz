@@ -271,7 +271,7 @@ function LlmModelManager() {
         { title: '提供者', dataIndex: 'provider', width: 140 },
         { title: '类型', dataIndex: 'type', width: 120, render: (v: any) => {
             const typeInfo = typeMap[v];
-            return typeInfo ? <Tag color={typeInfo.color} bordered>{typeInfo.label}</Tag> : <Tag>{v}</Tag>;
+            return typeInfo ? <Tag color={typeInfo.color} bordered>{typeInfo.label}</Tag> : <Tag bordered>{v}</Tag>;
         } },
         {
             title: '默认',

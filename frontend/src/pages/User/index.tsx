@@ -117,7 +117,7 @@ function UserManager() {
       align: "center",
       width: 80,
       render: (state) => (
-        <Tag color={state === "ENABLED" ? "green" : "red"}>
+        <Tag color={state === "ENABLED" ? "green" : "red"} bordered>
           {state === "ENABLED" ? "启用" : "禁用"}
         </Tag>
       ),

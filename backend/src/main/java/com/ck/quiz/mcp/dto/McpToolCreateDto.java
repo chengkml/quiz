@@ -32,9 +32,6 @@ public class McpToolCreateDto extends CreateDto {
     @Size(max = 64, message = "分类不能超过64个字符")
     private String category;
 
-    @Size(max = 512, message = "标签长度不能超过512个字符")
-    private String tags;
-
     @Size(max = 8000, message = "Schema长度不能超过8000个字符")
     private String schemaJson;
 

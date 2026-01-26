@@ -139,7 +139,7 @@ function SystemParamManager() {
       render: (status: string) => {
         const map: any = { ACTIVE: '启用', INACTIVE: '禁用' };
         const color: any = { ACTIVE: 'green', INACTIVE: 'gray' };
-        return <Tag color={color[status]}>{map[status] || status}</Tag>;
+        return <Tag color={color[status]} bordered>{map[status] || status}</Tag>;
       },
     },
   ];

@@ -79,7 +79,7 @@ function OrchestrationManager() {
       key: "status",
       width: 100,
       render: (status: WorkflowStatus) => (
-        <Tag className="status-tag" color={statusColorMap[status] || "default"}>
+        <Tag className="status-tag" color={statusColorMap[status] || "default"} bordered>
           {status}
         </Tag>
       ),

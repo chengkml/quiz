@@ -4,8 +4,10 @@ import com.ck.quiz.base.dto.CreateDto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class KnowledgeSetCreateDto extends CreateDto {
 
     @NotBlank(message = "知识集名称不能为空")
@@ -14,9 +16,6 @@ public class KnowledgeSetCreateDto extends CreateDto {
 
     @Size(max = 512, message = "描述长度不能超过512个字符")
     private String descr;
-
-    @Size(max = 256, message = "标签长度不能超过256个字符")
-    private String tags;
 
     @Size(max = 32, message = "可见性长度不能超过32个字符")
     private String visibility;

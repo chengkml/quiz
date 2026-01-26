@@ -62,19 +62,22 @@ function SysLogPage() {
   };
 
   const tableColumns = [
-    { title: '模块', dataIndex: 'module', width: 140 },
-    { title: '操作', dataIndex: 'action', width: 120 },
+    { title: '模块', dataIndex: 'module', width: 140, ellipsis: true },
+    { title: '操作', dataIndex: 'action', width: 180, ellipsis: true },
     { title: '请求URI', dataIndex: 'requestUri', width: 260, ellipsis: true },
     { title: '方法', dataIndex: 'requestMethod', width: 90 },
     {
       title: '成功',
       dataIndex: 'success',
       width: 90,
-      render: (val: boolean) => (
-        <Tag color={val ? 'green' : 'red'} bordered>
-          {val === true ? '成功' : val === false ? '失败' : '-'}
-        </Tag>
-      ),
+      render: (val: string) => {
+        const success = val === '1';
+        return (
+          <Tag color={success ? 'green' : 'red'} bordered>
+            {success ? '成功' : '失败'}
+          </Tag>
+        );
+      },
     },
     { title: '耗时(ms)', dataIndex: 'costTime', width: 100 },
     {
@@ -102,11 +105,14 @@ function SysLogPage() {
       key: 'success',
       label: '是否成功',
       dataIndex: 'success',
-      render: (val: boolean) => (
-        <Tag color={val ? 'green' : 'red'} bordered>
-          {val === true ? '成功' : val === false ? '失败' : '-'}
-        </Tag>
-      ),
+      render: (val: string) => {
+        const success = val === '1';
+        return (
+          <Tag color={success ? 'green' : 'red'} bordered>
+            {success ? '成功' : '失败'}
+          </Tag>
+        );
+      },
     },
     { key: 'costTime', label: '耗时(毫秒)', dataIndex: 'costTime' },
     { key: 'ipAddress', label: 'IP地址', dataIndex: 'ipAddress' },
@@ -123,19 +129,19 @@ function SysLogPage() {
   ];
 
   const filterFields: FormFieldConfig[] = [
-    { field: 'module', label: '模块', type: 'input', placeholder: '请输入模块名', span: 6 },
+    { field: 'module', label: '模块', type: 'input', placeholder: '请输入模块名', span: 8 },
     { field: 'action', label: '操作', type: 'input', placeholder: '请输入操作类型', span: 6 },
-    { field: 'requestUri', label: '请求URI', type: 'input', placeholder: '支持模糊匹配', span: 8 },
+    { field: 'requestUri', label: '请求URI', type: 'input', placeholder: '支持模糊匹配', span: 9 },
     {
       field: 'success',
       label: '是否成功',
       type: 'select',
       options: [
         { label: '全部', value: '' },
-        { label: '成功', value: true },
-        { label: '失败', value: false },
+        { label: '成功', value: '1' },
+        { label: '失败', value: '0' },
       ],
-      span: 4,
+      span: 8,
     },
   ];
 

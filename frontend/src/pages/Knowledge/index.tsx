@@ -30,7 +30,10 @@ import { IconDelete, IconEdit, IconList, IconPlus } from '@arco-design/web-react
 import FilterForm from '@/components/FilterForm';
 import { CKEditor } from 'ckeditor4-react';
 
+declare const __APP_BASE_PATH__: string;
+
 function KnowledgeManager() {
+    const editorScriptUrl = `${(__APP_BASE_PATH__ || '/').replace(/\/$/, '')}/ckeditor/ckeditor.js`;
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
     // 状态管理
     const [tableData, setTableData] = useState([]);
@@ -67,6 +70,15 @@ function KnowledgeManager() {
     const [questionsModalVisible, setQuestionsModalVisible] = useState(false);
     const [relatedQuestions, setRelatedQuestions] = useState([]);
     const [questionsLoading, setQuestionsLoading] = useState(false);
+
+    const deriveNameFromContent = (html: string) => {
+        if (!html) return '未命名知识点';
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        const text = (container.textContent || '').trim();
+        if (!text) return '未命名知识点';
+        return text.slice(0, 64);
+    };
 
     // 表单引用
     const filterFormRef = useRef<any>();
@@ -291,7 +303,9 @@ function KnowledgeManager() {
         try {
             const values = await addFormRef.current.validate();
             setLoading(true);
-            await createKnowledge(values);
+            await createKnowledge({
+                ...values,
+            });
             Message.success('知识点创建成功');
             setAddModalVisible(false);
             addFormRef.current.resetFields();
@@ -312,7 +326,10 @@ function KnowledgeManager() {
         try {
             const values = await editFormRef.current.validate();
             setLoading(true);
-            await updateKnowledge({ ...values, id: currentRecord.id });
+            await updateKnowledge({
+                ...values,
+                id: currentRecord.id,
+            });
             Message.success('知识点更新成功');
             setEditModalVisible(false);
             editFormRef.current.resetFields();
@@ -664,6 +681,7 @@ function KnowledgeManager() {
             <Modal
                 title="新增知识点"
                 visible={addModalVisible}
+                style={{ width: 1000 }}
                 onOk={confirmAdd}
                 onCancel={() => {
                     setAddModalVisible(false);
@@ -673,14 +691,14 @@ function KnowledgeManager() {
                 <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
                     <Form ref={addFormRef} className="modal-form" layout="vertical">
                                 <Form.Item
-                                    label="知识点名称"
+                                    label="知识点标题"
                                     field="name"
-                                    rules={[
-                                        { required: true, message: '请输入知识点名称' },
-                                        { maxLength: 64, message: '知识点名称不能超过64个字符' },
-                                    ]}
+                                    rules={[{ required: true, message: '请输入知识点标题' }]}
                                 >
-                                    <Input.TextArea placeholder="请输入知识点名称" />
+                                    <Input
+                                        placeholder="请输入知识点标题"
+                                        maxLength={512}
+                                    />
                                 </Form.Item>
                                 <Form.Item
                                     label="所属学科"
@@ -719,9 +737,10 @@ function KnowledgeManager() {
                                     normalize={(value) => {
                                         return value?.editor?.getData?.() || value;
                                     }}
+                                    rules={[{ required: true, message: '请输入知识点内容' }]}
                                 >
                                     <CKEditor
-                                        editorUrl="https://cdn.ckeditor.com/4.22.1/full/ckeditor.js"
+                                        editorUrl={editorScriptUrl}
                                         config={{
                                             height: 300,
                                             // 允许源码编辑
@@ -739,6 +758,7 @@ function KnowledgeManager() {
             <Modal
                 title="编辑知识点"
                 visible={editModalVisible}
+                style={{ width: 1000 }}
                 onCancel={() => {
                     setEditModalVisible(false);
                     editFormRef.current?.resetFields();
@@ -748,10 +768,9 @@ function KnowledgeManager() {
                     if (currentRecord) {
                         editFormRef.current?.setFieldsValue({
                             name: currentRecord.name,
-                            description: currentRecord.description,
                             categoryId: currentRecord.categoryId,
                             subjectId: currentRecord.subjectId,
-                            difficultyLevel: currentRecord.difficultyLevel,
+                            content: currentRecord.content,
                         });
                         if (currentRecord.subjectId) {
                             fetchCategoriesBySubject(currentRecord.subjectId);
@@ -762,14 +781,14 @@ function KnowledgeManager() {
                 <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
                     <Form ref={editFormRef} className="modal-form" layout="vertical">
                                 <Form.Item
-                                    label="知识点名称"
+                                    label="知识点标题"
                                     field="name"
-                                    rules={[
-                                        { required: true, message: '请输入知识点名称' },
-                                        { maxLength: 64, message: '知识点名称不能超过64个字符' },
-                                    ]}
+                                    rules={[{ required: true, message: '请输入知识点标题' }]}
                                 >
-                                    <Input.TextArea placeholder="请输入知识点名称" />
+                                    <Input
+                                        placeholder="请输入知识点标题"
+                                        maxLength={512}
+                                    />
                                 </Form.Item>
                                 <Form.Item
                                     label="所属学科"
@@ -798,6 +817,26 @@ function KnowledgeManager() {
                                         loading={categoriesLoading}
                                         allowClear
                                         disabled={!editFormRef.current?.getFieldValue('subjectId')}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    label="知识点内容"
+                                    field="content"
+                                    triggerPropName="initData"
+                                    trigger="onChange"
+                                    normalize={(value) => {
+                                        return value?.editor?.getData?.() || value;
+                                    }}
+                                    rules={[{ required: true, message: '请输入知识点内容' }]}
+                                >
+                                    <CKEditor
+                                        editorUrl={editorScriptUrl}
+                                        config={{
+                                            height: 300,
+                                            allowedContent: true,
+                                            extraPlugins: 'sourcearea',
+                                            versionCheck: false,
+                                        }}
                                     />
                                 </Form.Item>
                             </Form>

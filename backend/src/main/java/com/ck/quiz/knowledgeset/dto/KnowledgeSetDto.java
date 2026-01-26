@@ -12,8 +12,6 @@ public class KnowledgeSetDto extends Dto {
 
     private String descr;
 
-    private String tags;
-
     private String visibility;
 
     private String defaultLanguage;

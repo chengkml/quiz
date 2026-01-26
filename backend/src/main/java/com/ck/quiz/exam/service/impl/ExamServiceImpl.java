@@ -177,7 +177,7 @@ public class ExamServiceImpl implements ExamService {
                         "       e.subject_id, s.name subject_name, u.user_name AS create_user_name " +
                         "FROM exam e " +
                         "LEFT JOIN users u ON e.create_user = u.user_id " +
-                        "LEFT JOIN subject s ON s.subject_id = e.subject_id " +
+                        "LEFT JOIN subject s ON s.id = e.subject_id " +
                         "WHERE 1=1 "
         );
 

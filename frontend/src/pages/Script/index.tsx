@@ -657,9 +657,9 @@ function ScriptManager() {
       render: (remoteScript: any) => {
         const isRemote = remoteScript === true || remoteScript === "true";
         return isRemote ? (
-          <Tag color="blue">是</Tag>
+          <Tag color="blue" bordered>是</Tag>
         ) : (
-          <Tag color="gray">否</Tag>
+          <Tag color="gray" bordered>否</Tag>
         );
       },
     },

@@ -86,7 +86,6 @@ public class KnowledgeSetServiceImpl extends BaseServiceImpl<KnowledgeSetCreateD
             dto.setId(rs.getString("id"));
             dto.setName(rs.getString("name"));
             dto.setDescr(rs.getString("descr"));
-            dto.setTags(rs.getString("tags"));
             dto.setVisibility(rs.getString("visibility"));
             dto.setDefaultLanguage(rs.getString("default_language"));
             dto.setStatus(rs.getString("status"));

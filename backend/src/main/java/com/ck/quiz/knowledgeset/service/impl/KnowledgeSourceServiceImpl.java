@@ -168,7 +168,6 @@ public class KnowledgeSourceServiceImpl extends BaseServiceImpl<KnowledgeSourceC
             dto.setContent(rs.getString("content"));
             dto.setMeta(rs.getString("meta"));
             dto.setDescr(rs.getString("descr"));
-            dto.setTags(rs.getString("tags"));
             dto.setLanguage(rs.getString("language"));
             
             java.sql.Timestamp createTime = rs.getTimestamp("create_date");

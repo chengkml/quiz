@@ -284,7 +284,7 @@ const handleTestConnection = async (record: any) => {
             title: '启用',
             dataIndex: 'active',
             width: 90,
-            render: (val) => (val ? <Tag color="green">启用</Tag> : <Tag color="red">禁用</Tag>),
+            render: (val) => (val ? <Tag color="green" bordered>启用</Tag> : <Tag color="red" bordered>禁用</Tag>),
         },
         {
             title: '创建时间', dataIndex: 'createDate', width: 180, render: (value) => {
@@ -547,10 +547,10 @@ const handleTestConnection = async (record: any) => {
                         {schemaData ? (
                             <div style={{marginBottom: 12}}>
                                 <Space>
-                                    <Tag color="arcoblue">{schemaData.productName}</Tag>
-                                    <Tag>{schemaData.productVersion}</Tag>
-                                    <Tag color="green">{schemaData.databaseType}</Tag>
-                                    <Tag>{schemaData.driverName}</Tag>
+                                    <Tag color="arcoblue" bordered>{schemaData.productName}</Tag>
+                                    <Tag bordered>{schemaData.productVersion}</Tag>
+                                    <Tag color="green" bordered>{schemaData.databaseType}</Tag>
+                                    <Tag bordered>{schemaData.driverName}</Tag>
                                 </Space>
                             </div>
                         ) : null}
@@ -577,14 +577,14 @@ const handleTestConnection = async (record: any) => {
                                             title: '可空',
                                             dataIndex: 'nullable',
                                             width: 100,
-                                            render: (v) => (v ? <Tag color="green">是</Tag> : <Tag color="red">否</Tag>)
+                                            render: (v) => (v ? <Tag color="green" bordered>是</Tag> : <Tag color="red" bordered>否</Tag>)
                                         },
                                         {title: '默认值', dataIndex: 'defaultValue', width: 180},
                                         {
                                             title: '主键',
                                             dataIndex: 'primaryKey',
                                             width: 100,
-                                            render: (v) => (v ? <Tag color="gold">PK</Tag> : null)
+                                            render: (v) => (v ? <Tag color="gold" bordered>PK</Tag> : null)
                                         },
                                         {title: '备注', dataIndex: 'remarks', ellipsis: true},
                                     ]}

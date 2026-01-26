@@ -14,10 +14,12 @@ import ExamDetailPage from "@/pages/Exam/Detail";
 import ExamHistoryPage from "@/pages/Exam/History";
 import ExamResultDetailPage from "@/pages/Exam/History/Detail";
 import SubjectManagement from "@/pages/Subject";
+import SysLogManagement from "@/pages/SysLog";
 import CategoryManagement from "@/pages/Category";
 import KnowledgeManagement from "@/pages/Knowledge";
 import UserManagement from "@/pages/User";
 import TodoManagement from "@/pages/Todo";
+import GroupManagement from "@/pages/Group";
 import DocManagement from "@/pages/DocMgr";
 import FileManager from "@/pages/FileManager";
 import ScheduleManagement from "@/pages/Schedule";
@@ -188,6 +190,7 @@ const protectedPages = [
   { path: "role", element: <RoleManagement />, requiredPath: "role" },
   { path: "menu", element: <MenuManagement />, requiredPath: "menu" },
   { path: "subject", element: <SubjectManagement />, requiredPath: "subject" },
+  { path: "syslog", element: <SysLogManagement />, requiredPath: "syslog" },
   {
     path: "category",
     element: <CategoryManagement />,
@@ -210,6 +213,7 @@ const protectedPages = [
   },
   { path: "exam", element: <ExamManagement />, requiredPath: "exam" },
   { path: "todo", element: <TodoManagement />, requiredPath: "todo" },
+  { path: "group", element: <GroupManagement />, requiredPath: "group" },
   { path: "doc", element: <DocManagement />, requiredPath: "doc" },
   { path: "file-manager", element: <FileManager />, requiredPath: "file-manager" },
   {

@@ -20,4 +20,12 @@ public class Dto {
     private String updateUser;
 
     private String updateUserName;
+
+    private String groupName;
+
+    private String groupLabel;
+
+    private java.util.List<String> tagNames;
+
+    private java.util.List<String> tagLabels;
 }

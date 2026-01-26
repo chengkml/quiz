@@ -19,7 +19,6 @@ public class KnowledgeCreateDto {
      * 知识点名称
      */
     @NotBlank(message = "知识点名称不能为空")
-    @Size(max = 64, message = "知识点名称长度不能超过64个字符")
     private String name;
 
     /**

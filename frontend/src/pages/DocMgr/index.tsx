@@ -97,13 +97,13 @@ function DocManager() {
     const getDocTypeTag = (type: string) => {
         switch (type) {
             case 'DOC':
-                return <Tag className="doc-type-tag type-doc">文档</Tag>;
+                return <Tag className="doc-type-tag type-doc" bordered>文档</Tag>;
             case 'IMAGE':
-                return <Tag className="doc-type-tag type-image">图片</Tag>;
+                return <Tag className="doc-type-tag type-image" bordered>图片</Tag>;
             case 'PDF':
-                return <Tag className="doc-type-tag type-pdf">PDF</Tag>;
+                return <Tag className="doc-type-tag type-pdf" bordered>PDF</Tag>;
             default:
-                return <Tag className="doc-type-tag type-other">其他</Tag>;
+                return <Tag className="doc-type-tag type-other" bordered>其他</Tag>;
         }
     };
 

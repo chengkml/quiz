@@ -384,7 +384,7 @@ function MenuManager() {
           BUTTON: { color: "orange", text: "按钮" },
         };
         const config = typeMap[type] || { color: "gray", text: type };
-        return <Tag color={config.color}>{config.text}</Tag>;
+        return <Tag color={config.color} bordered>{config.text}</Tag>;
       },
     },
     {
@@ -421,7 +421,7 @@ function MenuManager() {
           DISABLED: { color: "red", text: "禁用" },
         };
         const config = stateMap[state] || { color: "gray", text: state };
-        return <Tag color={config.color}>{config.text}</Tag>;
+        return <Tag color={config.color} bordered>{config.text}</Tag>;
       },
     },
   ];

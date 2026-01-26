@@ -11,4 +11,6 @@ public interface MindMapService
 
     MindMapDto updateMindMapData(MindMapDataUpdateDto mindMapDataUpdateDto);
 
+    org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamGenerateMindMap(String descr);
+
 }

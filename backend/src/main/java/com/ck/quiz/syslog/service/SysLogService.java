@@ -8,5 +8,7 @@ import com.ck.quiz.syslog.dto.SysLogUpdateDto;
 import com.ck.quiz.syslog.entity.SysLog;
 
 public interface SysLogService extends BaseService<SysLogCreateDto, SysLogUpdateDto, SysLogQueryDto, SysLogDto, SysLog> {
+
+    void createSysLogAsync(SysLogCreateDto dto);
 }
 

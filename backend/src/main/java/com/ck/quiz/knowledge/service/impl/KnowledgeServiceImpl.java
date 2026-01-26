@@ -71,6 +71,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         Knowledge knowledge = new Knowledge();
         knowledge.setId(IdHelper.genUuid());
         knowledge.setName(createDto.getName());
+        knowledge.setContent(createDto.getContent());
         knowledge.setCategoryId(createDto.getCategoryId());
         knowledge.setSubjectId(createDto.getSubjectId());
 
@@ -96,6 +97,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
 
         // 更新知识点信息
         knowledge.setName(updateDto.getName());
+        knowledge.setContent(updateDto.getContent());
         knowledge.setCategoryId(updateDto.getCategoryId());
         knowledge.setSubjectId(updateDto.getSubjectId());
 

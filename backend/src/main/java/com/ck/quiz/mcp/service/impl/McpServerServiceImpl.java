@@ -16,7 +16,6 @@ import com.ck.quiz.mcp.repository.McpToolRepository;
 import com.ck.quiz.mcp.service.McpServerService;
 import com.ck.quiz.mcp.service.McpToolService;
 import com.ck.quiz.utils.JdbcQueryHelper;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -197,7 +196,6 @@ public class McpServerServiceImpl extends
             createDto.setDisplayName(item.getDisplayName());
             createDto.setDescription(item.getDescription());
             createDto.setCategory(item.getCategory());
-            createDto.setTags(item.getTags());
             createDto.setSchemaJson(null);
             createDto.setStrategyJson(null);
             createDto.setVisibilityJson(null);

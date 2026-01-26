@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Comment;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -11,11 +12,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 知识点信息实体类
- * 示例：导数定义、链式法则
- */
 @Entity
+@Comment("知识点信息实体")
 @Table(
         name = "knowledge",
         indexes = {
@@ -31,50 +29,42 @@ import java.util.List;
 public class Knowledge {
 
     @Id
+    @Comment("知识点ID")
     @Column(name = "knowledge_id", length = 32, nullable = false)
     private String id;
 
-    /**
-     * 知识点名称
-     * 示例：导数定义、链式法则
-     */
+    @Comment("知识点名称")
     @Column(name = "name", length = 512, nullable = false)
     private String name;
 
-    /**
-     * 所属分类 ID
-     */
+    @Comment("所属分类ID")
     @Column(name = "category_id", length = 32, nullable = false)
     private String categoryId;
 
-    /**
-     * 所属学科 ID
-     */
+    @Comment("所属学科ID")
     @Column(name = "subject_id", length = 32, nullable = false)
     private String subjectId;
 
-    /**
-     * 知识点内容(HTML)
-     */
-    @Lob
-    @Column(name = "content", columnDefinition = "LONGTEXT")
+    @Comment("知识点内容(HTML)")
+    @Column(columnDefinition = "TEXT")
     private String content;
 
+    @Comment("创建时间")
     @Column(name = "create_date", updatable = false)
     private LocalDateTime createDate;
 
+    @Comment("创建人")
     @Column(name = "create_user", length = 64, updatable = false)
     private String createUser;
 
+    @Comment("更新时间")
     @Column(name = "update_date")
     private LocalDateTime updateDate;
 
+    @Comment("更新人")
     @Column(name = "update_user", length = 64)
     private String updateUser;
 
-    /**
-     * 关联的问题列表
-     */
     @ManyToMany(mappedBy = "knowledgePoints", fetch = FetchType.LAZY)
     private List<com.ck.quiz.question.entity.Question> questions = new ArrayList<>();
 
