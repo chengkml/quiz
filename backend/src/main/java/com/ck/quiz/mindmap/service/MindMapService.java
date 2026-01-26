@@ -3,6 +3,7 @@ package com.ck.quiz.mindmap.service;
 import com.ck.quiz.base.service.BaseService;
 import com.ck.quiz.mindmap.dto.*;
 import com.ck.quiz.mindmap.entity.MindMap;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public interface MindMapService
         extends BaseService<MindMapCreateDto, MindMapUpdateDto, MindMapQueryDto, MindMapDto, MindMap> {
@@ -11,6 +12,6 @@ public interface MindMapService
 
     MindMapDto updateMindMapData(MindMapDataUpdateDto mindMapDataUpdateDto);
 
-    org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamGenerateMindMap(String descr);
+    SseEmitter streamGenerateMindMap(String descr);
 
 }

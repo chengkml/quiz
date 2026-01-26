@@ -189,6 +189,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                     KnowledgeDto k = new KnowledgeDto();
                     k.setId(rs.getString("knowledge_id"));
                     k.setName(rs.getString("name"));
+                    k.setContent(rs.getString("content"));
                     k.setCategoryId(rs.getString("category_id"));
                     k.setCategoryName(rs.getString("category_name"));
                     k.setSubjectId(rs.getString("subject_id"));
