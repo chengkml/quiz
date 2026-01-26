@@ -792,7 +792,26 @@ function KnowledgeManager() {
                                     />
                                 </Form.Item>
                                 <Form.Item
-                                    label="知识点内容"
+                                    label={
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span>知识点内容</span>
+                                            <Button
+                                                type="text"
+                                                size="mini"
+                                                style={{ padding: '0 5px' }}
+                                                onClick={() => {
+                                                    const editor = addEditorRef.current;
+                                                    if (editor) {
+                                                        handlePolish(editor);
+                                                    } else {
+                                                        Message.warning('编辑器未初始化');
+                                                    }
+                                                }}
+                                            >
+                                                AI 润色
+                                            </Button>
+                                        </div>
+                                    }
                                     field="content"
                                     triggerPropName="initData"
                                     trigger="onChange"
@@ -803,6 +822,9 @@ function KnowledgeManager() {
                                 >
                                     <CKEditor
                                         editorUrl={editorScriptUrl}
+                                        onInstanceReady={({ editor }) => {
+                                            addEditorRef.current = editor;
+                                        }}
                                         config={{
                                             height: 300,
                                             // 允许源码编辑
@@ -876,7 +898,7 @@ function KnowledgeManager() {
                     }
                 }}
             >
-                <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
+                <div style={{ maxHeight: '100vh', overflowY: 'auto', paddingRight: '10px' }}>
                     <Form ref={editFormRef} className="modal-form" layout="vertical">
                                 <Form.Item
                                     label="知识点标题"

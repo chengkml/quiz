@@ -168,14 +168,22 @@ public class MermaidDiagramServiceImpl implements MermaidDiagramService {
                         String adv = advice == null ? "" : advice;
                         String ddata = diagramData == null ? "" : diagramData;
                         finalPrompt = content.replace("{{advice}}", adv).replace("{{diagramData}}", ddata);
+                    } else {
+                        throw new RuntimeException("Template not found");
                     }
                 } catch (Exception e) {
-                    // 如果获取模板失败，则使用传入的 advice 与 diagramData 组合
-                    if (advice == null) {
-                        finalPrompt = (diagramData == null ? "" : diagramData);
-                    } else {
-                        finalPrompt = advice + "\n\n" + (diagramData == null ? "" : diagramData);
-                    }
+                    // 如果获取模板失败，则使用默认的严格提示词
+                    String adv = advice == null ? "" : advice;
+                    String ddata = diagramData == null ? "" : diagramData;
+                    finalPrompt = "You are an expert in Mermaid diagrams.\n" +
+                            "Please update or generate the Mermaid code based on the user's advice.\n\n" +
+                            "User Advice:\n" + adv + "\n\n" +
+                            "Current Mermaid Code:\n" + ddata + "\n\n" +
+                            "IMPORTANT RULES:\n" +
+                            "1. Return ONLY the raw Mermaid code.\n" +
+                            "2. Do NOT wrap the code in markdown code blocks (e.g., do NOT use ```mermaid).\n" +
+                            "3. Do NOT include any conversational text or explanations.\n" +
+                            "4. The output must be directly renderable by the Mermaid library.";
                 }
 
                 // 直接使用构建好的 finalPrompt 进行流式调用并将 chunk 逐个推送到前端
