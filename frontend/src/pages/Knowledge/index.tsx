@@ -295,6 +295,54 @@ function KnowledgeManager() {
     const polishEventSourceRef = useRef(null);
     const [targetEditor, setTargetEditor] = useState(null);
 
+    // CKEditor 工具栏配置
+    const editorToolbarConfig = [
+        { name: 'document', items: ['Source', '-', 'Preview', '-', 'Templates'] },
+        { name: 'clipboard', items: ['Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo'] },
+        { name: 'editing', items: ['Find', 'Replace', '-', 'SelectAll'] },
+        '/',
+        { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'] },
+        { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'] },
+        { name: 'links', items: ['Link', 'Unlink'] },
+        { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar'] },
+        '/',
+        { name: 'styles', items: ['Styles', 'Format', 'Font', 'FontSize'] },
+        { name: 'colors', items: ['TextColor', 'BGColor'] },
+        { name: 'tools', items: ['Maximize', 'ShowBlocks', 'AiPolish'] } // 显式添加 AiPolish 按钮
+    ];
+
+    // 注册 CKEditor 插件
+    const handleNamespaceLoaded = (CKEDITOR) => {
+        if (!CKEDITOR.plugins.get('aiPolish')) {
+            CKEDITOR.plugins.add('aiPolish', {
+                init: function (editor) {
+                    editor.addCommand('aiPolish', {
+                        exec: function (editor) {
+                            editor.fire('aiPolishEvent');
+                        }
+                    });
+                    editor.ui.addButton('AiPolish', {
+                        label: 'AI 智能润色',
+                        command: 'aiPolish',
+                        // toolbar property removed as we are using explicit toolbar config
+                    });
+                    
+                    // 注入图标样式
+                    const style = document.createElement('style');
+                    style.innerHTML = `
+                        .cke_button__aipolish_icon {
+                            background-image: url("data:image/svg+xml;charset=utf-8;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyIDRMMTAuMzg1MiA5LjYxNDgxTDQuOCAxMi40TDEwLjM4NTIgMTUuMTg1MkwxMiAyMC44TDEzLjYxNDggMTUuMTg1MkwxOS4yIDEyLjRMMTMuNjE0OCA5LjYxNDgxTDEyIDRaIiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTUgMkw0LjIzNTggMy41MjgzTDIsNC42TDQuMjM1OCA1LjY3MTdMNSA3.2TDUuNzY0MiA1LjY3MTdMNyw0LjZMNS43NjQyIDMuNTI4M0w1IDJaIiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMTkgMTdMMTguMjM1OCAxOC41MjgzTDE2LDE5LjZMMTguMjM1OCAyMC42NzE3TDE5IDIyLjJMMTkuNzY0MiAyMC42NzE3TDIyLDE5LjZMMTkuNzY0MiAxOC41MjgzTDE5IDE3WiIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+") !important;
+                            background-size: 16px !important;
+                            background-repeat: no-repeat;
+                            background-position: center;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            });
+        }
+    };
+
     const handlePolish = (editor) => {
         const content = editor.getData();
         if (!content) {
@@ -792,26 +840,7 @@ function KnowledgeManager() {
                                     />
                                 </Form.Item>
                                 <Form.Item
-                                    label={
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span>知识点内容</span>
-                                            <Button
-                                                type="text"
-                                                size="mini"
-                                                style={{ padding: '0 5px' }}
-                                                onClick={() => {
-                                                    const editor = addEditorRef.current;
-                                                    if (editor) {
-                                                        handlePolish(editor);
-                                                    } else {
-                                                        Message.warning('编辑器未初始化');
-                                                    }
-                                                }}
-                                            >
-                                                AI 润色
-                                            </Button>
-                                        </div>
-                                    }
+label="知识点内容"
                                     field="content"
                                     triggerPropName="initData"
                                     trigger="onChange"
@@ -822,15 +851,18 @@ function KnowledgeManager() {
                                 >
                                     <CKEditor
                                         editorUrl={editorScriptUrl}
+                                        onNamespaceLoaded={handleNamespaceLoaded}
                                         onInstanceReady={({ editor }) => {
                                             addEditorRef.current = editor;
+                                            editor.on('aiPolishEvent', () => handlePolish(editor));
                                         }}
                                         config={{
                                             height: 300,
                                             // 允许源码编辑
                                             allowedContent: true,
-                                            extraPlugins: 'sourcearea',
+                                            extraPlugins: 'sourcearea,aiPolish',
                                             versionCheck: false,
+                                            toolbar: editorToolbarConfig
                                         }}
                                     />
                                 </Form.Item>
@@ -940,26 +972,7 @@ function KnowledgeManager() {
                                     />
                                 </Form.Item>
                                 <Form.Item
-                                    label={
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span>知识点内容</span>
-                                            <Button
-                                                type="text"
-                                                size="mini"
-                                                style={{ padding: '0 5px' }}
-                                                onClick={() => {
-                                                    const editor = editEditorRef.current;
-                                                    if (editor) {
-                                                        handlePolish(editor);
-                                                    } else {
-                                                        Message.warning('编辑器未初始化');
-                                                    }
-                                                }}
-                                            >
-                                                AI 润色
-                                            </Button>
-                                        </div>
-                                    }
+label="知识点内容"
                                     field="content"
                                     triggerPropName="initData"
                                     trigger="onChange"
@@ -970,8 +983,10 @@ function KnowledgeManager() {
                                 >
                                     <CKEditor
                                         editorUrl={editorScriptUrl}
+                                        onNamespaceLoaded={handleNamespaceLoaded}
                                         onInstanceReady={({ editor }) => {
                                             editEditorRef.current = editor;
+                                            editor.on('aiPolishEvent', () => handlePolish(editor));
                                             if (currentRecord?.content) {
                                                 editor.setData(currentRecord.content);
                                             }
@@ -979,8 +994,9 @@ function KnowledgeManager() {
                                         config={{
                                             height: 300,
                                             allowedContent: true,
-                                            extraPlugins: 'sourcearea',
+                                            extraPlugins: 'sourcearea,aiPolish',
                                             versionCheck: false,
+                                            toolbar: editorToolbarConfig
                                         }}
                                     />
                                 </Form.Item>
