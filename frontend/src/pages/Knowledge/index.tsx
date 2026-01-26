@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import UserAvatar from '@/components/UserAvatar';
 import {
     Button,
+    Drawer,
     Dropdown,
     Form,
     Input,
@@ -22,8 +23,9 @@ import {
     getAllSubjects,
     getKnowledgeList,
     getKnowledgeQuestions,
-    getSubjectCategoryTree,
     updateKnowledge,
+    streamPolishKnowledgeUrl,
+    getSubjectCategoryTree,
 } from './api';
 import { DataManager } from '../../components/DataManager';
 import { IconDelete, IconEdit, IconList, IconPlus } from '@arco-design/web-react/icon';
@@ -84,6 +86,8 @@ function KnowledgeManager() {
     const filterFormRef = useRef<any>();
     const addFormRef = useRef();
     const editFormRef = useRef();
+    const addEditorRef = useRef(null);
+    const editEditorRef = useRef(null);
 
     // 分页配置
     const [pagination, setPagination] = useState({
@@ -284,6 +288,63 @@ function KnowledgeManager() {
         }
     };
 
+    // AI 润色相关
+    const [polishModalVisible, setPolishModalVisible] = useState(false);
+    const [polishContent, setPolishContent] = useState('');
+    const [polishLoading, setPolishLoading] = useState(false);
+    const polishEventSourceRef = useRef(null);
+    const [targetEditor, setTargetEditor] = useState(null);
+
+    const handlePolish = (editor) => {
+        const content = editor.getData();
+        if (!content) {
+            Message.warning('请先输入内容');
+            return;
+        }
+        setPolishContent('');
+        setPolishLoading(true);
+        setPolishModalVisible(true);
+        setTargetEditor(editor);
+
+        if (polishEventSourceRef.current) {
+            polishEventSourceRef.current.close();
+        }
+
+        const url = streamPolishKnowledgeUrl(content);
+        // @ts-ignore
+        const es = new EventSource(url);
+        polishEventSourceRef.current = es;
+
+        es.onmessage = (event) => {
+            if (event.data === '[DONE]') {
+                es.close();
+                setPolishLoading(false);
+                return;
+            }
+            if (event.data.startsWith('[ERROR]')) {
+                Message.error(event.data);
+                es.close();
+                setPolishLoading(false);
+                return;
+            }
+            setPolishContent((prev) => prev + event.data);
+        };
+
+        es.onerror = (err) => {
+            console.error('SSE Error', err);
+            es.close();
+            setPolishLoading(false);
+        };
+    };
+
+    const applyPolish = () => {
+        if (targetEditor) {
+            targetEditor.setData(polishContent);
+            Message.success('已应用润色内容');
+            setPolishModalVisible(false);
+        }
+    };
+
     // 处理菜单点击
     const handleMenuClick = (key, event, record) => {
         event.stopPropagation();
@@ -443,6 +504,7 @@ function KnowledgeManager() {
                 }
             }
         } catch (error) {
+            console.error('获取学科分类树失败:', error);
             Message.error('获取学科分类树失败');
         } finally {
             setTreeLoading(false);
@@ -678,17 +740,17 @@ function KnowledgeManager() {
             />
 
             {/* 新增对话框 */}
-            <Modal
+            <Drawer
                 title="新增知识点"
                 visible={addModalVisible}
-                style={{ width: 1000 }}
+                width={1000}
                 onOk={confirmAdd}
                 onCancel={() => {
                     setAddModalVisible(false);
                     addFormRef.current?.resetFields();
                 }}
             >
-                <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
+                <div style={{ maxHeight: '100vh', overflowY: 'auto', paddingRight: '10px' }}>
                     <Form ref={addFormRef} className="modal-form" layout="vertical">
                                 <Form.Item
                                     label="知识点标题"
@@ -752,13 +814,43 @@ function KnowledgeManager() {
                                 </Form.Item>
                             </Form>
                         </div>
-                    </Modal>
+                    </Drawer>
+            <Modal
+                title="AI 智能润色"
+                visible={polishModalVisible}
+                onOk={applyPolish}
+                onCancel={() => {
+                    setPolishModalVisible(false);
+                    if (polishEventSourceRef.current) {
+                        // @ts-ignore
+                        polishEventSourceRef.current.close();
+                    }
+                }}
+                okText="应用"
+                cancelText="取消"
+                style={{ width: 800 }}
+            >
+                <div style={{ height: '400px', overflow: 'auto', border: '1px solid #e5e6eb', padding: '10px', borderRadius: '4px', position: 'relative' }}>
+                    {polishContent ? (
+                        <div dangerouslySetInnerHTML={{ __html: polishContent }} />
+                    ) : (
+                        <div style={{ textAlign: 'center', marginTop: 150, color: '#86909c' }}>
+                            {polishLoading ? 'AI 正在思考中...' : '等待生成...'}
+                        </div>
+                    )}
+                    {polishLoading && (
+                        <div style={{ position: 'absolute', right: 10, top: 10 }}>
+                            <Spin />
+                        </div>
+                    )}
+                </div>
+            </Modal>
 
             {/* 编辑对话框 */}
-            <Modal
+            <Drawer
                 title="编辑知识点"
                 visible={editModalVisible}
-                style={{ width: 1000 }}
+                width={1000}
                 onCancel={() => {
                     setEditModalVisible(false);
                     editFormRef.current?.resetFields();
@@ -774,6 +866,12 @@ function KnowledgeManager() {
                         });
                         if (currentRecord.subjectId) {
                             fetchCategoriesBySubject(currentRecord.subjectId);
+                        }
+                        // 等待编辑器实例准备好后设置内容
+                        if (editEditorRef.current && currentRecord.content) {
+                            setTimeout(() => {
+                                editEditorRef.current?.setData(currentRecord.content);
+                            }, 100);
                         }
                     }
                 }}
@@ -820,7 +918,26 @@ function KnowledgeManager() {
                                     />
                                 </Form.Item>
                                 <Form.Item
-                                    label="知识点内容"
+                                    label={
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span>知识点内容</span>
+                                            <Button
+                                                type="text"
+                                                size="mini"
+                                                style={{ padding: '0 5px' }}
+                                                onClick={() => {
+                                                    const editor = editEditorRef.current;
+                                                    if (editor) {
+                                                        handlePolish(editor);
+                                                    } else {
+                                                        Message.warning('编辑器未初始化');
+                                                    }
+                                                }}
+                                            >
+                                                AI 润色
+                                            </Button>
+                                        </div>
+                                    }
                                     field="content"
                                     triggerPropName="initData"
                                     trigger="onChange"
@@ -831,6 +948,12 @@ function KnowledgeManager() {
                                 >
                                     <CKEditor
                                         editorUrl={editorScriptUrl}
+                                        onInstanceReady={({ editor }) => {
+                                            editEditorRef.current = editor;
+                                            if (currentRecord?.content) {
+                                                editor.setData(currentRecord.content);
+                                            }
+                                        }}
                                         config={{
                                             height: 300,
                                             allowedContent: true,
@@ -841,7 +964,7 @@ function KnowledgeManager() {
                                 </Form.Item>
                             </Form>
                         </div>
-                    </Modal>
+                    </Drawer>
 
             {/* 删除确认对话框 */}
             <Modal

@@ -87,7 +87,7 @@ public class DbDataInitializer implements CommandLineRunner {
 
         // 初始化邮件配置参数
         initializeMailConfig();
-        
+
         // 初始化文件存储配置参数
         initializeFileConfig();
     }
@@ -134,7 +134,6 @@ public class DbDataInitializer implements CommandLineRunner {
         roleMgr.setUpdateDate(LocalDateTime.now());
         menus.add(roleMgr);
 
-
         Menu userMgr = new Menu();
         userMgr.setMenuId("user_mgr");
         userMgr.setMenuName("user_mgr");
@@ -173,7 +172,6 @@ public class DbDataInitializer implements CommandLineRunner {
         r5.setMenuId("user_mgr");
         roleMenuRelaRepository.saveAll(Arrays.asList(r2, r3, r4, r5));
     }
-
 
     private void initializeAdminRole() {
         UserRoleRela adminRoleRela = new UserRoleRela();
@@ -272,92 +270,84 @@ public class DbDataInitializer implements CommandLineRunner {
         List<InitConfigParam> params = new ArrayList<>();
 
         params.add(new InitConfigParam(
-            "mail.host",
-            "smtp.example.com",
-            "smtp.example.com",
-            SystemParam.ParamType.STRING,
-            "邮件配置",
-            "SMTP服务器地址（如：smtp.qq.com、smtp.163.com、smtp.gmail.com）",
-            false,
-            1
-        ));
+                "mail.host",
+                "smtp.example.com",
+                "smtp.example.com",
+                SystemParam.ParamType.STRING,
+                "邮件配置",
+                "SMTP服务器地址（如：smtp.qq.com、smtp.163.com、smtp.gmail.com）",
+                false,
+                1));
 
         params.add(new InitConfigParam(
-            "mail.port",
-            "587",
-            "587",
-            SystemParam.ParamType.NUMBER,
-            "邮件配置",
-            "SMTP服务器端口（常用端口：25、465、587）",
-            false,
-            2
-        ));
+                "mail.port",
+                "587",
+                "587",
+                SystemParam.ParamType.NUMBER,
+                "邮件配置",
+                "SMTP服务器端口（常用端口：25、465、587）",
+                false,
+                2));
 
         params.add(new InitConfigParam(
-            "mail.username",
-            "your-email@example.com",
-            "your-email@example.com",
-            SystemParam.ParamType.STRING,
-            "邮件配置",
-            "发件人邮箱地址",
-            false,
-            3
-        ));
+                "mail.username",
+                "your-email@example.com",
+                "your-email@example.com",
+                SystemParam.ParamType.STRING,
+                "邮件配置",
+                "发件人邮箱地址",
+                false,
+                3));
 
         params.add(new InitConfigParam(
-            "mail.password",
-            "your-password",
-            "your-password",
-            SystemParam.ParamType.STRING,
-            "邮件配置",
-            "邮箱密码或授权码（建议使用授权码）",
-            true,
-            4
-        ));
+                "mail.password",
+                "your-password",
+                "your-password",
+                SystemParam.ParamType.STRING,
+                "邮件配置",
+                "邮箱密码或授权码（建议使用授权码）",
+                true,
+                4));
 
         params.add(new InitConfigParam(
-            "mail.encoding",
-            "UTF-8",
-            "UTF-8",
-            SystemParam.ParamType.STRING,
-            "邮件配置",
-            "邮件编码格式",
-            false,
-            5
-        ));
+                "mail.encoding",
+                "UTF-8",
+                "UTF-8",
+                SystemParam.ParamType.STRING,
+                "邮件配置",
+                "邮件编码格式",
+                false,
+                5));
 
         params.add(new InitConfigParam(
-            "mail.smtp.auth",
-            "true",
-            "true",
-            SystemParam.ParamType.BOOLEAN,
-            "邮件配置",
-            "启用SMTP身份验证",
-            false,
-            6
-        ));
+                "mail.smtp.auth",
+                "true",
+                "true",
+                SystemParam.ParamType.BOOLEAN,
+                "邮件配置",
+                "启用SMTP身份验证",
+                false,
+                6));
 
         params.add(new InitConfigParam(
-            "mail.smtp.starttls.enable",
-            "true",
-            "true",
-            SystemParam.ParamType.BOOLEAN,
-            "邮件配置",
-            "启用STARTTLS加密传输",
-            false,
-            7
-        ));
+                "mail.smtp.starttls.enable",
+                "true",
+                "true",
+                SystemParam.ParamType.BOOLEAN,
+                "邮件配置",
+                "启用STARTTLS加密传输",
+                false,
+                7));
 
         params.add(new InitConfigParam(
-            "mail.smtp.starttls.required",
-            "true",
-            "true",
-            SystemParam.ParamType.BOOLEAN,
-            "邮件配置",
-            "要求必须使用STARTTLS",
-            false,
-            8
-        ));
+                "mail.smtp.starttls.required",
+                "true",
+                "true",
+                SystemParam.ParamType.BOOLEAN,
+                "邮件配置",
+                "要求必须使用STARTTLS",
+                false,
+                8));
 
         return params;
     }
@@ -369,158 +359,144 @@ public class DbDataInitializer implements CommandLineRunner {
         List<InitConfigParam> params = new ArrayList<>();
 
         params.add(new InitConfigParam(
-            "quiz.file.storage-type",
-            "local",
-            "local",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "文件存储类型 (local, sftp, s3)",
-            false,
-            1
-        ));
+                "quiz.file.storage-type",
+                "local",
+                "local",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "文件存储类型 (local, sftp, s3)",
+                false,
+                1));
 
         params.add(new InitConfigParam(
-            "quiz.file.local.base-path",
-            "./data/files",
-            "./data/files",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "本地存储基础路径",
-            false,
-            2
-        ));
+                "quiz.file.local.base-path",
+                "./data/files",
+                "./data/files",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "本地存储基础路径",
+                false,
+                2));
 
         params.add(new InitConfigParam(
-            "quiz.file.sftp.host",
-            "localhost",
-            "localhost",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "SFTP服务器地址",
-            false,
-            3
-        ));
+                "quiz.file.sftp.host",
+                "localhost",
+                "localhost",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "SFTP服务器地址",
+                false,
+                3));
 
         params.add(new InitConfigParam(
-            "quiz.file.sftp.port",
-            "22",
-            "22",
-            SystemParam.ParamType.NUMBER,
-            "文件存储配置",
-            "SFTP服务器端口",
-            false,
-            4
-        ));
+                "quiz.file.sftp.port",
+                "22",
+                "22",
+                SystemParam.ParamType.NUMBER,
+                "文件存储配置",
+                "SFTP服务器端口",
+                false,
+                4));
 
         params.add(new InitConfigParam(
-            "quiz.file.sftp.username",
-            "user",
-            "user",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "SFTP用户名",
-            false,
-            5
-        ));
+                "quiz.file.sftp.username",
+                "user",
+                "user",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "SFTP用户名",
+                false,
+                5));
 
         params.add(new InitConfigParam(
-            "quiz.file.sftp.password",
-            "password",
-            "",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "SFTP密码",
-            true,
-            6
-        ));
-        
-        params.add(new InitConfigParam(
-            "quiz.file.sftp.private-key",
-            "",
-            "",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "SFTP私钥文件路径（可选）",
-            false,
-            7
-        ));
+                "quiz.file.sftp.password",
+                "password",
+                "",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "SFTP密码",
+                true,
+                6));
 
         params.add(new InitConfigParam(
-            "quiz.file.sftp.base-path",
-            "/upload",
-            "/upload",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "SFTP远程基础路径",
-            false,
-            8
-        ));
+                "quiz.file.sftp.private-key",
+                "",
+                "",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "SFTP私钥文件路径（可选）",
+                false,
+                7));
 
         params.add(new InitConfigParam(
-            "quiz.file.s3.access-key",
-            "minioadmin",
-            "",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "S3 Access Key",
-            false,
-            9
-        ));
+                "quiz.file.sftp.base-path",
+                "/upload",
+                "/upload",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "SFTP远程基础路径",
+                false,
+                8));
 
         params.add(new InitConfigParam(
-            "quiz.file.s3.secret-key",
-            "minioadmin",
-            "",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "S3 Secret Key",
-            true,
-            10
-        ));
+                "quiz.file.s3.access-key",
+                "minioadmin",
+                "",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "S3 Access Key",
+                false,
+                9));
 
         params.add(new InitConfigParam(
-            "quiz.file.s3.region",
-            "us-east-1",
-            "us-east-1",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "S3 Region",
-            false,
-            11
-        ));
+                "quiz.file.s3.secret-key",
+                "minioadmin",
+                "",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "S3 Secret Key",
+                true,
+                10));
 
         params.add(new InitConfigParam(
-            "quiz.file.s3.bucket",
-            "mybucket",
-            "mybucket",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "S3 Bucket Name",
-            false,
-            12
-        ));
+                "quiz.file.s3.region",
+                "us-east-1",
+                "us-east-1",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "S3 Region",
+                false,
+                11));
 
         params.add(new InitConfigParam(
-            "quiz.file.s3.endpoint",
-            "http://localhost:9000",
-            "",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "S3 Endpoint URL (Optional)",
-            false,
-            13
-        ));
+                "quiz.file.s3.bucket",
+                "mybucket",
+                "mybucket",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "S3 Bucket Name",
+                false,
+                12));
 
         params.add(new InitConfigParam(
-            "quiz.file.s3.base-path",
-            "",
-            "",
-            SystemParam.ParamType.STRING,
-            "文件存储配置",
-            "S3存储基础路径 (Optional)",
-            false,
-            14
-        ));
+                "quiz.file.s3.endpoint",
+                "http://localhost:9000",
+                "",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "S3 Endpoint URL (Optional)",
+                false,
+                13));
+
+        params.add(new InitConfigParam(
+                "quiz.file.s3.base-path",
+                "",
+                "",
+                SystemParam.ParamType.STRING,
+                "文件存储配置",
+                "S3存储基础路径 (Optional)",
+                false,
+                14));
 
         return params;
     }
@@ -539,8 +515,8 @@ public class DbDataInitializer implements CommandLineRunner {
         Integer sortOrder;
 
         InitConfigParam(String paramName, String paramValue, String defaultValue,
-                        SystemParam.ParamType paramType, String category, String description,
-                        Boolean isEncrypted, Integer sortOrder) {
+                SystemParam.ParamType paramType, String category, String description,
+                Boolean isEncrypted, Integer sortOrder) {
             this.paramName = paramName;
             this.paramValue = paramValue;
             this.defaultValue = defaultValue;

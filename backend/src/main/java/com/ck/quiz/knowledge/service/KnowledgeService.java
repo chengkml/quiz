@@ -66,7 +66,7 @@ public interface KnowledgeService {
     /**
      * 检查知识点名称是否存在
      *
-     * @param name 知识点名称
+     * @param name      知识点名称
      * @param excludeId 排除的知识点ID（用于更新时检查）
      * @return 是否存在
      */
@@ -89,5 +89,13 @@ public interface KnowledgeService {
     List<QuestionDto> getKnowledgeQuestions(String knowledgeId);
 
     List<String> generateKnowledges(String topic);
+
+    /**
+     * 流式润色知识点
+     *
+     * @param content 原始内容
+     * @return SseEmitter流
+     */
+    org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamPolishKnowledge(String content);
 
 }

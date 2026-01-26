@@ -36,6 +36,11 @@ const getCategoriesBySubjectId = (subjectId) => axios.get(`/categories/subject/$
 // 获取知识点关联的问题列表
 const getKnowledgeQuestions = knowledgeId => axios.get(`/knowledge/${knowledgeId}/questions`);
 
+// 流式润色知识点URL
+const streamPolishKnowledgeUrl = (content) => {
+    return `/api/knowledge/polish/stream?content=${encodeURIComponent(content)}`;
+};
+
 export {
   getKnowledgeList,
   getKnowledgeById,
@@ -48,5 +53,6 @@ export {
   getAllSubjects,
   getCategoriesBySubjectId,
   getKnowledgeQuestions,
-  getSubjectCategoryTree
+  getSubjectCategoryTree,
+  streamPolishKnowledgeUrl
 };

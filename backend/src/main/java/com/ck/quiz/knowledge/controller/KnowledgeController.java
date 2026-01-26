@@ -139,4 +139,17 @@ public class KnowledgeController {
         return ResponseEntity.ok(knowledgeService.getKnowledgeQuestions(id));
     }
 
+    /**
+     * 流式润色知识点
+     *
+     * @param content 原始内容
+     * @return SseEmitter流
+     */
+    @Operation(summary = "AI润色知识点（SSE）", description = "根据输入的知识点内容调用大模型进行润色")
+    @GetMapping(path = "/polish/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamPolishKnowledge(
+            @Parameter(description = "原始内容") @RequestParam("content") String content) {
+        return knowledgeService.streamPolishKnowledge(content);
+    }
+
 }

@@ -149,7 +149,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Override
     @Transactional(readOnly = true)
     public Page<KnowledgeDto> searchKnowledge(KnowledgeQueryDto queryDto) {
-        StringBuilder sql = new StringBuilder("select k.*, u.user_name create_user_name, s.name subject_name, c.name category_name from knowledge k left join users u on u.user_id = k.create_user left join subject s on s.id = k.subject_id left join category c on c.id = k.category_id where 1=1 ");
+        StringBuilder sql = new StringBuilder(
+                "select k.*, u.user_name create_user_name, s.name subject_name, c.name category_name from knowledge k left join users u on u.user_id = k.create_user left join subject s on s.id = k.subject_id left join category c on c.id = k.category_id where 1=1 ");
         StringBuilder countSql = new StringBuilder("select count(1) from knowledge k where 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
@@ -178,8 +179,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 namedParameterJdbcTemplate,
                 sql.toString(),
                 queryDto.getPageNum(),
-                queryDto.getPageSize()
-        );
+                queryDto.getPageSize());
 
         // 查询结果
         List<KnowledgeDto> knowledgeList = namedParameterJdbcTemplate.query(
@@ -195,13 +195,14 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                     k.setSubjectId(rs.getString("subject_id"));
                     k.setSubjectName(rs.getString("subject_name"));
                     k.setCreateDate(rs.getTimestamp("create_date").toLocalDateTime());
-                    k.setUpdateDate(rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null);
+                    k.setUpdateDate(
+                            rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime()
+                                    : null);
                     k.setCreateUser(rs.getString("create_user"));
                     k.setCreateUserName(rs.getString("create_user_name"));
                     k.setUpdateUser(rs.getString("update_user"));
                     return k;
-                }
-        );
+                });
 
         // 分页结果封装
         return JdbcQueryHelper.toPage(
@@ -210,8 +211,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 params,
                 knowledgeList,
                 queryDto.getPageNum(),
-                queryDto.getPageSize()
-        );
+                queryDto.getPageSize());
     }
 
     @Override
@@ -253,10 +253,62 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Override
     @Transactional(readOnly = true)
     public List<QuestionDto> getKnowledgeQuestions(String knowledgeId) {
-        List<com.ck.quiz.question.entity.Question> questions = questionKnowledgeRepository.findQuestionsByKnowledgeId(knowledgeId);
+        List<com.ck.quiz.question.entity.Question> questions = questionKnowledgeRepository
+                .findQuestionsByKnowledgeId(knowledgeId);
         return questions.stream()
                 .map(questionService::convertToDto)
                 .toList();
+    }
+
+    @Override
+    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamPolishKnowledge(String content) {
+        org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter = new org.springframework.web.servlet.mvc.method.annotation.SseEmitter(
+                0L);
+        // 在新线程中执行生成并实时流式发送
+        new Thread(() -> {
+            try {
+                ChatClient chat = buildChatClient();
+                // 构建提示词
+                String prompt = "请对以下知识点内容进行润色，要求：\n" +
+                        "1. 修正错别字和语病\n" +
+                        "2. 语言更加专业、精炼\n" +
+                        "3. 保持原有的HTML标签结构不变（如果有）\n" +
+                        "4. 只返回润色后的内容，不要包含任何解释性文字\n\n" +
+                        "内容如下：\n" + content;
+
+                // 使用流式调用
+                chat.prompt()
+                        .user(prompt)
+                        .stream()
+                        .content() // 流式获取内容
+                        .doOnNext(chunk -> {
+                            try {
+                                // 实时推送流式内容
+                                emitter.send(chunk);
+                            } catch (Exception e) {
+                                log.error("发送流式内容失败", e);
+                            }
+                        })
+                        .blockLast(); // 阻塞等待流完成
+
+                try {
+                    emitter.send("[DONE]");
+                } catch (Exception e) {
+                    // ignore
+                }
+                emitter.complete();
+            } catch (Exception ex) {
+                log.error("AI润色失败", ex);
+                try {
+                    emitter.send("[ERROR]" + ex.getMessage());
+                } catch (Exception sendEx) {
+                    log.error("发送错误消息失败", sendEx);
+                }
+                emitter.completeWithError(ex);
+            }
+        }).start();
+
+        return emitter;
     }
 
     /**
@@ -285,8 +337,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         ChatClient chat = buildChatClient();
         ObjectMapper objectMapper = new ObjectMapper();
 
-        int maxRetries = 3;          // 最大重试次数
-        long retryDelayMs = 1000L;   // 重试间隔 1 秒
+        int maxRetries = 3; // 最大重试次数
+        long retryDelayMs = 1000L; // 重试间隔 1 秒
         int attempt = 0;
 
         while (true) {
@@ -300,7 +352,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                     throw new RuntimeException("生成知识点失败，重试次数已达上限", e);
                 }
                 try {
-                    Thread.sleep(retryDelayMs);  // 等待后再重试
+                    Thread.sleep(retryDelayMs); // 等待后再重试
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException("重试被中断", ie);
