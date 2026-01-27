@@ -7,41 +7,55 @@ description: 整合前后端开发与Git版本控制的全能开发助手，提�
 
 ## 开发工作流 (Standard Workflow)
 
-### 第一阶段：后端开发 (Backend First)
-如果需求涉及数据结构或业务逻辑变更，**必须**先完成后端开发。
+### 阶段 0：启动开发 (Start Development)
+在开始写代码前，**必须**先做好准备工作。
+1.  **查找设计文档**：
+    *   在 `d:\idea_repo\quiz\todo` 目录下寻找对应的 `design_xxx.md` 文件并读取。
+2.  **更新需求状态 (In Progress)**：
+    *   修改 `todo.md`，将当前要开发的需求从 `## 待办 (To Do)` 移动到 `## 进行中 (In Progress)` 区域。
+3.  **确认执行计划**：
+    *   仔细阅读设计文档中的 **5. 实施步骤 (Action Plan)**。
+    *   接下来的开发工作**必须严格遵循**该计划的顺序。
+
+### 阶段 1：后端开发 (Backend First)
+如果设计文档包含后端变更，**必须**先完成后端开发。
 1.  **代码修改**：
-    *   实体层 (`d:\idea_repo\quiz\backend\src\main\java\...\entity`)
-    *   服务层 (`Service` / `ServiceImpl`)
-    *   控制层 (`Controller`)
+    *   根据设计文档的 *后端设计* 章节，创建 Entity、Repository、Service 和 Controller。
+    *   文件路径通常在 `d:\idea_repo\quiz\backend\src\main\java\...\`
 2.  **编译检查**：
     *   修改完成后，**务必**运行 **[Java 编译与自动修复]** Skill (`.agent/skills/java_compile_check/SKILL.md`)。
     *   确保后端编译通过 (`BUILD SUCCESSFUL`) 后再进行下一步。
 
-### 第二阶段：前端开发 (Frontend Implementation)
+### 阶段 2：前端开发 (Frontend Implementation)
 后端接口准备就绪后，进行前端界面开发。
 1.  **参考规范**：
-    *   在编写 UI 前，**务必**阅读 **[Arco Design 开发助手]** Skill (`.agent/skills/arco_design_dev/SKILL.md`)。
+    *   **务必**阅读 **[Arco Design 开发助手]** Skill (`.agent/skills/arco_design_dev/SKILL.md`)。
     *   特别是列表页，请使用 `DataManager` 组件，而非手写 Table。
 2.  **代码修改**：
-    *   API 定义 (`src/pages/.../api`)
-    *   UI 组件与页面逻辑
+    *   根据设计文档的 *前端设计* 章节，定义 API 和 React 组件。
+    *   API 定义位置: `src/pages/.../api`
 3.  **构建检查**：
     *   修改完成后，**务必**运行 **[前端编译与自动修复]** Skill (`.agent/skills/frontend_build_check/SKILL.md`)。
     *   确保 `tsc` 类型检查和 `webpack` 构建无误。
 
-### 第三阶段：代码提交 (Version Control)
-当功能开发完成且通过所有编译检查后。
-1.  **提交规范**：
-    *   调用 **[Git 提交助手]** Skill (`.agent/skills/git_commit/SKILL.md`)。
-    *   使用 `git status` 确认文件，`git diff` 审查变更。
-    *   生成符合 Conventional Commits 规范的提交信息 (如 `feat(user): add profile page`)。
+### 阶段 3：提交与验收 (Commit & Finish)
+每完成一个需求节点，**必须**进行一次 Git 提交。
+
+1.  **本地提交 (Mandatory Commit)**：
+    *   调用 **[Git 提交助手]** Skill (`.agent/skills/git_commit/SKILL.md`) 执行 commit。
+    *   **禁止**在此步骤执行 push。
+    *   Message 示例: `feat(todos): finish task A`
+2.  **更新需求状态 (Done)**：
+    *   修改 `todo.md`，将当前需求从 `## 进行中 (In Progress)` 移动到 `## 已完成 (Done)` 区域，并将 `[ ]` 改为 `[x]`。
+3.  **推送检查 (Conditional Push)**：
+    *   检查 `todo.md` 的 `## 待办 (To Do)` 和 `## 进行中 (In Progress)` 区域是否为空。
+    *   **若仍有任务**：任务结束，**不要推送**。
+    *   **若所有任务都已在 Done 区域**：执行 `git push` 将所有 commits 一次性推送到远程。
 
 ## 常用开发技巧
 
 *   **跨端调试**：
     *   如果遇到接口报错，请优先检查后端控制台日志，确认是参数错误还是空指针异常。
-    *   前端请求路径前缀通常为 `/api/...`，确保 Nginx 或 Proxy 配置正确。
-
-*   **技能组合推荐**：
-    *   这是一个 Meta-Skill (元技能)，在处理复杂任务时，你应该根据当前所处的阶段，自动调用上述提到的具体的子 Skill 来辅助工作。
-    *   例如：用户让你“加一个用户管理页面”，你应当按 1.后端 -> 2.Java检查 -> 3.前端(Arco) -> 4.前端检查 -> 5.Git提交 的顺序执行。
+*   **按部就班**：
+    *   这是一个 Meta-Skill (元技能)，请严格按照 `0 -> 1 -> 2 -> 3` 的阶段顺序执行。
+    *   状态流转 `To Do -> In Progress -> Done` 对于项目跟踪至关重要，请勿遗漏。
