@@ -11,7 +11,8 @@ import {
     IconPalette,
     IconClose,
     IconSave,
-    IconRobot
+    IconRobot,
+    IconCode
 } from '@arco-design/web-react/icon';
 import {
     createMindMap,
@@ -43,6 +44,10 @@ const MindMapEditPage: React.FC = () => {
     const [aiLoading, setAiLoading] = useState(false);
     const [aiStreamContent, setAiStreamContent] = useState("");
     const aiEventSourceRef = useRef<EventSource | null>(null);
+
+    // 代码查看状态
+    const [codeModalVisible, setCodeModalVisible] = useState(false);
+    const [codeContent, setCodeContent] = useState("");
 
     /** 初始化思维导图 */
     const doInitMindMap = useCallback((data?: MindMapData) => {
@@ -379,6 +384,22 @@ const MindMapEditPage: React.FC = () => {
         setAiModalVisible(false);
     };
 
+    /** 查看代码 */
+    const handleViewCode = () => {
+        if (!mindElixirRef.current) {
+            Message.error('思维导图未初始化');
+            return;
+        }
+        try {
+            const data = mindElixirRef.current.getData();
+            setCodeContent(JSON.stringify(data, null, 2));
+            setCodeModalVisible(true);
+        } catch (error) {
+            console.error('获取导图数据失败:', error);
+            Message.error('获取导图数据失败');
+        }
+    };
+
     /** 转换为Markdown格式 */
     const convertToMarkdown = (data: any, level: number = 1): string => {
         let markdown = '';
@@ -501,6 +522,24 @@ const MindMapEditPage: React.FC = () => {
         </Menu>
     );
 
+    /** 从代码更新导图 */
+    const handleUpdateFromCode = () => {
+        try {
+            const parsedData = JSON.parse(codeContent);
+            // 简单的格式校验
+            if (!parsedData.nodeData) {
+                Message.error('无效的导图数据格式: 缺少 nodeData');
+                return;
+            }
+            doInitMindMap(parsedData);
+            setCodeModalVisible(false);
+            Message.success('导图已更新');
+        } catch (error) {
+            console.error('解析代码失败:', error);
+            Message.error('JSON 格式错误，请检查代码');
+        }
+    };
+
     return (
         <Layout style={{height: 'calc(100% - 20px)'}}>
             <Content className="mindmap-edit-page" style={{
@@ -546,6 +585,9 @@ const MindMapEditPage: React.FC = () => {
                         </Button>
                     </div>
                     <div className="mindmap-toolbar-right">
+                        <Tooltip content="查看代码">
+                            <Button icon={<IconCode />} onClick={handleViewCode} />
+                        </Tooltip>
                         <Tooltip content="切换主题">
                             <Dropdown droplist={themeMenu} position="br">
                                 <Button icon={<IconPalette />} />
@@ -603,6 +645,25 @@ const MindMapEditPage: React.FC = () => {
                            {aiStreamContent || "正在思考..."}
                         </div>
                     )}
+                </Modal>
+
+                {/* 源代码查看弹窗 */}
+                <Modal
+                    title="导图数据代码"
+                    visible={codeModalVisible}
+                    onOk={handleUpdateFromCode}
+                    onCancel={() => setCodeModalVisible(false)}
+                    okText="更新导图"
+                    cancelText="取消"
+                    style={{ width: '800px' }}
+                >
+                    <Input.TextArea 
+                        value={codeContent} 
+                        onChange={v => setCodeContent(v)}
+                        autoSize={{ minRows: 10, maxRows: 20 }} 
+                        style={{ fontFamily: 'monospace' }}
+                        placeholder="在此粘贴或修改 JSON 代码，点击更新导图应用更改"
+                    />
                 </Modal>
             </Content>
         </Layout>
