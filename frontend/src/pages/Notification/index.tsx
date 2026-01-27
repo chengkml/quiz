@@ -23,15 +23,11 @@ const { TextArea } = Input;
 
 type ChannelType = 'SMS' | 'BROWSER' | 'EMAIL';
 
-  return (
-    <div className="notification-page">
-      <div className="notification-container">
-        {/* 其它原有内容... */}
-        <ExceptionLogPage />
-      </div>
-    </div>
-  );
-              const [sending, setSending] = useState(false);
+
+
+const NotificationPage = () => {
+  const formRef = useRef<any>(null);
+  const [sending, setSending] = useState(false);
               const [channel, setChannel] = useState<ChannelType>('BROWSER');
               const [browserContentHtml, setBrowserContentHtml] = useState<string>('');
               const [fileList, setFileList] = useState<any[]>([]);
@@ -169,7 +165,7 @@ type ChannelType = 'SMS' | 'BROWSER' | 'EMAIL';
                         {channel === 'BROWSER' ? (
                           <>
                             <Form.Item label="跳转链接" field="linkUrl" rules={[{
-                              validator: (value: string, cb: (msg?: string) => void) => {
+                              validator: (value: string | undefined, cb: (msg?: string) => void) => {
                                 if (!value) return cb();
                                 const ok = /^(https?:\/\/).+/i.test(value);
                                 return ok ? cb() : cb('请输入合法的 http/https 链接');
@@ -220,48 +216,3 @@ type ChannelType = 'SMS' | 'BROWSER' | 'EMAIL';
             };
 
             export default NotificationPage;
-            </Form.Item>
-          )}
-
-          {channel === 'BROWSER' ? (
-            <>
-              <Form.Item label="跳转链接" field="linkUrl">
-                <Input placeholder="可选，点击通知跳转的链接，例如 https://example.com/page" />
-              </Form.Item>
-              <Form.Item label="内容（富文本）" required>
-                <RichTextEditor value={browserContentHtml} onChange={setBrowserContentHtml} />
-              </Form.Item>
-            </>
-          ) : (
-            <Form.Item label="内容" field="content" rules={[{ required: true, message: '请输入内容' }]}> 
-              <TextArea placeholder="请输入消息内容" autoSize={{ minRows: 4, maxRows: 10 }} />
-            </Form.Item>
-          )}
-
-          {channel === 'EMAIL' && (
-            <Form.Item label="附件">
-              <Upload
-                multiple
-                autoUpload={false}
-                fileList={fileList}
-                onChange={setFileList}
-                accept="*"
-              />
-            </Form.Item>
-          )}
-
-          <div className="actions">
-            <Space>
-              <Button type="primary" icon={<IconSend />} loading={sending} onClick={handleSend}>
-                发送
-              </Button>
-              <Button onClick={() => formRef.current?.resetFields?.()}>重置</Button>
-            </Space>
-          </div>
-        </Form>
-      </Card>
-    </div>
-  );
-};
-
-export default NotificationPage;

@@ -10,31 +10,37 @@ export interface MindMapDto {
   mapName: string;
   ownerId?: string;
   ownerName?: string;
-  description?: string;
+  descr?: string; // Corrected from description to descr
   mapData?: string;
   version?: number;
   isShared?: boolean;
   createDate?: string;
+  createUserName?: string; // Added
   createUser?: string;
   updateDate?: string;
   updateUser?: string;
+  updateUserName?: string;
+  groupName?: string; // Added
+  groupLabel?: string; // Added
 }
 
 // 思维导图创建DTO
 export interface MindMapCreateDto {
   mapName: string;
-  description?: string;
+  descr?: string;
   mapData?: string;
   isShared?: boolean;
+  group?: string; // Added
 }
 
 // 思维导图更新DTO
 export interface MindMapUpdateDto {
   id: string;
   mapName: string;
-  description?: string;
+  descr?: string;
   mapData?: string;
   isShared?: boolean;
+  group?: string; // Added
 }
 
 // 思维导图查询DTO
@@ -46,6 +52,7 @@ export interface MindMapQueryDto {
   pageSize?: number;
   sortColumn?: string;
   sortType?: string;
+  groups?: string[]; // Added
 }
 
 // 表单引用类型

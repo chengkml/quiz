@@ -12,6 +12,8 @@ import {
   Message,
   Modal,
   Space,
+  Tag,
+  Tree,
 } from "@arco-design/web-react";
 import {
   IconDelete,
@@ -28,6 +30,7 @@ import {
   updateMindMapBasicInfo,
 } from "./api/mindMapService";
 import { DataManager, AddEditModal } from "@/components/DataManager";
+import { getGroupList } from "../Group/api";
 import FilterForm from "@/components/FilterForm";
 import { FormFieldConfig } from "@/components/types/types";
 import renderDate from "@/utils/timeUtil";
@@ -55,7 +58,14 @@ const MindMapListPage: React.FC = () => {
   // 搜索条件
   const [searchParams, setSearchParams] = useState({
     mapName: "",
+    groups: [],
   });
+
+  // 分组数据
+  const [groupTreeData, setGroupTreeData] = useState<any[]>([]);
+  const [groupOptions, setGroupOptions] = useState<any[]>([]);
+  const [selectedGroupKeys, setSelectedGroupKeys] = useState<string[]>([]);
+  const [treeLoading, setTreeLoading] = useState(false);
 
   // 当前记录与弹窗
   const [currentRecord, setCurrentRecord] = useState<MindMapDto | null>(null);
@@ -81,6 +91,9 @@ const MindMapListPage: React.FC = () => {
         pageNum: current - 1,
         pageSize: pageSize,
       };
+      if (selectedGroupKeys.length > 0) {
+          targetParams.groups = selectedGroupKeys;
+      }
       const response = await getMindMapList(targetParams);
       if (response.data) {
         const data = Array.isArray(response.data)
@@ -101,6 +114,29 @@ const MindMapListPage: React.FC = () => {
     } finally {
       setTableLoading(false);
     }
+  };
+
+  // 获取分组列表
+  const fetchGroups = async () => {
+      setTreeLoading(true);
+      try {
+          const res = await getGroupList({ type: 'mindmap', pageSize: 1000 });
+          const groups = res.data.content || [];
+          const tree = groups.map((g: any) => ({
+              key: g.name,
+              title: g.label,
+              ...g
+          }));
+          setGroupTreeData(tree);
+          setGroupOptions(groups.map((g: any) => ({
+              label: g.label,
+              value: g.name
+          })));
+      } catch (error) {
+          console.error("Fetch groups failed", error);
+      } finally {
+          setTreeLoading(false);
+      }
   };
 
   // 搜索处理
@@ -139,8 +175,16 @@ const MindMapListPage: React.FC = () => {
 
   // 初始化获取数据
   useEffect(() => {
+    fetchGroups();
     fetchTableData(searchParams, pagination.pageSize, pagination.current);
-  }, [searchParams, pagination.current, pagination.pageSize]);
+  }, [searchParams, pagination.current, pagination.pageSize]); // searchParams change will trigger fetchTableData
+
+  // 监听分组选择变化
+  useEffect(() => {
+      // When selected groups change, update search params to trigger fetch
+      // Actually fetchTableData reads selectedGroupKeys directly or we can pass it
+      fetchTableData(searchParams, pagination.pageSize, 1);
+  }, [selectedGroupKeys]);
 
   // 处理新增
   const handleAdd = () => {
@@ -170,6 +214,7 @@ const MindMapListPage: React.FC = () => {
         id: record.id,
         mapName: record.mapName,
         descr: record.descr || "",
+        group: record.groupName, // Populate group for edit
       });
     }, 50);
   };
@@ -301,6 +346,13 @@ const MindMapListPage: React.FC = () => {
         </Dropdown>
       ),
     },
+    {
+      title: "分组",
+      dataIndex: "groupLabel",
+      key: "groupLabel",
+      width: 120,
+      render: (text: string) => <Tag>{text || '未分类'}</Tag>
+    },
   ];
 
   // 搜索表单字段配置
@@ -325,7 +377,15 @@ const MindMapListPage: React.FC = () => {
       rules: [{ required: true, message: "请输入思维导图名称" }],
     },
     {
-      field: "descr",
+      field: "group",
+      label: "分组",
+      type: "select",
+      placeholder: "请选择分组",
+      options: groupOptions,
+      allowClear: true,
+    },
+    {
+      field: "descr", // Moved descr after group
       label: "描述",
       type: "textarea",
       placeholder: "请输入描述（可选）",
@@ -339,6 +399,25 @@ const MindMapListPage: React.FC = () => {
       formFields={searchFormFields}
       onSearch={handleSearch}
     />
+  );
+
+  const treeContent = (
+      <div style={{ height: '100%', paddingTop: 10 }}>
+        {/* Simple tree header or search could go here */}
+        <Tree
+          treeData={[{ key: 'all', title: '全部', children: [] }, ...groupTreeData]}
+          selectedKeys={selectedGroupKeys}
+          onSelect={(keys) => {
+             // Handle "All" or specific group
+             if (keys.includes('all')) {
+                 setSelectedGroupKeys([]);
+             } else {
+                 setSelectedGroupKeys(keys);
+             }
+          }}
+          blockNode
+        />
+      </div>
   );
 
   return (
@@ -356,6 +435,9 @@ const MindMapListPage: React.FC = () => {
           displayMode: "table",
           filterContent,
           tableColumns: columns,
+          showTree: true,
+          treeContent,
+          treeData: groupTreeData, // Optional, since we passed treeContent
         }}
         tableScrollHeight={tableScrollHeight}
       />

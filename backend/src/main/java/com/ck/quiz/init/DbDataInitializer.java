@@ -14,6 +14,8 @@ import com.ck.quiz.user.entity.User;
 import com.ck.quiz.user.repository.UserRepository;
 import com.ck.quiz.user_role.entity.UserRoleRela;
 import com.ck.quiz.user_role.repository.UserRoleRelaRepository;
+import com.ck.quiz.knowledgeset.entity.KnowledgeSet;
+import com.ck.quiz.knowledgeset.repository.KnowledgeSetRepository;
 import com.ck.quiz.utils.IdHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +59,9 @@ public class DbDataInitializer implements CommandLineRunner {
     @Autowired
     private SystemParamService systemParamService;
 
+    @Autowired
+    private KnowledgeSetRepository knowledgeSetRepository;
+
     @Override
     public void run(String... args) {
         // 检查用户表是否为空
@@ -90,6 +95,9 @@ public class DbDataInitializer implements CommandLineRunner {
 
         // 初始化文件存储配置参数
         initializeFileConfig();
+
+        // 初始化思维导图知识集
+        initializeKnowledgeSet();
     }
 
     private void initializeMenu() {
@@ -350,6 +358,28 @@ public class DbDataInitializer implements CommandLineRunner {
                 8));
 
         return params;
+    }
+
+    /**
+     * 初始化思维导图知识集
+     */
+    private void initializeKnowledgeSet() {
+        String name = "思维导图";
+        String createUser = "admin";
+        if (knowledgeSetRepository.existsByNameAndCreateUser(name, createUser)) {
+            return;
+        }
+        KnowledgeSet ks = new KnowledgeSet();
+        ks.setId(IdHelper.genUuid());
+        ks.setName(name);
+        ks.setDescr("系统默认思维导图知识集");
+        ks.setCreateUser(createUser);
+        ks.setUpdateUser(createUser);
+        ks.setCreateDate(LocalDateTime.now());
+        ks.setUpdateDate(LocalDateTime.now());
+        ks.setIsSystem(true);
+        ks.setStatus("ENABLED");
+        knowledgeSetRepository.save(ks);
     }
 
     /**

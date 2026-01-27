@@ -1,12 +1,19 @@
 package com.ck.quiz.mindmap.service.impl;
 
 import com.ck.quiz.base.service.impl.BaseServiceImpl;
+import com.ck.quiz.group.dto.GroupDto;
+import com.ck.quiz.group.dto.GroupQueryDto;
+import com.ck.quiz.group.entity.Group;
+import com.ck.quiz.group.repository.GroupRepository;
+import com.ck.quiz.group_obj.entity.GroupObjRela;
+import com.ck.quiz.group_obj.repository.GroupObjRelaRepository;
 import com.ck.quiz.mindmap.dto.*;
 import com.ck.quiz.mindmap.entity.MindMap;
 import com.ck.quiz.mindmap.repository.MindMapRepository;
 import com.ck.quiz.mindmap.service.MindMapService;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
 import com.ck.quiz.prompt.service.PromptTemplateService;
+import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +48,12 @@ public class MindMapServiceImpl extends
     private MindMapRepository mindMapRepository;
 
     @Autowired
+    private GroupRepository groupRepository;
+
+    @Autowired
+    private GroupObjRelaRepository groupObjRelaRepository;
+
+    @Autowired
     private PromptTemplateService promptTemplateService;
 
     @Autowired
@@ -67,6 +80,28 @@ public class MindMapServiceImpl extends
         mindMap.setUpdateDate(LocalDateTime.now());
 
         MindMap updatedMindMap = mindMapRepository.save(mindMap);
+
+        // 处理分组关联逻辑
+        if (mindMapBasicInfoUpdateDto.getGroup() != null) {
+            // 删除现有的分组关联
+            groupObjRelaRepository.deleteByObjId(updatedMindMap.getId());
+
+            if (org.springframework.util.StringUtils.hasText(mindMapBasicInfoUpdateDto.getGroup())) {
+                // 添加新的分组关联
+                String createUser = updatedMindMap.getCreateUser();
+                Group group = groupRepository.findByCreateUserAndName(createUser, mindMapBasicInfoUpdateDto.getGroup());
+                if (group != null) {
+                    GroupObjRela rela = new GroupObjRela();
+                    rela.setRelaId(IdHelper.genUuid());
+                    rela.setGroupId(group.getId());
+                    rela.setObjId(updatedMindMap.getId());
+                    groupObjRelaRepository.save(rela);
+                } else {
+                    throw new RuntimeException("Group not found: " + mindMapBasicInfoUpdateDto.getGroup());
+                }
+            }
+        }
+
         return convertToDto(updatedMindMap, true);
     }
 
@@ -97,11 +132,17 @@ public class MindMapServiceImpl extends
     public Page<MindMapDto> search(String userId, MindMapQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
                 "SELECT m.id, m.map_name, m.descr, m.map_data, " +
-                        "m.create_date, m.create_user, u.user_name create_user_name, m.update_date, m.update_user " +
-                        "FROM mind_map m left join users u on u.user_id = m.create_user ");
+                        "m.create_date, m.create_user, u.user_name create_user_name, m.update_date, m.update_user, " +
+                        "g.name as group_name, g.label as group_label " +
+                        "FROM mind_map m " +
+                        "left join users u on u.user_id = m.create_user " +
+                        "left join obj_group_obj_rela r ON r.obj_id = m.id " +
+                        "left join obj_group g ON g.id = r.group_id ");
 
         StringBuilder countSql = new StringBuilder(
-                "SELECT COUNT(1) FROM mind_map m ");
+                "SELECT COUNT(1) FROM mind_map m " +
+                        "left join obj_group_obj_rela r ON r.obj_id = m.id " +
+                        "left join obj_group g ON g.id = r.group_id ");
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         sql.append("WHERE m.create_user = :createUser ");
@@ -116,6 +157,14 @@ public class MindMapServiceImpl extends
             countSql.append(" AND LOWER(m.map_name) LIKE :mapName ");
             params.put("mapName", "%" + queryDto.getMapName().toLowerCase() + "%");
         }
+
+        // 分组过滤
+        if (queryDto.getGroups() != null && !queryDto.getGroups().isEmpty()) {
+            sql.append(" AND g.name IN (:groups) ");
+            countSql.append(" AND g.name IN (:groups) ");
+            params.put("groups", queryDto.getGroups());
+        }
+
         sql.append(" ORDER BY m.create_date DESC ");
 
         // 分页
@@ -129,6 +178,8 @@ public class MindMapServiceImpl extends
             dto.setMapName(rs.getString("map_name"));
             dto.setDescr(rs.getString("descr"));
             dto.setMapData(rs.getString("map_data"));
+            dto.setGroupName(rs.getString("group_name"));
+            dto.setGroupLabel(rs.getString("group_label"));
             dto.setCreateDate(
                     rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             dto.setCreateUser(rs.getString("create_user"));
@@ -209,7 +260,7 @@ public class MindMapServiceImpl extends
                         chat.prompt()
                                 .user(prompt)
                                 .stream()
-                                .content()  // 流式获取内容
+                                .content() // 流式获取内容
                                 .doOnNext(chunk -> {
                                     try {
                                         // 实时推送流式内容（token/chunk）到前端
@@ -221,7 +272,7 @@ public class MindMapServiceImpl extends
                                         System.err.println("Failed to send chunk: " + e.getMessage());
                                     }
                                 })
-                                .blockLast();  // 阻塞等待流完成
+                                .blockLast(); // 阻塞等待流完成
 
                         String content = fullContent.toString().trim();
 
@@ -259,7 +310,7 @@ public class MindMapServiceImpl extends
 
                             emitter.complete();
                             finished = true;
-                            break;  // 成功完成，退出重试循环
+                            break; // 成功完成，退出重试循环
                         } catch (Exception parseEx) {
                             // 将 JSON 解析失败视为一次失败，记录异常用于最终上报
                             lastException = parseEx;
@@ -310,7 +361,8 @@ public class MindMapServiceImpl extends
                 // 只有所有重试都失败时才关闭emitter并推送错误
                 if (attempt >= maxRetries) {
                     try {
-                        emitter.send("[ERROR]生成思维导图失败，重试次数已达上限: " + (lastException != null ? lastException.getMessage() : "未知错误"));
+                        emitter.send("[ERROR]生成思维导图失败，重试次数已达上限: "
+                                + (lastException != null ? lastException.getMessage() : "未知错误"));
                     } catch (Exception ex) {
                         log.error("发送重试次数达上限错误消息失败", ex);
                     }
