@@ -21,8 +21,10 @@ import {
   IconList,
   IconPlus,
   IconMindMapping,
+  IconEye,
 } from "@arco-design/web-react/icon";
 import "./style/index.less";
+import GroupTree from "./components/GroupTree";
 import {
   createMindMap,
   deleteMindMap,
@@ -62,10 +64,10 @@ const MindMapListPage: React.FC = () => {
   });
 
   // 分组数据
-  const [groupTreeData, setGroupTreeData] = useState<any[]>([]);
+  // groupTreeData removed, handled by GroupTree component
   const [groupOptions, setGroupOptions] = useState<any[]>([]);
   const [selectedGroupKeys, setSelectedGroupKeys] = useState<string[]>([]);
-  const [treeLoading, setTreeLoading] = useState(false);
+  // treeLoading removed
 
   // 当前记录与弹窗
   const [currentRecord, setCurrentRecord] = useState<MindMapDto | null>(null);
@@ -118,24 +120,16 @@ const MindMapListPage: React.FC = () => {
 
   // 获取分组列表
   const fetchGroups = async () => {
-      setTreeLoading(true);
+      // Manage options for Select only
       try {
           const res = await getGroupList({ type: 'mindmap', pageSize: 1000 });
           const groups = res.data.content || [];
-          const tree = groups.map((g: any) => ({
-              key: g.name,
-              title: g.label,
-              ...g
-          }));
-          setGroupTreeData(tree);
           setGroupOptions(groups.map((g: any) => ({
               label: g.label,
               value: g.name
           })));
       } catch (error) {
           console.error("Fetch groups failed", error);
-      } finally {
-          setTreeLoading(false);
       }
   };
 
@@ -264,6 +258,11 @@ const MindMapListPage: React.FC = () => {
     navigate(`/frame/mindmap/edit/${record.id}`);
   };
 
+  // 处理查看
+  const handleView = (record: MindMapDto) => {
+    navigate(`/frame/mindmap/view/${record.id}`);
+  };
+
   // 表格列配置
   const columns = [
     {
@@ -308,6 +307,9 @@ const MindMapListPage: React.FC = () => {
             <Menu
               onClickMenuItem={(key) => {
                 switch (key) {
+                  case "view":
+                    handleView(record);
+                    break;
                   case "draw":
                     handleDraw(record);
                     break;
@@ -321,6 +323,10 @@ const MindMapListPage: React.FC = () => {
               }}
               className="handle-dropdown-menu"
             >
+              <Menu.Item key="view">
+                <IconEye style={{ marginRight: 5 }} />
+                查看
+              </Menu.Item>
               <Menu.Item key="draw">
                 <IconMindMapping style={{ marginRight: 5 }} />
                 绘图
@@ -401,24 +407,6 @@ const MindMapListPage: React.FC = () => {
     />
   );
 
-  const treeContent = (
-      <div style={{ height: '100%', paddingTop: 10 }}>
-        {/* Simple tree header or search could go here */}
-        <Tree
-          treeData={[{ key: 'all', title: '全部', children: [] }, ...groupTreeData]}
-          selectedKeys={selectedGroupKeys}
-          onSelect={(keys) => {
-             // Handle "All" or specific group
-             if (keys.includes('all')) {
-                 setSelectedGroupKeys([]);
-             } else {
-                 setSelectedGroupKeys(keys);
-             }
-          }}
-          blockNode
-        />
-      </div>
-  );
 
   return (
     <div className="mindmap-list-page">
@@ -436,8 +424,23 @@ const MindMapListPage: React.FC = () => {
           filterContent,
           tableColumns: columns,
           showTree: true,
-          treeContent,
-          treeData: groupTreeData, // Optional, since we passed treeContent
+          treeContent: (
+             <GroupTree 
+                selectedKeys={selectedGroupKeys} 
+                onSelect={(keys) => {
+                   if (keys.includes('all')) setSelectedGroupKeys([]);
+                   else setSelectedGroupKeys(keys);
+                }} 
+             />
+          ),
+          tableProps: {
+              onRow: (record: any) => ({
+                  onClick: () => {
+                      handleView(record);
+                  },
+                  onDoubleClick: () => handleDraw(record)
+              })
+          }
         }}
         tableScrollHeight={tableScrollHeight}
       />

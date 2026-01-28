@@ -14,6 +14,7 @@ interface TableListProps<T = any> {
   rowKey?: string | ((record: T) => string | number);
   pagination?: false | any;
   onChange?: (pagination: any, filters?: any, sorter?: any, extra?: any) => void;
+  tableProps?: any;
 }
 
 /**
@@ -31,6 +32,7 @@ const TableList = <T extends any>({
   rowKey = 'id',
   pagination = false,
   onChange,
+  tableProps,
 }: TableListProps<T>) => {
   if (data.length === 0 && !loading) {
     return <Empty />;
@@ -105,6 +107,7 @@ const TableList = <T extends any>({
         x: true,
       }}
       stripe
+      {...tableProps}
     />
   );
 };

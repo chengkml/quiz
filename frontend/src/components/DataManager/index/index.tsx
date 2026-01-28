@@ -59,6 +59,7 @@ const DataManager: React.FC<DataManagerProps> = ({
     expandedKeys = [],
     onTreeExpand,
     showTreeFilter = false,
+    tableProps,
   } = config;
 
   const [displayMode, setDisplayMode] =
@@ -198,6 +199,7 @@ const DataManager: React.FC<DataManagerProps> = ({
             columns={tableColumns.length > 0 ? tableColumns : columns}
             scrollHeight={tableScrollHeight}
             pagination={false}
+            tableProps={tableProps}
           />
         );
     }

@@ -46,6 +46,8 @@ export interface DataManagerConfig<T = any> {
   longCardConfig?: CardConfig;
   // 表格列配置
   tableColumns?: any[];
+  // 表格属性
+  tableProps?: any;
   // 自定义列表项渲染
   renderItem?: (item: T, index: number) => React.ReactNode;
   // 自定义短卡片渲染
