@@ -6,6 +6,6 @@
 - [ ] 
 
 ## 以此进行中 (In Progress)
-- [ ] 个人密码管理器 (Password Manager): 加密存储个人账号密码
 
 ## 已完成 (Done)
+- [x] 个人密码管理器 (Password Manager): 加密存储个人账号密码
