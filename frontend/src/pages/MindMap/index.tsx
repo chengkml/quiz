@@ -14,6 +14,7 @@ import {
   Space,
   Tag,
   Tree,
+  Drawer,
 } from "@arco-design/web-react";
 import {
   IconDelete,
@@ -37,6 +38,8 @@ import FilterForm from "@/components/FilterForm";
 import { FormFieldConfig } from "@/components/types/types";
 import renderDate from "@/utils/timeUtil";
 import { MindMapDto, PaginationConfig } from "./types";
+import MindMapEditPage from "./Edit";
+import MindMapViewPage from "./View";
 
 const { Content } = Layout;
 const { Row, Col } = Grid;
@@ -64,19 +67,21 @@ const MindMapListPage: React.FC = () => {
   });
 
   // 分组数据
-  // groupTreeData removed, handled by GroupTree component
   const [groupOptions, setGroupOptions] = useState<any[]>([]);
   const [selectedGroupKeys, setSelectedGroupKeys] = useState<string[]>([]);
-  // treeLoading removed
 
-  // 当前记录与弹窗
+  // 当前记录与弹窗/抽屉
   const [currentRecord, setCurrentRecord] = useState<MindMapDto | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
+  
+  // 抽屉状态
+  const [drawDrawerVisible, setDrawDrawerVisible] = useState(false);
+  const [viewDrawerVisible, setViewDrawerVisible] = useState(false);
+  const [activeMindMapId, setActiveMindMapId] = useState<string | null>(null);
 
   // 表单引用
-  // AddEditModal 内置表单，无需额外 ref
   const editFormRef = useRef<any>(null);
   const filterFormRef = useRef<any>(null);
 
@@ -120,7 +125,6 @@ const MindMapListPage: React.FC = () => {
 
   // 获取分组列表
   const fetchGroups = async () => {
-      // Manage options for Select only
       try {
           const res = await getGroupList({ type: 'mindmap', pageSize: 1000 });
           const groups = res.data.content || [];
@@ -171,12 +175,10 @@ const MindMapListPage: React.FC = () => {
   useEffect(() => {
     fetchGroups();
     fetchTableData(searchParams, pagination.pageSize, pagination.current);
-  }, [searchParams, pagination.current, pagination.pageSize]); // searchParams change will trigger fetchTableData
+  }, [searchParams, pagination.current, pagination.pageSize]); 
 
   // 监听分组选择变化
   useEffect(() => {
-      // When selected groups change, update search params to trigger fetch
-      // Actually fetchTableData reads selectedGroupKeys directly or we can pass it
       fetchTableData(searchParams, pagination.pageSize, 1);
   }, [selectedGroupKeys]);
 
@@ -208,7 +210,7 @@ const MindMapListPage: React.FC = () => {
         id: record.id,
         mapName: record.mapName,
         descr: record.descr || "",
-        group: record.groupName, // Populate group for edit
+        group: record.groupName, 
       });
     }, 50);
   };
@@ -255,12 +257,14 @@ const MindMapListPage: React.FC = () => {
 
   // 处理绘图
   const handleDraw = (record: MindMapDto) => {
-    navigate(`/frame/mindmap/edit/${record.id}`);
+    setActiveMindMapId(record.id);
+    setDrawDrawerVisible(true);
   };
 
   // 处理查看
   const handleView = (record: MindMapDto) => {
-    navigate(`/frame/mindmap/view/${record.id}`);
+    setActiveMindMapId(record.id);
+    setViewDrawerVisible(true);
   };
 
   // 表格列配置
@@ -271,14 +275,18 @@ const MindMapListPage: React.FC = () => {
       key: "mapName",
       ellipsis: true,
       width: 150,
+      render: (text: string, record: MindMapDto) => (
+          <Button type="text" style={{padding: 0}} onClick={() => handleView(record)}>{text}</Button>
+      )
     },
     {
-      title: "描述",
-      dataIndex: "descr",
-      key: "descr",
-      ellipsis: true,
-      width: 200,
+      title: "分组",
+      dataIndex: "groupLabel",
+      key: "groupLabel",
+      width: 120,
+      render: (text: string) => <Tag>{text || '未分类'}</Tag>
     },
+    // Removed description column
     {
       title: "创建人",
       dataIndex: "createUserName",
@@ -352,13 +360,6 @@ const MindMapListPage: React.FC = () => {
         </Dropdown>
       ),
     },
-    {
-      title: "分组",
-      dataIndex: "groupLabel",
-      key: "groupLabel",
-      width: 120,
-      render: (text: string) => <Tag>{text || '未分类'}</Tag>
-    },
   ];
 
   // 搜索表单字段配置
@@ -391,7 +392,7 @@ const MindMapListPage: React.FC = () => {
       allowClear: true,
     },
     {
-      field: "descr", // Moved descr after group
+      field: "descr", 
       label: "描述",
       type: "textarea",
       placeholder: "请输入描述（可选）",
@@ -435,10 +436,7 @@ const MindMapListPage: React.FC = () => {
           ),
           tableProps: {
               onRow: (record: any) => ({
-                  onClick: () => {
-                      handleView(record);
-                  },
-                  onDoubleClick: () => handleDraw(record)
+                  onDoubleClick: () => handleView(record)
               })
           }
         }}
@@ -486,6 +484,57 @@ const MindMapListPage: React.FC = () => {
           ))}
         </Form>
       </Modal>
+
+      {/* 绘图抽屉 */}
+      <Drawer
+        width="100%"
+        height="100%"
+        visible={drawDrawerVisible}
+        footer={null}
+        closable={false}
+        onCancel={() => {
+            setDrawDrawerVisible(false);
+            setActiveMindMapId(null);
+            fetchTableData(); // Refresh data on close
+        }}
+        placement="right"
+      >
+          {activeMindMapId && (
+              <MindMapEditPage 
+                  id={activeMindMapId} 
+                  onClose={() => {
+                      setDrawDrawerVisible(false);
+                      setActiveMindMapId(null);
+                      fetchTableData();
+                  }}
+              />
+          )}
+      </Drawer>
+
+      {/* 查看抽屉 */}
+      <Drawer
+        width="100%"
+        height="100%"
+        visible={viewDrawerVisible}
+        footer={null}
+        closable={false}
+        onCancel={() => {
+            setViewDrawerVisible(false);
+            setActiveMindMapId(null);
+        }}
+        placement="right"
+      >
+          {activeMindMapId && (
+              <MindMapViewPage 
+                  id={activeMindMapId}
+                  onClose={() => {
+                      setViewDrawerVisible(false);
+                      setActiveMindMapId(null);
+                  }}
+              />
+          )}
+      </Drawer>
+
     </div>
   );
 };

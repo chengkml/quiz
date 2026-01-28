@@ -25,9 +25,18 @@ import { Input, Modal } from '@arco-design/web-react';
 
 const { Content } = Layout;
 
-const MindMapEditPage: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
+interface MindMapEditPageProps {
+    id?: string;
+    onClose?: () => void;
+}
+
+const MindMapEditPage: React.FC<MindMapEditPageProps> = (props) => {
+    const params = useParams<{ id: string }>();
     const navigate = useNavigate();
+
+    // Support both props (drawer mode) and params (route mode)
+    const id = props.id || params.id;
+    const isDrawerMode = !!props.id;
     const mindMapRef = useRef<HTMLDivElement>(null);
     const mindElixirRef = useRef<any>(null);
     const mountedRef = useRef(false);
@@ -203,7 +212,13 @@ const MindMapEditPage: React.FC = () => {
         }
     };
 
-    const handleBack = () => navigate('/frame/mindmap');
+    const handleBack = () => {
+        if (props.onClose) {
+            props.onClose();
+        } else {
+            navigate('/frame/mindmap');
+        }
+    };
 
     /** 导出为图片 */
     const handleExportImage = async () => {
@@ -541,12 +556,12 @@ const MindMapEditPage: React.FC = () => {
     };
 
     return (
-        <Layout style={{height: 'calc(100% - 20px)'}}>
+        <Layout style={{height: isDrawerMode ? '100%' : 'calc(100% - 20px)'}}>
             <Content className="mindmap-edit-page" style={{
-                margin: '10px',
+                margin: isDrawerMode ? 0 : '10px',
                 padding: '10px',
                 background: '#fff',
-                borderRadius: 8,
+                borderRadius: isDrawerMode ? 0 : 8,
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column'
@@ -564,7 +579,7 @@ const MindMapEditPage: React.FC = () => {
                                 loading={saveLoading}
                             />
                         </Tooltip>
-                        <Tooltip content="返回">
+                        <Tooltip content={isDrawerMode ? "关闭" : "返回"}>
                             <Button icon={<IconClose />} onClick={handleBack} />
                         </Tooltip>
                         <span className="toolbar-divider" />

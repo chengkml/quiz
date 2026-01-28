@@ -30,7 +30,12 @@ const GroupTree: React.FC<GroupTreeProps> = ({ onSelect, selectedKeys }) => {
         title: g.label,
         ...g
       }));
-      setTreeData([{ key: 'all', title: '全部', icon: <IconFolder /> }, ...tree]);
+      setTreeData([{ 
+        key: 'all', 
+        title: '全部', 
+        icon: <IconFolder />,
+        children: tree 
+      }]);
     } catch (error) {
       console.error("Fetch groups failed", error);
     } finally {
@@ -142,6 +147,7 @@ const GroupTree: React.FC<GroupTreeProps> = ({ onSelect, selectedKeys }) => {
                     blockNode
                     treeData={treeData}
                     selectedKeys={selectedKeys.length === 0 ? ['all'] : selectedKeys}
+                    defaultExpandedKeys={['all']}
                     onSelect={(keys, extra) => {
                         const key = keys[0];
                         if (key === 'all') {

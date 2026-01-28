@@ -13,9 +13,19 @@ import {MindMapDto, MindMapData} from '../types';
 
 const { Content } = Layout;
 
-const MindMapViewPage: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
+interface MindMapViewPageProps {
+    id?: string;
+    onClose?: () => void;
+}
+
+const MindMapViewPage: React.FC<MindMapViewPageProps> = (props) => {
+    const params = useParams<{ id: string }>();
     const navigate = useNavigate();
+
+    // Support both props (drawer mode) and params (route mode)
+    const id = props.id || params.id;
+    const isDrawerMode = !!props.id;
+    
     const mindMapRef = useRef<HTMLDivElement>(null);
     const mindElixirRef = useRef<any>(null);
     const mountedRef = useRef(false);
@@ -69,7 +79,7 @@ const MindMapViewPage: React.FC = () => {
         });
         
         // If editable: false is not sufficient (depends on library version), we rely on no toolbar/contextMenu
-
+        
         const mindData = data || {
             nodeData: { id: 'root', topic: '思维导图', root: true },
             nodeChild: [],
@@ -137,7 +147,13 @@ const MindMapViewPage: React.FC = () => {
         };
     }, []);
 
-    const handleBack = () => navigate('/frame/mindmap');
+    const handleBack = () => {
+        if (props.onClose) {
+            props.onClose();
+        } else {
+            navigate('/frame/mindmap');
+        }
+    };
 
     /** 导出为图片 */
     const handleExportImage = async () => {
@@ -187,12 +203,12 @@ const MindMapViewPage: React.FC = () => {
     );
 
     return (
-        <Layout style={{height: 'calc(100% - 20px)'}}>
+        <Layout style={{height: isDrawerMode ? '100%' : 'calc(100% - 20px)'}}>
             <Content className="mindmap-view-page" style={{
-                margin: '10px',
+                margin: isDrawerMode ? '0' : '10px',
                 padding: '10px',
                 background: '#fff',
-                borderRadius: 8,
+                borderRadius: isDrawerMode ? 0 : 8,
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column'
@@ -202,7 +218,7 @@ const MindMapViewPage: React.FC = () => {
                 {/* 顶部栏: 仅显示返回和导出 */}
                 <div className="mindmap-toolbar" style={{ display: 'flex', justifyContent: 'space-between', padding: '0 10px 10px', borderBottom: '1px solid #f0f0f0' }}>
                      <div className="left">
-                        <Tooltip content="返回">
+                        <Tooltip content={isDrawerMode ? "关闭" : "返回"}>
                             <Button icon={<IconClose />} onClick={handleBack} />
                         </Tooltip>
                         <span style={{ marginLeft: 16, fontWeight: 'bold', fontSize: 16 }}>
