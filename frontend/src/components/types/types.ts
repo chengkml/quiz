@@ -5,7 +5,7 @@
 export interface FormFieldConfig {
   field: string;
   label: string;
-  type?: 'text' | 'input' | 'textarea' | 'select' | 'number' | 'date' | 'checkbox' | 'radio';
+  type?: 'text' | 'input' | 'textarea' | 'select' | 'number' | 'date' | 'checkbox' | 'radio' | 'password';
   required?: boolean;
   placeholder?: string;
   rules?: any[];

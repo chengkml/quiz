@@ -76,6 +76,14 @@ export const renderFormField = (
       });
       break;
 
+    case "password":
+      fieldNode = React.createElement(Input.Password, {
+        placeholder: placeholder || `请输入${label}`,
+        disabled: disabled,
+        onChange: handleChange,
+      });
+      break;
+
     case "textarea":
       fieldNode = React.createElement(Input.TextArea, {
         placeholder: placeholder || `请输入${label}`,

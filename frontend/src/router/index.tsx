@@ -59,6 +59,7 @@ import SimpleExample from "@/components/DataManager/docs/EXAMPLE";
 import AdvancedExample from "@/components/DataManager/docs/ADVANCED_EXAMPLE";
 import OrchestrationManager from "@/pages/Orchestration";
 import CanvasEditor from "@/pages/Orchestration/CanvasEditor";
+import PasswordManager from "@/pages/PasswordManager";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -298,6 +299,11 @@ const protectedPages = [
     path: "advanced-example",
     element: <AdvancedExample />,
     requiredPath: "advanced-example",
+  },
+  {
+    path: "password",
+    element: <PasswordManager />,
+    requiredPath: "password",
   },
 ];
 

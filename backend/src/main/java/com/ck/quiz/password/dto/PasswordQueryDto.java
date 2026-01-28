@@ -1,0 +1,13 @@
+package com.ck.quiz.password.dto;
+
+import com.ck.quiz.base.dto.QueryDto;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+
+@Data
+@Schema(description = "查询密码条目")
+public class PasswordQueryDto extends QueryDto {
+
+    @Schema(description = "分组")
+    private String category;
+}
