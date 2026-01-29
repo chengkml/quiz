@@ -14,7 +14,7 @@ import org.hibernate.annotations.Comment;
 @Comment("分组表")
 @EqualsAndHashCode(callSuper = true)
 @Table(name = "obj_group", indexes = {
-    @Index(name = "idx_group_name_create_user", columnList = "name,create_user", unique = true)
+        @Index(name = "idx_group_name_type_create_user", columnList = "name,type,create_user", unique = true)
 })
 public class Group extends Model {
 

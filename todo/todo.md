@@ -8,6 +8,6 @@
 ## 以此进行中 (In Progress)
 
 ## 已完成 (Done)
-- [x] 分组查询接口强制要求 type 参数，前端所有调用点需适配
-- [x] Mermaid 管理页：创建人显式 createUserName
-- [x] Mermaid 管理页：去除操作列详情下拉，点击行展示渲染后的 Mermaid 图
+- [x] Mermaid 管理页：创建人显式渲染 createUserName (Double Check)
+- [x] 分组实体唯一索引变更：name + type + create_user
+- [x] Mermaid 管理页样式优化：参考 MindMap，占满整个页面
