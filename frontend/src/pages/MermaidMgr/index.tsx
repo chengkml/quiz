@@ -18,6 +18,7 @@ import {
 } from "@arco-design/web-react/icon";
 import "./style/index.less";
 import GroupTree from "../MindMap/components/GroupTree";
+import MermaidViewer from "./components/MermaidViewer";
 import {
   createMermaidDiagram,
   deleteMermaidDiagram,
@@ -216,16 +217,19 @@ const MermaidMgrPage: React.FC = () => {
   };
 
   const handleDetail = (record: any) => {
-      // Simple detail handling or navigation
       Modal.info({
           title: record.diagramName,
           content: (
-              <div style={{ maxHeight: '600px', overflow: 'auto' }}>
-                  <p>{record.description}</p>
-                  <pre>{record.diagramData}</pre>
+              <div style={{ maxHeight: '600px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <p style={{marginBottom: 10}}>{record.description}</p>
+                  <div style={{flex: 1, overflow: 'auto'}}>
+                      <MermaidViewer code={record.diagramData} />
+                  </div>
               </div>
           ),
-          width: 800
+          width: 800,
+          footer: null,
+          closable: true
       });
   };
 
@@ -260,7 +264,7 @@ const MermaidMgrPage: React.FC = () => {
       key: "createUserName",
       width: 120,
       render: (name: string, record: any) => (
-        <UserAvatar name={name || record?.createUser || ""} showName />
+        <UserAvatar name={record?.createUserName || record?.createUser || ""} showName />
       ),
     },
     {
@@ -282,9 +286,6 @@ const MermaidMgrPage: React.FC = () => {
             <Menu
               onClickMenuItem={(key) => {
                 switch (key) {
-                  case "detail":
-                    handleDetail(record);
-                    break;
                   case "draw":
                     handleDraw(record);
                     break;
@@ -298,10 +299,6 @@ const MermaidMgrPage: React.FC = () => {
               }}
               className="handle-dropdown-menu"
             >
-              <Menu.Item key="detail">
-                <IconEye style={{ marginRight: 5 }} />
-                详情
-              </Menu.Item>
               <Menu.Item key="draw">
                 <IconMindMapping style={{ marginRight: 5 }} />
                 绘图

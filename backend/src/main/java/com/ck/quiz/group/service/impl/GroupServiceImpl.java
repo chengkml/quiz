@@ -20,7 +20,8 @@ import java.util.Map;
 import java.time.LocalDateTime;
 
 @Service
-public class GroupServiceImpl extends BaseServiceImpl<GroupCreateDto, GroupUpdateDto, GroupQueryDto, GroupDto, Group, GroupRepository>
+public class GroupServiceImpl
+        extends BaseServiceImpl<GroupCreateDto, GroupUpdateDto, GroupQueryDto, GroupDto, Group, GroupRepository>
         implements GroupService {
 
     @Autowired
@@ -51,6 +52,13 @@ public class GroupServiceImpl extends BaseServiceImpl<GroupCreateDto, GroupUpdat
                     " AND g.create_user = :createUser ", params, sql, countSql);
         }
 
+        // 强制要求 queryDto.type 必须有值
+        if (!StringUtils.hasText(queryDto.getType())) {
+            throw new IllegalArgumentException("查询分组时必须指定 type 参数");
+        }
+        JdbcQueryHelper.equals("type", queryDto.getType(),
+                " AND g.type = :type ", params, sql, countSql);
+
         JdbcQueryHelper.order("create_date", "desc", sql);
 
         String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(),
@@ -63,8 +71,10 @@ public class GroupServiceImpl extends BaseServiceImpl<GroupCreateDto, GroupUpdat
             g.setLabel(rs.getString("label"));
             g.setDescr(rs.getString("descr"));
             g.setType(rs.getString("type"));
-            LocalDateTime cd = rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null;
-            LocalDateTime ud = rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null;
+            LocalDateTime cd = rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime()
+                    : null;
+            LocalDateTime ud = rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime()
+                    : null;
             g.setCreateDate(cd);
             g.setUpdateDate(ud);
             g.setCreateUser(rs.getString("create_user"));

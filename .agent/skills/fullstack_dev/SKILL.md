@@ -7,17 +7,25 @@ description: 整合前后端开发与Git版本控制的全能开发助手，提�
 
 ## 开发工作流 (Standard Workflow)
 
-### 阶段 0：启动开发 (Start Development)
+### 阶段 0：需求分析 (Requirement Analysis)
+接到模糊需求或新特性开发任务时，**首先**进行详细分析。
+1.  **执行分析**：
+    *   调用 **[需求分析助手]** Skill (`.agent/skills/requirement_analysis/SKILL.md`)。
+    *   该 Skill 会自动初始化 `todo.md`，分析需求并生成详细的设计文档 (如 `design_xxx.md`)。
+2.  **确认设计**：
+    *   阅读生成的设计文档，确保方案可行且所有细节已明确。
+
+### 阶段 1：启动开发 (Start Development)
 在开始写代码前，**必须**先做好准备工作。
 1.  **查找设计文档**：
-    *   在 `d:\idea_repo\quiz\todo` 目录下寻找对应的 `design_xxx.md` 文件并读取。
+    *   在 `d:\idea_repo\quiz\todo` 目录下寻找对应的 `design_xxx.md` 文件并读取（如果刚刚完成了阶段 0，则直接使用）。
 2.  **更新需求状态 (In Progress)**：
     *   修改 `todo.md`，将当前要开发的需求从 `## 待办 (To Do)` 移动到 `## 进行中 (In Progress)` 区域。
 3.  **确认执行计划**：
     *   仔细阅读设计文档中的 **5. 实施步骤 (Action Plan)**。
     *   接下来的开发工作**必须严格遵循**该计划的顺序。
 
-### 阶段 1：后端开发 (Backend First)
+### 阶段 2：后端开发 (Backend First)
 如果设计文档包含后端变更，**必须**先完成后端开发。
 1.  **代码修改**：
     *   根据设计文档的 *后端设计* 章节，创建 Entity、Repository、Service 和 Controller。
@@ -26,7 +34,7 @@ description: 整合前后端开发与Git版本控制的全能开发助手，提�
     *   修改完成后，**务必**运行 **[Java 编译与自动修复]** Skill (`.agent/skills/java_compile_check/SKILL.md`)。
     *   确保后端编译通过 (`BUILD SUCCESSFUL`) 后再进行下一步。
 
-### 阶段 2：前端开发 (Frontend Implementation)
+### 阶段 3：前端开发 (Frontend Implementation)
 后端接口准备就绪后，进行前端界面开发。
 1.  **参考规范**：
     *   **务必**阅读 **[Arco Design 开发助手]** Skill (`.agent/skills/arco_design_dev/SKILL.md`)。
@@ -38,7 +46,7 @@ description: 整合前后端开发与Git版本控制的全能开发助手，提�
     *   修改完成后，**务必**运行 **[前端编译与自动修复]** Skill (`.agent/skills/frontend_build_check/SKILL.md`)。
     *   确保 `tsc` 类型检查和 `webpack` 构建无误。
 
-### 阶段 3：提交与验收 (Commit & Finish)
+### 阶段 4：提交与验收 (Commit & Finish)
 每完成一个需求节点，**必须**进行一次 Git 提交。
 
 1.  **本地提交 (Mandatory Commit)**：
@@ -57,5 +65,5 @@ description: 整合前后端开发与Git版本控制的全能开发助手，提�
 *   **跨端调试**：
     *   如果遇到接口报错，请优先检查后端控制台日志，确认是参数错误还是空指针异常。
 *   **按部就班**：
-    *   这是一个 Meta-Skill (元技能)，请严格按照 `0 -> 1 -> 2 -> 3` 的阶段顺序执行。
+    *   这是一个 Meta-Skill (元技能)，请严格按照 `0 -> 1 -> 2 -> 3 -> 4` 的阶段顺序执行。
     *   状态流转 `To Do -> In Progress -> Done` 对于项目跟踪至关重要，请勿遗漏。
