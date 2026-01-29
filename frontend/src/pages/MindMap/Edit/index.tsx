@@ -3,7 +3,7 @@ import {useNavigate, useParams} from 'react-router-dom';
 import MindElixir from 'mind-elixir';
 import 'mind-elixir/style';
 import './style/index.less';
-import {Button, Layout, Message, Spin, Dropdown, Menu, Space, Tooltip} from '@arco-design/web-react';
+import {Button, Layout, Message, Spin, Dropdown, Menu, Space, Tooltip, Slider} from '@arco-design/web-react';
 import {
     IconDownload,
     IconUndo,
@@ -46,6 +46,7 @@ const MindMapEditPage: React.FC<MindMapEditPageProps> = (props) => {
     const [mindMap, setMindMap] = useState<MindMapDto | null>(null);
     const [currentTheme, setCurrentTheme] = useState<string>('default');
     const [zoomLevel, setZoomLevel] = useState<number>(1);
+    const [isDragging, setIsDragging] = useState(false);
 
     // AI 生成相关状态
     const [aiModalVisible, setAiModalVisible] = useState(false);
@@ -600,6 +601,36 @@ const MindMapEditPage: React.FC<MindMapEditPageProps> = (props) => {
                         </Button>
                     </div>
                     <div className="mindmap-toolbar-right">
+                        {/* 缩放控制区域 */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            minWidth: '150px',
+                            marginRight: '12px'
+                        }}>
+                            <span style={{ fontSize: '12px', color: '#666' }}>
+                            {Math.round(zoomLevel * 100)}%
+                            </span>
+                            <Slider
+                            style={{ width: '100px' }}
+                            min={50}
+                            max={200}
+                            step={10}
+                            value={Math.round(zoomLevel * 100)}
+                            onChange={(value) => {
+                                // value is number | number[]
+                                const val = typeof value === 'number' ? value : value[0];
+                                const newScale = val / 100;
+                                if (mindElixirRef.current) {
+                                mindElixirRef.current.scale(newScale);
+                                setZoomLevel(newScale);
+                                }
+                            }}
+                            tooltipVisible={false}
+                            />
+                        </div>
+                        <span className="toolbar-divider" />
                         <Tooltip content="查看代码">
                             <Button icon={<IconCode />} onClick={handleViewCode} />
                         </Tooltip>
@@ -618,7 +649,17 @@ const MindMapEditPage: React.FC<MindMapEditPageProps> = (props) => {
 
                 {/* 编辑器主体 */}
                 <div className="mindmap-editor-container" style={{flex: 1}}>
-                    <div ref={mindMapRef} style={{height: '100%', width: '100%'}} />
+                    <div 
+                        ref={mindMapRef} 
+                        style={{
+                            height: '100%', 
+                            width: '100%',
+                            cursor: isDragging ? 'grabbing' : 'grab'
+                        }} 
+                        onMouseDown={() => setIsDragging(true)}
+                        onMouseUp={() => setIsDragging(false)}
+                        onMouseLeave={() => setIsDragging(false)}
+                    />
                 </div>
 
                 {/* AI 生成弹窗 */}

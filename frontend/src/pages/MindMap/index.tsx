@@ -203,33 +203,26 @@ const MindMapListPage: React.FC = () => {
   // 处理编辑
   const handleEdit = (record: MindMapDto) => {
     setIsEdit(true);
-    setCurrentRecord(record);
+    // Map groupName to the field name 'group' for the form
+    setCurrentRecord({
+        ...record,
+        group: record.groupName 
+    } as any);
     setEditModalVisible(true);
-    setTimeout(() => {
-      editFormRef.current?.setFieldsValue?.({
-        id: record.id,
-        mapName: record.mapName,
-        descr: record.descr || "",
-        group: record.groupName, 
-      });
-    }, 50);
   };
 
-  const handleEditConfirm = async () => {
+  const handleEditConfirm = async (values: any) => {
     try {
-      const values = await editFormRef.current?.validate?.();
-      if (values && currentRecord) {
+      if (currentRecord) {
         await updateMindMapBasicInfo({
           id: currentRecord.id,
           ...values,
         });
         Message.success("思维导图更新成功");
         setEditModalVisible(false);
-        editFormRef.current?.resetFields?.();
         fetchTableData();
       }
     } catch (error: any) {
-      if (error?.fields) return;
       Message.error("思维导图更新失败");
     }
   };
@@ -273,8 +266,6 @@ const MindMapListPage: React.FC = () => {
       title: "思维导图名称",
       dataIndex: "mapName",
       key: "mapName",
-      ellipsis: true,
-      width: 150,
       render: (text: string, record: MindMapDto) => (
           <Button type="text" style={{padding: 0}} onClick={() => handleView(record)}>{text}</Button>
       )
@@ -284,7 +275,15 @@ const MindMapListPage: React.FC = () => {
       dataIndex: "groupLabel",
       key: "groupLabel",
       width: 120,
-      render: (text: string) => <Tag>{text || '未分类'}</Tag>
+      align: 'center',
+      render: (text: string) => {
+        const colors = ['red', 'orangered', 'orange', 'gold', 'lime',
+                        'green', 'cyan', 'blue', 'arcoblue', 'purple',
+                        'pinkpurple', 'magenta'];
+        const colorIndex = text ? text.split('').reduce((acc, char) =>
+                            acc + char.charCodeAt(0), 0) % colors.length : 0;
+        return <Tag color={colors[colorIndex]}>{text || '未分类'}</Tag>;
+      }
     },
     // Removed description column
     {
@@ -458,32 +457,16 @@ const MindMapListPage: React.FC = () => {
       />
 
       {/* 编辑对话框 */}
-      <Modal
-        title="编辑思维导图信息"
+      <AddEditModal
         visible={editModalVisible}
+        isEdit={true}
+        record={currentRecord || undefined}
+        loading={tableLoading}
+        title="编辑思维导图信息"
+        formConfig={formConfig}
         onOk={handleEditConfirm}
         onCancel={() => setEditModalVisible(false)}
-        okText="确定"
-        cancelText="取消"
-        confirmLoading={tableLoading}
-      >
-        <Form ref={editFormRef} layout="vertical" autoComplete="off">
-          {formConfig.map((field) => (
-            <Form.Item
-              key={field.field}
-              field={field.field}
-              label={field.label}
-              rules={field.rules}
-            >
-              {field.type === "textarea" ? (
-                <Input.TextArea placeholder={field.placeholder} rows={4} />
-              ) : (
-                <Input placeholder={field.placeholder} />
-              )}
-            </Form.Item>
-          ))}
-        </Form>
-      </Modal>
+      />
 
       {/* 绘图抽屉 */}
       <Drawer
