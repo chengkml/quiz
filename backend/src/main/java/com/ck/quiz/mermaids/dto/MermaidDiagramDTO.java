@@ -19,6 +19,10 @@ public class MermaidDiagramDTO {
     private String categoryId;
     private String categoryName;
 
+    // 分组信息 (Group interface)
+    private String group;
+    private String groupLabel;
+
     private LocalDateTime createDate;
     private String createUser;
     private LocalDateTime updateDate;

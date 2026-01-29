@@ -25,13 +25,14 @@ public class MermaidDiagramController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<MermaidDiagramDTO> update(@PathVariable("id") String id, @Valid @RequestBody MermaidDiagramDTO dto) {
+    public ResponseEntity<MermaidDiagramDTO> update(@PathVariable("id") String id,
+            @Valid @RequestBody MermaidDiagramDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
     }
 
     @PatchMapping("/{id}/data")
     public ResponseEntity<MermaidDiagramDTO> updateDiagramData(@PathVariable("id") String id,
-                                                               @RequestBody Map<String, String> payload) {
+            @RequestBody Map<String, String> payload) {
         String diagramData = payload == null ? null : payload.get("diagramData");
         MermaidDiagramDTO updated = service.updateDiagramData(id, diagramData);
         return ResponseEntity.ok(updated);
@@ -46,21 +47,23 @@ public class MermaidDiagramController {
     @GetMapping("/{id}")
     public ResponseEntity<MermaidDiagramDTO> getById(@PathVariable("id") String id) {
         MermaidDiagramDTO dto = service.findById(id);
-        if (dto == null) return ResponseEntity.notFound().build();
+        if (dto == null)
+            return ResponseEntity.notFound().build();
         return ResponseEntity.ok(dto);
     }
 
     @GetMapping
-    public ResponseEntity<Page<MermaidDiagramDTO>> list(@RequestParam(value = "keyWord", required = false) String keyWord,
-                                                      @RequestParam(value = "categoryId", required = false) String categoryId,
-                                                      Pageable pageable) {
-        return ResponseEntity.ok(service.list(keyWord, categoryId, pageable));
+    public ResponseEntity<Page<MermaidDiagramDTO>> list(
+            @RequestParam(value = "keyWord", required = false) String keyWord,
+            @RequestParam(value = "group", required = false) String group,
+            Pageable pageable) {
+        return ResponseEntity.ok(service.list(keyWord, group, pageable));
     }
 
     @GetMapping(path = "/generate/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamGenerate(@RequestParam("advice") String advice,
-                                     @RequestParam(value = "diagramData", required = false) String diagramData,
-                                     @RequestParam(value = "modelName", required = false) String modelName) {
+            @RequestParam(value = "diagramData", required = false) String diagramData,
+            @RequestParam(value = "modelName", required = false) String modelName) {
         return service.streamGenerateDiagram(advice, diagramData, modelName);
     }
 }

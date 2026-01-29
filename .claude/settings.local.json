@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(xcopy:*)",
+      "Bash(robocopy:*)",
+      "Bash(dir:*)",
+      "Bash(if [ -f .claudeignore ])",
+      "Bash(then:*)",
+      "Bash(else echo \"File does not exist\")",
+      "Bash(fi)"
+    ]
+  }
+}

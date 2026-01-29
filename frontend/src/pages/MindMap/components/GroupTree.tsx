@@ -6,9 +6,10 @@ import { getGroupList, createGroup, updateGroup, deleteGroup } from "../../Group
 interface GroupTreeProps {
   onSelect: (keys: string[]) => void;
   selectedKeys: string[];
+  type?: string;
 }
 
-const GroupTree: React.FC<GroupTreeProps> = ({ onSelect, selectedKeys }) => {
+const GroupTree: React.FC<GroupTreeProps> = ({ onSelect, selectedKeys, type = 'mindmap' }) => {
   const [treeData, setTreeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -23,7 +24,7 @@ const GroupTree: React.FC<GroupTreeProps> = ({ onSelect, selectedKeys }) => {
   const fetchGroups = async () => {
     setLoading(true);
     try {
-      const res = await getGroupList({ type: 'mindmap', pageSize: 1000 });
+      const res = await getGroupList({ type: type, pageSize: 1000 });
       const groups = res.data.content || [];
       const tree = groups.map((g: any) => ({
         key: g.name,
@@ -45,7 +46,7 @@ const GroupTree: React.FC<GroupTreeProps> = ({ onSelect, selectedKeys }) => {
 
   useEffect(() => {
     fetchGroups();
-  }, []);
+  }, [type]);
 
   const handleCreate = () => {
     setEditingNode(null);
@@ -95,7 +96,7 @@ const GroupTree: React.FC<GroupTreeProps> = ({ onSelect, selectedKeys }) => {
         await updateGroup({ ...values, id: editingNode.id });
         Message.success("更新成功");
       } else {
-        await createGroup({ ...values, type: 'mindmap' });
+        await createGroup({ ...values, type: type });
         Message.success("创建成功");
       }
       setModalVisible(false);

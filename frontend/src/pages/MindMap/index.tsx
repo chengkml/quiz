@@ -282,7 +282,7 @@ const MindMapListPage: React.FC = () => {
                         'pinkpurple', 'magenta'];
         const colorIndex = text ? text.split('').reduce((acc, char) =>
                             acc + char.charCodeAt(0), 0) % colors.length : 0;
-        return <Tag color={colors[colorIndex]}>{text || '未分类'}</Tag>;
+        return <Tag bordered color={colors[colorIndex]}>{text || '未分类'}</Tag>;
       }
     },
     // Removed description column
@@ -426,6 +426,7 @@ const MindMapListPage: React.FC = () => {
           showTree: true,
           treeContent: (
              <GroupTree 
+                type="mindmap"
                 selectedKeys={selectedGroupKeys} 
                 onSelect={(keys) => {
                    if (keys.includes('all')) setSelectedGroupKeys([]);

@@ -22,7 +22,7 @@ public interface MermaidDiagramService {
     /**
      * 更新指定 ID 的 Mermaid 思维图。
      *
-     * @param id 思维图 ID
+     * @param id  思维图 ID
      * @param dto 思维图数据传输对象
      * @return 更新后的思维图数据
      */
@@ -30,7 +30,8 @@ public interface MermaidDiagramService {
 
     /**
      * 仅更新 diagramData 字段
-     * @param id 图表 ID
+     * 
+     * @param id          图表 ID
      * @param diagramData Mermaid 源码文本
      * @return 更新后的 DTO
      */
@@ -38,9 +39,10 @@ public interface MermaidDiagramService {
 
     /**
      * 流式生成 Mermaid 图文本（SSE）
-     * @param advice 用户输入的生成描述
+     * 
+     * @param advice      用户输入的生成描述
      * @param diagramData Mermaid 源码文本
-     * @param modelName 可选模型名称
+     * @param modelName   可选模型名称
      * @return SseEmitter 用于流式推送结果
      */
     SseEmitter streamGenerateDiagram(String advice, String diagramData, String modelName);
@@ -63,9 +65,17 @@ public interface MermaidDiagramService {
     /**
      * 分页查询 Mermaid 思维图列表。
      *
-     * @param keyword 查询关键字
+     * @param keyword  查询关键字
      * @param pageable 分页参数
      * @return 分页后的思维图数据列表
      */
-    Page<MermaidDiagramDTO> list(String keyword, String categoryId, Pageable pageable);
+    /**
+     * 分页查询
+     * 
+     * @param keyword  关键字
+     * @param group    分组标识 (Group Name)
+     * @param pageable 分页参数
+     * @return 分页结果
+     */
+    Page<MermaidDiagramDTO> list(String keyword, String group, Pageable pageable);
 }
