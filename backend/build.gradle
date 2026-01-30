@@ -67,6 +67,8 @@ dependencies {
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.3'
@@ -107,4 +109,5 @@ build.dependsOn(copyDependencies)
 
 compileJava {
     options.compilerArgs = ['-parameters']
+    options.annotationProcessorPath = configurations.annotationProcessor
 }
