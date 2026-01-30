@@ -186,6 +186,7 @@ public class CalendarEventServiceImpl
                     boolean finished = false;
                     try {
                         attempt++;
+                        final int currentAttempt = attempt;
                         // 每次重试前清空之前累积的内容
                         fullContent.setLength(0);
                         String prompt = buildEventPrompt(descr);
@@ -205,7 +206,8 @@ public class CalendarEventServiceImpl
                                 .stream()
                                 .content() // 流式获取内容
                                 .doOnSubscribe(
-                                        s -> log.info("[Calendar] Stream generation started (attempt {})", attempt))
+                                        s -> log.info("[Calendar] Stream generation started (attempt {})",
+                                                currentAttempt))
                                 .doOnNext(chunk -> {
                                     log.info("[Calendar] Received chunk: {}", chunk);
                                     try {

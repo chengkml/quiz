@@ -3,8 +3,10 @@ package com.ck.quiz.password.dto;
 import com.ck.quiz.base.dto.Dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @Schema(description = "密码条目详情")
 public class PasswordDto extends Dto {
 

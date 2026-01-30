@@ -12,14 +12,11 @@ import java.time.LocalDateTime;
  * 系统消息实体类
  */
 @Entity
-@Table(
-        name = "system_message",
-        indexes = {
-                @Index(name = "idx_system_message_user_id", columnList = "user_id"),
-                @Index(name = "idx_system_message_status", columnList = "status"),
-                @Index(name = "idx_system_message_create_date", columnList = "create_date")
-        }
-)
+@Table(name = "system_message", indexes = {
+        @Index(name = "idx_system_message_user_id", columnList = "user_id"),
+        @Index(name = "idx_system_message_status", columnList = "status"),
+        @Index(name = "idx_system_message_create_date", columnList = "create_date")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -53,12 +50,14 @@ public class SystemMessage {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "type", length = 20, nullable = false)
+    @Builder.Default
     private MessageType type = MessageType.INFO;
 
     /**
      * 是否已读
      */
     @Column(name = "is_read", nullable = false)
+    @Builder.Default
     private Boolean isRead = false;
 
     /**
@@ -72,6 +71,7 @@ public class SystemMessage {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "priority", length = 20, nullable = false)
+    @Builder.Default
     private MessagePriority priority = MessagePriority.NORMAL;
 
     /**
@@ -79,6 +79,7 @@ public class SystemMessage {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20, nullable = false)
+    @Builder.Default
     private MessageStatus status = MessageStatus.ACTIVE;
 
     /**
