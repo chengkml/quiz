@@ -93,7 +93,7 @@ public class MermaidDiagramServiceImpl
             dto.setDescription(rs.getString("description"));
             dto.setDiagramData(rs.getString("diagram_data"));
 
-            dto.setGroup(rs.getString("group_name"));
+            dto.setGroupName(rs.getString("group_name"));
             dto.setGroupLabel(rs.getString("group_label"));
 
             java.sql.Timestamp cts = rs.getTimestamp("create_date");
@@ -129,7 +129,7 @@ public class MermaidDiagramServiceImpl
             handleGroupRelation(e, createDto.getGroup());
             // Refetch to include group info? Or just set it if we trust it.
             // BaseServiceImpl uses convertToDto, which is basic copy.
-            dto.setGroup(createDto.getGroup());
+            dto.setGroupName(createDto.getGroup());
         }
         return dto;
     }
@@ -140,7 +140,7 @@ public class MermaidDiagramServiceImpl
         MermaidDiagram e = repository.findById(id).orElse(null);
         if (e != null && updateDto.getGroup() != null) {
             handleGroupRelation(e, updateDto.getGroup());
-            dto.setGroup(updateDto.getGroup());
+            dto.setGroupName(updateDto.getGroup());
         }
         return dto;
     }

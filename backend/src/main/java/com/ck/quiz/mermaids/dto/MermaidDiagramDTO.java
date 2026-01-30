@@ -12,8 +12,4 @@ public class MermaidDiagramDto extends Dto {
     private String description;
     private String diagramData;
 
-    // Compatible field for frontend if it expects 'group' specifically, though Dto
-    // has groupName
-    private String group;
-    private String groupLabel;
 }
