@@ -27,7 +27,6 @@ const SearchDrawer: React.FC<SearchDrawerProps> = ({ visible, knowledgeSetId, on
             const params = {
                 ...values,
                 knowledgeSetId,
-                modelName: 'text-embedding-ada-002', // 暂定默认
             };
 
             const response = await vectorSearch(params);
