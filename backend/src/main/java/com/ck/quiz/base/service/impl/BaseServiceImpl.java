@@ -66,8 +66,9 @@ public abstract class BaseServiceImpl<C extends CreateDto, U extends UpdateDto, 
         M savedModel = repository.save(model);
         if (StringUtils.isNotBlank(createDto.getGroup())) {
             String createUser = savedModel.getCreateUser();
-            Group group = groupRepository.findByCreateUserAndName(createUser, createDto.getGroup());
-            if (group != null) {
+            List<Group> groups = groupRepository.findByCreateUserAndName(createUser, createDto.getGroup());
+            if (!groups.isEmpty()) {
+                Group group = groups.get(0);
                 GroupObjRela rela = new GroupObjRela();
                 rela.setRelaId(IdHelper.genUuid());
                 rela.setGroupId(group.getId());
@@ -114,8 +115,9 @@ public abstract class BaseServiceImpl<C extends CreateDto, U extends UpdateDto, 
             if (StringUtils.isNotBlank(updateDto.getGroup())) {
                 // 添加新的分组关联
                 String createUser = updatedModel.getCreateUser();
-                Group group = groupRepository.findByCreateUserAndName(createUser, updateDto.getGroup());
-                if (group != null) {
+                List<Group> groups = groupRepository.findByCreateUserAndName(createUser, updateDto.getGroup());
+                if (!groups.isEmpty()) {
+                    Group group = groups.get(0);
                     GroupObjRela rela = new GroupObjRela();
                     rela.setRelaId(IdHelper.genUuid());
                     rela.setGroupId(group.getId());

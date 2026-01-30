@@ -89,7 +89,8 @@ public class MindMapServiceImpl extends
             if (org.springframework.util.StringUtils.hasText(mindMapBasicInfoUpdateDto.getGroup())) {
                 // 添加新的分组关联
                 String createUser = updatedMindMap.getCreateUser();
-                Group group = groupRepository.findByCreateUserAndName(createUser, mindMapBasicInfoUpdateDto.getGroup());
+                Group group = groupRepository.findByCreateUserAndNameAndType(createUser,
+                        mindMapBasicInfoUpdateDto.getGroup(), "MIND_MAP");
                 if (group != null) {
                     GroupObjRela rela = new GroupObjRela();
                     rela.setRelaId(IdHelper.genUuid());

@@ -100,7 +100,7 @@ public class MermaidDiagramServiceImpl implements MermaidDiagramService {
             }
 
             if (createUser != null) {
-                Group group = groupRepository.findByCreateUserAndName(createUser, groupName);
+                Group group = groupRepository.findByCreateUserAndNameAndType(createUser, groupName, "MERMAID");
                 if (group != null) {
                     GroupObjRela rela = new GroupObjRela();
                     rela.setRelaId(IdHelper.genUuid());

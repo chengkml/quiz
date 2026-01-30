@@ -38,11 +38,16 @@ public class GroupServiceImpl
 
     @Override
     public boolean checkNameUniq(String userId, String name, String excludeId) {
-        Group group = groupRepository.findByCreateUserAndName(userId, name);
-        if (group == null) {
+        List<Group> groups = groupRepository.findByCreateUserAndName(userId, name);
+        if (groups.isEmpty()) {
             return true;
         }
-        return excludeId != null && group.getId().equals(excludeId);
+        for (Group group : groups) {
+            if (excludeId == null || !group.getId().equals(excludeId)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
