@@ -1,65 +1,47 @@
 package com.ck.quiz.mermaids.controller;
 
-import com.ck.quiz.mermaids.dto.MermaidDiagramDTO;
+import com.ck.quiz.base.controller.BaseController;
+import com.ck.quiz.base.service.BaseService;
+import com.ck.quiz.mermaids.dto.MermaidDiagramCreateDto;
+import com.ck.quiz.mermaids.dto.MermaidDiagramDto;
+import com.ck.quiz.mermaids.dto.MermaidDiagramQueryDto;
+import com.ck.quiz.mermaids.dto.MermaidDiagramUpdateDto;
 import com.ck.quiz.mermaids.service.MermaidDiagramService;
-import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.MediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
 import java.util.Map;
 
+@Tag(name = "Mermaid图表管理", description = "Mermaid图表的创建、更新、删除、查询等接口")
 @RestController
 @RequestMapping("/api/mermaids/diagrams")
 @RequiredArgsConstructor
-public class MermaidDiagramController {
+public class MermaidDiagramController extends
+        BaseController<MermaidDiagramCreateDto, MermaidDiagramUpdateDto, MermaidDiagramQueryDto, MermaidDiagramDto> {
 
     private final MermaidDiagramService service;
 
-    @PostMapping
-    public ResponseEntity<MermaidDiagramDTO> create(@Valid @RequestBody MermaidDiagramDTO dto) {
-        return ResponseEntity.ok(service.create(dto));
+    @Override
+    protected BaseService<MermaidDiagramCreateDto, MermaidDiagramUpdateDto, MermaidDiagramQueryDto, MermaidDiagramDto, ?> getService() {
+        return service;
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<MermaidDiagramDTO> update(@PathVariable("id") String id,
-            @Valid @RequestBody MermaidDiagramDTO dto) {
-        return ResponseEntity.ok(service.update(id, dto));
-    }
-
+    @Operation(summary = "仅更新Mermaid文本", description = "更新图表数据的快捷接口")
     @PatchMapping("/{id}/data")
-    public ResponseEntity<MermaidDiagramDTO> updateDiagramData(@PathVariable("id") String id,
+    public ResponseEntity<MermaidDiagramDto> updateDiagramData(@PathVariable("id") String id,
             @RequestBody Map<String, String> payload) {
         String diagramData = payload == null ? null : payload.get("diagramData");
-        MermaidDiagramDTO updated = service.updateDiagramData(id, diagramData);
+        MermaidDiagramDto updated = service.updateDiagramData(id, diagramData);
         return ResponseEntity.ok(updated);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable("id") String id) {
-        service.delete(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<MermaidDiagramDTO> getById(@PathVariable("id") String id) {
-        MermaidDiagramDTO dto = service.findById(id);
-        if (dto == null)
-            return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(dto);
-    }
-
-    @GetMapping
-    public ResponseEntity<Page<MermaidDiagramDTO>> list(
-            @RequestParam(value = "keyWord", required = false) String keyWord,
-            @RequestParam(value = "group", required = false) String group,
-            Pageable pageable) {
-        return ResponseEntity.ok(service.list(keyWord, group, pageable));
-    }
-
+    @Operation(summary = "流式生成Mermaid", description = "AI流式生成或修改Mermaid代码")
     @GetMapping(path = "/generate/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamGenerate(@RequestParam("advice") String advice,
             @RequestParam(value = "diagramData", required = false) String diagramData,

@@ -1,27 +1,19 @@
 package com.ck.quiz.mermaids.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import com.ck.quiz.base.dto.Dto;
 import lombok.Data;
-
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class MermaidDiagramDTO {
-    private String id;
+@EqualsAndHashCode(callSuper = true)
+public class MermaidDiagramDto extends Dto {
 
-    @NotBlank(message = "图名称不能为空")
     private String diagramName;
-
     private String description;
-
     private String diagramData;
 
-    // 分组信息 (Group interface)
+    // Compatible field for frontend if it expects 'group' specifically, though Dto
+    // has groupName
     private String group;
     private String groupLabel;
-
-    private LocalDateTime createDate;
-    private String createUser;
-    private LocalDateTime updateDate;
-    private String updateUser;
 }

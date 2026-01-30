@@ -1,0 +1,151 @@
+
+D:\idea_repo\quiz\backend>if "Windows_NT" == "Windows_NT" setlocal
+
+D:\idea_repo\quiz\backend>set DIRNAME=D:\idea_repo\quiz\backend\ 
+
+D:\idea_repo\quiz\backend>if "D:\idea_repo\quiz\backend\" == "" set DIRNAME=. 
+
+D:\idea_repo\quiz\backend>set APP_BASE_NAME=gradlew 
+
+D:\idea_repo\quiz\backend>set APP_HOME=D:\idea_repo\quiz\backend\ 
+
+D:\idea_repo\quiz\backend>for %i in ("D:\idea_repo\quiz\backend\") do set APP_HOME=%~fi 
+
+D:\idea_repo\quiz\backend>set APP_HOME=D:\idea_repo\quiz\backend\ 
+
+D:\idea_repo\quiz\backend>set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m" 
+
+D:\idea_repo\quiz\backend>if defined JAVA_HOME goto findJavaFromJavaHome 
+
+D:\idea_repo\quiz\backend>set JAVA_HOME=D:\Java\jdk-17 
+
+D:\idea_repo\quiz\backend>set JAVA_EXE=D:\Java\jdk-17/bin/java.exe 
+
+D:\idea_repo\quiz\backend>if exist "D:\Java\jdk-17/bin/java.exe" goto execute 
+
+D:\idea_repo\quiz\backend>set CLASSPATH= 
+
+D:\idea_repo\quiz\backend>"D:\Java\jdk-17/bin/java.exe" "-Xmx64m" "-Xms64m"   "-Dorg.gradle.appname=gradlew" -classpath "" -jar "D:\idea_repo\quiz\backend\\gradle\wrapper\gradle-wrapper.jar" compileJava 
+
+> Task :compileJava
+D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\controller\MermaidDiagramController.java:8: 错误: 找不到符号
+import com.ck.quiz.mermaids.dto.MermaidDiagramUpdateDto;
+                               ^
+  符号:   类 MermaidDiagramUpdateDto
+  位置: 程序包 com.ck.quiz.mermaids.dto
+D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\dto\MermaidDiagramCreateDto.java:9: 错误: 找不到符号
+public class MermaidDiagramCreateDto extends CreateDto {
+                                             ^
+  符号: 类 CreateDto
+D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\controller\MermaidDiagramController.java:26: 错误: 找不到符号
+        BaseController<MermaidDiagramCreateDto, MermaidDiagramUpdateDto, MermaidDiagramQueryDto, MermaidDiagramDto> {
+                                                ^
+  符号: 类 MermaidDiagramUpdateDto
+D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\service\MermaidDiagramService.java:7: 错误: 找不到符号
+import com.ck.quiz.mermaids.dto.MermaidDiagramUpdateDto;
+                               ^
+  符号:   类 MermaidDiagramUpdateDto
+  位置: 程序包 com.ck.quiz.mermaids.dto
+D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\service\MermaidDiagramService.java:15: 错误: 找不到符号
+        BaseService<MermaidDiagramCreateDto, MermaidDiagramUpdateDto, MermaidDiagramQueryDto, MermaidDiagramDto, MermaidDiagram> {
+                                             ^
+  符号: 类 MermaidDiagramUpdateDto
+D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\controller\MermaidDiagramController.java:31: 错误: 找不到符号
+    protected BaseService<MermaidDiagramCreateDto, MermaidDiagramUpdateDto, MermaidDiagramQueryDto, MermaidDiagramDto, ?> getService() {
+                                                   ^
+  符号:   类 MermaidDiagramUpdateDto
+  位置: 类 MermaidDiagramController
+D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\service\impl\MermaidDiagramServiceImpl.java:13: 错误: 找不到符号
+import com.ck.quiz.mermaids.dto.MermaidDiagramUpdateDto;
+                               ^
+  符号:   类 MermaidDiagramUpdateDto
+  位置: 程序包 com.ck.quiz.mermaids.dto
+D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\service\impl\MermaidDiagramServiceImpl.java:42: 错误: 找不到符号
+        BaseServiceImpl<MermaidDiagramCreateDto, MermaidDiagramUpdateDto, MermaidDiagramQueryDto, MermaidDiagramDto, MermaidDiagram, MermaidDiagramRepository>
+                                                 ^
+  符号: 类 MermaidDiagramUpdateDto
+D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\service\impl\MermaidDiagramServiceImpl.java:138: 错误: 找不到符号
+    public MermaidDiagramDto update(String id, MermaidDiagramUpdateDto updateDto) {
+                                               ^
+  符号:   类 MermaidDiagramUpdateDto
+  位置: 类 MermaidDiagramServiceImpl
+9 个错误
+
+> Task :compileJava FAILED
+
+[Incubating] Problems report is available at: file:///D:/idea_repo/quiz/backend/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler output below.
+  D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\controller\MermaidDiagramController.java:8: 错误: 找不到符号
+  import com.ck.quiz.mermaids.dto.MermaidDiagramUpdateDto;
+                                 ^
+    符号:   类 MermaidDiagramUpdateDto
+    位置: 程序包 com.ck.quiz.mermaids.dto
+  D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\service\MermaidDiagramService.java:7: 错误: 找不到符号
+  import com.ck.quiz.mermaids.dto.MermaidDiagramUpdateDto;
+                                 ^
+    符号:   类 MermaidDiagramUpdateDto
+    位置: 程序包 com.ck.quiz.mermaids.dto
+  D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\controller\MermaidDiagramController.java:31: 错误: 找不到符号
+      protected BaseService<MermaidDiagramCreateDto, MermaidDiagramUpdateDto, MermaidDiagramQueryDto, MermaidDiagramDto, ?> getService() {
+                                                     ^
+    符号:   类 MermaidDiagramUpdateDto
+    位置: 类 MermaidDiagramController
+  D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\service\impl\MermaidDiagramServiceImpl.java:13: 错误: 找不到符号
+  import com.ck.quiz.mermaids.dto.MermaidDiagramUpdateDto;
+                                 ^
+    符号:   类 MermaidDiagramUpdateDto
+    位置: 程序包 com.ck.quiz.mermaids.dto
+  D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\service\impl\MermaidDiagramServiceImpl.java:138: 错误: 找不到符号
+      public MermaidDiagramDto update(String id, MermaidDiagramUpdateDto updateDto) {
+                                                 ^
+    符号:   类 MermaidDiagramUpdateDto
+    位置: 类 MermaidDiagramServiceImpl
+  D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\dto\MermaidDiagramCreateDto.java:9: 错误: 找不到符号
+  public class MermaidDiagramCreateDto extends CreateDto {
+                                               ^
+    符号: 类 CreateDto
+  D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\controller\MermaidDiagramController.java:26: 错误: 找不到符号
+          BaseController<MermaidDiagramCreateDto, MermaidDiagramUpdateDto, MermaidDiagramQueryDto, MermaidDiagramDto> {
+                                                  ^
+    符号: 类 MermaidDiagramUpdateDto
+  D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\service\MermaidDiagramService.java:15: 错误: 找不到符号
+          BaseService<MermaidDiagramCreateDto, MermaidDiagramUpdateDto, MermaidDiagramQueryDto, MermaidDiagramDto, MermaidDiagram> {
+                                               ^
+    符号: 类 MermaidDiagramUpdateDto
+  D:\idea_repo\quiz\backend\src\main\java\com\ck\quiz\mermaids\service\impl\MermaidDiagramServiceImpl.java:42: 错误: 找不到符号
+          BaseServiceImpl<MermaidDiagramCreateDto, MermaidDiagramUpdateDto, MermaidDiagramQueryDto, MermaidDiagramDto, MermaidDiagram, MermaidDiagramRepository>
+                                                   ^
+    符号: 类 MermaidDiagramUpdateDto
+  9 个错误
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 43s
+1 actionable task: 1 executed
+
+D:\idea_repo\quiz\backend>if 1 EQU 0 goto mainEnd 
+
+D:\idea_repo\quiz\backend>rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of 
+
+D:\idea_repo\quiz\backend>rem the _cmd.exe /c_ return code! 
+
+D:\idea_repo\quiz\backend>set EXIT_CODE=1 
+
+D:\idea_repo\quiz\backend>if 1 EQU 0 set EXIT_CODE=1 
+
+D:\idea_repo\quiz\backend>if not "" == "" exit 1 
+
+D:\idea_repo\quiz\backend>exit /b 1 

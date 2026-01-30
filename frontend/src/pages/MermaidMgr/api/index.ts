@@ -1,15 +1,15 @@
 import axios from '@/core/src/http';
 
-// 获取题目列表（分页查询）
-const getMermaidList = params => axios.get('/mermaids/diagrams', {params});
+// 获取 mermaid 列表（分页查询）
+const getMermaidList = params => axios.post('/mermaids/diagrams/search', params);
 // 创建 mermaid 思维图
-const createMermaidDiagram = (data) => axios.post('/mermaids/diagrams', data);
+const createMermaidDiagram = (data) => axios.post('/mermaids/diagrams/create', data);
 // 更新 mermaid 思维图
-const updateMermaidDiagram = (id, data) => axios.put(`/mermaids/diagrams/${id}`, data);
+const updateMermaidDiagram = (id, data) => axios.put('/mermaids/diagrams/update', { ...data, id });
 // 获取单个 mermaid 思维图
-const getMermaidDiagram = (id) => axios.get(`/mermaids/diagrams/${id}`);
+const getMermaidDiagram = (id) => axios.get(`/mermaids/diagrams/get/${id}`);
 // 删除 mermaid 思维图
-const deleteMermaidDiagram = (id) => axios.delete(`/mermaids/diagrams/${id}`);
+const deleteMermaidDiagram = (id) => axios.delete(`/mermaids/diagrams/delete/${id}`);
 
 
 
