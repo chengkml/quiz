@@ -334,6 +334,12 @@ public class MermaidDiagramServiceImpl
     @Override
     public SseEmitter streamGenerateDiagram(String advice, String diagramData, String modelName) {
         SseEmitter emitter = new SseEmitter(0L);
+        try {
+            // 发送初始连接事件
+            emitter.send(SseEmitter.event().name("connect").data("connected"));
+        } catch (Exception e) {
+            // ignore
+        }
         new Thread(() -> {
             try {
                 LLMModel model = resolveModel(modelName);
@@ -405,6 +411,12 @@ public class MermaidDiagramServiceImpl
     @Override
     public SseEmitter streamChat(com.ck.quiz.mermaids.dto.MermaidChatRequest request) {
         SseEmitter emitter = new SseEmitter(0L);
+        try {
+            // 发送初始连接事件
+            emitter.send(SseEmitter.event().name("connect").data("connected"));
+        } catch (Exception e) {
+            // ignore
+        }
         new Thread(() -> {
             try {
                 LLMModel model = resolveModel(request.getModelName());

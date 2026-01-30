@@ -118,6 +118,12 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public SseEmitter streamGenerateQuestions(String knowledgeDescr, int num, String modelName) {
         SseEmitter emitter = new SseEmitter(0L);
+        try {
+            // 发送初始连接事件
+            emitter.send(SseEmitter.event().name("connect").data("connected"));
+        } catch (Exception e) {
+            // ignore
+        }
         // 在新线程中执行生成并实时流式发送
         new Thread(() -> {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -164,7 +170,7 @@ public class QuestionServiceImpl implements QuestionService {
                         chat.prompt()
                                 .user(prompt)
                                 .stream()
-                                .content()  // 流式获取内容
+                                .content() // 流式获取内容
                                 .doOnNext(chunk -> {
                                     try {
                                         // 实时推送流式内容（token/chunk）到前端
@@ -176,7 +182,7 @@ public class QuestionServiceImpl implements QuestionService {
                                         System.err.println("Failed to send chunk: " + e.getMessage());
                                     }
                                 })
-                                .blockLast();  // 阻塞等待流完成
+                                .blockLast(); // 阻塞等待流完成
 
                         // 流式内容接收完毕后，尝试解析最终的 JSON 结果
                         String content = fullContent.toString().trim();
@@ -207,7 +213,7 @@ public class QuestionServiceImpl implements QuestionService {
 
                             emitter.complete();
                             finished = true;
-                            break;  // 成功完成，退出重试循环
+                            break; // 成功完成，退出重试循环
                         } catch (Exception parseEx) {
                             // 将 JSON 解析失败视为一次失败，记录异常用于最终上报
                             lastException = parseEx;
@@ -258,7 +264,8 @@ public class QuestionServiceImpl implements QuestionService {
                 // 只有所有重试都失败时才关闭emitter并推送错误
                 if (attempt >= maxRetries) {
                     try {
-                        emitter.send("[ERROR]生成题目失败，重试次数已达上限: " + (lastException != null ? lastException.getMessage() : "未知错误"));
+                        emitter.send("[ERROR]生成题目失败，重试次数已达上限: "
+                                + (lastException != null ? lastException.getMessage() : "未知错误"));
                     } catch (Exception ex) {
                         // ignore
                     }
@@ -492,9 +499,6 @@ public class QuestionServiceImpl implements QuestionService {
         }
     }
 
-
-
-
     @Override
     public List<QuestionDto> createQuestions(List<QuestionCreateDto> questionCreateDtos) {
         List<QuestionDto> result = new ArrayList<>();
@@ -563,7 +567,7 @@ public class QuestionServiceImpl implements QuestionService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Map<String, Object> params = new HashMap<>();
         params.put("createUser", authentication.getName());
-        
+
         // 使用通用SQL，兼容各种数据库
         String sql = """
                     SELECT create_date
@@ -576,18 +580,18 @@ public class QuestionServiceImpl implements QuestionService {
             java.sql.Timestamp timestamp = rs.getTimestamp("create_date");
             return timestamp != null ? timestamp.toLocalDateTime() : null;
         }).stream().filter(Objects::nonNull).toList();
-        
+
         // 获取最近7天的日期范围
         java.time.LocalDate today = java.time.LocalDate.now();
         java.time.LocalDate sevenDaysAgo = today.minusDays(6);
-        
+
         // 在代码中按日期分组统计
         Map<String, Long> result = new LinkedHashMap<>();
         for (java.time.LocalDate date = sevenDaysAgo; !date.isAfter(today); date = date.plusDays(1)) {
             String dateStr = date.toString();
             result.put(dateStr, 0L);
         }
-        
+
         // 统计各日期的题目数量
         for (java.time.LocalDateTime dateTime : dates) {
             String dateStr = dateTime.toLocalDate().toString();
@@ -595,7 +599,7 @@ public class QuestionServiceImpl implements QuestionService {
                 result.put(dateStr, result.get(dateStr) + 1);
             }
         }
-        
+
         return result;
     }
 
@@ -605,7 +609,7 @@ public class QuestionServiceImpl implements QuestionService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Map<String, Object> params = new HashMap<>();
         params.put("createUser", authentication.getName());
-        
+
         // 简化SQL，只查询需要的数据，在代码中处理关联和统计
         String sql = """
                     SELECT DISTINCT q.question_id, s.name as subject_name
@@ -619,15 +623,15 @@ public class QuestionServiceImpl implements QuestionService {
 
         // 查询所有数据，在代码中进行统计和排序
         List<Map<String, Object>> records = jdbcTemplate.queryForList(sql, params);
-        
+
         // 在代码中按学科名称分组统计
         Map<String, Long> countMap = new LinkedHashMap<>();
         Set<String> seenQuestions = new HashSet<>();
-        
+
         for (Map<String, Object> record : records) {
             String subjectName = (String) record.get("subject_name");
             String questionId = (String) record.get("question_id");
-            
+
             // 过滤掉学科为null的记录
             if (subjectName != null && questionId != null) {
                 String key = subjectName + ":" + questionId;
@@ -637,16 +641,15 @@ public class QuestionServiceImpl implements QuestionService {
                 }
             }
         }
-        
+
         // 按计数降序排序
         return countMap.entrySet().stream()
                 .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
                 .collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    Map.Entry::getValue,
-                    (e1, e2) -> e1,
-                    LinkedHashMap::new
-                ));
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (e1, e2) -> e1,
+                        LinkedHashMap::new));
     }
 
     @Override
@@ -655,7 +658,7 @@ public class QuestionServiceImpl implements QuestionService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Map<String, Object> params = new HashMap<>();
         params.put("createUser", authentication.getName());
-        
+
         // 使用通用SQL，兼容各种数据库
         String sql = """
                     SELECT create_date
@@ -668,18 +671,18 @@ public class QuestionServiceImpl implements QuestionService {
             java.sql.Timestamp timestamp = rs.getTimestamp("create_date");
             return timestamp != null ? timestamp.toLocalDateTime() : null;
         }).stream().filter(Objects::nonNull).toList();
-        
+
         // 获取最近30天的日期范围
         java.time.LocalDate today = java.time.LocalDate.now();
         java.time.LocalDate thirtyDaysAgo = today.minusDays(29);
-        
+
         // 在代码中按日期分组统计
         Map<String, Long> result = new LinkedHashMap<>();
         for (java.time.LocalDate date = thirtyDaysAgo; !date.isAfter(today); date = date.plusDays(1)) {
             String dateStr = date.toString();
             result.put(dateStr, 0L);
         }
-        
+
         // 统计各日期的题目数量
         for (java.time.LocalDateTime dateTime : dates) {
             String dateStr = dateTime.toLocalDate().toString();
@@ -687,7 +690,7 @@ public class QuestionServiceImpl implements QuestionService {
                 result.put(dateStr, result.get(dateStr) + 1);
             }
         }
-        
+
         return result;
     }
 

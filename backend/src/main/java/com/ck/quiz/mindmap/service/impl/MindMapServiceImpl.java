@@ -367,6 +367,12 @@ public class MindMapServiceImpl extends
     @Override
     public SseEmitter streamGenerateMindMap(String descr) {
         SseEmitter emitter = new SseEmitter(0L);
+        try {
+            // 发送初始连接事件
+            emitter.send(SseEmitter.event().name("connect").data("connected"));
+        } catch (Exception e) {
+            // ignore
+        }
         // 在新线程中执行生成并实时流式发送
         new Thread(() -> {
             ObjectMapper objectMapper = new ObjectMapper();
