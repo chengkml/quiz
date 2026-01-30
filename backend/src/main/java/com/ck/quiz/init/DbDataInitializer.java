@@ -403,7 +403,7 @@ public class DbDataInitializer implements CommandLineRunner {
 
         // 使用 JDBC 直接查询用户列表
         List<String> userIds = jdbcTemplate.queryForList(
-                "SELECT user_id FROM user",
+                "SELECT user_id FROM users",
                 String.class);
 
         if (userIds.isEmpty()) {
