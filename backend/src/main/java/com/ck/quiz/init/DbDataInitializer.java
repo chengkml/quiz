@@ -62,6 +62,9 @@ public class DbDataInitializer implements CommandLineRunner {
     @Autowired
     private KnowledgeSetRepository knowledgeSetRepository;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @Override
     public void run(String... args) {
         // 检查用户表是否为空
@@ -398,24 +401,43 @@ public class DbDataInitializer implements CommandLineRunner {
         String name = "流程图";
         String descr = "系统默认流程图知识集";
 
-        List<User> users = userRepository.findAll();
-        for (User user : users) {
-            String userId = user.getUserId();
-            if (knowledgeSetRepository.existsByNameAndCreateUser(name, userId)) {
+        // 使用 JDBC 直接查询用户列表
+        List<String> userIds = jdbcTemplate.queryForList(
+                "SELECT user_id FROM user",
+                String.class);
+
+        if (userIds.isEmpty()) {
+            return;
+        }
+
+        // 批量插入知识集
+        List<Object[]> batchArgs = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (String userId : userIds) {
+            // 检查是否已存在
+            Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM knowledge_set WHERE name = ? AND create_user = ?",
+                    Integer.class,
+                    name, userId);
+
+            if (count != null && count > 0) {
                 continue;
             }
-            KnowledgeSet ks = new KnowledgeSet();
-            ks.setId(IdHelper.genUuid());
-            ks.setName(name);
-            ks.setDescr(descr);
-            ks.setCreateUser(userId);
-            ks.setUpdateUser(userId);
-            ks.setCreateDate(LocalDateTime.now());
-            ks.setUpdateDate(LocalDateTime.now());
-            ks.setIsSystem(true);
-            ks.setStatus("ENABLED");
-            knowledgeSetRepository.save(ks);
-            log.info("Initialized Flowchart Knowledge Set for user: {}", userId);
+
+            String id = IdHelper.genUuid();
+            batchArgs.add(new Object[] {
+                    id, name, descr, userId, userId, now, now, true, "ENABLED"
+            });
+        }
+
+        if (!batchArgs.isEmpty()) {
+            jdbcTemplate.batchUpdate(
+                    "INSERT INTO knowledge_set (id, name, descr, create_user, update_user, " +
+                            "create_date, update_date, is_system, status) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    batchArgs);
+            log.info("Initialized Flowchart Knowledge Set for {} users", batchArgs.size());
         }
     }
 

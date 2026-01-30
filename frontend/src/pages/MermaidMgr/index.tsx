@@ -8,6 +8,7 @@ import {
   Message,
   Modal,
   Tag,
+  Drawer,
 } from "@arco-design/web-react";
 import {
   IconDelete,
@@ -61,6 +62,7 @@ const MermaidMgrPage: React.FC = () => {
   const [currentRecord, setCurrentRecord] = useState<any | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [viewDrawerVisible, setViewDrawerVisible] = useState(false);
 
   // Refs
   const filterFormRef = useRef<any>(null);
@@ -179,7 +181,12 @@ const MermaidMgrPage: React.FC = () => {
   };
 
   const handleEdit = (record: any) => {
-    setCurrentRecord(record);
+    // 确保分组字段正确映射
+    const editRecord = {
+      ...record,
+      group: record.groupName || record.group
+    };
+    setCurrentRecord(editRecord);
     setEditModalVisible(true);
   };
 
@@ -217,20 +224,8 @@ const MermaidMgrPage: React.FC = () => {
   };
 
   const handleDetail = (record: any) => {
-      Modal.info({
-          title: record.diagramName,
-          content: (
-              <div style={{ maxHeight: '600px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <p style={{marginBottom: 10}}>{record.description}</p>
-                  <div style={{flex: 1, overflow: 'auto'}}>
-                      <MermaidViewer code={record.diagramData} />
-                  </div>
-              </div>
-          ),
-          width: 800,
-          footer: null,
-          closable: true
-      });
+    setCurrentRecord(record);
+    setViewDrawerVisible(true);
   };
 
   // Columns
@@ -424,6 +419,27 @@ const MermaidMgrPage: React.FC = () => {
         onOk={handleEditConfirm}
         onCancel={() => setEditModalVisible(false)}
       />
+
+      <Drawer
+        width="50%"
+        title={currentRecord?.diagramName || "查看详情"}
+        visible={viewDrawerVisible}
+        onCancel={() => setViewDrawerVisible(false)}
+        footer={null}
+      >
+        {currentRecord && (
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {currentRecord.description && (
+              <p style={{ marginBottom: 16, color: '#86909c' }}>
+                {currentRecord.description}
+              </p>
+            )}
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <MermaidViewer code={currentRecord.diagramData} />
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 };

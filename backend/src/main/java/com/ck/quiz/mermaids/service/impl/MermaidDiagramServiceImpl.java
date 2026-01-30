@@ -122,26 +122,45 @@ public class MermaidDiagramServiceImpl
 
     @Override
     public MermaidDiagramDto create(MermaidDiagramCreateDto createDto) {
+        // 保存原始分组值
+        String originalGroup = createDto.getGroup();
+        // 临时设为 null，避免 BaseServiceImpl 使用错误的查询方法
+        createDto.setGroup(null);
+
+        // 调用父类方法创建实体
         MermaidDiagramDto dto = super.create(createDto);
-        // Handle Group Relation
-        MermaidDiagram e = repository.findById(dto.getId()).orElse(null);
-        if (e != null) {
-            handleGroupRelation(e, createDto.getGroup());
-            // Refetch to include group info? Or just set it if we trust it.
-            // BaseServiceImpl uses convertToDto, which is basic copy.
-            dto.setGroupName(createDto.getGroup());
+
+        // 手动处理分组关系（使用带 type 的查询）
+        if (originalGroup != null && !originalGroup.isEmpty()) {
+            MermaidDiagram e = repository.findById(dto.getId()).orElse(null);
+            if (e != null) {
+                handleGroupRelation(e, originalGroup);
+                dto.setGroupName(originalGroup);
+            }
         }
+
         return dto;
     }
 
     @Override
     public MermaidDiagramDto update(String id, MermaidDiagramUpdateDto updateDto) {
+        // 保存原始分组值
+        String originalGroup = updateDto.getGroup();
+        // 临时设为 null，避免 BaseServiceImpl 使用错误的查询方法
+        updateDto.setGroup(null);
+
+        // 调用父类方法更新实体
         MermaidDiagramDto dto = super.update(id, updateDto);
-        MermaidDiagram e = repository.findById(id).orElse(null);
-        if (e != null && updateDto.getGroup() != null) {
-            handleGroupRelation(e, updateDto.getGroup());
-            dto.setGroupName(updateDto.getGroup());
+
+        // 手动处理分组关系（使用带 type 的查询）
+        if (originalGroup != null) {
+            MermaidDiagram e = repository.findById(id).orElse(null);
+            if (e != null) {
+                handleGroupRelation(e, originalGroup);
+                dto.setGroupName(originalGroup);
+            }
         }
+
         return dto;
     }
 
