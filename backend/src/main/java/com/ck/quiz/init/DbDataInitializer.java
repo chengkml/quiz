@@ -399,15 +399,15 @@ public class DbDataInitializer implements CommandLineRunner {
 
             String id = IdHelper.genUuid();
             batchArgs.add(new Object[] {
-                    id, name, descr, userId, userId, now, now, true, "ENABLED"
+                    id, name, descr, userId, userId, now, now, true, "ENABLED", "PUBLIC"
             });
         }
 
         if (!batchArgs.isEmpty()) {
             jdbcTemplate.batchUpdate(
                     "INSERT INTO knowledge_set (id, name, descr, create_user, update_user, " +
-                            "create_date, update_date, is_system, status) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            "create_date, update_date, is_system, status, visibility) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     batchArgs);
             log.info("Initialized Mind Map Knowledge Set for {} users", batchArgs.size());
         }
@@ -446,15 +446,15 @@ public class DbDataInitializer implements CommandLineRunner {
 
             String id = IdHelper.genUuid();
             batchArgs.add(new Object[] {
-                    id, name, descr, userId, userId, now, now, true, "ENABLED"
+                    id, name, descr, userId, userId, now, now, true, "ENABLED", "PUBLIC"
             });
         }
 
         if (!batchArgs.isEmpty()) {
             jdbcTemplate.batchUpdate(
                     "INSERT INTO knowledge_set (id, name, descr, create_user, update_user, " +
-                            "create_date, update_date, is_system, status) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            "create_date, update_date, is_system, status, visibility) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     batchArgs);
             log.info("Initialized Flowchart Knowledge Set for {} users", batchArgs.size());
         }

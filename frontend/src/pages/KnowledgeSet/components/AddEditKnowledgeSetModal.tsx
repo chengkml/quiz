@@ -83,12 +83,12 @@ const AddEditKnowledgeSetModal: React.FC<AddEditKnowledgeSetModalProps> = ({
                 <FormItem
                     label="状态"
                     field="status"
-                    initialValue="ENABLE"
+                    initialValue="ENABLED"
                     rules={[{ required: true }]}
                 >
                     <Select>
-                        <Select.Option value="ENABLE">启用</Select.Option>
-                        <Select.Option value="DISABLE">禁用</Select.Option>
+                        <Select.Option value="ENABLED">启用</Select.Option>
+                        <Select.Option value="DISABLED">禁用</Select.Option>
                     </Select>
                 </FormItem>
             </Form>

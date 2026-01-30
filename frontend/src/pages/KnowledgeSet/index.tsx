@@ -97,7 +97,7 @@ function KnowledgeSetManager() {
             title: '状态',
             dataIndex: 'status',
             width: 100,
-            render: (text: string) => text === 'ENABLE' ? <Tag color="green" bordered>启用</Tag> : <Tag color="red" bordered>禁用</Tag>,
+            render: (text: string) => text === 'ENABLED' ? <Tag color="green" bordered>启用</Tag> : <Tag color="red" bordered>禁用</Tag>,
         },
         {
             title: '创建人',
@@ -162,8 +162,8 @@ function KnowledgeSetManager() {
             type: 'select',
             placeholder: '请选择状态',
             options: [
-                { label: '启用', value: 'ENABLE' },
-                { label: '禁用', value: 'DISABLE' },
+                { label: '启用', value: 'ENABLED' },
+                { label: '禁用', value: 'DISABLED' },
             ],
         },
         {

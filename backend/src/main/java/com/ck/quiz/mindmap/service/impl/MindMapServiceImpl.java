@@ -152,6 +152,27 @@ public class MindMapServiceImpl extends
         return convertToDto(updatedMindMap, true);
     }
 
+    @Override
+    @Transactional
+    public void delete(String userId, String id) {
+        // 1. 删除向量数据
+        try {
+            vectorService.deleteBySourceId(id);
+        } catch (Exception e) {
+            log.error("Failed to delete vector data for mindmap: {}", id, e);
+        }
+
+        // 2. 删除知识来源关联
+        try {
+            knowledgeSourceRepository.deleteById(id);
+        } catch (Exception e) {
+            log.error("Failed to delete knowledge source for mindmap: {}", id, e);
+        }
+
+        // 3. 调用父类方法删除实体及关联
+        super.delete(userId, id);
+    }
+
     private void syncToVectorStore(MindMap mindMap) {
         if (mindMap == null)
             return;

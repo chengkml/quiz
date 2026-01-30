@@ -8,6 +8,7 @@ import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
 import AddEditKnowledgeSourceModal from './components/AddEditKnowledgeSourceModal';
 import { deleteKnowledgeSource, getKnowledgeSourceById, getKnowledgeSourceList } from './api';
+import renderDate from '@/utils/timeUtil';
 import './style/index.less';
 
 const { Content } = Layout;
@@ -38,27 +39,7 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
         showPageSize: true,
     });
 
-    // Time format
-    const renderTimeText = (value: string) => {
-        if (!value) return '--';
-        const now = new Date();
-        const date = new Date(value);
-        const diffMs = now.getTime() - date.getTime();
-        const diffSeconds = Math.floor(diffMs / 1000);
-        const diffMinutes = Math.floor(diffSeconds / 60);
-        const diffHours = Math.floor(diffMinutes / 60);
-        const diffDays = Math.floor(diffHours / 24);
 
-        if (diffDays === 0) {
-            if (diffSeconds < 60) return `${diffSeconds}秒前`;
-            if (diffMinutes < 60) return `${diffMinutes}分钟前`;
-            return `${diffHours}小时前`;
-        } else if (diffDays === 1) {
-            return `昨天 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-        } else {
-            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        }
-    };
 
     // Columns
     const tableColumns = [
@@ -78,45 +59,10 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
             }
         },
         {
-            title: '描述',
-            dataIndex: 'descr',
-            width: 200,
-            render: (text: string) => text || '--',
-        },
-        {
-            title: '状态',
-            dataIndex: 'status',
-            width: 100,
-            render: (text: string) => text === 'ENABLE' ? <Tag color="green" bordered>启用</Tag> : <Tag bordered>{text}</Tag>,
-        },
-        {
-            title: '创建人',
-            dataIndex: 'createUserName',
-            width: 100,
-            render: (text: string, record: any) => (
-                <UserAvatar name={text || (record?.createUser ?? '')} showName />
-            ),
-        },
-        {
             title: '创建时间',
             dataIndex: 'createDate',
             width: 170,
-        },
-        {
-            title: '操作',
-            dataIndex: 'operation',
-            width: 150,
-            fixed: 'right' as const,
-            render: (_: any, record: any) => (
-                <Space>
-                    <Button type="text" size="small" onClick={() => handleEdit(record)} icon={<IconEdit />}>
-                        编辑
-                    </Button>
-                    <Button type="text" status="danger" size="small" onClick={() => handleDelete(record)} icon={<IconDelete />}>
-                        删除
-                    </Button>
-                </Space>
-            ),
+            render: (text: string) => renderDate(text),
         },
     ];
 
@@ -146,8 +92,12 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
             type: 'select',
             placeholder: '请选择状态',
             options: [
-                { label: '启用', value: 'ENABLE' },
-                { label: '禁用', value: 'DISABLE' },
+                { label: '成功', value: 'SUCCESS' },
+                { label: '失败', value: 'FAILED' },
+                { label: '启用', value: 'ENABLED' },
+                { label: '禁用', value: 'DISABLED' },
+                { label: '解析中', value: 'PARSING' },
+                { label: '等待中', value: 'PENDING' },
             ],
         },
     ];
@@ -310,7 +260,7 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
                     
                     <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--color-text-3)' }}>
                         <UserAvatar name={item.createUserName || item.createUser} size={20} showName />
-                        <span>{renderTimeText(item.createDate)}</span>
+                        <span>{renderDate(item.createDate)}</span>
                     </div>
                 </div>
             </Card>

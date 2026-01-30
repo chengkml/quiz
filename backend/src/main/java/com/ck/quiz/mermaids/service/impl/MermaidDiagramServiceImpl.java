@@ -18,6 +18,9 @@ import com.ck.quiz.prompt.dto.PromptTemplateDto;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -35,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @Transactional
 public class MermaidDiagramServiceImpl
@@ -185,6 +189,27 @@ public class MermaidDiagramServiceImpl
         }
 
         return dto;
+    }
+
+    @Override
+    @Transactional
+    public void delete(String userId, String id) {
+        // 1. 删除向量数据
+        try {
+            vectorService.deleteBySourceId(id);
+        } catch (Exception e) {
+            log.error("Failed to delete vector data for diagram: {}", id, e);
+        }
+
+        // 2. 删除知识来源关联
+        try {
+            knowledgeSourceRepository.deleteById(id);
+        } catch (Exception e) {
+            log.error("Failed to delete knowledge source for diagram: {}", id, e);
+        }
+
+        // 3. 调用父类方法删除实体及关联
+        super.delete(userId, id);
     }
 
     private void handleGroupRelation(MermaidDiagram e, String groupName) {
