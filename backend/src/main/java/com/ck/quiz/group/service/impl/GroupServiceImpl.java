@@ -48,7 +48,7 @@ public class GroupServiceImpl
     @Override
     public Page<GroupDto> search(String userId, GroupQueryDto queryDto) {
         Pageable pageable = PageRequest.of(queryDto.getPageNum(), queryDto.getPageSize(),
-                Sort.by(Sort.Direction.DESC, "createTime"));
+                Sort.by(Sort.Direction.DESC, "createDate"));
 
         Specification<Group> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
