@@ -98,6 +98,9 @@ public class DbDataInitializer implements CommandLineRunner {
 
         // 初始化思维导图知识集
         initializeKnowledgeSet();
+
+        // 初始化流程图知识集
+        initializeFlowchartKnowledgeSet();
     }
 
     private void initializeMenu() {
@@ -385,6 +388,34 @@ public class DbDataInitializer implements CommandLineRunner {
             ks.setStatus("ENABLED");
             knowledgeSetRepository.save(ks);
             log.info("Initialized Mind Map Knowledge Set for user: {}", userId);
+        }
+    }
+
+    /**
+     * 初始化流程图知识集
+     */
+    private void initializeFlowchartKnowledgeSet() {
+        String name = "流程图";
+        String descr = "系统默认流程图知识集";
+
+        List<User> users = userRepository.findAll();
+        for (User user : users) {
+            String userId = user.getUserId();
+            if (knowledgeSetRepository.existsByNameAndCreateUser(name, userId)) {
+                continue;
+            }
+            KnowledgeSet ks = new KnowledgeSet();
+            ks.setId(IdHelper.genUuid());
+            ks.setName(name);
+            ks.setDescr(descr);
+            ks.setCreateUser(userId);
+            ks.setUpdateUser(userId);
+            ks.setCreateDate(LocalDateTime.now());
+            ks.setUpdateDate(LocalDateTime.now());
+            ks.setIsSystem(true);
+            ks.setStatus("ENABLED");
+            knowledgeSetRepository.save(ks);
+            log.info("Initialized Flowchart Knowledge Set for user: {}", userId);
         }
     }
 
