@@ -58,11 +58,11 @@ public class MermaidDiagramServiceImpl
     public Page<MermaidDiagramDto> search(String userId, MermaidDiagramQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
                 "select d.*, g.name as group_name, g.label as group_label from mermaid_diagram d " +
-                        "left join obj_group_obj_rela r on d.diagram_id = r.obj_id " +
+                        "left join obj_group_obj_rela r on d.id = r.obj_id " +
                         "left join obj_group g on r.group_id = g.id where 1=1 ");
 
         StringBuilder countSql = new StringBuilder("select count(1) from mermaid_diagram d " +
-                "left join obj_group_obj_rela r on d.diagram_id = r.obj_id " +
+                "left join obj_group_obj_rela r on d.id = r.obj_id " +
                 "left join obj_group g on r.group_id = g.id where 1=1 ");
 
         Map<String, Object> params = new HashMap<>();
@@ -88,7 +88,7 @@ public class MermaidDiagramServiceImpl
         List<MermaidDiagramDto> dtos = namedParameterJdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
             // Manually fill Dto as BaseServiceImpl expects DTO
             MermaidDiagramDto dto = new MermaidDiagramDto();
-            dto.setId(rs.getString("diagram_id"));
+            dto.setId(rs.getString("id"));
             dto.setDiagramName(rs.getString("diagram_name"));
             dto.setDescription(rs.getString("description"));
             dto.setDiagramData(rs.getString("diagram_data"));
