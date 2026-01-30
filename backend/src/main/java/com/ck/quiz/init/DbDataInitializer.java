@@ -365,21 +365,27 @@ public class DbDataInitializer implements CommandLineRunner {
      */
     private void initializeKnowledgeSet() {
         String name = "思维导图";
-        String createUser = "admin";
-        if (knowledgeSetRepository.existsByNameAndCreateUser(name, createUser)) {
-            return;
+        String descr = "系统默认思维导图知识集";
+
+        List<User> users = userRepository.findAll();
+        for (User user : users) {
+            String userId = user.getUserId();
+            if (knowledgeSetRepository.existsByNameAndCreateUser(name, userId)) {
+                continue;
+            }
+            KnowledgeSet ks = new KnowledgeSet();
+            ks.setId(IdHelper.genUuid());
+            ks.setName(name);
+            ks.setDescr(descr);
+            ks.setCreateUser(userId);
+            ks.setUpdateUser(userId);
+            ks.setCreateDate(LocalDateTime.now());
+            ks.setUpdateDate(LocalDateTime.now());
+            ks.setIsSystem(true);
+            ks.setStatus("ENABLED");
+            knowledgeSetRepository.save(ks);
+            log.info("Initialized Mind Map Knowledge Set for user: {}", userId);
         }
-        KnowledgeSet ks = new KnowledgeSet();
-        ks.setId(IdHelper.genUuid());
-        ks.setName(name);
-        ks.setDescr("系统默认思维导图知识集");
-        ks.setCreateUser(createUser);
-        ks.setUpdateUser(createUser);
-        ks.setCreateDate(LocalDateTime.now());
-        ks.setUpdateDate(LocalDateTime.now());
-        ks.setIsSystem(true);
-        ks.setStatus("ENABLED");
-        knowledgeSetRepository.save(ks);
     }
 
     /**
