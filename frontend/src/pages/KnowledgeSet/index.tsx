@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserAvatar from '@/components/UserAvatar';
-import { Button, Card, Dropdown, Layout, Menu, Message, Modal, Space, Tag, Typography } from '@arco-design/web-react';
+import { Button, Card, Drawer, Dropdown, Layout, Menu, Message, Modal, Space, Tag, Typography } from '@arco-design/web-react';
 import { IconDelete, IconEdit, IconList, IconStorage } from '@arco-design/web-react/icon';
 import { DataManager } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
 import AddEditKnowledgeSetModal from './components/AddEditKnowledgeSetModal';
+import KnowledgeSourceManager from '../KnowledgeSource';
 import { deleteKnowledgeSet, getKnowledgeSetById, getKnowledgeSetList } from './api';
 import './style/index.less';
 
@@ -22,6 +23,10 @@ function KnowledgeSetManager() {
     // Modal state
     const [modalVisible, setModalVisible] = useState(false);
     const [currentRecord, setCurrentRecord] = useState(null);
+
+    // Source drawer state
+    const [sourceDrawerVisible, setSourceDrawerVisible] = useState(false);
+    const [drawerKnowledgeSetId, setDrawerKnowledgeSetId] = useState<string | null>(null);
 
     // Form ref
     const filterFormRef = useRef<any>();
@@ -230,6 +235,16 @@ function KnowledgeSetManager() {
         setCurrentRecord(null);
     };
 
+    const handleOpenSourceDrawer = (id: string) => {
+        setDrawerKnowledgeSetId(id);
+        setSourceDrawerVisible(true);
+    };
+
+    const handleCloseSourceDrawer = () => {
+        setSourceDrawerVisible(false);
+        setDrawerKnowledgeSetId(null);
+    };
+
     const filterContent = (
         <FilterForm
             ref={filterFormRef}
@@ -269,7 +284,7 @@ function KnowledgeSetManager() {
                                 } else if (key === 'delete') {
                                     actions.onDelete(item);
                                 } else if (key === 'source') {
-                                    navigate(`/frame/knowledge-set/${item.id}/sources`);
+                                    handleOpenSourceDrawer(item.id);
                                 }
                             }}>
                                 <Menu.Item key="source"><IconStorage style={{ marginRight: 8 }} />知识来源</Menu.Item>
@@ -342,6 +357,17 @@ function KnowledgeSetManager() {
                     onCancel={handleModalCancel}
                     onSuccess={handleModalSuccess}
                 />
+                <Drawer
+                    width="50%"
+                    title="知识来源"
+                    visible={sourceDrawerVisible}
+                    onOk={handleCloseSourceDrawer}
+                    onCancel={handleCloseSourceDrawer}
+                    footer={null}
+                    unmountOnClose
+                >
+                    {drawerKnowledgeSetId && <KnowledgeSourceManager knowledgeSetId={drawerKnowledgeSetId} />}
+                </Drawer>
             </Content>
         </Layout>
     );
