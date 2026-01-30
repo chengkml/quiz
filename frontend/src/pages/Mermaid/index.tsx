@@ -13,14 +13,16 @@ import {
   Avatar,
   Card,
   Typography,
-  Empty
+  Empty,
+  Drawer
 } from "@arco-design/web-react";
 import { 
   IconFullscreen, 
   IconSend, 
   IconShrink, 
   IconRobot, 
-  IconUser 
+  IconUser,
+  IconCode
 } from "@arco-design/web-react/icon";
 import mermaid from "mermaid";
 import "./index.less";
@@ -157,7 +159,6 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
   }, []);
 
   const [error, setError] = useState<string | null>(null);
-  const [editorHeight, setEditorHeight] = useState(200); // Smaller initial height to make room for chat
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -201,21 +202,6 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
     const timer = setTimeout(renderChart, 500);
     return () => clearTimeout(timer);
   }, [code]);
-
-  useEffect(() => {
-    const calculateHeight = () => {
-      const windowHeight = window.innerHeight;
-      // Adjust editor height dynamically or keep it fixed percentage
-      // Here we set a max height for editor to allow chat to be visible
-      // Let's make editor 40% of view height, chat the rest
-      const newHeight = Math.max(200, windowHeight * 0.4); 
-      setEditorHeight(newHeight);
-    };
-    calculateHeight();
-    const handleResize = () => calculateHeight();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -342,50 +328,21 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
     }
   };
 
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
+  // ... (existing code)
+
   return (
     <div className="mermaid-editor-container">
       <Layout>
         <Content>
           <Row style={{ height: "100%" }}>
-            {/* LEFT COLUMN: Editor + Chat */}
+            {/* LEFT COLUMN: Chat Only */}
             <Col span={10} style={{ padding: "20px", height: "100%", display: "flex", flexDirection: "column" }}>
-              {/* Toolbar */}
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                 <Select
-                    value={chartType}
-                    onChange={handleChartTypeChange}
-                    options={[
-                      { label: "流程图 (Flowchart)", value: "flowchart" },
-                      { label: "时序图 (Sequence)", value: "sequence" },
-                      { label: "类图 (Class)", value: "class" },
-                      { label: "状态图 (State)", value: "state" },
-                      { label: "甘特图 (Gantt)", value: "gantt" },
-                      { label: "饼图 (Pie)", value: "pie" },
-                      { label: "ER图 (ER)", value: "er" },
-                    ]}
-                    style={{ width: 180 }}
-                  />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <Button size="small" onClick={handleCancel}>返回</Button>
-                    <Button size="small" type="primary" onClick={handleSave}>保存</Button>
-                  </div>
-              </div>
-
-              {/* Code Editor */}
-              <div style={{ height: editorHeight, marginBottom: 16, border: '1px solid var(--color-border-2)', borderRadius: 4 }}>
-                <CodeMirror
-                  className="mermaid-code-editor"
-                  value={code}
-                  height="100%"
-                  onChange={(value) => setCode(value)}
-                  style={{ height: '100%' }}
-                />
-              </div>
-
               {/* Chat Interface */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: '1px solid var(--color-border-2)', borderRadius: 4, background: 'var(--color-bg-2)' }}>
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--color-border-1)', background: 'var(--color-fill-2)', fontWeight: 500 }}>
-                      AI 助手
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border-1)', background: 'var(--color-fill-2)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <IconRobot /> AI 助手
                   </div>
                   
                   {/* Message List */}
@@ -459,29 +416,73 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
               </div>
             </Col>
 
-            {/* RIGHT COLUMN: Preview */}
+            {/* RIGHT COLUMN: Preview & Controls */}
             <Col span={14} style={{ padding: "20px", height: "100%", borderLeft: "1px solid var(--color-neutral-3)", display: "flex", flexDirection: "column" }}>
-               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                <label style={{ fontSize: "14px", fontWeight: "500", margin: 0 }}>预览</label>
-                <Button size="small" type="outline" icon={isFullscreen ? <IconShrink /> : <IconFullscreen />} onClick={handleToggleFullscreen}>
-                    {isFullscreen ? "退出全屏" : "全屏"}
-                </Button>
+               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                <label style={{ fontSize: "16px", fontWeight: "500", margin: 0 }}>预览</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <Button size="small" onClick={() => setDrawerVisible(true)} icon={<IconCode />}>
+                        源代码
+                    </Button>
+                    <Button size="small" type="outline" icon={isFullscreen ? <IconShrink /> : <IconFullscreen />} onClick={handleToggleFullscreen}>
+                        {isFullscreen ? "退出全屏" : "全屏"}
+                    </Button>
+                    <Button size="small" onClick={handleCancel}>返回</Button>
+                    <Button size="small" type="primary" onClick={handleSave}>保存</Button>
+                </div>
               </div>
               <div 
                   ref={previewContainerRef}
                   className={`mermaid-preview-wrapper ${isFullscreen ? "fullscreen" : ""}`}
-                  style={{ height: isFullscreen ? "100vh" : "100%", flex: 1 }}
+                  style={{ height: isFullscreen ? "100vh" : "100%", flex: 1, backgroundColor: 'var(--color-bg-2)', borderRadius: 4, border: '1px solid var(--color-border-2)', overflow: 'hidden' }}
               >
                 <Spin loading={loading} style={{ display: "block", height: "100%" }}>
                   <div 
                       ref={previewRef} 
                       className="mermaid-preview" 
-                      style={{ minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      style={{ minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
                   />
                 </Spin>
               </div>
             </Col>
           </Row>
+
+          <Drawer
+            width={500}
+            title="源代码编辑"
+            visible={drawerVisible}
+            onOk={() => setDrawerVisible(false)}
+            onCancel={() => setDrawerVisible(false)}
+            footer={null}
+          >
+            <div style={{ marginBottom: 16 }}>
+                 <div style={{ marginBottom: 8, fontWeight: 500 }}>图表类型</div>
+                 <Select
+                    value={chartType}
+                    onChange={handleChartTypeChange}
+                    options={[
+                      { label: "流程图 (Flowchart)", value: "flowchart" },
+                      { label: "时序图 (Sequence)", value: "sequence" },
+                      { label: "类图 (Class)", value: "class" },
+                      { label: "状态图 (State)", value: "state" },
+                      { label: "甘特图 (Gantt)", value: "gantt" },
+                      { label: "饼图 (Pie)", value: "pie" },
+                      { label: "ER图 (ER)", value: "er" },
+                    ]}
+                    style={{ width: '100%' }}
+                  />
+            </div>
+            <div style={{ height: 'calc(100vh - 200px)', border: '1px solid var(--color-border-2)', borderRadius: 4 }}>
+                <CodeMirror
+                  className="mermaid-code-editor"
+                  value={code}
+                  height="100%"
+                  onChange={(value) => setCode(value)}
+                  style={{ height: '100%' }}
+                />
+            </div>
+          </Drawer>
+
         </Content>
       </Layout>
     </div>
