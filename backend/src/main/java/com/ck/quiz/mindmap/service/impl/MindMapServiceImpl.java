@@ -399,6 +399,7 @@ public class MindMapServiceImpl extends
                     boolean finished = false;
                     try {
                         attempt++;
+                        final int currentAttempt = attempt;
                         // 每次重试前清空之前累积的内容
                         fullContent.setLength(0);
                         String prompt = buildMindMapPrompt(descr);
@@ -419,7 +420,8 @@ public class MindMapServiceImpl extends
                                 .stream()
                                 .content() // 流式获取内容
                                 .doOnSubscribe(
-                                        s -> log.info("[MindMap] Stream generation started (attempt {})", attempt))
+                                        s -> log.info("[MindMap] Stream generation started (attempt {})",
+                                                currentAttempt))
                                 .doOnNext(chunk -> {
                                     log.info("[MindMap] Received chunk: {}", chunk);
                                     try {
