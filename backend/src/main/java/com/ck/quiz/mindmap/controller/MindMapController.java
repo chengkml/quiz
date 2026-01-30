@@ -36,9 +36,15 @@ public class MindMapController extends BaseController<MindMapCreateDto, MindMapU
 
     @Operation(summary = "流式生成思维导图（SSE）", description = "根据描述调用大模型流式生成思维导图数据")
     @GetMapping(path = "/generate/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
-    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamGenerateMindMap(
+    public ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.SseEmitter> streamGenerateMindMap(
             @Parameter(description = "思维导图描述") @RequestParam("descr") String descr) {
-        return mindMapService.streamGenerateMindMap(descr);
+        org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter = mindMapService
+                .streamGenerateMindMap(descr);
+        return ResponseEntity.ok()
+                .header("X-Accel-Buffering", "no")
+                .header("Cache-Control", "no-cache")
+                .header("Connection", "keep-alive")
+                .body(emitter);
     }
 
     @Override

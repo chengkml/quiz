@@ -40,7 +40,7 @@ public class ChatController {
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "发送消息并获取流式回复")
-    public SseEmitter streamCompletions(
+    public ResponseEntity<SseEmitter> streamCompletions(
             @Valid @RequestBody ChatCompletionRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userId = authentication != null ? authentication.getName() : null;
@@ -49,7 +49,8 @@ public class ChatController {
         SseEmitter emitter = new SseEmitter(0L);
 
         emitter.onTimeout(emitter::complete);
-        emitter.onCompletion(() -> {});
+        emitter.onCompletion(() -> {
+        });
 
         chatService.streamChat(userId, request)
                 .publishOn(Schedulers.boundedElastic())
@@ -65,7 +66,11 @@ public class ChatController {
                     }
                 });
 
-        return emitter;
+        return ResponseEntity.ok()
+                .header("X-Accel-Buffering", "no")
+                .header("Cache-Control", "no-cache")
+                .header("Connection", "keep-alive")
+                .body(emitter);
     }
 
     @GetMapping("/sessions")
@@ -88,4 +93,3 @@ public class ChatController {
         return ResponseEntity.ok(chatService.listMessages(userId, sessionId, limit));
     }
 }
-

@@ -79,11 +79,16 @@ public class QuestionController {
 
     @Operation(summary = "流式生成题目（SSE）", description = "根据知识点描述调用大模型流式生成题目，逐条推送")
     @GetMapping(path = "/generate/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamGenerateQuestions(
+    public ResponseEntity<SseEmitter> streamGenerateQuestions(
             @RequestParam("knowledgeDescr") String knowledgeDescr,
             @RequestParam(value = "num", defaultValue = "1") int num,
             @RequestParam(value = "modelName", required = false) String modelName) {
-        return questionService.streamGenerateQuestions(knowledgeDescr, num, modelName);
+        SseEmitter emitter = questionService.streamGenerateQuestions(knowledgeDescr, num, modelName);
+        return ResponseEntity.ok()
+                .header("X-Accel-Buffering", "no")
+                .header("Cache-Control", "no-cache")
+                .header("Connection", "keep-alive")
+                .body(emitter);
     }
 
     @Operation(summary = "关联知识点", description = "为题目关联知识点")

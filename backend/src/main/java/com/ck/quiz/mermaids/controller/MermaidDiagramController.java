@@ -43,15 +43,25 @@ public class MermaidDiagramController extends
 
     @Operation(summary = "流式生成Mermaid", description = "AI流式生成或修改Mermaid代码")
     @GetMapping(path = "/generate/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamGenerate(@RequestParam("advice") String advice,
+    public ResponseEntity<SseEmitter> streamGenerate(@RequestParam("advice") String advice,
             @RequestParam(value = "diagramData", required = false) String diagramData,
             @RequestParam(value = "modelName", required = false) String modelName) {
-        return service.streamGenerateDiagram(advice, diagramData, modelName);
+        SseEmitter emitter = service.streamGenerateDiagram(advice, diagramData, modelName);
+        return ResponseEntity.ok()
+                .header("X-Accel-Buffering", "no")
+                .header("Cache-Control", "no-cache")
+                .header("Connection", "keep-alive")
+                .body(emitter);
     }
 
     @Operation(summary = "多轮对话流式生成", description = "支持上下文的AI生成接口")
     @PostMapping(path = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamChat(@RequestBody com.ck.quiz.mermaids.dto.MermaidChatRequest request) {
-        return service.streamChat(request);
+    public ResponseEntity<SseEmitter> streamChat(@RequestBody com.ck.quiz.mermaids.dto.MermaidChatRequest request) {
+        SseEmitter emitter = service.streamChat(request);
+        return ResponseEntity.ok()
+                .header("X-Accel-Buffering", "no")
+                .header("Cache-Control", "no-cache")
+                .header("Connection", "keep-alive")
+                .body(emitter);
     }
 }

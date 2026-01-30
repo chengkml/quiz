@@ -17,20 +17,25 @@ public class OcrController {
 	private OcrService ocrService;
 
 	@PostMapping(value = "/recognize", produces = "text/event-stream")
-	public SseEmitter recognize(@RequestParam("image") MultipartFile image,
-								@RequestParam(value = "model", required = false) String model) {
+	public org.springframework.http.ResponseEntity<SseEmitter> recognize(@RequestParam("image") MultipartFile image,
+			@RequestParam(value = "model", required = false) String model) {
+		SseEmitter emitter = null;
 		try {
-			return ocrService.recognizeStream(image, model);
+			emitter = ocrService.recognizeStream(image, model);
 		} catch (Exception e) {
-			SseEmitter emitter = new SseEmitter(0L);
+			emitter = new SseEmitter(0L);
 			try {
 				emitter.send("[ERROR]" + e.getMessage());
 			} catch (Exception ex) {
 				// ignore
 			}
 			emitter.completeWithError(e);
-			return emitter;
 		}
+		return org.springframework.http.ResponseEntity.ok()
+				.header("X-Accel-Buffering", "no")
+				.header("Cache-Control", "no-cache")
+				.header("Connection", "keep-alive")
+				.body(emitter);
 	}
 
 }

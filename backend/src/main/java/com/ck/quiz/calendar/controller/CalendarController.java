@@ -20,23 +20,28 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Tag(name = "日程管理", description = "日程事件的创建、更新、删除、查询等接口")
 @RestController
 @RequestMapping("/api/calendar")
-public class CalendarController extends BaseController<CalendarEventCreateDto, CalendarEventUpdateDto, CalendarEventQueryDto, CalendarEventDto> {
+public class CalendarController extends
+        BaseController<CalendarEventCreateDto, CalendarEventUpdateDto, CalendarEventQueryDto, CalendarEventDto> {
 
     @Autowired
     private CalendarEventService calendarEventService;
 
     @Operation(summary = "流式生成日程（SSE）", description = "根据日程描述调用大模型流式生成日程信息")
     @GetMapping(path = "/generate/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamGenerateEvent(
+    public ResponseEntity<SseEmitter> streamGenerateEvent(
             @Parameter(description = "日程描述") @RequestParam("descr") String descr) {
-        return calendarEventService.streamGenerateEvent(descr);
+        SseEmitter emitter = calendarEventService.streamGenerateEvent(descr);
+        return ResponseEntity.ok()
+                .header("X-Accel-Buffering", "no")
+                .header("Cache-Control", "no-cache")
+                .header("Connection", "keep-alive")
+                .body(emitter);
     }
 
     @Operation(summary = "完成日程", description = "根据日程ID标记日程为完成")
     @PostMapping("/{id}/complete")
     public ResponseEntity<CalendarEventDto> complete(
-            @Parameter(description = "日程ID", required = true)
-            @PathVariable("id") String id) {
+            @Parameter(description = "日程ID", required = true) @PathVariable("id") String id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return ResponseEntity.ok(calendarEventService.complete(authentication.getName(), id));
     }
