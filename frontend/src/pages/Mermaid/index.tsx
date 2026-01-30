@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from 'react-router-dom';
 import CodeMirror from "@uiw/react-codemirror";
 import {
@@ -10,15 +10,25 @@ import {
   Select,
   Spin,
   Modal,
+  Avatar,
+  Card,
+  Typography,
+  Empty
 } from "@arco-design/web-react";
-import { IconFullscreen, IconSend, IconShrink } from "@arco-design/web-react/icon";
+import { 
+  IconFullscreen, 
+  IconSend, 
+  IconShrink, 
+  IconRobot, 
+  IconUser 
+} from "@arco-design/web-react/icon";
 import mermaid from "mermaid";
 import "./index.less";
 
 const { Row, Col } = Grid;
 const { Content } = Layout;
 
-// 默认示例图表
+// Default examples
 const defaultExamples = {
   flowchart: `flowchart TD
     A[开始] --> B{判断条件}
@@ -26,7 +36,6 @@ const defaultExamples = {
     B -->|否| D[执行操作2]
     C --> E[结束]
     D --> E`,
-
   sequence: `sequenceDiagram
     participant 用户
     participant 系统
@@ -36,7 +45,6 @@ const defaultExamples = {
     系统->>数据库: 查询数据
     数据库-->>系统: 返回结果
     系统-->>用户: 响应数据`,
-
   class: `classDiagram
     class 动物 {
         +String 名字
@@ -52,7 +60,6 @@ const defaultExamples = {
     }
     动物 <|-- 狗
     动物 <|-- 猫`,
-
   state: `stateDiagram-v2
     [*] --> 待审核
     待审核 --> 审核中: 开始审核
@@ -60,7 +67,6 @@ const defaultExamples = {
     审核中 --> 已拒绝: 审核拒绝
     已通过 --> [*]
     已拒绝 --> [*]`,
-
   gantt: `gantt
     title 项目进度计划
     dateFormat YYYY-MM-DD
@@ -76,14 +82,12 @@ const defaultExamples = {
     section 测试阶段
     功能测试       :c1, after b1, 5d
     上线部署       :c2, after c1, 2d`,
-
   pie: `pie title 市场份额
     "产品A" : 386
     "产品B" : 280
     "产品C" : 150
     "产品D" : 120
     "其他" : 64`,
-
   er: `erDiagram
     USER ||--o{ ORDER : places
     ORDER ||--|{ ORDER_DETAIL : contains
@@ -112,6 +116,11 @@ const defaultExamples = {
     }`,
 };
 
+interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+}
+
 interface MermaidEditorProps {
   initialCode?: string | null;
 }
@@ -123,19 +132,19 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
     initialCode ?? defaultExamples.flowchart
   );
   const [chartType, setChartType] = useState<string>("flowchart");
-  // 已移除下载功能相关状态
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [prompt, setPrompt] = useState<string>(""); // 存储用户的修改要求
-  const [isGenerating, setIsGenerating] = useState(false); // AI 生成状态
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const [sseFirstMessageReceived, setSseFirstMessageReceived] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [streamContent, setStreamContent] = useState<string>('');
+  
+  // Chat state
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputPrompt, setInputPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const [diagramId, setDiagramId] = useState<string>("");
   const navigate = useNavigate();
 
-  // 从 URL 提取图表 ID（取最后一段路径）
+  // Extract Diagram ID
   useEffect(() => {
     try {
       const path = window.location.pathname || '';
@@ -146,19 +155,18 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
       // ignore
     }
   }, []);
+
   const [error, setError] = useState<string | null>(null);
-  const [editorHeight, setEditorHeight] = useState(420);
+  const [editorHeight, setEditorHeight] = useState(200); // Smaller initial height to make room for chat
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  // 当传入 initialCode 变化时，更新编辑器内容（仅在有值时覆盖）
   useEffect(() => {
     if (initialCode !== undefined && initialCode !== null) {
       setCode(initialCode);
     }
   }, [initialCode]);
 
-  // 初始化 Mermaid
   useEffect(() => {
     mermaid.initialize({
       startOnLoad: false,
@@ -168,29 +176,20 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
     });
   }, []);
 
-  // 渲染图表
   useEffect(() => {
     const renderChart = async () => {
       if (!previewRef.current || !code.trim()) {
         return;
       }
-
       setLoading(true);
       setError(null);
-
       try {
-        // 清空之前的内容
         previewRef.current.innerHTML = "";
-
-        // 生成唯一ID
         const id = `mermaid-${Date.now()}`;
-
-        // 渲染图表
         const { svg } = await mermaid.render(id, code);
         previewRef.current.innerHTML = svg;
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "图表渲染失败";
+        const errorMessage = err instanceof Error ? err.message : "图表渲染失败";
         setError(errorMessage);
         if (previewRef.current) {
           previewRef.current.innerHTML = `<div class="error-message">${errorMessage}</div>`;
@@ -199,17 +198,17 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
         setLoading(false);
       }
     };
-
     const timer = setTimeout(renderChart, 500);
     return () => clearTimeout(timer);
   }, [code]);
 
-  // 高度自适应
   useEffect(() => {
     const calculateHeight = () => {
       const windowHeight = window.innerHeight;
-      const otherElementsHeight = 420;
-      const newHeight = Math.max(100, windowHeight - otherElementsHeight);
+      // Adjust editor height dynamically or keep it fixed percentage
+      // Here we set a max height for editor to allow chat to be visible
+      // Let's make editor 40% of view height, chat the rest
+      const newHeight = Math.max(200, windowHeight * 0.4); 
       setEditorHeight(newHeight);
     };
     calculateHeight();
@@ -218,412 +217,266 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // 监听全屏状态变化
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  // 切换图表类型
+  // Auto-scroll to bottom of chat
+  useEffect(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const handleChartTypeChange = (value: string) => {
     setChartType(value);
-    setCode(defaultExamples[value as keyof typeof defaultExamples] || "");
+    const newCode = defaultExamples[value as keyof typeof defaultExamples] || "";
+    setCode(newCode);
+    // Optionally clear chat or add a system message indicating reset? 
+    // For now, just reset code.
   };
 
-  // 刷新渲染
-  // 刷新与复制功能已移除
-
-  // 下载功能已移除
-
-  // 切换全屏
   const handleToggleFullscreen = () => {
     const container = previewContainerRef.current;
     if (!container) return;
-
     if (!document.fullscreenElement) {
-      if (container.requestFullscreen) {
-        container.requestFullscreen();
-      } else {
-        Message.warning("当前浏览器不支持全屏");
-      }
+        container.requestFullscreen?.() || Message.warning("当前浏览器不支持全屏");
     } else {
       document.exitFullscreen?.();
     }
   };
 
-  // 保存与取消
   const handleSave = () => {
     if (!diagramId || !diagramId.trim()) {
       Message.warning("缺少图表 ID，无法保存。请输入图表 ID 后重试。");
       return;
     }
-
     const payload = { diagramData: code };
     setLoading(true);
     fetch(`/api/mermaids/diagrams/${encodeURIComponent(diagramId)}/data`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
       .then(async (res) => {
-        setLoading(false);
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(txt || `保存失败: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(await res.text() || `保存失败: ${res.status}`);
         return res.json();
       })
-      .then((data) => {
-        Message.success('已保存');
-      })
-      .catch((err) => {
-        Message.error(err?.message || '保存失败');
-        setLoading(false);
-      });
+      .then(() => Message.success('已保存'))
+      .catch((err) => Message.error(err?.message || '保存失败'))
+      .finally(() => setLoading(false));
   };
 
   const handleCancel = () => {
-    // 使用前端路由导航回 mermaid 管理页（不刷新页面）
     navigate('/frame/mermaid-mgr');
   };
 
-  const handleAiEdit = async () => {
-    if (!prompt.trim()) return;
+  const handleSendMessage = async () => {
+    if (!inputPrompt.trim() || isGenerating) return;
 
-    // 关闭已有连接
-    if (eventSourceRef.current) {
-      try { eventSourceRef.current.close(); } catch (e) { /* ignore */ }
-      eventSourceRef.current = null;
-    }
-
+    const newUserMsg: ChatMessage = { role: 'user', content: inputPrompt };
+    const newMessages = [...messages, newUserMsg];
+    setMessages(newMessages);
+    setInputPrompt("");
     setIsGenerating(true);
-    setModalVisible(true);
-    setStreamContent('');
-    setSseFirstMessageReceived(false);
 
-    const params = new URLSearchParams();
-    params.set('advice', prompt);
-    params.set('diagramData', code || '');
-    const url = `/api/mermaids/diagrams/generate/stream?${params.toString()}`;
+    try {
+        const response = await fetch('/api/mermaids/diagrams/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                messages: newMessages,
+                diagramData: code, // Send current code as context
+                modelName: null
+            })
+        });
 
-    const es = new EventSource(url);
-    eventSourceRef.current = es;
+        if (!response.ok) throw new Error(response.statusText);
+        if (!response.body) throw new Error("No response body");
 
-    // 发送完成后立即清空用户输入，避免重复提交
-    setPrompt('');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantMsgContent = "";
+        
+        // Add placeholder assistant message
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
-    let acc = ''; // accumulate chunks
-    let parseBuffer = ''; // buffer for any special markers
-    let hasReceivedValid = false;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            assistantMsgContent += chunk;
+            
+            // Filter out [ERROR] or other markers if necessary, but backend sends mostly code
+            // If backend sends [ERROR], handle it
+            if (assistantMsgContent.includes("[ERROR]")) {
+                 Message.error(assistantMsgContent.replace("[ERROR]", ""));
+                 break;
+            }
 
-    es.onmessage = (e) => {
-      const data = e.data || '';
+            // Update the last message (assistant)
+            setMessages(prev => {
+                const newHistory = [...prev];
+                if (newHistory.length > 0) {
+                    newHistory[newHistory.length - 1] = { 
+                        role: 'assistant', 
+                        content: assistantMsgContent 
+                    };
+                }
+                return newHistory;
+            });
 
-      if (!sseFirstMessageReceived) {
-        setSseFirstMessageReceived(true);
-      }
-
-      // 服务端主动返回错误信息的约定：以 [ERROR] 开头
-      if (data.startsWith('[ERROR]')) {
-        const errMsg = data.replace(/\n/g, ' ').replace('[ERROR]', '').trim();
-        Message.error(errMsg || '流式生成出错');
-        // 无论是否有错误，都将已接收的累积内容回写到编辑器
-        try {
-          setCode(acc);
-          setStreamContent(acc);
-        } catch (e) { /* ignore */ }
-        try { es.close(); } catch (err) { /* ignore */ }
-        eventSourceRef.current = null;
-        setIsGenerating(false);
-        setModalVisible(false);
-        setSseFirstMessageReceived(false);
-        return;
-      }
-
-      // 服务器可能会发送解析/结束标记，例如 [PARSE_RESULT] 或 [END]，这里做缓冲简单处理
-      parseBuffer += data;
-
-      // 如果存在显式结束标记，优先以标记为准（后端需配合）
-      if (parseBuffer.includes('[END]') || parseBuffer.includes('[PARSE_RESULT]')) {
-        // 移除标记并当作最终内容
-        const cleaned = parseBuffer.replace(/\[END\]|\[PARSE_RESULT\]/g, '');
-        acc += cleaned;
-        setStreamContent(acc);
-        hasReceivedValid = true;
-        try { es.close(); } catch (err) { /* ignore */ }
-        eventSourceRef.current = null;
-        setIsGenerating(false);
-        setPrompt('');
-        setSseFirstMessageReceived(false);
-        setCode(acc);
-        setModalVisible(false);
-        Message.success('AI 生成完成');
-        return;
-      }
-
-      // 普通数据追加并展示
-      acc += data;
-      setStreamContent(acc);
-      hasReceivedValid = true;
-    };
-
-    es.onerror = (ev) => {
-      // @ts-ignore
-      const state = es.readyState;
-      // 如果是服务器正常关闭连接 (CLOSED)，把已累积内容作为最终结果
-      if (state === EventSource.CLOSED) {
-        try { es.close(); } catch (err) { /* ignore */ }
-        eventSourceRef.current = null;
-        setIsGenerating(false);
-        setPrompt('');
-        setSseFirstMessageReceived(false);
-        // 无论是否收到有效内容，都将累积结果回写
-        try {
-          setCode(acc);
-          setStreamContent(acc);
-        } catch (e) { /* ignore */ }
-        setModalVisible(false);
-        if (acc && acc.length > 0) {
-          Message.success('AI 生成完成');
-        } else {
-          Message.error('流式连接已关闭，未收到有效结果');
+            // Update code editor in real-time if it looks like code?
+            // Or just wait for completion? 
+            // The prompt asks for ONLY code. So we can try to update code directly.
+            // But let's verify if it's pure code.
+            setCode(assistantMsgContent);
         }
-      } else {
-        // 其他错误分支
-        try { es.close(); } catch (err) { /* ignore */ }
-        eventSourceRef.current = null;
+    } catch (err) {
+        Message.error("发送失败: " + err);
+        setMessages(prev => [...prev, { role: 'assistant', content: "Error generating response." }]);
+    } finally {
         setIsGenerating(false);
-        setModalVisible(false);
-        setSseFirstMessageReceived(false);
-        // 仅在未收到任何有效内容时提示最终错误
-        try {
-          setCode(acc);
-          setStreamContent(acc);
-        } catch (e) { /* ignore */ }
-        if (!hasReceivedValid) {
-          Message.error('流式生成发生错误');
-        }
-      }
-    };
+    }
   };
-
-  // 清理 eventsource
-  useEffect(() => {
-    return () => {
-      if (eventSourceRef.current) {
-        try { eventSourceRef.current.close(); } catch (e) { /* ignore */ }
-        eventSourceRef.current = null;
-      }
-    };
-  }, []);
-
-  // CodeMirror 处理 Tab 与编辑交互，故不再需要手动处理 Tab 键
 
   return (
     <div className="mermaid-editor-container">
       <Layout>
         <Content>
           <Row style={{ height: "100%" }}>
-            {/* 左侧编辑器 */}
-            <Col
-              span={10}
-              style={{
-                padding: "20px",
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "8px",
-                }}
-              >
-                <label
-                  style={{ fontSize: "14px", fontWeight: "500", margin: 0 }}
-                >
-                  图表类型
-                </label>
+            {/* LEFT COLUMN: Editor + Chat */}
+            <Col span={10} style={{ padding: "20px", height: "100%", display: "flex", flexDirection: "column" }}>
+              {/* Toolbar */}
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                 <Select
+                    value={chartType}
+                    onChange={handleChartTypeChange}
+                    options={[
+                      { label: "流程图 (Flowchart)", value: "flowchart" },
+                      { label: "时序图 (Sequence)", value: "sequence" },
+                      { label: "类图 (Class)", value: "class" },
+                      { label: "状态图 (State)", value: "state" },
+                      { label: "甘特图 (Gantt)", value: "gantt" },
+                      { label: "饼图 (Pie)", value: "pie" },
+                      { label: "ER图 (ER)", value: "er" },
+                    ]}
+                    style={{ width: 180 }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Button size="small" onClick={handleCancel}>返回</Button>
+                    <Button size="small" type="primary" onClick={handleSave}>保存</Button>
+                  </div>
               </div>
-              <Select
-                value={chartType}
-                onChange={handleChartTypeChange}
-                options={[
-                  { label: "流程图 (Flowchart)", value: "flowchart" },
-                  { label: "时序图 (Sequence)", value: "sequence" },
-                  { label: "类图 (Class)", value: "class" },
-                  { label: "状态图 (State)", value: "state" },
-                  { label: "甘特图 (Gantt)", value: "gantt" },
-                  { label: "饼图 (Pie)", value: "pie" },
-                  { label: "ER图 (Entity Relationship)", value: "er" },
-                ]}
-                style={{ marginBottom: "16px" }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "8px",
-                }}
-              >
-                <label
-                  style={{ fontSize: "14px", fontWeight: "500", margin: 0 }}
-                >
-                  Mermaid 代码
-                </label>
-                <div>{/* 复制与刷新按钮已移除 */}</div>
-              </div>
-              <div style={{ flex: 1, height: editorHeight, marginBottom: "16px" }}>
+
+              {/* Code Editor */}
+              <div style={{ height: editorHeight, marginBottom: 16, border: '1px solid var(--color-border-2)', borderRadius: 4 }}>
                 <CodeMirror
                   className="mermaid-code-editor"
                   value={code}
-                  height={`${editorHeight - 50}px`}
+                  height="100%"
                   onChange={(value) => setCode(value)}
+                  style={{ height: '100%' }}
                 />
               </div>
-              {/* 2. 新增的 AI 输入区 */}
-              <div
-                className="ai-input-section"
-                style={{ marginBottom: "16px" }}
-              >
-                <label
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    display: "block",
-                    marginBottom: "8px",
-                  }}
-                >
-                  AI 修改建议
-                </label>
-                <div style={{ position: "relative" }}>
-                  <Input.TextArea
-                    value={prompt}
-                    rows={4}
-                    onChange={setPrompt}
-                    placeholder="例如：把流程图改为横向，并增加一个'重试'步骤"
-                    onKeyDown={(e) =>
-                      e.key === "Enter" && !e.shiftKey && handleAiEdit()
-                    }
-                    style={{ borderRadius: "6px" }}
-                  />
-                  <Button
-                    type="text"
-                    icon={<IconSend />}
-                    loading={isGenerating}
-                    onClick={handleAiEdit}
-                    style={{
-                      position: "absolute",
-                      right: "4px",
-                      bottom: "4px",
-                    }}
-                  />
-                </div>
-              </div>
-              <Modal
-                title="AI 生成中"
-                visible={modalVisible}
-                onCancel={() => {
-                  if (eventSourceRef.current) {
-                    try { eventSourceRef.current.close(); } catch (e) {}
-                    eventSourceRef.current = null;
-                  }
-                  setModalVisible(false);
-                  setIsGenerating(false);
-                  setSseFirstMessageReceived(false);
-                }}
-                footer={null}
-                style={{ maxHeight: '70vh' }}
-              >
-                <div style={{ maxHeight: '60vh', overflow: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                  {sseFirstMessageReceived ? (streamContent || '') : '等待AI返回...'}
-                </div>
-              </Modal>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "8px",
-                  marginTop: "12px",
-                }}
-              >
-                <Button size="small" onClick={handleCancel}>
-                  取消
-                </Button>
-                <Button size="small" type="primary" onClick={handleSave}>
-                  保存
-                </Button>
+
+              {/* Chat Interface */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: '1px solid var(--color-border-2)', borderRadius: 4, background: 'var(--color-bg-2)' }}>
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--color-border-1)', background: 'var(--color-fill-2)', fontWeight: 500 }}>
+                      AI 助手
+                  </div>
+                  
+                  {/* Message List */}
+                  <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+                      {messages.length === 0 ? (
+                          <div style={{ textAlign: 'center', color: 'var(--color-text-3)', marginTop: 20 }}>
+                              <Typography.Text>输入需求，AI 将为您生成或修改 Mermaid 代码</Typography.Text>
+                          </div>
+                      ) : (
+                          messages.map((msg, idx) => (
+                              <div key={idx} style={{ 
+                                  display: 'flex', 
+                                  justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                                  marginBottom: 12
+                              }}>
+                                  {msg.role === 'assistant' && (
+                                      <Avatar size={28} style={{ backgroundColor: '#165DFF', marginRight: 8 }}>
+                                          <IconRobot />
+                                      </Avatar>
+                                  )}
+                                  <div style={{
+                                      maxWidth: '85%',
+                                      padding: '8px 12px',
+                                      borderRadius: 8,
+                                      backgroundColor: msg.role === 'user' ? '#E8F3FF' : '#F2F3F5',
+                                      color: 'var(--color-text-1)',
+                                      fontSize: 13,
+                                      whiteSpace: 'pre-wrap',
+                                      wordBreak: 'break-all'
+                                  }}>
+                                      {msg.role === 'user' ? msg.content : (msg.content || 'Generating...')}
+                                  </div>
+                                  {msg.role === 'user' && (
+                                      <Avatar size={28} style={{ backgroundColor: '#FF7D00', marginLeft: 8 }}>
+                                          <IconUser />
+                                      </Avatar>
+                                  )}
+                              </div>
+                          ))
+                      )}
+                      <div ref={messagesEndRef} />
+                  </div>
+
+                  {/* Input Area */}
+                  <div style={{ padding: 12, borderTop: '1px solid var(--color-border-1)', background: 'var(--color-bg-1)' }}>
+                      <Input.TextArea 
+                          value={inputPrompt}
+                          onChange={setInputPrompt}
+                          placeholder="例如：把流程图方向改为从左到右..."
+                          autoSize={{ minRows: 2, maxRows: 4 }}
+                          onPressEnter={(e) => {
+                              if (!e.shiftKey) {
+                                  e.preventDefault();
+                                  handleSendMessage();
+                              }
+                          }}
+                          disabled={isGenerating}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                          <Button 
+                              type="primary" 
+                              size="small" 
+                              icon={<IconSend />} 
+                              loading={isGenerating}
+                              onClick={handleSendMessage}
+                          >
+                              发送
+                          </Button>
+                      </div>
+                  </div>
               </div>
             </Col>
 
-            {/* 右侧预览 */}
-            <Col
-              span={14}
-              style={{
-                padding: "20px",
-                height: "100%",
-                borderLeft: "1px solid var(--color-neutral-3)",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "8px",
-                }}
-              >
-                <label
-                  style={{ fontSize: "14px", fontWeight: "500", margin: 0 }}
-                >
-                  预览
-                </label>
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
-                  {/* 下载选项已移除 */}
-                  <Button
-                    size="small"
-                    type="outline"
-                    icon={isFullscreen ? <IconShrink /> : <IconFullscreen />}
-                    onClick={handleToggleFullscreen}
-                  >
+            {/* RIGHT COLUMN: Preview */}
+            <Col span={14} style={{ padding: "20px", height: "100%", borderLeft: "1px solid var(--color-neutral-3)", display: "flex", flexDirection: "column" }}>
+               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <label style={{ fontSize: "14px", fontWeight: "500", margin: 0 }}>预览</label>
+                <Button size="small" type="outline" icon={isFullscreen ? <IconShrink /> : <IconFullscreen />} onClick={handleToggleFullscreen}>
                     {isFullscreen ? "退出全屏" : "全屏"}
-                  </Button>
-                </div>
+                </Button>
               </div>
-              <div
-                ref={previewContainerRef}
-                className={`mermaid-preview-wrapper ${
-                  isFullscreen ? "fullscreen" : ""
-                }`}
-                style={{
-                  height: isFullscreen ? "100vh" : editorHeight,
-                  flex: 1,
-                }}
+              <div 
+                  ref={previewContainerRef}
+                  className={`mermaid-preview-wrapper ${isFullscreen ? "fullscreen" : ""}`}
+                  style={{ height: isFullscreen ? "100vh" : "100%", flex: 1 }}
               >
-                <Spin loading={loading} style={{ display: "block" }}>
-                  <div
-                    ref={previewRef}
-                    className="mermaid-preview"
-                    style={{
-                      minHeight: editorHeight,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                <Spin loading={loading} style={{ display: "block", height: "100%" }}>
+                  <div 
+                      ref={previewRef} 
+                      className="mermaid-preview" 
+                      style={{ minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
                   />
                 </Spin>
               </div>

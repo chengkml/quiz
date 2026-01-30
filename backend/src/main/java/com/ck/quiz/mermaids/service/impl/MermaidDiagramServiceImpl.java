@@ -54,6 +54,15 @@ public class MermaidDiagramServiceImpl
     @Autowired
     private GroupObjRelaRepository groupObjRelaRepository;
 
+    @Autowired
+    private com.ck.quiz.knowledgeset.service.VectorService vectorService;
+
+    @Autowired
+    private com.ck.quiz.knowledgeset.repository.KnowledgeSetRepository knowledgeSetRepository;
+
+    @Autowired
+    private com.ck.quiz.knowledgeset.repository.KnowledgeSourceRepository knowledgeSourceRepository;
+
     @Override
     public Page<MermaidDiagramDto> search(String userId, MermaidDiagramQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
@@ -139,6 +148,13 @@ public class MermaidDiagramServiceImpl
             }
         }
 
+        // 同步到向量库
+        try {
+            syncToVectorStore(repository.findById(dto.getId()).orElse(null));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         return dto;
     }
 
@@ -159,6 +175,13 @@ public class MermaidDiagramServiceImpl
                 handleGroupRelation(e, originalGroup);
                 dto.setGroupName(originalGroup);
             }
+        }
+
+        // 同步到向量库
+        try {
+            syncToVectorStore(repository.findById(dto.getId()).orElse(null));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return dto;
@@ -197,7 +220,90 @@ public class MermaidDiagramServiceImpl
         MermaidDiagram e = repository.findById(id).orElseThrow(() -> new RuntimeException("Diagram not found"));
         e.setDiagramData(diagramData);
         e = repository.save(e);
+
+        // 同步到向量库
+        try {
+            syncToVectorStore(e);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
         return convertToDto(e, true);
+    }
+
+    private void syncToVectorStore(MermaidDiagram diagram) {
+        if (diagram == null)
+            return;
+
+        // 1. 查找用户的"流程图"知识集
+        String userId = diagram.getCreateUser();
+        if (userId == null) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null)
+                userId = auth.getName();
+        }
+        if (userId == null)
+            return;
+
+        com.ck.quiz.knowledgeset.entity.KnowledgeSet knowledgeSet = knowledgeSetRepository
+                .findByNameAndCreateUser("流程图", userId);
+
+        if (knowledgeSet == null)
+            return;
+
+        // 2. 查找或创建 KnowledgeSource (使用 diagramId 作为 sourceId)
+        com.ck.quiz.knowledgeset.entity.KnowledgeSource source = knowledgeSourceRepository.findById(diagram.getId())
+                .orElse(null);
+
+        if (source == null) {
+            source = new com.ck.quiz.knowledgeset.entity.KnowledgeSource();
+            source.setId(diagram.getId()); // Reuse ID
+            source.setCreateUser(userId);
+            source.setCreateDate(LocalDateTime.now());
+        }
+
+        source.setKnowledgeSetId(knowledgeSet.getId());
+        source.setName(diagram.getDiagramName() != null ? diagram.getDiagramName() : "未命名流程图");
+        source.setType("MERMAID"); // New type
+        source.setStatus("SUCCESS");
+        source.setDescr(diagram.getDescription());
+        source.setUpdateUser(userId);
+        source.setUpdateDate(LocalDateTime.now());
+
+        knowledgeSourceRepository.save(source);
+
+        // 3. 删除旧向量
+        vectorService.deleteBySourceId(source.getId());
+
+        // 4. 创建新 KnowledgeChunk
+        // 如果内容为空，则不创建切片，相当于清空
+        if (diagram.getDiagramData() == null || diagram.getDiagramData().isEmpty()) {
+            return;
+        }
+
+        com.ck.quiz.knowledgeset.entity.KnowledgeChunk chunk = new com.ck.quiz.knowledgeset.entity.KnowledgeChunk();
+        chunk.setId(IdHelper.genUuid());
+        chunk.setKnowledgeSourceId(source.getId());
+        chunk.setChunkIndex(0);
+
+        StringBuilder content = new StringBuilder();
+        content.append("流程图名称: ").append(source.getName()).append("\n");
+        if (source.getDescr() != null && !source.getDescr().isEmpty()) {
+            content.append("描述: ").append(source.getDescr()).append("\n");
+        }
+        content.append("Mermaid代码:\n").append(diagram.getDiagramData());
+
+        chunk.setContent(content.toString());
+        chunk.setTokenCount(content.length()); // 粗略估算
+        chunk.setCreateUser(userId);
+        chunk.setUpdateUser(userId);
+        chunk.setCreateDate(LocalDateTime.now());
+        chunk.setUpdateDate(LocalDateTime.now());
+
+        // 5. 嵌入并保存
+        // 查找嵌入模型，默认 OpenAI 或系统默认
+        // 这里暂时传 null 让 vectorService 使用默认配置
+        vectorService.embedAndStore(java.util.Collections.singletonList(chunk), null);
     }
 
     @Override
@@ -243,6 +349,75 @@ public class MermaidDiagramServiceImpl
                 }
 
                 chat.prompt().user(finalPrompt).stream().content().doOnNext(chunk -> {
+                    try {
+                        emitter.send(chunk);
+                    } catch (Exception e) {
+                    }
+                }).blockLast();
+
+                emitter.complete();
+            } catch (Exception e) {
+                try {
+                    emitter.send("[ERROR]服务异常: " + e.getMessage());
+                } catch (Exception ex) {
+                }
+                try {
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                }
+            }
+        }).start();
+        return emitter;
+    }
+
+    @Override
+    public SseEmitter streamChat(com.ck.quiz.mermaids.dto.MermaidChatRequest request) {
+        SseEmitter emitter = new SseEmitter(0L);
+        new Thread(() -> {
+            try {
+                LLMModel model = resolveModel(request.getModelName());
+                if (model == null) {
+                    try {
+                        emitter.send("[ERROR]未找到指定的文本模型，请先在模型管理中配置模型");
+                    } catch (Exception ex) {
+                    }
+                    emitter.completeWithError(new RuntimeException("未找到指定的文本模型"));
+                    return;
+                }
+
+                OpenAiApi openAiApi = OpenAiApi.builder().apiKey(model.getApiKey()).baseUrl(model.getApiEndpoint())
+                        .build();
+                OpenAiChatOptions options = OpenAiChatOptions.builder().model(model.getName()).build();
+                OpenAiChatModel chatModel = OpenAiChatModel.builder().openAiApi(openAiApi).defaultOptions(options)
+                        .build();
+                ChatClient chat = ChatClient.builder(chatModel).build();
+
+                List<org.springframework.ai.chat.messages.Message> messages = new java.util.ArrayList<>();
+
+                // System Prompt
+                String systemPrompt = "You are an expert in Mermaid diagrams.\n" +
+                        "Current Mermaid Code:\n" + (request.getDiagramData() == null ? "" : request.getDiagramData())
+                        + "\n\n" +
+                        "IMPORTANT RULES:\n" +
+                        "1. Return ONLY the raw Mermaid code.\n" +
+                        "2. Do NOT wrap the code in markdown code blocks.\n" +
+                        "3. Do NOT include any conversational text.";
+
+                // History
+                if (request.getMessages() != null) {
+                    for (com.ck.quiz.mermaids.dto.MermaidChatRequest.Message msg : request.getMessages()) {
+                        if ("user".equalsIgnoreCase(msg.getRole())) {
+                            messages.add(new org.springframework.ai.chat.messages.UserMessage(msg.getContent()));
+                        } else if ("assistant".equalsIgnoreCase(msg.getRole())) {
+                            messages.add(new org.springframework.ai.chat.messages.AssistantMessage(msg.getContent()));
+                        }
+                    }
+                }
+
+                // Add System Message at the beginning
+                messages.add(0, new org.springframework.ai.chat.messages.SystemMessage(systemPrompt));
+
+                chat.prompt().messages(messages).stream().content().doOnNext(chunk -> {
                     try {
                         emitter.send(chunk);
                     } catch (Exception e) {

@@ -59,6 +59,15 @@ public class MindMapServiceImpl extends
     @Autowired
     private com.ck.quiz.llmmodel.service.LLMModelService llmModelService;
 
+    @Autowired
+    private com.ck.quiz.knowledgeset.service.VectorService vectorService;
+
+    @Autowired
+    private com.ck.quiz.knowledgeset.repository.KnowledgeSetRepository knowledgeSetRepository;
+
+    @Autowired
+    private com.ck.quiz.knowledgeset.repository.KnowledgeSourceRepository knowledgeSourceRepository;
+
     @Override
     @Transactional
     public MindMapDto updateMindMapBasicInfo(MindMapBasicInfoUpdateDto mindMapBasicInfoUpdateDto) {
@@ -81,7 +90,6 @@ public class MindMapServiceImpl extends
 
         MindMap updatedMindMap = mindMapRepository.save(mindMap);
 
-        // 处理分组关联逻辑
         if (mindMapBasicInfoUpdateDto.getGroup() != null) {
             // 删除现有的分组关联
             groupObjRelaRepository.deleteByObjId(updatedMindMap.getId());
@@ -101,6 +109,13 @@ public class MindMapServiceImpl extends
                     throw new RuntimeException("Group not found: " + mindMapBasicInfoUpdateDto.getGroup());
                 }
             }
+        }
+
+        // 同步到向量库
+        try {
+            syncToVectorStore(updatedMindMap);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return convertToDto(updatedMindMap, true);
@@ -126,7 +141,126 @@ public class MindMapServiceImpl extends
         mindMap.setUpdateDate(LocalDateTime.now());
 
         MindMap updatedMindMap = mindMapRepository.save(mindMap);
+
+        // 同步到向量库
+        try {
+            syncToVectorStore(updatedMindMap);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         return convertToDto(updatedMindMap, true);
+    }
+
+    private void syncToVectorStore(MindMap mindMap) {
+        if (mindMap == null)
+            return;
+
+        // 1. 查找用户的"思维导图"知识集
+        String userId = mindMap.getCreateUser();
+        if (userId == null) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null)
+                userId = auth.getName();
+        }
+        if (userId == null)
+            return;
+
+        com.ck.quiz.knowledgeset.entity.KnowledgeSet knowledgeSet = knowledgeSetRepository
+                .findByNameAndCreateUser("思维导图", userId);
+
+        if (knowledgeSet == null)
+            return;
+
+        // 2. 查找或创建 KnowledgeSource (使用 MindMap ID 作为 sourceId)
+        com.ck.quiz.knowledgeset.entity.KnowledgeSource source = knowledgeSourceRepository.findById(mindMap.getId())
+                .orElse(null);
+
+        if (source == null) {
+            source = new com.ck.quiz.knowledgeset.entity.KnowledgeSource();
+            source.setId(mindMap.getId()); // Reuse ID
+            source.setCreateUser(userId);
+            source.setCreateDate(LocalDateTime.now());
+        }
+
+        source.setKnowledgeSetId(knowledgeSet.getId());
+        source.setName(mindMap.getMapName() != null ? mindMap.getMapName() : "未命名思维导图");
+        source.setType("MIND_MAP"); // New type
+        source.setStatus("SUCCESS");
+        source.setDescr(mindMap.getDescr());
+        source.setUpdateUser(userId);
+        source.setUpdateDate(LocalDateTime.now());
+
+        knowledgeSourceRepository.save(source);
+
+        // 3. 删除旧向量
+        vectorService.deleteBySourceId(source.getId());
+
+        // 4. 创建新 KnowledgeChunk
+        // 如果内容为空，则不创建切片
+        if (mindMap.getMapData() == null || mindMap.getMapData().isEmpty()) {
+            return;
+        }
+
+        // 简单处理：将整个 JSON 数据作为切片内容
+        // 优化方案：提取 JSON 中的文本内容（节点名称等），去除结构噪音
+        String contentText = extractTextFromMindMapJson(mindMap.getMapData());
+        if (contentText.isEmpty()) {
+            contentText = mindMap.getMapData(); // Fallback to raw JSON if extraction fails or empty
+        }
+
+        com.ck.quiz.knowledgeset.entity.KnowledgeChunk chunk = new com.ck.quiz.knowledgeset.entity.KnowledgeChunk();
+        chunk.setId(IdHelper.genUuid());
+        chunk.setKnowledgeSourceId(source.getId());
+        chunk.setChunkIndex(0);
+
+        StringBuilder contentInfo = new StringBuilder();
+        contentInfo.append("思维导图名称: ").append(source.getName()).append("\n");
+        if (source.getDescr() != null && !source.getDescr().isEmpty()) {
+            contentInfo.append("描述: ").append(source.getDescr()).append("\n");
+        }
+        contentInfo.append("内容:\n").append(contentText);
+
+        chunk.setContent(contentInfo.toString());
+        chunk.setTokenCount(contentInfo.length());
+        chunk.setCreateUser(userId);
+        chunk.setUpdateUser(userId);
+        chunk.setCreateDate(LocalDateTime.now());
+        chunk.setUpdateDate(LocalDateTime.now());
+
+        // 5. 嵌入并保存
+        vectorService.embedAndStore(java.util.Collections.singletonList(chunk), null);
+    }
+
+    private String extractTextFromMindMapJson(String json) {
+        try {
+            ObjectMapper om = new ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode root = om.readTree(json);
+            StringBuilder sb = new StringBuilder();
+            extractNodeText(root.get("root"), sb, 0);
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private void extractNodeText(com.fasterxml.jackson.databind.JsonNode node, StringBuilder sb, int depth) {
+        if (node == null)
+            return;
+
+        // 缩进表示层级
+        for (int i = 0; i < depth; i++)
+            sb.append("  ");
+
+        if (node.has("data") && node.get("data").has("text")) {
+            sb.append(node.get("data").get("text").asText()).append("\n");
+        }
+
+        if (node.has("children")) {
+            for (com.fasterxml.jackson.databind.JsonNode child : node.get("children")) {
+                extractNodeText(child, sb, depth + 1);
+            }
+        }
     }
 
     @Override

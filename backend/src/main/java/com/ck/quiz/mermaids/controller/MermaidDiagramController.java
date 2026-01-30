@@ -48,4 +48,10 @@ public class MermaidDiagramController extends
             @RequestParam(value = "modelName", required = false) String modelName) {
         return service.streamGenerateDiagram(advice, diagramData, modelName);
     }
+
+    @Operation(summary = "多轮对话流式生成", description = "支持上下文的AI生成接口")
+    @PostMapping(path = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamChat(@RequestBody com.ck.quiz.mermaids.dto.MermaidChatRequest request) {
+        return service.streamChat(request);
+    }
 }

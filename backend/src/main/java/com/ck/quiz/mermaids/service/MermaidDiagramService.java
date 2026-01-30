@@ -32,4 +32,9 @@ public interface MermaidDiagramService extends
      * @return SseEmitter 用于流式推送结果
      */
     SseEmitter streamGenerateDiagram(String advice, String diagramData, String modelName);
+
+    /**
+     * 多轮对话流式生成接口
+     */
+    SseEmitter streamChat(com.ck.quiz.mermaids.dto.MermaidChatRequest request);
 }
