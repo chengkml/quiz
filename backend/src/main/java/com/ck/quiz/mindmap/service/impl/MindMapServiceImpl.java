@@ -413,11 +413,15 @@ public class MindMapServiceImpl extends
                         }
 
                         // 使用流式调用
+                        // 使用流式调用
                         chat.prompt()
                                 .user(prompt)
                                 .stream()
                                 .content() // 流式获取内容
+                                .doOnSubscribe(
+                                        s -> log.info("[MindMap] Stream generation started (attempt {})", attempt))
                                 .doOnNext(chunk -> {
+                                    log.info("[MindMap] Received chunk: {}", chunk);
                                     try {
                                         // 实时推送流式内容（token/chunk）到前端
                                         emitter.send(chunk);
@@ -425,9 +429,11 @@ public class MindMapServiceImpl extends
                                         fullContent.append(chunk);
                                     } catch (Exception e) {
                                         // 推送失败时记录但继续接收流
-                                        System.err.println("Failed to send chunk: " + e.getMessage());
+                                        log.error("[MindMap] Error sending chunk", e);
                                     }
                                 })
+                                .doOnError(err -> log.error("[MindMap] Stream error", err))
+                                .doOnComplete(() -> log.info("[MindMap] Stream completion"))
                                 .blockLast(); // 阻塞等待流完成
 
                         String content = fullContent.toString().trim();

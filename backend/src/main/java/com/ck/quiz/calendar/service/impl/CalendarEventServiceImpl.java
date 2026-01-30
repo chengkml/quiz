@@ -36,7 +36,8 @@ import java.util.Optional;
 @Service
 @Transactional
 public class CalendarEventServiceImpl
-        extends BaseServiceImpl<CalendarEventCreateDto, CalendarEventUpdateDto, CalendarEventQueryDto, CalendarEventDto, CalendarEvent, CalendarEventRepository>
+        extends
+        BaseServiceImpl<CalendarEventCreateDto, CalendarEventUpdateDto, CalendarEventQueryDto, CalendarEventDto, CalendarEvent, CalendarEventRepository>
         implements CalendarEventService {
 
     @Autowired
@@ -97,11 +98,15 @@ public class CalendarEventServiceImpl
             event.setId(rs.getString("id"));
             event.setTitle(rs.getString("title"));
             event.setDescr(rs.getString("descr"));
-            event.setStatus(rs.getString("status") != null ? CalendarEvent.Status.valueOf(rs.getString("status")) : null);
-            event.setStartTime(rs.getTimestamp("start_time") != null ? rs.getTimestamp("start_time").toLocalDateTime() : null);
-            event.setEndTime(rs.getTimestamp("end_time") != null ? rs.getTimestamp("end_time").toLocalDateTime() : null);
+            event.setStatus(
+                    rs.getString("status") != null ? CalendarEvent.Status.valueOf(rs.getString("status")) : null);
+            event.setStartTime(
+                    rs.getTimestamp("start_time") != null ? rs.getTimestamp("start_time").toLocalDateTime() : null);
+            event.setEndTime(
+                    rs.getTimestamp("end_time") != null ? rs.getTimestamp("end_time").toLocalDateTime() : null);
             event.setAllDay(rs.getObject("all_day") != null ? rs.getBoolean("all_day") : null);
-            event.setCompletedAt(rs.getTimestamp("completed_at") != null ? rs.getTimestamp("completed_at").toLocalDateTime() : null);
+            event.setCompletedAt(
+                    rs.getTimestamp("completed_at") != null ? rs.getTimestamp("completed_at").toLocalDateTime() : null);
             event.setCreateDate(
                     rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             event.setCreateUser(rs.getString("create_user"));
@@ -159,7 +164,7 @@ public class CalendarEventServiceImpl
                     // 查询模型配置
                     chatModel = llmModelService.getChatModel(null);
                 } catch (Exception ex) {
-                     try {
+                    try {
                         emitter.send("[ERROR]" + ex.getMessage());
                     } catch (Exception sendEx) {
                         log.error("发送错误消息失败", sendEx);
@@ -198,8 +203,11 @@ public class CalendarEventServiceImpl
                         chat.prompt()
                                 .user(prompt)
                                 .stream()
-                                .content()  // 流式获取内容
+                                .content() // 流式获取内容
+                                .doOnSubscribe(
+                                        s -> log.info("[Calendar] Stream generation started (attempt {})", attempt))
                                 .doOnNext(chunk -> {
+                                    log.info("[Calendar] Received chunk: {}", chunk);
                                     try {
                                         // 实时推送流式内容（token/chunk）到前端
                                         emitter.send(chunk);
@@ -207,17 +215,20 @@ public class CalendarEventServiceImpl
                                         fullContent.append(chunk);
                                     } catch (Exception e) {
                                         // 推送失败时记录但继续接收流
-                                        System.err.println("Failed to send chunk: " + e.getMessage());
+                                        log.error("[Calendar] Error sending chunk", e);
                                     }
                                 })
-                                .blockLast();  // 阻塞等待流完成
+                                .doOnError(err -> log.error("[Calendar] Stream error", err))
+                                .doOnComplete(() -> log.info("[Calendar] Stream completion"))
+                                .blockLast(); // 阻塞等待流完成
 
                         // 流式内容接收完毕后，尝试解析最终的 JSON 结果
                         String content = fullContent.toString().trim();
 
                         try {
                             // 尝试解析 JSON（假设模型最后输出的是 JSON 对象）
-                            CalendarEventCreateDto eventDto = objectMapper.readValue(content, CalendarEventCreateDto.class);
+                            CalendarEventCreateDto eventDto = objectMapper.readValue(content,
+                                    CalendarEventCreateDto.class);
 
                             // 解析成功后，推送一个分隔符，告诉前端开始解析最终结果
                             try {
@@ -237,7 +248,7 @@ public class CalendarEventServiceImpl
 
                             emitter.complete();
                             finished = true;
-                            break;  // 成功完成，退出重试循环
+                            break; // 成功完成，退出重试循环
                         } catch (Exception parseEx) {
                             // 将 JSON 解析失败视为一次失败，记录异常用于最终上报
                             lastException = parseEx;
@@ -288,7 +299,8 @@ public class CalendarEventServiceImpl
                 // 只有所有重试都失败时才关闭emitter并推送错误
                 if (attempt >= maxRetries) {
                     try {
-                        emitter.send("[ERROR]生成日程失败，重试次数已达上限: " + (lastException != null ? lastException.getMessage() : "未知错误"));
+                        emitter.send("[ERROR]生成日程失败，重试次数已达上限: "
+                                + (lastException != null ? lastException.getMessage() : "未知错误"));
                     } catch (Exception ex) {
                         log.error("发送重试次数达上限错误消息失败", ex);
                     }

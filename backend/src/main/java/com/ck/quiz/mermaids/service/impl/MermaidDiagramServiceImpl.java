@@ -373,12 +373,19 @@ public class MermaidDiagramServiceImpl
                             "3. Do NOT include any conversational text.";
                 }
 
-                chat.prompt().user(finalPrompt).stream().content().doOnNext(chunk -> {
-                    try {
-                        emitter.send(chunk);
-                    } catch (Exception e) {
-                    }
-                }).blockLast();
+                chat.prompt().user(finalPrompt).stream().content()
+                        .doOnSubscribe(s -> log.info("[Mermaid] Stream generation started"))
+                        .doOnNext(chunk -> {
+                            log.info("[Mermaid] Received chunk: {}", chunk);
+                            try {
+                                emitter.send(chunk);
+                            } catch (Exception e) {
+                                log.error("[Mermaid] Error sending chunk", e);
+                            }
+                        })
+                        .doOnError(err -> log.error("[Mermaid] Stream error", err))
+                        .doOnComplete(() -> log.info("[Mermaid] Stream completion"))
+                        .blockLast();
 
                 emitter.complete();
             } catch (Exception e) {
@@ -442,12 +449,19 @@ public class MermaidDiagramServiceImpl
                 // Add System Message at the beginning
                 messages.add(0, new org.springframework.ai.chat.messages.SystemMessage(systemPrompt));
 
-                chat.prompt().messages(messages).stream().content().doOnNext(chunk -> {
-                    try {
-                        emitter.send(chunk);
-                    } catch (Exception e) {
-                    }
-                }).blockLast();
+                chat.prompt().messages(messages).stream().content()
+                        .doOnSubscribe(s -> log.info("[MermaidChat] Stream started"))
+                        .doOnNext(chunk -> {
+                            log.info("[MermaidChat] Received chunk: {}", chunk);
+                            try {
+                                emitter.send(chunk);
+                            } catch (Exception e) {
+                                log.error("[MermaidChat] Error sending chunk", e);
+                            }
+                        })
+                        .doOnError(err -> log.error("[MermaidChat] Stream error", err))
+                        .doOnComplete(() -> log.info("[MermaidChat] Stream completion"))
+                        .blockLast();
 
                 emitter.complete();
             } catch (Exception e) {

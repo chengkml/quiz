@@ -22,6 +22,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
 
+@lombok.extern.slf4j.Slf4j
 @Service
 public class OcrServiceImpl implements OcrService {
 
@@ -183,14 +184,19 @@ public class OcrServiceImpl implements OcrService {
                             .messages(message)
                             .stream()
                             .content()
+                            .doOnSubscribe(s -> log.info("[OCR] Stream generation started"))
                             .doOnNext(chunk -> {
+                                log.info("[OCR] Received chunk: {}", chunk);
                                 try {
                                     emitter.send(chunk);
                                     fullContent.append(chunk);
                                 } catch (Exception e) {
                                     // ignore individual send errors
+                                    log.error("[OCR] Error sending chunk", e);
                                 }
                             })
+                            .doOnError(err -> log.error("[OCR] Stream error", err))
+                            .doOnComplete(() -> log.info("[OCR] Stream completion"))
                             .blockLast();
 
                     // 最终发送完整结果标记
