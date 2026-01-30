@@ -56,12 +56,14 @@ public class VectorServiceImpl implements VectorService {
         List<List<Double>> embeddings = new ArrayList<>();
         for (float[] arr : embeddingsFloat) {
             List<Double> list = new ArrayList<>();
-            for (float f : arr) list.add((double) f);
+            for (float f : arr)
+                list.add((double) f);
             embeddings.add(list);
         }
 
         if (embeddings.size() != savedChunks.size()) {
-            throw new RuntimeException("Embedding count mismatch: sent " + savedChunks.size() + ", got " + embeddings.size());
+            throw new RuntimeException(
+                    "Embedding count mismatch: sent " + savedChunks.size() + ", got " + embeddings.size());
         }
 
         // 4. 构建并保存向量实体
@@ -77,8 +79,8 @@ public class VectorServiceImpl implements VectorService {
             // 如果 modelName 为空，这里实际上保存的是 default，最好能获取到真实名称
             // 但 Spring AI EmbeddingModel 接口不直接暴露 config
             // 这里暂且存传入的 modelName 或 "default"
-            vector.setModel(modelName != null ? modelName : "default"); 
-            
+            vector.setModel(modelName != null ? modelName : "default");
+
             vectors.add(vector);
         }
 
@@ -92,22 +94,29 @@ public class VectorServiceImpl implements VectorService {
     }
 
     @Override
-    public List<VectorSearchResultDto> search(String queryText, int limit, String modelName, VectorSearchFilter filter) {
+    public List<VectorSearchResultDto> search(String queryText, int limit, String modelName,
+            VectorSearchFilter filter) {
+        // 0. 检查是否为全文检索
+        if (filter != null && "TEXT".equalsIgnoreCase(filter.getSearchType())) {
+            return searchByText(queryText, limit, filter.getKnowledgeSetId());
+        }
+
         // 0. 获取嵌入模型
         EmbeddingModel embeddingModel = llmModelService.getEmbeddingModel(modelName);
 
         // 1. 生成查询向量
         float[] queryVectorFloat = embeddingModel.embed(queryText);
         List<Double> queryVector = new ArrayList<>();
-        for (float f : queryVectorFloat) queryVector.add((double) f);
-        
+        for (float f : queryVectorFloat)
+            queryVector.add((double) f);
+
         // 2. 转换向量为 PG vector 字符串格式 [x,y,z]
         String vectorStr = vectorConverter.convertToDatabaseColumn(queryVector);
-        
+
         // 3. 执行原生 SQL 相似度搜索 (带距离和过滤)
         String knowledgeSetId = filter != null ? filter.getKnowledgeSetId() : null;
         List<Object[]> searchResults = vectorRepository.searchSimilarWithDistance(vectorStr, limit, knowledgeSetId);
-        
+
         if (searchResults.isEmpty()) {
             return new ArrayList<>();
         }
@@ -115,7 +124,7 @@ public class VectorServiceImpl implements VectorService {
         // 4. 解析结果
         List<KnowledgeVector> vectors = new ArrayList<>();
         List<Double> distances = new ArrayList<>();
-        
+
         for (Object[] row : searchResults) {
             if (row[0] instanceof KnowledgeVector) {
                 vectors.add((KnowledgeVector) row[0]);
@@ -131,31 +140,32 @@ public class VectorServiceImpl implements VectorService {
         List<String> chunkIds = vectors.stream()
                 .map(KnowledgeVector::getKnowledgeChunkId)
                 .collect(Collectors.toList());
-        
+
         // 6. 查询切片详情
         Map<String, KnowledgeChunk> chunkMap = chunkRepository.findAllById(chunkIds).stream()
                 .collect(Collectors.toMap(KnowledgeChunk::getId, c -> c));
-        
+
         // 7. 组装结果
         List<VectorSearchResultDto> results = new ArrayList<>();
         for (int i = 0; i < vectors.size(); i++) {
             KnowledgeVector vec = vectors.get(i);
             KnowledgeChunk chunk = chunkMap.get(vec.getKnowledgeChunkId());
             Double distance = distances.get(i);
-            
+
             if (chunk != null) {
                 results.add(new VectorSearchResultDto(chunk, distance));
             }
         }
-        
+
         return results;
     }
 
     @Override
     @Transactional
     public void deleteChunks(List<String> chunkIds) {
-        if (chunkIds == null || chunkIds.isEmpty()) return;
-        
+        if (chunkIds == null || chunkIds.isEmpty())
+            return;
+
         // 先删向量
         vectorRepository.deleteByKnowledgeChunkIdIn(chunkIds);
         // 再删切片
@@ -165,22 +175,32 @@ public class VectorServiceImpl implements VectorService {
     @Override
     @Transactional
     public void deleteBySourceId(String sourceId) {
-        if (sourceId == null || sourceId.isEmpty()) return;
-        
+        if (sourceId == null || sourceId.isEmpty())
+            return;
+
         // 1. 查找 sourceId 下所有的 chunkId
         List<KnowledgeChunk> chunks = chunkRepository.findByKnowledgeSourceId(sourceId);
         if (chunks.isEmpty()) {
             return;
         }
-        
+
         List<String> chunkIds = chunks.stream().map(KnowledgeChunk::getId).collect(Collectors.toList());
-        
+
         // 2. 删除向量
         vectorRepository.deleteByKnowledgeChunkIdIn(chunkIds);
-        
+
         // 3. 删除切片
         chunkRepository.deleteAllById(chunkIds);
-        
+
         log.info("Deleted {} chunks and their vectors for sourceId {}", chunkIds.size(), sourceId);
+    }
+
+    private List<VectorSearchResultDto> searchByText(String queryText, int limit, String knowledgeSetId) {
+        List<KnowledgeChunk> chunks = chunkRepository.searchByText(queryText, knowledgeSetId,
+                org.springframework.data.domain.PageRequest.of(0, limit));
+
+        return chunks.stream()
+                .map(chunk -> new VectorSearchResultDto(chunk, 0.0))
+                .collect(Collectors.toList());
     }
 }

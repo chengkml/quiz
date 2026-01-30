@@ -5,3 +5,5 @@ export const getKnowledgeSetById = (id: string) => axios.get(`/knowledge-set/get
 export const createKnowledgeSet = (params: any) => axios.post('/knowledge-set/create', params);
 export const updateKnowledgeSet = (params: any) => axios.put('/knowledge-set/update', params);
 export const deleteKnowledgeSet = (id: string) => axios.delete(`/knowledge-set/delete/${id}`);
+
+export const vectorSearch = (params: any) => axios.post('/vector/search', params);

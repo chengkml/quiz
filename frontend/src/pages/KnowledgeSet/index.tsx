@@ -7,6 +7,7 @@ import { DataManager } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
 import AddEditKnowledgeSetModal from './components/AddEditKnowledgeSetModal';
+import SearchDrawer from './components/SearchDrawer';
 import KnowledgeSourceManager from '../KnowledgeSource';
 import { deleteKnowledgeSet, getKnowledgeSetById, getKnowledgeSetList } from './api';
 import './style/index.less';
@@ -27,6 +28,10 @@ function KnowledgeSetManager() {
     // Source drawer state
     const [sourceDrawerVisible, setSourceDrawerVisible] = useState(false);
     const [drawerKnowledgeSetId, setDrawerKnowledgeSetId] = useState<string | null>(null);
+
+    // Search drawer state
+    const [searchDrawerVisible, setSearchDrawerVisible] = useState(false);
+    const [searchKnowledgeSetId, setSearchKnowledgeSetId] = useState<string | null>(null);
 
     // Form ref
     const filterFormRef = useRef<any>();
@@ -245,6 +250,16 @@ function KnowledgeSetManager() {
         setDrawerKnowledgeSetId(null);
     };
 
+    const handleOpenSearchDrawer = (id: string) => {
+        setSearchKnowledgeSetId(id);
+        setSearchDrawerVisible(true);
+    };
+
+    const handleCloseSearchDrawer = () => {
+        setSearchDrawerVisible(false);
+        setSearchKnowledgeSetId(null);
+    };
+
     const filterContent = (
         <FilterForm
             ref={filterFormRef}
@@ -285,9 +300,12 @@ function KnowledgeSetManager() {
                                     actions.onDelete(item);
                                 } else if (key === 'source') {
                                     handleOpenSourceDrawer(item.id);
+                                } else if (key === 'search') {
+                                    handleOpenSearchDrawer(item.id);
                                 }
                             }}>
                                 <Menu.Item key="source"><IconStorage style={{ marginRight: 8 }} />知识来源</Menu.Item>
+                                <Menu.Item key="search"><IconList style={{ marginRight: 8 }} />检索测试</Menu.Item>
                                 <Menu.Item key="edit"><IconEdit style={{ marginRight: 8 }} />编辑</Menu.Item>
                                 <Menu.Item key="delete"><IconDelete style={{ marginRight: 8 }} />删除</Menu.Item>
                             </Menu>
@@ -368,6 +386,11 @@ function KnowledgeSetManager() {
                 >
                     {drawerKnowledgeSetId && <KnowledgeSourceManager knowledgeSetId={drawerKnowledgeSetId} />}
                 </Drawer>
+                <SearchDrawer
+                    visible={searchDrawerVisible}
+                    knowledgeSetId={searchKnowledgeSetId}
+                    onCancel={handleCloseSearchDrawer}
+                />
             </Content>
         </Layout>
     );

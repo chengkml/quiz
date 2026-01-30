@@ -1,6 +1,5 @@
 package com.ck.quiz.knowledgeset.controller;
 
-import com.ck.quiz.base.controller.BaseController;
 import com.ck.quiz.knowledgeset.dto.VectorSearchDto;
 import com.ck.quiz.knowledgeset.dto.VectorSearchResultDto;
 import com.ck.quiz.knowledgeset.service.VectorService;
@@ -22,6 +21,11 @@ public class VectorController {
     @Operation(summary = "向量检索测试")
     @PostMapping("/search")
     public List<VectorSearchResultDto> search(@RequestBody VectorSearchDto searchDto) {
-        return vectorService.search(searchDto.getQuery(), searchDto.getTopK(), searchDto.getModelName());
+        com.ck.quiz.knowledgeset.dto.VectorSearchFilter filter = com.ck.quiz.knowledgeset.dto.VectorSearchFilter
+                .builder()
+                .knowledgeSetId(searchDto.getKnowledgeSetId())
+                .searchType(searchDto.getSearchType())
+                .build();
+        return vectorService.search(searchDto.getQuery(), searchDto.getTopK(), searchDto.getModelName(), filter);
     }
 }

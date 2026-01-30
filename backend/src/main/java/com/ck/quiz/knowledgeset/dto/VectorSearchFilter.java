@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class VectorSearchFilter {
     private String knowledgeSetId;
     private String knowledgeSourceId;
+    private String searchType;
 }
