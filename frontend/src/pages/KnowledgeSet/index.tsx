@@ -393,7 +393,7 @@ function KnowledgeSetManager() {
                         onDelete: handleDelete,
                     }}
                     config={{
-                        displayMode: 'table',
+                        displayMode: 'shortCard',
                         filterContent,
                         tableColumns: tableColumns,
                         showModeToggle: false,

@@ -73,9 +73,11 @@ public class VectorServiceImpl implements VectorService {
             List<Double> vectorData = embeddings.get(i);
 
             KnowledgeVector vector = new KnowledgeVector();
+            vector.setId(com.ck.quiz.utils.IdHelper.genUuid());
             vector.setKnowledgeChunkId(chunk.getId());
             vector.setEmbedding(vectorData);
             vector.setDimension(vectorData.size());
+            vector.setModel(modelName);
             // 如果 modelName 为空，这里实际上保存的是 default，最好能获取到真实名称
             // 但 Spring AI EmbeddingModel 接口不直接暴露 config
             // 这里暂且存传入的 modelName 或 "default"

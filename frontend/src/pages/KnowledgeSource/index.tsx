@@ -102,6 +102,22 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
             dataIndex: 'createDate',
             width: 170,
         },
+        {
+            title: '操作',
+            dataIndex: 'operation',
+            width: 150,
+            fixed: 'right' as const,
+            render: (_: any, record: any) => (
+                <Space>
+                    <Button type="text" size="small" onClick={() => handleEdit(record)} icon={<IconEdit />}>
+                        编辑
+                    </Button>
+                    <Button type="text" status="danger" size="small" onClick={() => handleDelete(record)} icon={<IconDelete />}>
+                        删除
+                    </Button>
+                </Space>
+            ),
+        },
     ];
 
     // Search fields
@@ -120,6 +136,8 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
             options: [
                 { label: '文件', value: 'FILE' },
                 { label: '数据库表', value: 'DB' },
+                { label: '思维导图', value: 'MIND_MAP' },
+                { label: '流程图', value: 'MERMAID' },
             ],
         },
         {
@@ -314,13 +332,12 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
                             onDelete: handleDelete,
                         }}
                         config={{
-                            displayMode: 'shortCard',
-                            showModeToggle: true,
+                            displayMode: 'table',
+                            showModeToggle: false,
                             tableColumns: tableColumns,
                             renderShortCard: renderShortCard,
                             showFilterForm: true,
                             filterContent: filterContent,
-                            searchPlaceholder: '请输入名称搜索', // Add this if needed by DataManager
                         }}
                         tableScrollHeight={tableScrollHeight}
                         cardColumns={4}
