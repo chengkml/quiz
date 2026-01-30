@@ -11,14 +11,7 @@ const getMermaidDiagram = (id) => axios.get(`/mermaids/diagrams/${id}`);
 // 删除 mermaid 思维图
 const deleteMermaidDiagram = (id) => axios.delete(`/mermaids/diagrams/${id}`);
 
-// 获取 mermaid 分类（使用后端的分页 list 接口）
-const getMermaidCategories = (params) => axios.get('/mermaids/categories/search', { params });
-// 创建 mermaid 分类
-const createMermaidCategory = (data) => axios.post('/mermaids/categories/create', data);
-// 更新 mermaid 分类
-const updateMermaidCategory = (id, data) => axios.put(`/mermaids/categories/update/${id}`, data);
-// 删除 mermaid 分类
-const deleteMermaidCategory = (id) => axios.delete(`/mermaids/categories/delete/${id}`);
+
 
 // 获取题目详情
 const getQuestionById = id => axios.get(`/question/${id}`);
@@ -70,14 +63,12 @@ const getModelsByType = (type) => axios.get(`/model/list/${type}`);
 
 export {
   getMermaidList,
-  getMermaidCategories,
+
   createMermaidDiagram,
   updateMermaidDiagram,
   getMermaidDiagram,
   deleteMermaidDiagram,
-  createMermaidCategory,
-  updateMermaidCategory,
-  deleteMermaidCategory,
+
   getQuestionById,
   createQuestion,
   batchCreateQuestion,

@@ -44,9 +44,6 @@ public class MermaidDiagram {
     @Column(name = "diagram_data", columnDefinition = "TEXT")
     private String diagramData;
 
-    @Column(name = "category_id", length = 32)
-    private String categoryId;
-
     /**
      * 创建时间
      */

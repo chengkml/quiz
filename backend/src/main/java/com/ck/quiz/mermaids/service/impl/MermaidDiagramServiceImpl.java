@@ -187,7 +187,6 @@ public class MermaidDiagramServiceImpl implements MermaidDiagramService {
             d.setDiagramName(rs.getString("diagram_name"));
             d.setDescription(rs.getString("description"));
             d.setDiagramData(rs.getString("diagram_data"));
-            d.setCategoryId(rs.getString("category_id"));
 
             d.setGroup(rs.getString("group_name"));
             d.setGroupLabel(rs.getString("group_label"));
@@ -301,7 +300,7 @@ public class MermaidDiagramServiceImpl implements MermaidDiagramService {
         d.setDiagramName(e.getDiagramName());
         d.setDescription(e.getDescription());
         d.setDiagramData(e.getDiagramData());
-        d.setCategoryId(e.getCategoryId());
+
         d.setCreateDate(e.getCreateDate());
         d.setCreateUser(e.getCreateUser());
         d.setUpdateDate(e.getUpdateDate());
