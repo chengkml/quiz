@@ -98,6 +98,9 @@ public class MenuServiceImpl implements MenuService {
         if (StringUtils.hasText(menuUpdateDto.getMenuName())) {
             menu.setMenuName(menuUpdateDto.getMenuName());
         }
+        if (StringUtils.hasText(menuUpdateDto.getMenuLabel())) {
+            menu.setMenuLabel(menuUpdateDto.getMenuLabel());
+        }
         if (menuUpdateDto.getMenuType() != null) {
             menu.setMenuType(menuUpdateDto.getMenuType());
         }
@@ -179,12 +182,10 @@ public class MenuServiceImpl implements MenuService {
                         "m.update_date, m.update_user " +
                         "from menu m " +
                         "left join menu p on m.parent_id = p.menu_id " +
-                        "where 1=1 "
-        );
+                        "where 1=1 ");
 
         StringBuilder countSql = new StringBuilder(
-                "select count(1) from menu m where 1=1 "
-        );
+                "select count(1) from menu m where 1=1 ");
 
         Map<String, Object> params = new HashMap<>();
 
@@ -193,32 +194,28 @@ public class MenuServiceImpl implements MenuService {
                 "menuName",
                 menuQueryDto.getMenuName(),
                 " and (lower(m.menu_name) like :menuName or lower(m.menu_label) like :menuName) ",
-                params, jdbcTemplate, sql, countSql
-        );
+                params, jdbcTemplate, sql, countSql);
 
         if (menuQueryDto.getMenuType() != null) {
             JdbcQueryHelper.equals(
                     "menuType",
                     menuQueryDto.getMenuType().name(),
                     " and m.menu_type = :menuType ",
-                    params, sql, countSql
-            );
+                    params, sql, countSql);
         }
 
         JdbcQueryHelper.equals(
                 "parentId",
                 menuQueryDto.getParentId(),
                 " and m.parent_id = :parentId ",
-                params, sql, countSql
-        );
+                params, sql, countSql);
 
         if (menuQueryDto.getState() != null) {
             JdbcQueryHelper.equals(
                     "state",
                     menuQueryDto.getState().name(),
                     " and m.state = :state ",
-                    params, sql, countSql
-            );
+                    params, sql, countSql);
         }
 
         // 排序
@@ -229,30 +226,27 @@ public class MenuServiceImpl implements MenuService {
                 jdbcTemplate,
                 sql.toString(),
                 menuQueryDto.getPageNum(),
-                menuQueryDto.getPageSize()
-        );
+                menuQueryDto.getPageSize());
 
         // 查询数据
-        List<MenuDto> menus = jdbcTemplate.query(pageSql, params, (rs, rowNum) ->
-                new MenuDto(
-                        rs.getString("menu_id"),
-                        rs.getString("menu_name"),
-                        rs.getString("menu_label"),
-                        rs.getString("menu_type") != null ? Menu.MenuType.valueOf(rs.getString("menu_type")) : null,
-                        rs.getString("parent_id"),
-                        rs.getString("parent_name"),
-                        rs.getString("url"),
-                        rs.getString("menu_icon"),
-                        rs.getObject("seq") != null ? rs.getInt("seq") : null,
-                        rs.getString("state") != null ? Menu.MenuState.valueOf(rs.getString("state")) : null,
-                        rs.getString("menu_descr"),
-                        rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null,
-                        rs.getString("create_user"),
-                        rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null,
-                        rs.getString("update_user"),
-                        null // children 树形结构由前端或额外逻辑组装，这里置空
-                )
-        );
+        List<MenuDto> menus = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> new MenuDto(
+                rs.getString("menu_id"),
+                rs.getString("menu_name"),
+                rs.getString("menu_label"),
+                rs.getString("menu_type") != null ? Menu.MenuType.valueOf(rs.getString("menu_type")) : null,
+                rs.getString("parent_id"),
+                rs.getString("parent_name"),
+                rs.getString("url"),
+                rs.getString("menu_icon"),
+                rs.getObject("seq") != null ? rs.getInt("seq") : null,
+                rs.getString("state") != null ? Menu.MenuState.valueOf(rs.getString("state")) : null,
+                rs.getString("menu_descr"),
+                rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null,
+                rs.getString("create_user"),
+                rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime() : null,
+                rs.getString("update_user"),
+                null // children 树形结构由前端或额外逻辑组装，这里置空
+        ));
 
         // 查询总数
         Long total = jdbcTemplate.queryForObject(countSql.toString(), params, Long.class);
@@ -260,10 +254,8 @@ public class MenuServiceImpl implements MenuService {
         return new PageImpl<>(
                 menus,
                 PageRequest.of(menuQueryDto.getPageNum(), menuQueryDto.getPageSize()),
-                total
-        );
+                total);
     }
-
 
     @Override
     @Transactional(readOnly = true)
