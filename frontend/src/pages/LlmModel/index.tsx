@@ -76,6 +76,7 @@ function LlmModelManager() {
         {label: '文本', value: 'TEXT'},
         {label: '视觉', value: 'VISION'},
         {label: '语音', value: 'VOICE'},
+        {label: '嵌入', value: 'EMBEDDING'},
     ];
 
     // 搜索表单配置
@@ -263,6 +264,7 @@ function LlmModelManager() {
         'TEXT': { label: '文本', color: 'blue' },
         'VISION': { label: '视觉', color: 'green' },
         'VOICE': { label: '语音', color: 'purple' },
+        'EMBEDDING': { label: '嵌入', color: 'orange' },
     };
 
     // 列配置（模型管理）
