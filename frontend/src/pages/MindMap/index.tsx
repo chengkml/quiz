@@ -14,7 +14,6 @@ import {
   Space,
   Tag,
   Tree,
-  Drawer,
 } from "@arco-design/web-react";
 import {
   IconDelete,
@@ -70,13 +69,13 @@ const MindMapListPage: React.FC = () => {
   const [groupOptions, setGroupOptions] = useState<any[]>([]);
   const [selectedGroupKeys, setSelectedGroupKeys] = useState<string[]>([]);
 
-  // 当前记录与弹窗/抽屉
+  // 当前记录与弹窗/全屏
   const [currentRecord, setCurrentRecord] = useState<MindMapDto | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   
-  // 抽屉状态
+  // 全屏状态
   const [drawDrawerVisible, setDrawDrawerVisible] = useState(false);
   const [viewDrawerVisible, setViewDrawerVisible] = useState(false);
   const [activeMindMapId, setActiveMindMapId] = useState<string | null>(null);
@@ -469,55 +468,52 @@ const MindMapListPage: React.FC = () => {
         onCancel={() => setEditModalVisible(false)}
       />
 
-      {/* 绘图抽屉 */}
-      <Drawer
-        width="100%"
-        height="100%"
-        visible={drawDrawerVisible}
-        footer={null}
-        closable={false}
-        onCancel={() => {
-            setDrawDrawerVisible(false);
-            setActiveMindMapId(null);
-            fetchTableData(); // Refresh data on close
-        }}
-        placement="right"
-      >
-          {activeMindMapId && (
-              <MindMapEditPage 
-                  id={activeMindMapId} 
-                  onClose={() => {
-                      setDrawDrawerVisible(false);
-                      setActiveMindMapId(null);
-                      fetchTableData();
-                  }}
-              />
-          )}
-      </Drawer>
+      {/* 绘图全屏覆盖 */}
+      {drawDrawerVisible && activeMindMapId && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 1000,
+            backgroundColor: "var(--color-bg-1)",
+          }}
+        >
+          <MindMapEditPage
+            id={activeMindMapId}
+            onClose={() => {
+              setDrawDrawerVisible(false);
+              setActiveMindMapId(null);
+              fetchTableData();
+            }}
+          />
+        </div>
+      )}
 
-      {/* 查看抽屉 */}
-      <Drawer
-        width="100%"
-        height="100%"
-        visible={viewDrawerVisible}
-        footer={null}
-        closable={false}
-        onCancel={() => {
-            setViewDrawerVisible(false);
-            setActiveMindMapId(null);
-        }}
-        placement="right"
-      >
-          {activeMindMapId && (
-              <MindMapViewPage 
-                  id={activeMindMapId}
-                  onClose={() => {
-                      setViewDrawerVisible(false);
-                      setActiveMindMapId(null);
-                  }}
-              />
-          )}
-      </Drawer>
+      {/* 查看全屏覆盖 */}
+      {viewDrawerVisible && activeMindMapId && (
+        <div
+          style={{
+             position: "fixed",
+             top: 0,
+             left: 0,
+             width: "100%",
+             height: "100%",
+             zIndex: 1000,
+             backgroundColor: "var(--color-bg-1)",
+          }}
+        >
+          <MindMapViewPage
+            id={activeMindMapId}
+            onClose={() => {
+              setViewDrawerVisible(false);
+              setActiveMindMapId(null);
+            }}
+          />
+        </div>
+      )}
 
     </div>
   );
