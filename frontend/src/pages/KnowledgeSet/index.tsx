@@ -112,6 +112,40 @@ function KnowledgeSetManager() {
             dataIndex: 'createDate',
             width: 170,
         },
+        {
+            title: '操作',
+            dataIndex: 'operation',
+            width: 200,
+            fixed: 'right' as const,
+            render: (_: any, record: any) => (
+                <Space>
+                    <Button type="text" size="small" onClick={() => handleOpenSourceDrawer(record.id)} icon={<IconStorage />}>
+                        来源
+                    </Button>
+                    <Button type="text" size="small" onClick={() => handleEdit(record)} icon={<IconEdit />}>
+                        编辑
+                    </Button>
+                    <Dropdown
+                        droplist={
+                            <Menu onClickMenuItem={(key) => {
+                                if (key === 'delete') {
+                                    handleDelete(record);
+                                } else if (key === 'search') {
+                                    handleOpenSearchDrawer(record.id);
+                                }
+                            }}>
+                                <Menu.Item key="search"><IconList style={{ marginRight: 8 }} />检索测试</Menu.Item>
+                                <Menu.Item key="delete"><IconDelete style={{ marginRight: 8 }} />删除</Menu.Item>
+                            </Menu>
+                        }
+                    >
+                        <Button type="text" size="small" icon={<IconList />}>
+                            更多
+                        </Button>
+                    </Dropdown>
+                </Space>
+            ),
+        },
     ];
 
     // Search fields
@@ -359,10 +393,10 @@ function KnowledgeSetManager() {
                         onDelete: handleDelete,
                     }}
                     config={{
-                        displayMode: 'shortCard',
+                        displayMode: 'table',
                         filterContent,
                         tableColumns: tableColumns,
-                        showModeToggle: true,
+                        showModeToggle: false,
                         renderShortCard,
                         cardColumns: 4,
                         cardGutter: 16
