@@ -16,27 +16,25 @@ import java.util.List;
 @Data
 @Entity
 @EqualsAndHashCode(callSuper = true)
-@Table(
-        name = "knowledge_vector",
-        indexes = {
+@Table(name = "knowledge_vector", indexes = {
                 @Index(name = "idx_knowledge_vector_chunk_id", columnList = "knowledgeChunkId")
-        }
-)
+})
 public class KnowledgeVector extends Model {
 
-    @Column(length = 32, nullable = false)
-    @Comment("所属切片ID")
-    private String knowledgeChunkId;
+        @Column(length = 32, nullable = false)
+        @Comment("所属切片ID")
+        private String knowledgeChunkId;
 
-    @Column(columnDefinition = "vector")
-    @Convert(converter = VectorConverter.class)
-    @Comment("向量数据")
-    private List<Double> embedding;
+        @Column(columnDefinition = "vector")
+        @Convert(converter = VectorConverter.class)
+        @org.hibernate.annotations.ColumnTransformer(write = "?::vector")
+        @Comment("向量数据")
+        private List<Double> embedding;
 
-    @Column(length = 64)
-    @Comment("嵌入模型名称")
-    private String model;
+        @Column(length = 64)
+        @Comment("嵌入模型名称")
+        private String model;
 
-    @Comment("维度")
-    private Integer dimension;
+        @Comment("维度")
+        private Integer dimension;
 }
