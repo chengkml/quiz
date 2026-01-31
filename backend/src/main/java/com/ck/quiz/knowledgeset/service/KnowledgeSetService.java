@@ -7,6 +7,8 @@ import com.ck.quiz.knowledgeset.dto.KnowledgeSetQueryDto;
 import com.ck.quiz.knowledgeset.dto.KnowledgeSetUpdateDto;
 import com.ck.quiz.knowledgeset.entity.KnowledgeSet;
 
-public interface KnowledgeSetService extends BaseService<KnowledgeSetCreateDto, KnowledgeSetUpdateDto, KnowledgeSetQueryDto, KnowledgeSetDto, KnowledgeSet> {
-}
+public interface KnowledgeSetService extends
+        BaseService<KnowledgeSetCreateDto, KnowledgeSetUpdateDto, KnowledgeSetQueryDto, KnowledgeSetDto, KnowledgeSet> {
 
+    org.springframework.data.domain.Page<KnowledgeSetDto> pageMyJoined(String userId, KnowledgeSetQueryDto queryDto);
+}

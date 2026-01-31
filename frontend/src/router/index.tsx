@@ -60,6 +60,7 @@ import AdvancedExample from "@/components/DataManager/docs/ADVANCED_EXAMPLE";
 import OrchestrationManager from "@/pages/Orchestration";
 import CanvasEditor from "@/pages/Orchestration/CanvasEditor";
 import PasswordManager from "@/pages/PasswordManager";
+import PersonalKnowledge from "@/pages/PersonalKnowledge";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -305,7 +306,13 @@ const protectedPages = [
     element: <PasswordManager />,
     requiredPath: "password",
   },
+  {
+    path: "personal-knowledge",
+    element: <PersonalKnowledge />,
+    requiredPath: "personal-knowledge",
+  },
 ];
+
 
 /**
  * 创建路由配置

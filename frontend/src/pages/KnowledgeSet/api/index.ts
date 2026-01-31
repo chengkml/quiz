@@ -7,3 +7,6 @@ export const updateKnowledgeSet = (params: any) => axios.put('/knowledge-set/upd
 export const deleteKnowledgeSet = (id: string) => axios.delete(`/knowledge-set/delete/${id}`);
 
 export const vectorSearch = (params: any) => axios.post('/vector/search', params);
+
+export const getMyCreatedKnowledgeSets = (params: any) => axios.post('/knowledge-set/my-created', params);
+export const getMyJoinedKnowledgeSets = (params: any) => axios.post('/knowledge-set/my-joined', params);
