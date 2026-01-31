@@ -131,7 +131,7 @@ const AppLayout: React.FC = () => {
 
     // 处理菜单点击
     const handleMenuClick = (key: string) => {
-        const menu = findMenuByKey(menuTree, key);
+        const menu = findMenuByKey(menuTree || [], key);
         if (menu && menu.url) {
             navigate(`/frame/${menu.url}`);
         }
@@ -412,6 +412,9 @@ const AppLayout: React.FC = () => {
                             {theme === 'dark' ? <IconSun /> : <IconMoon />}
                         </button>
                     </Tooltip>
+                    {/* Global Assistant */}
+                    <GlobalAssistant />
+                    {/* System Message */}
                     <Dropdown
                         trigger={['click']}
                         position="br"
@@ -560,8 +563,6 @@ const AppLayout: React.FC = () => {
                 </Content>
             </Layout>
 
-            {/* Global Assistant Component */}
-            <GlobalAssistant />
         </Layout>
     );
 };

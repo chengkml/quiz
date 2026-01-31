@@ -85,16 +85,26 @@ const GlobalAssistant: React.FC = () => {
 
   return (
     <div className="global-assistant">
+      {/* 悬浮按钮 (Now in Header) */}
+      <Tooltip content={isOpen ? '收起助手' : '智能助手'} position="bottom">
+        <div 
+          className={classNames('assistant-trigger', { open: isOpen })}
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <IconRobot style={{ fontSize: 20 }} />
+        </div>
+      </Tooltip>
+
       {/* 聊天窗口 */}
       <div className={classNames('assistant-window', { hidden: !isOpen })}>
         <div className="window-header">
           <div className="title">
-            <img src={AssistantLogo} alt="AI" style={{ width: 24, height: 24 }} />
+            <IconRobot style={{ fontSize: 20, color: 'var(--color-primary-6)' }} />
             <span>智能助手</span>
           </div>
           <div className="actions">
             <Tooltip content="收起">
-              <IconMinus onClick={() => setIsOpen(false)} style={{ fontSize: 16 }} />
+              <IconClose onClick={() => setIsOpen(false)} style={{ fontSize: 16 }} />
             </Tooltip>
           </div>
         </div>
@@ -103,8 +113,8 @@ const GlobalAssistant: React.FC = () => {
           {messages.map(msg => (
             <div key={msg.id} className={classNames('message-item', msg.role)}>
               {msg.role === 'assistant' && (
-                <Avatar size={32} className="avatar" style={{ backgroundColor: 'transparent' }}>
-                  <img src={AssistantLogo} alt="AI" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                <Avatar size={32} className="avatar" style={{ backgroundColor: 'var(--color-fill-3)' }}>
+                  <IconRobot style={{ color: 'var(--color-text-2)' }} />
                 </Avatar>
               )}
               <div className="message-bubble">
@@ -119,8 +129,8 @@ const GlobalAssistant: React.FC = () => {
           ))}
           {isLoading && (
             <div className="message-item assistant">
-              <Avatar size={32} className="avatar" style={{ backgroundColor: 'transparent' }}>
-                <img src={AssistantLogo} alt="AI" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <Avatar size={32} className="avatar" style={{ backgroundColor: 'var(--color-fill-3)' }}>
+                 <IconRobot style={{ color: 'var(--color-text-2)' }} />
               </Avatar>
               <div className="message-bubble" style={{ color: 'var(--color-text-3)' }}>
                  正在思考...
@@ -155,16 +165,6 @@ const GlobalAssistant: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* 悬浮按钮 */}
-      <Tooltip content={isOpen ? '收起助手' : '打开智能助手'} position="left">
-        <div 
-          className={classNames('assistant-trigger', { open: isOpen })}
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {isOpen ? <IconClose /> : <img src={AssistantLogo} alt="AI" style={{ width: 32, height: 32 }} />}
-        </div>
-      </Tooltip>
     </div>
   );
 };

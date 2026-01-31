@@ -16,9 +16,5 @@ public class OrchestrationWorkflowUpdateDto extends UpdateDto {
     @Size(max = 4000)
     private String description;
 
-    @Size(max = 128)
-    private String bizDomain;
-
     private OrchestrationWorkflow.WorkflowStatus status;
 }
-

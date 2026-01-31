@@ -5,42 +5,41 @@
 @border-color: var(--color-border-2);
 
 .global-assistant {
-    position: fixed;
-    right: 24px;
-    bottom: 24px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    // Moved to header, so no fixed positioning here
+    display: inline-flex;
+    align-items: center;
 
-    // 悬浮按钮
+    // Header Trigger Button
     .assistant-trigger {
-        width: 48px;
-        height: 48px;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
-        background-color: @primary-color;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        background-color: transparent; // Header style
+        color: var(--color-text-2);
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.34, 0.69, 0.1, 1);
-        color: #fff;
-        font-size: 24px;
+        transition: all 0.2s;
+        font-size: 20px; // Match header icons
 
         &:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+            background-color: var(--color-fill-2);
         }
 
         &.open {
-            transform: rotate(45deg);
-            background-color: var(--color-danger-6); // 打开时变成关闭/甚至红色? 或者保持原样，只是icon变了
+            color: @primary-color;
+            background-color: var(--color-fill-2);
         }
     }
 
-    // 聊天窗口
+    // Chat Window (Fixed positioning relative to screen)
     .assistant-window {
+        position: fixed;
+        right: 24px;
+        top: 70px; // Header height + margin
+        z-index: 1000;
+
         width: @assistant-width;
         height: @assistant-height;
         background-color: @bg-color;
@@ -48,21 +47,23 @@
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
         display: flex;
         flex-direction: column;
-        margin-bottom: 16px; // 距离按钮的间距
         overflow: hidden;
-        transform-origin: bottom right;
+        transform-origin: top right;
         transition: all 0.3s cubic-bezier(0.34, 0.69, 0.1, 1);
         border: 1px solid @border-color;
 
-        // 动画状态
+        // Animation State
         &.hidden {
             opacity: 0;
-            transform: scale(0.8) translateY(20px);
+            transform: scale(0.8) translateY(-20px);
             pointer-events: none;
-            height: 0;
-            margin-bottom: 0;
+            // Removed height: 0 to avoid layout thrashing during transition, visibility handle in JS/opacity
+            // But pointer-events: none is key.
+            // We can keep height if needed but fixed position makes it less relevant for flow.
+            visibility: hidden;
         }
 
+        // ... (Styles for header, content, footer remain mostly same, just check nesting)
         .window-header {
             height: 50px;
             padding: 0 16px;

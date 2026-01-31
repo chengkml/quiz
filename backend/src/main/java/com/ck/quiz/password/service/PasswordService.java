@@ -118,14 +118,78 @@ public class PasswordService
     // has protected M getEntity(String id).
     // Note: BaseServiceImpl getEntity implementation is: repository.findById...
 
-    public String getDecryptedPassword(String id, String currentUsername) {
+    @Autowired
+    private com.ck.quiz.user.service.UserService userService;
+
+    @Autowired
+    private com.ck.quiz.notification.service.impl.EmailChannel emailChannel;
+
+    // UserId -> Code info
+    private final java.util.Map<String, CodeInfo> verificationCodes = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @lombok.Data
+    @lombok.AllArgsConstructor
+    private static class CodeInfo {
+        private String code;
+        private java.time.LocalDateTime expireTime;
+    }
+
+    public synchronized void sendViewSalt(String userId) {
+        // 1. Get User Email
+        com.ck.quiz.user.dto.UserDto user = userService.getUserById(userId);
+        if (user == null || !StringUtils.hasText(user.getEmail())) {
+            throw new RuntimeException("用户未绑定邮箱，无法发送验证码");
+        }
+
+        // 2. Generate Code (6 digits)
+        String code = String.valueOf((int) ((Math.random() * 9 + 1) * 100000));
+
+        // 3. Store (5 minutes expiry)
+        verificationCodes.put(userId, new CodeInfo(code, java.time.LocalDateTime.now().plusMinutes(5)));
+
+        // 4. Send Email
+        com.ck.quiz.notification.service.NotificationMessage message = new com.ck.quiz.notification.service.NotificationMessage();
+        message.setTo(user.getEmail());
+        message.setTitle("【密钥管理】查看明文密码验证");
+        message.setContent("您正在尝试查看明文密码，本次验证码为：<b>" + code + "</b><br>有效期5分钟，请勿泄露给他人。");
+        emailChannel.send(message);
+    }
+
+    public String getDecryptedPassword(String id, String userId, String salt) {
+        // 1. Check Salt
+        CodeInfo info = verificationCodes.get(userId);
+        if (info == null) {
+            throw new RuntimeException("请先获取验证码");
+        }
+        if (java.time.LocalDateTime.now().isAfter(info.getExpireTime())) {
+            verificationCodes.remove(userId);
+            throw new RuntimeException("验证码已过期，请重新获取");
+        }
+        if (!info.getCode().equals(salt)) {
+            throw new RuntimeException("验证码错误");
+        }
+
+        // 2. Get Entry
         PasswordEntry entry = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Entry not found: " + id));
 
-        // Additional security check
-        if (!entry.getCreateUser().equals(currentUsername) && !"admin".equals(currentUsername)) {
+        // 3. Check Permission
+        if (!entry.getCreateUser().equals(userId) && !"admin".equals(userId)) {
             throw new RuntimeException("No permission to view this password");
         }
+
+        // 4. Decrypt
         return EncryptUtil.decrypt(entry.getEncryptedPassword(), null);
+    }
+
+    // Deprecated or Internal usage only matching old signature if needed by
+    // interface?
+    // The interface didn't expose it, it was public in impl.
+    // We'll keep the old one for compatibility IF it was used elsewhere, but
+    // ideally we should block it.
+    // Given the requirement, we should probably remove/disable the direct access
+    // one from Controller.
+    public String getDecryptedPassword(String id, String currentUsername) {
+        throw new RuntimeException("Direct access deprecated. Use salt verification.");
     }
 }

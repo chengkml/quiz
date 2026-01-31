@@ -1,8 +1,25 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Message, Space, Tag } from "@arco-design/web-react";
-import { IconEdit, IconEye, IconPlayArrow } from "@arco-design/web-react/icon";
+import {
+  Button,
+  Dropdown,
+  Form,
+  Input,
+  Menu,
+  Message,
+  Modal,
+  Space,
+  Tag,
+  Select,
+} from "@arco-design/web-react";
+import {
+  IconEdit,
+  IconEye,
+  IconPlayArrow,
+  IconList,
+  IconPlus,
+} from "@arco-design/web-react/icon";
 import "./index.less";
-import { DataManager, AddEditModal } from "@/components/DataManager";
+import { DataManager } from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
 import { FormFieldConfig } from "@/components/types/types";
 import {
@@ -20,13 +37,24 @@ import {
   startInstance,
 } from "./api";
 import { useNavigate } from "react-router-dom";
+import renderDate from "@/utils/timeUtil";
+
+const { TextArea } = Input;
+const { Option } = Select;
 
 const statusColorMap: Record<WorkflowStatus, string> = {
-  DRAFT: "default",
+  DRAFT: "gray",
   PENDING: "orangered",
   PUBLISHED: "green",
   DISABLED: "red",
 };
+
+const statusOptions = [
+  { label: "草稿", value: "DRAFT" },
+  { label: "待发布", value: "PENDING" },
+  { label: "已发布", value: "PUBLISHED" },
+  { label: "已停用", value: "DISABLED" },
+];
 
 function OrchestrationManager() {
   const [data, setData] = useState<OrchestrationWorkflowDto[]>([]);
@@ -46,12 +74,24 @@ function OrchestrationManager() {
     status: undefined as WorkflowStatus | undefined,
   });
 
-  const [addEditVisible, setAddEditVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<OrchestrationWorkflowDto | null>(null);
 
+  const formRef = useRef<any>(null);
   const filterFormRef = useRef<any>(null);
   const navigate = useNavigate();
+
+  const handleMenuClick = (key: string, e: React.MouseEvent, record: OrchestrationWorkflowDto) => {
+    e.stopPropagation();
+    if (key === "edit") {
+      handleEdit(record);
+    } else if (key === "canvas") {
+      navigate(`/frame/orchestration/edit/${record.id}`);
+    } else if (key === "run") {
+      handleStart(record);
+    }
+  };
 
   const columns = [
     {
@@ -65,13 +105,6 @@ function OrchestrationManager() {
       dataIndex: "name",
       key: "name",
       width: 200,
-    },
-    {
-      title: "业务域",
-      dataIndex: "bizDomain",
-      key: "bizDomain",
-      width: 160,
-      render: (value: string | undefined) => value || "-",
     },
     {
       title: "状态",
@@ -102,47 +135,41 @@ function OrchestrationManager() {
       dataIndex: "createDate",
       key: "createDate",
       width: 180,
+      render: (value: string) => renderDate(value),
     },
     {
       title: "操作",
       key: "action",
-      width: 220,
+      width: 100,
       fixed: "right",
+      align: "center",
       render: (_: any, record: OrchestrationWorkflowDto) => (
-        <Space>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(record);
-            }}
+        <Space size="large">
+          <Dropdown
+            position="bl"
+            droplist={
+              <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}>
+                <Menu.Item key="edit">
+                  <IconEdit style={{ marginRight: 5 }} />
+                  编辑
+                </Menu.Item>
+                <Menu.Item key="canvas">
+                  <IconEye style={{ marginRight: 5 }} />
+                  画布
+                </Menu.Item>
+                <Menu.Item key="run">
+                  <IconPlayArrow style={{ marginRight: 5 }} />
+                  运行
+                </Menu.Item>
+              </Menu>
+            }
           >
-            编辑
-          </Button>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconEye />}
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/frame/orchestration/edit/${record.id}`);
-            }}
-          >
-            画布
-          </Button>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconPlayArrow />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleStart(record);
-            }}
-          >
-            运行
-          </Button>
+            <Button
+              type="text"
+              icon={<IconList />}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Dropdown>
         </Space>
       ),
     },
@@ -156,37 +183,14 @@ function OrchestrationManager() {
       placeholder: "名称或编码",
       span: 6,
     },
-  ];
-
-  const getFormConfig = (edit: boolean): FormFieldConfig[] => [
     {
-      field: "code",
-      label: "编码",
-      type: "input",
-      required: true,
-      disabled: edit,
-      placeholder: "唯一编码",
-      rules: [{ required: true, message: "请输入编码" }],
-    },
-    {
-      field: "name",
-      label: "名称",
-      type: "input",
-      required: true,
-      placeholder: "请输入名称",
-      rules: [{ required: true, message: "请输入名称" }],
-    },
-    {
-      field: "bizDomain",
-      label: "业务域",
-      type: "input",
-      placeholder: "所属业务域",
-    },
-    {
-      field: "description",
-      label: "描述",
-      type: "textarea",
-      placeholder: "编排说明",
+      field: "status",
+      label: "状态",
+      type: "select",
+      placeholder: "状态",
+      options: statusOptions,
+      span: 6,
+      allowClear: true,
     },
   ];
 
@@ -196,7 +200,6 @@ function OrchestrationManager() {
       const merged = { ...searchParams, ...(extra || {}) };
       const params: OrchestrationWorkflowQueryParams = {
         keyWord: merged.keyWord || "",
-        bizDomain: undefined,
         status: merged.status,
         pageNum: pagination.current - 1,
         pageSize: pagination.pageSize,
@@ -231,27 +234,27 @@ function OrchestrationManager() {
       initialValues={searchParams}
       formFields={searchFormFields}
       onSearch={handleSearch}
-      onReset={() => {
-        const reset = { keyWord: "", status: undefined as WorkflowStatus | undefined };
-        setSearchParams(reset);
-        setPagination((prev) => ({ ...prev, current: 1 }));
-        fetchWorkflows(reset);
-        Message.info("已重置筛选条件");
-      }}
-      min={3}
     />
   );
 
   const handleAdd = () => {
     setIsEdit(false);
     setCurrentRecord(null);
-    setAddEditVisible(true);
+    setModalVisible(true);
+    setTimeout(() => formRef.current?.resetFields(), 50);
   };
 
   const handleEdit = (record: OrchestrationWorkflowDto) => {
     setCurrentRecord(record);
     setIsEdit(true);
-    setAddEditVisible(true);
+    setModalVisible(true);
+    setTimeout(() => {
+      formRef.current?.setFieldsValue({
+        code: record.code,
+        name: record.name,
+        description: record.description,
+      });
+    }, 50);
   };
 
   const handleStart = async (record: OrchestrationWorkflowDto) => {
@@ -261,7 +264,6 @@ function OrchestrationManager() {
       });
       if (res.status === 200) {
         Message.success("已启动执行实例");
-        // 如果需要查看实例列表，应该在这里处理逻辑，目前仅搜索无后续操作
         await searchInstances({
           workflowId: record.id,
           pageNum: 0,
@@ -275,22 +277,24 @@ function OrchestrationManager() {
     }
   };
 
-  const handleAddEditSubmit = async (values: any) => {
-    const payload: OrchestrationWorkflowCreateParams | OrchestrationWorkflowUpdateParams =
-      isEdit && currentRecord
-        ? {
-            id: currentRecord.id,
-            name: values.name,
-            description: values.description,
-            bizDomain: values.bizDomain,
-          }
-        : {
-            code: values.code,
-            name: values.name,
-            description: values.description,
-            bizDomain: values.bizDomain,
-          };
+  const handleModalOk = async () => {
     try {
+      const values = await formRef.current?.validate();
+      if (!values) return;
+
+      const payload: OrchestrationWorkflowCreateParams | OrchestrationWorkflowUpdateParams =
+        isEdit && currentRecord
+          ? {
+              id: currentRecord.id,
+              name: values.name,
+              description: values.description,
+            }
+          : {
+              code: values.code,
+              name: values.name,
+              description: values.description,
+            };
+
       if (isEdit) {
         await updateWorkflow(payload as OrchestrationWorkflowUpdateParams);
         Message.success("更新成功");
@@ -298,11 +302,12 @@ function OrchestrationManager() {
         await createWorkflow(payload as OrchestrationWorkflowCreateParams);
         Message.success("创建成功");
       }
-      setAddEditVisible(false);
+      setModalVisible(false);
       fetchWorkflows();
     } catch (e: any) {
+      if (e?.fields) return; // Validation error
       const msg = e?.response?.data?.message || (isEdit ? "更新失败" : "创建失败");
-      throw new Error(msg);
+      Message.error(msg);
     }
   };
 
@@ -320,7 +325,9 @@ function OrchestrationManager() {
         data={data}
         loading={loading}
         pagination={pagination}
-        onPaginationChange={setPagination}
+        onPaginationChange={(nextPagination: any) =>
+          setPagination((prev) => ({ ...prev, ...nextPagination }))
+        }
         actions={{
           onAdd: handleAdd,
         }}
@@ -333,18 +340,34 @@ function OrchestrationManager() {
         tableScrollHeight={500}
       />
 
-      <AddEditModal
-        visible={addEditVisible}
-        isEdit={isEdit}
-        record={currentRecord || undefined}
+      <Modal
         title={isEdit ? "编辑编排" : "新增编排"}
-        formConfig={getFormConfig(isEdit)}
-        onOk={handleAddEditSubmit}
-        onCancel={() => {
-          setAddEditVisible(false);
-          setCurrentRecord(null);
-        }}
-      />
+        visible={modalVisible}
+        onOk={handleModalOk}
+        onCancel={() => setModalVisible(false)}
+        unmountOnExit
+      >
+        <Form ref={formRef} layout="vertical">
+          <Form.Item
+            field="code"
+            label="编码"
+            rules={[{ required: true, message: "请输入编码" }]}
+            disabled={isEdit}
+          >
+            <Input placeholder="唯一编码" disabled={isEdit} />
+          </Form.Item>
+          <Form.Item
+            field="name"
+            label="名称"
+            rules={[{ required: true, message: "请输入名称" }]}
+          >
+            <Input placeholder="请输入名称" />
+          </Form.Item>
+          <Form.Item field="description" label="描述">
+            <TextArea placeholder="编排说明" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

@@ -11,6 +11,4 @@ public class OrchestrationWorkflowQueryDto extends QueryDto {
 
     private OrchestrationWorkflow.WorkflowStatus status;
 
-    private String bizDomain;
 }
-

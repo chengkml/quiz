@@ -40,6 +40,10 @@ export function deletePassword(id: string): Promise<AxiosResponse<any>> {
   return axios.delete(`${API_PREFIX}/delete/${id}`);
 }
 
-export function getDecryptedPassword(id: string): Promise<AxiosResponse<string>> {
-  return axios.get<string>(`${API_PREFIX}/decrypt/${id}`);
+export function getDecryptedPassword(id: string, salt: string): Promise<AxiosResponse<string>> {
+  return axios.get<string>(`${API_PREFIX}/decrypt/${id}?salt=${salt}`);
+}
+
+export function sendSalt(): Promise<AxiosResponse<void>> {
+  return axios.post(`${API_PREFIX}/send-salt`);
 }

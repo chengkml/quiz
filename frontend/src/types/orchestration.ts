@@ -7,7 +7,7 @@ export interface OrchestrationWorkflowDto {
   code: string;
   name: string;
   description?: string;
-  bizDomain?: string;
+
   status: WorkflowStatus;
   currentVersionId?: string;
   createUser?: string;
@@ -19,7 +19,7 @@ export interface OrchestrationWorkflowDto {
 export interface OrchestrationWorkflowQueryParams {
   keyWord?: string;
   status?: WorkflowStatus;
-  bizDomain?: string;
+
   pageNum: number;
   pageSize: number;
 }
@@ -28,14 +28,14 @@ export interface OrchestrationWorkflowCreateParams {
   code: string;
   name: string;
   description?: string;
-  bizDomain?: string;
+
 }
 
 export interface OrchestrationWorkflowUpdateParams {
   id: string;
   name?: string;
   description?: string;
-  bizDomain?: string;
+
   status?: WorkflowStatus;
 }
 

@@ -15,10 +15,7 @@ public class OrchestrationWorkflowDto extends Dto {
 
     private String description;
 
-    private String bizDomain;
-
     private OrchestrationWorkflow.WorkflowStatus status;
 
     private String currentVersionId;
 }
-

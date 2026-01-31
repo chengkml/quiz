@@ -73,11 +73,6 @@ public class OrchestrationWorkflowServiceImpl extends
                     " and w.status = :status ", params, sql, countSql);
         }
 
-        if (queryDto.getBizDomain() != null && !queryDto.getBizDomain().isEmpty()) {
-            JdbcQueryHelper.equals("bizDomain", queryDto.getBizDomain(),
-                    " and w.biz_domain = :bizDomain ", params, sql, countSql);
-        }
-
         JdbcQueryHelper.order("create_date", "desc", sql);
 
         String limitSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(),
@@ -89,7 +84,7 @@ public class OrchestrationWorkflowServiceImpl extends
             dto.setCode(rs.getString("code"));
             dto.setName(rs.getString("name"));
             dto.setDescription(rs.getString("description"));
-            dto.setBizDomain(rs.getString("biz_domain"));
+
             String status = rs.getString("status");
             if (status != null) {
                 dto.setStatus(OrchestrationWorkflow.WorkflowStatus.valueOf(status));

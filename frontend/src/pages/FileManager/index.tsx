@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Card,
   Table,
@@ -12,6 +12,7 @@ import {
   Popconfirm,
   Typography,
   Empty,
+  Layout
 } from '@arco-design/web-react';
 import {
   IconFolder,
@@ -27,6 +28,7 @@ import {
 } from '@arco-design/web-react/icon';
 import { ColumnProps } from '@arco-design/web-react/es/Table';
 import { listFiles, createFolder, deleteFile, renameFile, FileInfo, UPLOAD_URL, getDownloadUrl } from './api';
+import DirectoryTree from './components/DirectoryTree';
 import dayjs from 'dayjs';
 
 const getFileIcon = (name: string, isDirectory: boolean) => {
@@ -61,6 +63,9 @@ const FileManager: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState('');
+  
+  // To trigger tree refresh
+  const [treeKey, setTreeKey] = useState(0);
 
   const token = localStorage.getItem('token');
 
@@ -89,7 +94,6 @@ const FileManager: React.FC = () => {
   }, [currentPath]);
 
   const handleEnterFolder = (path: string) => {
-    // path is the folder path, e.g., "A/"
     setCurrentPath(path);
   };
 
@@ -113,6 +117,7 @@ const FileManager: React.FC = () => {
       setIsCreateFolderModalVisible(false);
       setNewFolderName('');
       fetchFiles();
+      setTreeKey(prev => prev + 1); // Refresh tree to show new folder
     } catch (error) {
       console.error(error);
       Message.error('Failed to create folder');
@@ -129,17 +134,23 @@ const FileManager: React.FC = () => {
       Message.success('Renamed successfully');
       setIsRenameModalVisible(false);
       fetchFiles();
+      if (renamingItem.isDirectory) {
+          setTreeKey(prev => prev + 1);
+      }
     } catch (error) {
       console.error(error);
       Message.error('Failed to rename');
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, isDirectory: boolean) => {
     try {
       await deleteFile(id);
       Message.success('Deleted successfully');
       fetchFiles();
+      if (isDirectory) {
+          setTreeKey(prev => prev + 1);
+      }
     } catch (error) {
       console.error(error);
       Message.error('Failed to delete');
@@ -236,10 +247,10 @@ const FileManager: React.FC = () => {
               title="Rename"
             />
           )}
-          {item.id && ( // Only items with ID (explicit files/folders) can be deleted
+          {item.id && ( 
              <Popconfirm
                 title="Are you sure you want to delete this?"
-                onOk={() => handleDelete(item.id)}
+                onOk={() => handleDelete(item.id, item.isDirectory)}
              >
                 <Button icon={<IconDelete />} status="danger" size="mini" title="Delete" />
              </Popconfirm>
@@ -252,55 +263,71 @@ const FileManager: React.FC = () => {
   const pathParts = currentPath.split('/').filter(p => p);
 
   return (
-    <Card>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Breadcrumb>
-          <Breadcrumb.Item onClick={() => handleNavigateBreadcrumb(-1, [])} style={{ cursor: 'pointer' }}>
-            <IconHome /> Home
-          </Breadcrumb.Item>
-          {pathParts.map((part, index) => (
-            <Breadcrumb.Item key={index} onClick={() => handleNavigateBreadcrumb(index, pathParts)} style={{ cursor: 'pointer' }}>
-              {part}
-            </Breadcrumb.Item>
-          ))}
-        </Breadcrumb>
-        <Space>
-          <Input.Search
-            placeholder="Search in folder"
-            style={{ width: 240, marginRight: 8 }}
-            value={searchText}
-            onChange={setSearchText}
-            allowClear
-          />
-          <Button icon={<IconRefresh />} onClick={fetchFiles} />
-          <Button icon={<IconPlus />} onClick={() => setIsCreateFolderModalVisible(true)}>New Folder</Button>
-          <Upload
-            action={UPLOAD_URL}
-            data={{ path: currentPath }}
-            headers={{ Authorization: token || '' }}
-            showUploadList={false}
-            onChange={(fileList, file) => {
-              if (file.status === 'done') {
-                Message.success('Uploaded successfully');
-                fetchFiles();
-              } else if (file.status === 'error') {
-                Message.error('Upload failed');
-              }
-            }}
-          >
-            <Button type="primary" icon={<IconUpload />}>Upload</Button>
-          </Upload>
-        </Space>
-      </div>
+    <Card bodyStyle={{ padding: 0, height: '85vh', overflow: 'hidden' }} style={{ height: '85vh' }}>
+       <div style={{ display: 'flex', height: '100%' }}>
+            {/* Left Sidebar: Directory Tree */}
+            <div style={{ padding: '16px 0 16px 16px' }}>
+                <DirectoryTree 
+                    key={treeKey}
+                    currentPath={currentPath}
+                    onSelect={(path) => setCurrentPath(path)}
+                />
+            </div>
+            
+            {/* Right Content: File List */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 16, overflow: 'hidden' }}>
+                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Breadcrumb>
+                      <Breadcrumb.Item onClick={() => handleNavigateBreadcrumb(-1, [])} style={{ cursor: 'pointer' }}>
+                        <IconHome /> Home
+                      </Breadcrumb.Item>
+                      {pathParts.map((part, index) => (
+                        <Breadcrumb.Item key={index} onClick={() => handleNavigateBreadcrumb(index, pathParts)} style={{ cursor: 'pointer' }}>
+                          {part}
+                        </Breadcrumb.Item>
+                      ))}
+                    </Breadcrumb>
+                    <Space>
+                      <Input.Search
+                        placeholder="Search in folder"
+                        style={{ width: 200 }}
+                        value={searchText}
+                        onChange={setSearchText}
+                        allowClear
+                      />
+                      <Button icon={<IconRefresh />} onClick={fetchFiles} />
+                      <Button icon={<IconPlus />} onClick={() => setIsCreateFolderModalVisible(true)}>Folder</Button>
+                      <Upload
+                        action={UPLOAD_URL}
+                        data={{ path: currentPath }}
+                        headers={{ Authorization: token || '' }}
+                        showUploadList={false}
+                        onChange={(fileList, file) => {
+                          if (file.status === 'done') {
+                            Message.success('Uploaded successfully');
+                            fetchFiles();
+                          } else if (file.status === 'error') {
+                            Message.error('Upload failed');
+                          }
+                        }}
+                      >
+                        <Button type="primary" icon={<IconUpload />}>Upload</Button>
+                      </Upload>
+                    </Space>
+                  </div>
 
-      <Table
-        loading={loading}
-        columns={columns}
-        data={filteredFileList}
-        pagination={false}
-        rowKey={record => record.path + record.name}
-        noDataElement={<Empty description="No files found" />}
-      />
+                  <Table
+                    loading={loading}
+                    columns={columns}
+                    data={filteredFileList}
+                    pagination={false}
+                    rowKey={record => record.path + record.name}
+                    scroll={{ y: '100%' }}
+                    style={{ flex: 1, overflow: 'hidden' }}
+                    noDataElement={<Empty description="No files found" />}
+                  />
+            </div>
+       </div>
 
       <Modal
         title="Image Preview"
