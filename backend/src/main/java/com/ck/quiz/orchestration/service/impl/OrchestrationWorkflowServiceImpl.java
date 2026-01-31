@@ -20,6 +20,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -30,7 +31,9 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-public class OrchestrationWorkflowServiceImpl extends BaseServiceImpl<OrchestrationWorkflowCreateDto, OrchestrationWorkflowUpdateDto, OrchestrationWorkflowQueryDto, OrchestrationWorkflowDto, OrchestrationWorkflow, OrchestrationWorkflowRepository> implements OrchestrationWorkflowService {
+public class OrchestrationWorkflowServiceImpl extends
+        BaseServiceImpl<OrchestrationWorkflowCreateDto, OrchestrationWorkflowUpdateDto, OrchestrationWorkflowQueryDto, OrchestrationWorkflowDto, OrchestrationWorkflow, OrchestrationWorkflowRepository>
+        implements OrchestrationWorkflowService {
 
     @Autowired
     private OrchestrationWorkflowVersionRepository versionRepository;
@@ -77,7 +80,8 @@ public class OrchestrationWorkflowServiceImpl extends BaseServiceImpl<Orchestrat
 
         JdbcQueryHelper.order("create_date", "desc", sql);
 
-        String limitSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
+        String limitSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(),
+                queryDto.getPageSize());
 
         List<OrchestrationWorkflowDto> rows = jdbcTemplate.query(limitSql, params, (rs, rowNum) -> {
             OrchestrationWorkflowDto dto = new OrchestrationWorkflowDto();
@@ -128,13 +132,15 @@ public class OrchestrationWorkflowServiceImpl extends BaseServiceImpl<Orchestrat
     }
 
     @Override
-    public OrchestrationWorkflowVersionDto createVersion(String userId, OrchestrationWorkflowVersionCreateDto createDto) {
+    public OrchestrationWorkflowVersionDto createVersion(String userId,
+            OrchestrationWorkflowVersionCreateDto createDto) {
         OrchestrationWorkflow workflow = repository.findById(createDto.getWorkflowId())
                 .orElseThrow(() -> new IllegalArgumentException("Workflow not found: " + createDto.getWorkflowId()));
         if (workflow.getCreateUser() != null && userId != null && !userId.equals(workflow.getCreateUser())) {
             throw new IllegalArgumentException("No permission to create version for workflow: " + workflow.getId());
         }
-        Optional<OrchestrationWorkflowVersion> latestOpt = versionRepository.findFirstByWorkflowIdOrderByVersionNumberDesc(workflow.getId());
+        Optional<OrchestrationWorkflowVersion> latestOpt = versionRepository
+                .findFirstByWorkflowIdOrderByVersionNumberDesc(workflow.getId());
         int nextVersion = latestOpt.map(v -> v.getVersionNumber() + 1).orElse(1);
         OrchestrationWorkflowVersion version = new OrchestrationWorkflowVersion();
         version.setId(IdHelper.genUuid());
@@ -147,11 +153,13 @@ public class OrchestrationWorkflowServiceImpl extends BaseServiceImpl<Orchestrat
     }
 
     @Override
-    public OrchestrationWorkflowVersionDto updateVersion(String userId, OrchestrationWorkflowVersionUpdateDto updateDto) {
+    public OrchestrationWorkflowVersionDto updateVersion(String userId,
+            OrchestrationWorkflowVersionUpdateDto updateDto) {
         OrchestrationWorkflowVersion version = versionRepository.findById(updateDto.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Workflow version not found: " + updateDto.getId()));
         OrchestrationWorkflow workflow = repository.findById(version.getWorkflowId())
-                .orElseThrow(() -> new IllegalStateException("Workflow not found for version: " + version.getWorkflowId()));
+                .orElseThrow(
+                        () -> new IllegalStateException("Workflow not found for version: " + version.getWorkflowId()));
         if (workflow.getCreateUser() != null && userId != null && !userId.equals(workflow.getCreateUser())) {
             throw new IllegalArgumentException("No permission to update version: " + updateDto.getId());
         }
@@ -168,7 +176,8 @@ public class OrchestrationWorkflowServiceImpl extends BaseServiceImpl<Orchestrat
         if (workflow.getCreateUser() != null && userId != null && !userId.equals(workflow.getCreateUser())) {
             throw new IllegalArgumentException("No permission to view versions for workflow: " + workflowId);
         }
-        List<OrchestrationWorkflowVersion> versions = versionRepository.findByWorkflowIdOrderByVersionNumberDesc(workflowId);
+        List<OrchestrationWorkflowVersion> versions = versionRepository
+                .findByWorkflowIdOrderByVersionNumberDesc(workflowId);
         return versions.stream().map(this::convertVersionToDto).collect(Collectors.toList());
     }
 
@@ -179,9 +188,13 @@ public class OrchestrationWorkflowServiceImpl extends BaseServiceImpl<Orchestrat
         if (workflow.getCreateUser() != null && userId != null && !userId.equals(workflow.getCreateUser())) {
             throw new IllegalArgumentException("No permission to view versions for workflow: " + workflowId);
         }
-        Optional<OrchestrationWorkflowVersion> latestOpt = versionRepository.findFirstByWorkflowIdOrderByVersionNumberDesc(workflowId);
+        Optional<OrchestrationWorkflowVersion> latestOpt = versionRepository
+                .findFirstByWorkflowIdOrderByVersionNumberDesc(workflowId);
         return latestOpt.map(this::convertVersionToDto).orElse(null);
     }
+
+    @Autowired
+    private com.ck.quiz.orchestration.engine.WorkflowEngine workflowEngine;
 
     @Override
     public OrchestrationInstanceDto start(String userId, String workflowId, OrchestrationStartRequest startRequest) {
@@ -194,15 +207,25 @@ public class OrchestrationWorkflowServiceImpl extends BaseServiceImpl<Orchestrat
         if (!StringUtils.hasText(versionId)) {
             versionId = workflow.getCurrentVersionId();
         }
-        if (!StringUtils.hasText(versionId)) {
-            Optional<OrchestrationWorkflowVersion> latestOpt = versionRepository.findFirstByWorkflowIdOrderByVersionNumberDesc(workflowId);
+
+        OrchestrationWorkflowVersion version = null;
+        if (StringUtils.hasText(versionId)) {
+            version = versionRepository.findById(versionId).orElse(null);
+        }
+
+        if (version == null) {
+            Optional<OrchestrationWorkflowVersion> latestOpt = versionRepository
+                    .findFirstByWorkflowIdOrderByVersionNumberDesc(workflowId);
             if (latestOpt.isPresent()) {
-                versionId = latestOpt.get().getId();
+                version = latestOpt.get();
+                versionId = version.getId();
             }
         }
-        if (!StringUtils.hasText(versionId)) {
+
+        if (version == null) {
             throw new IllegalStateException("No version available for workflow: " + workflowId);
         }
+
         OrchestrationInstance instance = new OrchestrationInstance();
         instance.setId(IdHelper.genUuid());
         instance.setWorkflowId(workflowId);
@@ -212,7 +235,31 @@ public class OrchestrationWorkflowServiceImpl extends BaseServiceImpl<Orchestrat
         instance.setStatus(OrchestrationInstance.InstanceStatus.RUNNING);
         instance.setStartTime(LocalDateTime.now());
         OrchestrationInstance saved = instanceRepository.save(instance);
-        saved.setStatus(OrchestrationInstance.InstanceStatus.SUCCESS);
+
+        try {
+            Map<String, Object> inputs = new HashMap<>();
+            if (StringUtils.hasText(startRequest.getTriggerParams())) {
+                try {
+                    inputs = new ObjectMapper().readValue(startRequest.getTriggerParams(), Map.class);
+                } catch (Exception e) {
+                    inputs.put("rawInput", startRequest.getTriggerParams());
+                }
+            }
+
+            Map<String, Object> outputs = workflowEngine.execute(version.getDefinitionGraph(), inputs);
+
+            if (outputs.containsKey("_error")) {
+                saved.setStatus(OrchestrationInstance.InstanceStatus.FAILED);
+                saved.setErrorSummary((String) outputs.get("_error"));
+            } else {
+                saved.setStatus(OrchestrationInstance.InstanceStatus.SUCCESS);
+            }
+            // In a real system, we'd store the output in a separate field or log
+        } catch (Exception e) {
+            saved.setStatus(OrchestrationInstance.InstanceStatus.FAILED);
+            saved.setErrorSummary(e.getMessage());
+        }
+
         saved.setEndTime(LocalDateTime.now());
         OrchestrationInstance finished = instanceRepository.save(saved);
         return convertInstanceToDto(finished);
@@ -226,10 +273,12 @@ public class OrchestrationWorkflowServiceImpl extends BaseServiceImpl<Orchestrat
             OrchestrationWorkflow workflow = repository.findById(queryDto.getWorkflowId())
                     .orElseThrow(() -> new IllegalArgumentException("Workflow not found: " + queryDto.getWorkflowId()));
             if (workflow.getCreateUser() != null && userId != null && !userId.equals(workflow.getCreateUser())) {
-                throw new IllegalArgumentException("No permission to view instances for workflow: " + queryDto.getWorkflowId());
+                throw new IllegalArgumentException(
+                        "No permission to view instances for workflow: " + queryDto.getWorkflowId());
             }
             if (queryDto.getStatus() != null) {
-                page = instanceRepository.findByWorkflowIdAndStatus(queryDto.getWorkflowId(), queryDto.getStatus(), pageRequest);
+                page = instanceRepository.findByWorkflowIdAndStatus(queryDto.getWorkflowId(), queryDto.getStatus(),
+                        pageRequest);
             } else {
                 page = instanceRepository.findByWorkflowId(queryDto.getWorkflowId(), pageRequest);
             }
@@ -254,4 +303,3 @@ public class OrchestrationWorkflowServiceImpl extends BaseServiceImpl<Orchestrat
         return dto;
     }
 }
-
