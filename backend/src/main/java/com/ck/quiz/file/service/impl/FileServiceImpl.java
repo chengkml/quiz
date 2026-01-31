@@ -35,14 +35,16 @@ public class FileServiceImpl implements FileService {
         try {
             String originalFilename = file.getOriginalFilename();
             String extension = FilenameUtils.getExtension(originalFilename);
-            
+
             // Construct storage path
             String uuid = IdHelper.genUuid();
             String storageName = uuid + (extension != null ? "." + extension : "");
-            
+
             String fullPath = path.isEmpty() ? storageName : path + "/" + storageName;
-            if (path.endsWith("/")) fullPath = path + storageName;
-            if (fullPath.startsWith("/")) fullPath = fullPath.substring(1);
+            if (path.endsWith("/"))
+                fullPath = path + storageName;
+            if (fullPath.startsWith("/"))
+                fullPath = fullPath.substring(1);
 
             // Upload to storage
             fileStorageService.upload(fullPath, file.getInputStream());
@@ -57,7 +59,7 @@ public class FileServiceImpl implements FileService {
             metadata.setExtension(extension);
             metadata.setSize(file.getSize());
             metadata.setIsFolder(false);
-            
+
             return fileMetadataRepository.save(metadata);
 
         } catch (Exception e) {
@@ -69,15 +71,19 @@ public class FileServiceImpl implements FileService {
     @Override
     @Transactional
     public FileMetadata createFolder(String path, String name) {
-        if (name.contains("/")) throw new IllegalArgumentException("Folder name cannot contain /");
+        if (name.contains("/"))
+            throw new IllegalArgumentException("Folder name cannot contain /");
 
         String fullPath = path.isEmpty() ? name : path + "/" + name;
-        if (path.endsWith("/")) fullPath = path + name;
-        if (fullPath.startsWith("/")) fullPath = fullPath.substring(1);
-        
+        if (path.endsWith("/"))
+            fullPath = path + name;
+        if (fullPath.startsWith("/"))
+            fullPath = fullPath.substring(1);
+
         // Ensure folder path ends with /
-        if (!fullPath.endsWith("/")) fullPath += "/";
-        
+        if (!fullPath.endsWith("/"))
+            fullPath += "/";
+
         // Check if already exists (optional but good)
         // Ignoring for now to keep simple
 
@@ -89,7 +95,7 @@ public class FileServiceImpl implements FileService {
         metadata.setIsFolder(true);
         metadata.setExtension("");
         metadata.setSize(0L);
-        
+
         return fileMetadataRepository.save(metadata);
     }
 
@@ -106,15 +112,17 @@ public class FileServiceImpl implements FileService {
     @Transactional
     public void delete(String id) {
         FileMetadata metadata = get(id);
-        
+
         if (Boolean.TRUE.equals(metadata.getIsFolder())) {
             // Recursive delete
-            List<FileMetadata> children = fileMetadataRepository.findByStoragePathStartingWith(metadata.getStoragePath());
-            // Sort by length desc to delete deepest children first? Not strictly necessary for DB delete but good practice.
+            List<FileMetadata> children = fileMetadataRepository
+                    .findByStoragePathStartingWith(metadata.getStoragePath());
+            // Sort by length desc to delete deepest children first? Not strictly necessary
+            // for DB delete but good practice.
             // Actually JPA delete is fine.
             for (FileMetadata child : children) {
                 if (!Boolean.TRUE.equals(child.getIsFolder())) {
-                     try {
+                    try {
                         fileStorageService.delete(child.getStoragePath());
                     } catch (Exception e) {
                         log.warn("Failed to delete file from storage: {}", child.getStoragePath(), e);
@@ -136,37 +144,42 @@ public class FileServiceImpl implements FileService {
     public List<FileInfo> list(String path) {
         String prefix = path == null ? "" : path;
         // Normalize prefix to ensure it ends with / if it is a folder path
-        if (!prefix.isEmpty() && !prefix.endsWith("/")) prefix += "/";
-        if (prefix.startsWith("/")) prefix = prefix.substring(1);
-        
+        if (!prefix.isEmpty() && !prefix.endsWith("/"))
+            prefix += "/";
+        if (prefix.startsWith("/"))
+            prefix = prefix.substring(1);
+
         List<FileMetadata> all = fileMetadataRepository.findByStoragePathStartingWith(prefix);
-        
+
         Map<String, FileInfo> result = new HashMap<>();
-        
+
         for (FileMetadata m : all) {
             String storagePath = m.getStoragePath();
-            if (storagePath.equals(prefix)) continue; // Skip self
-            
+            if (storagePath.equals(prefix))
+                continue; // Skip self
+
             String relative = storagePath.substring(prefix.length());
-            if (relative.isEmpty()) continue;
-            
+            if (relative.isEmpty())
+                continue;
+
             int slashIndex = relative.indexOf("/");
-            
+
             if (Boolean.TRUE.equals(m.getIsFolder())) {
                 // Explicit Folder
                 // storagePath is like "A/" (if relative is "A/") or "A/B/" (relative "A/B/")
-                
+
                 String[] parts = relative.split("/");
                 if (parts.length > 0) {
                     String directChildName = parts[0];
                     if (parts.length == 1) {
-                         // Direct child folder
-                         result.put(directChildName, convert(m, directChildName));
+                        // Direct child folder
+                        result.put(directChildName, convert(m, directChildName));
                     } else {
-                         // Nested folder, ensure parent implicit folder exists
-                         // e.g. "A/B/", relative "A/B/". parts=["A", "B"].
-                         // We are listing root. We see "A".
-                         result.putIfAbsent(directChildName, createVirtualFolder(prefix + directChildName + "/", directChildName));
+                        // Nested folder, ensure parent implicit folder exists
+                        // e.g. "A/B/", relative "A/B/". parts=["A", "B"].
+                        // We are listing root. We see "A".
+                        result.putIfAbsent(directChildName,
+                                createVirtualFolder(prefix + directChildName + "/", directChildName));
                     }
                 }
             } else {
@@ -181,7 +194,7 @@ public class FileServiceImpl implements FileService {
                 }
             }
         }
-        
+
         return new ArrayList<>(result.values());
     }
 
@@ -190,18 +203,18 @@ public class FileServiceImpl implements FileService {
         return fileMetadataRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("File not found: " + id));
     }
-    
+
     private FileInfo convert(FileMetadata m, String name) {
         return FileInfo.builder()
                 .id(m.getId())
                 .name(name)
-                .path(m.getStoragePath()) 
+                .path(m.getStoragePath())
                 .size(m.getSize())
                 .isDirectory(Boolean.TRUE.equals(m.getIsFolder()))
                 .lastModified(m.getUpdateDate() != null ? m.getUpdateDate() : m.getCreateDate())
                 .build();
     }
-    
+
     private FileInfo createVirtualFolder(String path, String name) {
         return FileInfo.builder()
                 .id(null)
@@ -211,5 +224,40 @@ public class FileServiceImpl implements FileService {
                 .isDirectory(true)
                 .lastModified(null)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public FileMetadata rename(String id, String newName) {
+        if (newName == null || newName.trim().isEmpty())
+            throw new IllegalArgumentException("Name cannot be empty");
+        if (newName.contains("/"))
+            throw new IllegalArgumentException("Name cannot contain /");
+
+        FileMetadata metadata = get(id);
+        if (metadata.getOriginalName().equals(newName))
+            return metadata;
+
+        if (Boolean.TRUE.equals(metadata.getIsFolder())) {
+            String oldPath = metadata.getStoragePath();
+            String oldName = metadata.getOriginalName();
+            String parentPath = oldPath.substring(0, oldPath.length() - oldName.length() - 1);
+            String newPath = parentPath + newName + "/";
+
+            List<FileMetadata> allAffected = fileMetadataRepository.findByStoragePathStartingWith(oldPath);
+            for (FileMetadata item : allAffected) {
+                String itemOldPath = item.getStoragePath();
+                String itemNewPath = newPath + itemOldPath.substring(oldPath.length());
+                item.setStoragePath(itemNewPath);
+                if (item.getId().equals(id)) {
+                    item.setOriginalName(newName);
+                }
+            }
+            fileMetadataRepository.saveAll(allAffected);
+            return metadata;
+        } else {
+            metadata.setOriginalName(newName);
+            return fileMetadataRepository.save(metadata);
+        }
     }
 }

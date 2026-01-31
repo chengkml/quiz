@@ -1,4 +1,4 @@
-import { request } from "@/utils/request";
+import axios from "@/core/src/http";
 
 export interface FileInfo {
   id: string;
@@ -10,15 +10,19 @@ export interface FileInfo {
 }
 
 export function listFiles(path: string) {
-  return request.get<FileInfo[]>('/file/list', { params: { path } });
+  return axios.get<FileInfo[]>('/file/list', { params: { path } }).then(res => res.data);
 }
 
 export function createFolder(name: string, path: string) {
-  return request.post('/file/folder', null, { params: { name, path } });
+  return axios.post('/file/folder', null, { params: { name, path } }).then(res => res.data);
 }
 
 export function deleteFile(id: string) {
-  return request.delete('/file/delete', { params: { id } });
+  return axios.delete('/file/delete', { params: { id } }).then(res => res.data);
+}
+
+export function renameFile(id: string, newName: string) {
+  return axios.put('/file/rename', null, { params: { id, newName } }).then(res => res.data);
 }
 
 export const UPLOAD_URL = '/api/file/upload';

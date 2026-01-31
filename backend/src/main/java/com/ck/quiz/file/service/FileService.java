@@ -12,6 +12,7 @@ public interface FileService {
 
     /**
      * Upload and save file metadata
+     * 
      * @param file The file to upload
      * @param path Directory path to store
      * @return Saved metadata
@@ -20,6 +21,7 @@ public interface FileService {
 
     /**
      * Download file by ID
+     * 
      * @param id Metadata ID
      * @return InputStream of the file
      */
@@ -27,12 +29,14 @@ public interface FileService {
 
     /**
      * Delete file by ID
+     * 
      * @param id Metadata ID
      */
     void delete(String id);
 
     /**
      * Create a folder
+     * 
      * @param path Parent path
      * @param name Folder name
      * @return Created folder metadata
@@ -41,13 +45,19 @@ public interface FileService {
 
     /**
      * List files (from DB or Storage - usually DB if we are persisting)
+     * 
      * @param path Directory path to filter
      * @return List of file info
      */
     List<FileInfo> list(String path);
-    
+
     /**
      * Get file metadata by ID
      */
     FileMetadata get(String id);
+
+    /**
+     * Rename file or folder
+     */
+    FileMetadata rename(String id, String newName);
 }
