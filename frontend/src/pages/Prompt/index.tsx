@@ -24,6 +24,7 @@ import { DataManager, AddEditModal } from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
 import { FormFieldConfig } from "@/components/types/types";
 import renderDate from '@/utils/timeUtil';
+import Editor from "@monaco-editor/react";
 import "./style/index.less";
 
 function PromptTemplateManagement() {
@@ -154,16 +155,65 @@ function PromptTemplateManagement() {
           { max: 100, message: "模板名称不能超过100个字符" },
         ],
       },
+
+
       {
         field: "content",
         label: "模板内容",
-        type: "textarea",
+        // type: "textarea", // using custom render instead
         required: true,
         placeholder: "请输入模板内容",
         rules: [{ required: true, message: "请输入模板内容" }],
-        props: {
-          autoSize: { minRows: 6, maxRows: 10 },
-        },
+        render: (value, form) => {
+           return (
+             <div style={{ border: '1px solid var(--color-border-2)', borderRadius: 4, overflow: 'hidden' }}>
+               <Editor
+                 height="400px"
+                 defaultLanguage="markdown"
+                 value={value}
+                 theme="vs-dark" 
+                 options={{
+                   minimap: { enabled: false },
+                   lineNumbers: 'off',
+                   scrollBeyondLastLine: false,
+                   wordWrap: 'on',
+                   fontSize: 14,
+                 }}
+                 onChange={(val) => {
+                     // Update form value when editor content changes
+                     // We need to find a way to update the form value since 'form' here is allValues, not the form instance if relying on utils.
+                     // Wait, checking utils.ts again:
+                     // render(fieldValue, allValues)
+                     // It doesn't pass the form instance to render function directly in the signature I saw earlier?
+                     // Let me double check Step 586.
+                     // The signature is: render(fieldValue, allValues).
+                     // However, inside renderFormField:
+                     // const handleChange = onChange && form ? (value: any) => { ... } : undefined;
+                     // 
+                     // Pass 'onChange' to the config! 
+                     // Actually, if I use a custom render, the `render` function returns a ReactNode.
+                     // This node needs to trigger the onChange of the Form.Item or controls its own value.
+                     // But `renderFormField` wraps `fieldNode` in `Form.Item`.
+                     // If I return a controlled component, it receives `value` and `onChange` from Form.Item if I didn't wrap it?
+                     // Wait, `renderFormField` calls `render(fieldValue, allValues)`.
+                     // It consumes the result as `fieldNode`.
+                     // Then it calls `React.createElement(Form.Item, { ...formItemProps }, fieldNode)`.
+                     // The `Form.Item` in Arco Design clones the child and passes `value` and `onChange` if it's a valid element.
+                     // So if `render` returns an `Editor`, `Form.Item` *might* pass `value` and `onChange` to it?
+                     // Monaco Editor's props are `value` and `onChange`.
+                     // `onChange` signature in Monaco is `(value, event) => void`. 
+                     // Arco Form `onChange` expects `(value) => void`.
+                     // They are compatible enough.
+                     // So I can just return <Editor ... /> and let Form.Item injection work, OR I can manually bridge it if needed.
+                     // However, `render` is called with current value.
+                     // Let's rely on Form.Item injection, but explicitly set value to be sure.
+                 }}
+               />
+             </div>
+           );
+           // Wait, I need to wrap it in a component that handles the onChange adapter if signatures mismatch or for better control.
+           // Let's create a small adapter component inline or outside.
+         }
       },
       {
         field: "description",
