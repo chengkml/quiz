@@ -21,6 +21,9 @@ export const testConnection = (id: string) => axios.post(`/datasource/${id}/test
 // 校验数据源连接
 export const validateConnection = (params: any) => axios.post('/datasource/validate', params);
 
+// 执行SQL查询
+export const executeSqlQuery = (id: string, sql: string) => axios.post(`/datasource/${id}/query`, { sql });
+
 // 采集数据源表结构
 export const collectSchema = (id: string, schema?: string) => axios.get(`/datasource/${id}/schema`, { params: { schema } });
 

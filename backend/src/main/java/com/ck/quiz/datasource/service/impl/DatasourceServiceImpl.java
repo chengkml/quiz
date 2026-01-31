@@ -23,12 +23,15 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
@@ -41,6 +44,7 @@ import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -268,6 +272,64 @@ public class DatasourceServiceImpl implements DatasourceService {
             res.put("error", e.getMessage());
         }
         return res;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> executeQuery(String id, String sql) {
+        Datasource ds = datasourceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("数据源不存在: " + id));
+
+        DriverManagerDataSource tmp = new DriverManagerDataSource();
+        if (StringUtils.hasText(ds.getDriver())) {
+            tmp.setDriverClassName(ds.getDriver());
+        }
+        tmp.setUrl(ds.getJdbcUrl());
+        tmp.setUsername(ds.getUsername());
+        tmp.setPassword(ds.getPassword());
+
+        JdbcTemplate jt = new JdbcTemplate(tmp);
+        jt.setMaxRows(1000);
+
+        Map<String, Object> result = new HashMap<>();
+        String cleanSql = sql.trim().toLowerCase();
+        try {
+            if (cleanSql.startsWith("select") || cleanSql.startsWith("show") || cleanSql.startsWith("describe")
+                    || cleanSql.startsWith("explain")) {
+                jt.query(sql, rs -> {
+                    ResultSetMetaData md = rs.getMetaData();
+                    int columnCount = md.getColumnCount();
+                    List<String> columns = new ArrayList<>();
+                    for (int i = 1; i <= columnCount; i++) {
+                        columns.add(md.getColumnLabel(i));
+                    }
+                    result.put("columns", columns);
+
+                    List<Map<String, Object>> data = new ArrayList<>();
+                    int rowCount = 0;
+                    while (rs.next() && rowCount < 1000) {
+                        Map<String, Object> row = new LinkedHashMap<>();
+                        for (int i = 1; i <= columnCount; i++) {
+                            row.put(md.getColumnLabel(i), rs.getObject(i));
+                        }
+                        data.add(row);
+                        rowCount++;
+                    }
+                    result.put("data", data);
+                    result.put("type", "SELECT");
+                    return null;
+                });
+            } else {
+                int count = jt.update(sql);
+                result.put("affectedRows", count);
+                result.put("type", "UPDATE");
+            }
+            result.put("success", true);
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("error", e.getMessage());
+        }
+        return result;
     }
 
     @Override

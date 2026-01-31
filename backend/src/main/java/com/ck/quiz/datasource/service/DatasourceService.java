@@ -32,6 +32,8 @@ public interface DatasourceService {
 
     Map<String, Object> validateConnection(DatasourceCreateDto createDto);
 
+    Map<String, Object> executeQuery(String id, String sql);
+
     /**
      * 采集指定数据源的表结构
      */

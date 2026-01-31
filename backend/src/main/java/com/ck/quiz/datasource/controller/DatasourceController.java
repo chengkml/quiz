@@ -83,6 +83,14 @@ public class DatasourceController {
         return ResponseEntity.ok(datasourceService.testConnection(id));
     }
 
+    @Operation(summary = "执行SQL查询", description = "在指定数据源上执行SQL语句")
+    @PostMapping("/{id}/query")
+    public ResponseEntity<?> executeQuery(
+            @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
+            @Valid @RequestBody com.ck.quiz.datasource.dto.SqlQueryDto queryDto) {
+        return ResponseEntity.ok(datasourceService.executeQuery(id, queryDto.getSql()));
+    }
+
     @Operation(summary = "校验数据源连接", description = "根据连接信息测试数据库连接是否成功")
     @PostMapping("/validate")
     public ResponseEntity<?> validateConnection(

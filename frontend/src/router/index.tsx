@@ -61,6 +61,7 @@ import OrchestrationManager from "@/pages/Orchestration";
 import CanvasEditor from "@/pages/Orchestration/CanvasEditor";
 import PasswordManager from "@/pages/PasswordManager";
 import PersonalKnowledge from "@/pages/PersonalKnowledge";
+import DataQuery from "@/pages/DataQuery";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -310,6 +311,11 @@ const protectedPages = [
     path: "personal-knowledge",
     element: <PersonalKnowledge />,
     requiredPath: "personal-knowledge",
+  },
+  {
+    path: "data-query",
+    element: <DataQuery />,
+    requiredPath: "data-query",
   },
 ];
 
