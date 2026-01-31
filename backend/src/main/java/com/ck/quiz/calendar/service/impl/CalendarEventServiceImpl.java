@@ -154,14 +154,16 @@ public class CalendarEventServiceImpl
     @Override
     public SseEmitter streamGenerateEvent(String descr) {
         SseEmitter emitter = new SseEmitter(0L);
-        try {
-            // 发送初始连接事件，强制刷新响应头，防止Nginx/代理缓存导致无数据
-            emitter.send(SseEmitter.event().name("connect").data("connected"));
-        } catch (Exception e) {
-            log.warn("发送初始连接事件失败", e);
-        }
         // 在新线程中执行生成并实时流式发送
         new Thread(() -> {
+            try {
+                // 发送初始连接事件，强制刷新响应头，防止Nginx/代理缓存导致无数据
+                // 移到线程内发送，确保Controller层的Header（如X-Accel-Buffering）已先写入
+                emitter.send(SseEmitter.event().name("connect").data("connected"));
+            } catch (Exception e) {
+                log.warn("发送初始连接事件失败", e);
+            }
+
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.findAndRegisterModules(); // 自动注册所有可用的模块，包括 JavaTimeModule
             try {
