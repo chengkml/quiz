@@ -116,7 +116,8 @@ const PasswordManager: React.FC = () => {
 
   const handleShowPassword = async (record: PasswordDto) => {
       try {
-          const pwd = await getDecryptedPassword(record.id);
+          const res = await getDecryptedPassword(record.id);
+      const pwd = res.data;
           Modal.info({
               title: "查看密码",
               content: (

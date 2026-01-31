@@ -341,7 +341,7 @@ public class MenuServiceImpl implements MenuService {
             List<MenuDto> children = parentChildMap.get(node.getMenuId());
             if (children != null && !children.isEmpty()) {
                 // 排序子节点
-                children.sort(Comparator.comparingInt(MenuDto::getSeq));
+                children.sort(Comparator.comparingInt(dto -> dto.getSeq() != null ? dto.getSeq() : 0));
                 node.setChildren(children);
 
                 // 递归设置子节点的子节点

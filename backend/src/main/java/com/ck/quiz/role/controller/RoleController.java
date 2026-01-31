@@ -57,4 +57,10 @@ public class RoleController extends BaseController<RoleCreateDto, RoleUpdateDto,
     protected BaseService<RoleCreateDto, RoleUpdateDto, RoleQueryDto, RoleDto, ?> getService() {
         return roleService;
     }
+
+    @GetMapping("/list/active")
+    @Operation(summary = "获取启用中的角色列表", description = "获取所有状态为启用的角色")
+    public ResponseEntity<java.util.List<RoleDto>> listActiveRoles() {
+        return ResponseEntity.ok(roleService.listActiveRoles());
+    }
 }

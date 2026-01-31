@@ -1,6 +1,7 @@
-import { request } from "@/utils/request";
+import axios from "@/core/src/http";
+import { AxiosResponse } from "axios";
 
-export const API_PREFIX = "/api/password";
+export const API_PREFIX = "/password";
 
 export interface PasswordDto {
   id: string;
@@ -23,22 +24,22 @@ export interface PasswordQueryDto {
   pageSize: number;
 }
 
-export function searchPassword(data: PasswordQueryDto) {
-  return request.post(`${API_PREFIX}/search`, data);
+export function searchPassword(data: PasswordQueryDto): Promise<AxiosResponse<any>> {
+  return axios.post(`${API_PREFIX}/search`, data);
 }
 
-export function createPassword(data: Partial<PasswordDto>) {
-  return request.post(`${API_PREFIX}/create`, data);
+export function createPassword(data: Partial<PasswordDto>): Promise<AxiosResponse<any>> {
+  return axios.post(`${API_PREFIX}/create`, data);
 }
 
-export function updatePassword(data: Partial<PasswordDto>) {
-  return request.put(`${API_PREFIX}/update`, data);
+export function updatePassword(data: Partial<PasswordDto>): Promise<AxiosResponse<any>> {
+  return axios.put(`${API_PREFIX}/update`, data);
 }
 
-export function deletePassword(id: string) {
-  return request.delete(`${API_PREFIX}/delete/${id}`);
+export function deletePassword(id: string): Promise<AxiosResponse<any>> {
+  return axios.delete(`${API_PREFIX}/delete/${id}`);
 }
 
-export function getDecryptedPassword(id: string) {
-  return request.get<string>(`${API_PREFIX}/decrypt/${id}`);
+export function getDecryptedPassword(id: string): Promise<AxiosResponse<string>> {
+  return axios.get<string>(`${API_PREFIX}/decrypt/${id}`);
 }

@@ -56,7 +56,7 @@ const DataManager: React.FC<DataManagerProps> = ({
     treeData = [],
     selectedTreeKeys,
     onTreeSelect,
-    expandedKeys = [],
+    expandedKeys,
     onTreeExpand,
     showTreeFilter = false,
     tableProps,

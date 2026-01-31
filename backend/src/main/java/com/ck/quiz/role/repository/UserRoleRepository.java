@@ -6,4 +6,6 @@ import com.ck.quiz.role.entity.UserRole;
 public interface UserRoleRepository extends BaseRepository<UserRole> {
 
     UserRole findByName(String name);
+
+    java.util.List<UserRole> findByState(UserRole.RoleState state);
 }

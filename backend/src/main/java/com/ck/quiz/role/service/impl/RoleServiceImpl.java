@@ -22,7 +22,9 @@ import java.util.Optional;
 
 @Service
 @Transactional
-public class RoleServiceImpl extends BaseServiceImpl<RoleCreateDto, RoleUpdateDto, RoleQueryDto, RoleDto, UserRole, UserRoleRepository> implements RoleService {
+public class RoleServiceImpl
+        extends BaseServiceImpl<RoleCreateDto, RoleUpdateDto, RoleQueryDto, RoleDto, UserRole, UserRoleRepository>
+        implements RoleService {
 
     @Autowired
     private UserRoleRepository roleRepository;
@@ -60,17 +62,17 @@ public class RoleServiceImpl extends BaseServiceImpl<RoleCreateDto, RoleUpdateDt
                     role.setState(UserRole.RoleState.valueOf(rs.getString("state")));
                     role.setCreateUser(rs.getString("create_user"));
                     role.setUpdateUser(rs.getString("update_user"));
-                    
+
                     java.sql.Timestamp createTimestamp = rs.getTimestamp("create_date");
                     if (createTimestamp != null) {
                         role.setCreateDate(createTimestamp.toLocalDateTime());
                     }
-                    
+
                     java.sql.Timestamp updateTimestamp = rs.getTimestamp("update_date");
                     if (updateTimestamp != null) {
                         role.setUpdateDate(updateTimestamp.toLocalDateTime());
                     }
-                    
+
                     RoleDto dto = convertToDto(role, true);
                     return dto;
                 });
@@ -140,6 +142,14 @@ public class RoleServiceImpl extends BaseServiceImpl<RoleCreateDto, RoleUpdateDt
         role.setState(UserRole.RoleState.DISABLED);
         UserRole saved = roleRepository.save(role);
         return convertToDto(saved, true);
+    }
+
+    @Override
+    public List<RoleDto> listActiveRoles() {
+        List<UserRole> roles = roleRepository.findByState(UserRole.RoleState.ENABLED);
+        return roles.stream()
+                .map(role -> convertToDto(role, true))
+                .collect(java.util.stream.Collectors.toList());
     }
 
 }

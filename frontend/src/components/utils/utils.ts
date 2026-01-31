@@ -18,7 +18,8 @@ import { Form } from "@arco-design/web-react";
 export const renderFormField = (
   fieldConfig: FormFieldConfig,
   form?: FormInstance,
-  defaultLabelWidth?: string | number
+  defaultLabelWidth?: string | number,
+  onPressEnter?: () => void
 ): ReactNode => {
   const {
     field,
@@ -73,6 +74,7 @@ export const renderFormField = (
         placeholder: placeholder || `请输入${label}`,
         disabled: disabled,
         onChange: handleChange,
+        onPressEnter: onPressEnter,
       });
       break;
 
@@ -81,6 +83,7 @@ export const renderFormField = (
         placeholder: placeholder || `请输入${label}`,
         disabled: disabled,
         onChange: handleChange,
+        onPressEnter: onPressEnter,
       });
       break;
 
@@ -140,6 +143,7 @@ export const renderFormField = (
         placeholder: placeholder || `请输入${label}`,
         disabled: disabled,
         onChange: handleChange,
+        onPressEnter: onPressEnter,
       });
   }
 

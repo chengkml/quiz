@@ -9,12 +9,12 @@ import {
   OrchestrationWorkflowDto,
   OrchestrationWorkflowCreateParams,
   OrchestrationWorkflowUpdateParams,
+  OrchestrationWorkflowQueryParams,
   WorkflowStatus,
 } from "@/types/orchestration";
 import {
   createWorkflow,
-  deleteWorkflow,
-  publishWorkflow,
+  updateWorkflow,
   searchInstances,
   searchWorkflows,
   startInstance,
@@ -202,7 +202,7 @@ function OrchestrationManager() {
         pageSize: pagination.pageSize,
       };
       const res = await searchWorkflows(params);
-      const { content, totalElements } = res;
+      const { content, totalElements } = res.data;
       setData(content || []);
       setPagination((prev) => ({
         ...prev,
@@ -259,15 +259,16 @@ function OrchestrationManager() {
       const res = await startInstance(record.id, {
         triggerType: "MANUAL",
       });
-      if (res.success) {
+      if (res.status === 200) {
         Message.success("已启动执行实例");
+        // 如果需要查看实例列表，应该在这里处理逻辑，目前仅搜索无后续操作
         await searchInstances({
           workflowId: record.id,
           pageNum: 0,
           pageSize: 1,
         });
       } else {
-        Message.error(res.message || "启动失败");
+        Message.error("启动失败");
       }
     } catch (e) {
       Message.error("启动工作流失败");

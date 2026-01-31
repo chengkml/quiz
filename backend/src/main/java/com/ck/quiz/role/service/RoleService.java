@@ -17,4 +17,6 @@ public interface RoleService extends BaseService<RoleCreateDto, RoleUpdateDto, R
 
     RoleDto disableRole(String id);
 
+    java.util.List<RoleDto> listActiveRoles();
+
 }

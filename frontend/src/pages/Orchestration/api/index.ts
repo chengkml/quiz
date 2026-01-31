@@ -1,4 +1,5 @@
 import axios from "@/core/src/http";
+import { AxiosResponse } from "axios";
 import {
   OrchestrationWorkflowDto,
   OrchestrationWorkflowQueryParams,
@@ -17,20 +18,20 @@ import { ApiResponse } from "@/types/common";
 
 export const searchWorkflows = (
   params: OrchestrationWorkflowQueryParams
-): Promise<WorkflowPageResponse> =>
+): Promise<AxiosResponse<WorkflowPageResponse>> =>
   axios.post("/orchestration/workflow/search", params);
 
-export const listWorkflows = (): Promise<ApiResponse<OrchestrationWorkflowDto[]>> =>
+export const listWorkflows = (): Promise<AxiosResponse<OrchestrationWorkflowDto[]>> =>
   axios.get("/orchestration/workflow/list");
 
 export const createWorkflow = (
   data: OrchestrationWorkflowCreateParams
-): Promise<ApiResponse<OrchestrationWorkflowDto>> =>
+): Promise<AxiosResponse<OrchestrationWorkflowDto>> =>
   axios.post("/orchestration/workflow/create", data);
 
 export const updateWorkflow = (
   data: OrchestrationWorkflowUpdateParams
-): Promise<ApiResponse<OrchestrationWorkflowDto>> =>
+): Promise<AxiosResponse<OrchestrationWorkflowDto>> =>
   axios.put("/orchestration/workflow/update", data);
 
 export const deleteWorkflow = (id: string): Promise<void> =>
@@ -39,39 +40,38 @@ export const deleteWorkflow = (id: string): Promise<void> =>
 export const publishWorkflow = (
   workflowId: string,
   versionId: string
-): Promise<ApiResponse<OrchestrationWorkflowDto>> =>
+): Promise<AxiosResponse<OrchestrationWorkflowDto>> =>
   axios.post(`/orchestration/workflow/${workflowId}/publish/${versionId}`);
 
 export const listVersions = (
   workflowId: string
-): Promise<ApiResponse<OrchestrationWorkflowVersionDto[]>> =>
+): Promise<AxiosResponse<OrchestrationWorkflowVersionDto[]>> =>
   axios.get(`/orchestration/workflow/${workflowId}/versions`);
 
 export const getLatestVersion = (
   workflowId: string
-): Promise<ApiResponse<OrchestrationWorkflowVersionDto>> =>
+): Promise<AxiosResponse<OrchestrationWorkflowVersionDto>> =>
   axios.get(`/orchestration/workflow/${workflowId}/versions/latest`);
 
 export const createVersion = (
   workflowId: string,
   data: OrchestrationWorkflowVersionCreateParams
-): Promise<ApiResponse<OrchestrationWorkflowVersionDto>> =>
+): Promise<AxiosResponse<OrchestrationWorkflowVersionDto>> =>
   axios.post(`/orchestration/workflow/${workflowId}/versions`, data);
 
 export const updateVersion = (
   versionId: string,
   data: OrchestrationWorkflowVersionUpdateParams
-): Promise<ApiResponse<OrchestrationWorkflowVersionDto>> =>
+): Promise<AxiosResponse<OrchestrationWorkflowVersionDto>> =>
   axios.put(`/orchestration/workflow/versions/${versionId}`, data);
 
 export const startInstance = (
   workflowId: string,
   data: OrchestrationStartRequest
-): Promise<ApiResponse<OrchestrationInstanceDto>> =>
+): Promise<AxiosResponse<OrchestrationInstanceDto>> =>
   axios.post(`/orchestration/workflow/${workflowId}/start`, data);
 
 export const searchInstances = (
   params: OrchestrationInstanceQueryParams
-): Promise<InstancePageResponse> =>
+): Promise<AxiosResponse<InstancePageResponse>> =>
   axios.post("/orchestration/instances/search", params);
-

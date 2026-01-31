@@ -11,6 +11,7 @@ import {
 } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
 import './style.less';
+import AssistantLogo from '@/assets/assistant-logo.png';
 
 const { TextArea } = Input;
 
@@ -88,7 +89,7 @@ const GlobalAssistant: React.FC = () => {
       <div className={classNames('assistant-window', { hidden: !isOpen })}>
         <div className="window-header">
           <div className="title">
-            <IconRobot style={{ fontSize: 20, color: 'var(--color-primary-6)' }} />
+            <img src={AssistantLogo} alt="AI" style={{ width: 24, height: 24 }} />
             <span>智能助手</span>
           </div>
           <div className="actions">
@@ -102,8 +103,8 @@ const GlobalAssistant: React.FC = () => {
           {messages.map(msg => (
             <div key={msg.id} className={classNames('message-item', msg.role)}>
               {msg.role === 'assistant' && (
-                <Avatar size={32} className="avatar" style={{ backgroundColor: 'var(--color-primary-6)' }}>
-                  <IconRobot />
+                <Avatar size={32} className="avatar" style={{ backgroundColor: 'transparent' }}>
+                  <img src={AssistantLogo} alt="AI" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </Avatar>
               )}
               <div className="message-bubble">
@@ -118,8 +119,8 @@ const GlobalAssistant: React.FC = () => {
           ))}
           {isLoading && (
             <div className="message-item assistant">
-              <Avatar size={32} className="avatar" style={{ backgroundColor: 'var(--color-primary-6)' }}>
-                <IconRobot />
+              <Avatar size={32} className="avatar" style={{ backgroundColor: 'transparent' }}>
+                <img src={AssistantLogo} alt="AI" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </Avatar>
               <div className="message-bubble" style={{ color: 'var(--color-text-3)' }}>
                  正在思考...
@@ -161,7 +162,7 @@ const GlobalAssistant: React.FC = () => {
           className={classNames('assistant-trigger', { open: isOpen })}
           onClick={() => setIsOpen(!isOpen)}
         >
-          {isOpen ? <IconClose /> : <IconRobot />}
+          {isOpen ? <IconClose /> : <img src={AssistantLogo} alt="AI" style={{ width: 32, height: 32 }} />}
         </div>
       </Tooltip>
     </div>

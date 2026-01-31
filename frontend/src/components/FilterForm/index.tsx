@@ -224,7 +224,7 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
                     : fieldsToRender
                   ).map(field => (
                     <Col key={field.field} span={field.span || 8} style={{ width: 'auto' }}>
-                      {renderFormField(field, formRef.current || undefined, labelWidth)}
+                      {renderFormField(field, formRef.current || undefined, labelWidth, handleSearch)}
                     </Col>
                   ))}
                 </Row>
