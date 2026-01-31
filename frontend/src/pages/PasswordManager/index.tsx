@@ -261,13 +261,8 @@ const PasswordManager: React.FC = () => {
       {
           field: "password",
           label: "密码",
-          type: "password", // We need add "password" type support in DataManager or AddEditModal?
-                            // Standard FormFieldConfig types usually include 'input', 'select', 'textarea'. 
-                            // If 'password' is not supported, we might need a custom render or use 'input' and customize in AddEditModal.
-                            // Let's assume AddEditModal supports standard Input items, we might need to verify if it supports type='password'.
-                            // If not, we can use 'input' and maybe component props.
-                            // However, let's treat it as a custom node or try 'input' first.
-          placeholder: currentRecord ? "留空则不修改" : "请输入密码",
+          type: "password", 
+          placeholder: currentRecord ? "留空则不修改" : "请输入密码或密钥",
           required: !currentRecord
       },
       {
@@ -287,14 +282,7 @@ const PasswordManager: React.FC = () => {
       }
   ];
 
-  // Note: AddEditModal internal implementation might not support type="password" directly if it maps types to components. 
-  // Let's quickly double check SKILL or assume standard implementation.
-  // SKILL uses `AddEditModal` which likely handles basic types. 
-  // If `type: 'password'` is passed to `Input`, standard HTML input handles it? No, Arco Input has `Input.Password`.
-  // I will check `d:\idea_repo\quiz\frontend\src\components\DataManager\AddEditModal.tsx` if possible.
-  // For now, I'll assume I can pass it, or I'll implement a custom render logic later if it fails.
-  // Actually, to be safe, I'll use `component` property if FormFieldConfig supports it, or just rely on 'input' and maybe it shows as text (less secure visually but works functionally).
-  // Better: Let's assume I can't check file now to save steps. I will write it as 'input' but maybe I should just check the AddEditModal file briefly.
+  // Form Config End
   
   return (
     <div className="password-manager-page">
