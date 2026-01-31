@@ -94,6 +94,7 @@ public class DatasourceServiceImpl implements DatasourceService {
         Datasource ds = new Datasource();
         ds.setId(IdHelper.genUuid());
         ds.setName(createDto.getName());
+        ds.setType(createDto.getType());
         ds.setDriver(createDto.getDriver());
         ds.setJdbcUrl(createDto.getJdbcUrl());
         ds.setUsername(createDto.getUsername());
@@ -113,6 +114,9 @@ public class DatasourceServiceImpl implements DatasourceService {
 
         if (StringUtils.hasText(updateDto.getName())) {
             ds.setName(updateDto.getName());
+        }
+        if (StringUtils.hasText(updateDto.getType())) {
+            ds.setType(updateDto.getType());
         }
         if (StringUtils.hasText(updateDto.getDriver())) {
             ds.setDriver(updateDto.getDriver());
@@ -158,7 +162,8 @@ public class DatasourceServiceImpl implements DatasourceService {
     @Transactional(readOnly = true)
     public Page<DatasourceDto> searchDatasources(DatasourceQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
-                "SELECT ds.ds_id AS id, ds.name, ds.driver, ds.jdbc_url, ds.username, ds.description, ds.active, " +
+                "SELECT ds.ds_id AS id, ds.name, ds.type, ds.driver, ds.jdbc_url, ds.username, ds.description, ds.active, "
+                        +
                         "ds.create_date, ds.create_user, ds.update_date, ds.update_user, u.user_name create_user_name "
                         +
                         "FROM datasource ds LEFT JOIN users u ON u.user_id = ds.create_user ");
@@ -188,6 +193,7 @@ public class DatasourceServiceImpl implements DatasourceService {
             DatasourceDto dto = new DatasourceDto();
             dto.setId(rs.getString("id"));
             dto.setName(rs.getString("name"));
+            dto.setType(rs.getString("type"));
             dto.setDriver(rs.getString("driver"));
             dto.setJdbcUrl(rs.getString("jdbc_url"));
             dto.setUsername(rs.getString("username"));
@@ -214,6 +220,7 @@ public class DatasourceServiceImpl implements DatasourceService {
         DatasourceDto dto = new DatasourceDto();
         dto.setId(ds.getId());
         dto.setName(ds.getName());
+        dto.setType(ds.getType());
         dto.setDriver(ds.getDriver());
         dto.setJdbcUrl(ds.getJdbcUrl());
         dto.setUsername(ds.getUsername());
@@ -232,19 +239,32 @@ public class DatasourceServiceImpl implements DatasourceService {
         Datasource ds = datasourceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("数据源不存在，ID: " + id));
 
+        return performTest(ds.getDriver(), ds.getJdbcUrl(), ds.getUsername(), ds.getPassword());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> validateConnection(DatasourceCreateDto createDto) {
+        return performTest(createDto.getDriver(), createDto.getJdbcUrl(), createDto.getUsername(),
+                createDto.getPassword());
+    }
+
+    private Map<String, Object> performTest(String driver, String url, String username, String password) {
         Map<String, Object> res = new HashMap<>();
         DriverManagerDataSource tmp = new DriverManagerDataSource();
-        if (StringUtils.hasText(ds.getDriver())) {
-            tmp.setDriverClassName(ds.getDriver());
+        if (StringUtils.hasText(driver)) {
+            tmp.setDriverClassName(driver);
         }
-        tmp.setUrl(ds.getJdbcUrl());
-        tmp.setUsername(ds.getUsername());
-        tmp.setPassword(ds.getPassword());
+        tmp.setUrl(url);
+        tmp.setUsername(username);
+        tmp.setPassword(password);
         try (Connection conn = tmp.getConnection()) {
             res.put("success", true);
+            res.put("message", "连接成功");
             res.put("databaseType", JdbcQueryHelper.getDatabaseType(tmp));
         } catch (Exception e) {
             res.put("success", false);
+            res.put("message", "连接失败: " + e.getMessage());
             res.put("error", e.getMessage());
         }
         return res;

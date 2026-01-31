@@ -31,35 +31,35 @@ public class DatasourceController {
 
     @Operation(summary = "创建数据源", description = "创建新的数据库连接信息")
     @PostMapping("/create")
-    public ResponseEntity createDatasource(
+    public ResponseEntity<?> createDatasource(
             @Parameter(description = "数据源创建信息", required = true) @Valid @RequestBody DatasourceCreateDto createDto) {
         return ResponseEntity.ok(datasourceService.createDatasource(createDto));
     }
 
     @Operation(summary = "更新数据源", description = "更新指定数据源的信息")
     @PutMapping("/update")
-    public ResponseEntity updateDatasource(
+    public ResponseEntity<?> updateDatasource(
             @Parameter(description = "数据源更新信息", required = true) @Valid @RequestBody DatasourceUpdateDto updateDto) {
         return ResponseEntity.ok(datasourceService.updateDatasource(updateDto));
     }
 
     @Operation(summary = "删除数据源", description = "根据ID删除指定数据源")
     @DeleteMapping("/{id}")
-        public ResponseEntity deleteDatasource(
+    public ResponseEntity<?> deleteDatasource(
             @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id) {
         return ResponseEntity.ok(datasourceService.deleteDatasource(id));
     }
 
     @Operation(summary = "获取数据源详情", description = "根据ID获取数据源详细信息")
     @GetMapping("/{id}")
-        public ResponseEntity getDatasourceById(
+    public ResponseEntity<?> getDatasourceById(
             @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id) {
         return ResponseEntity.ok(datasourceService.getDatasourceById(id));
     }
 
     @Operation(summary = "分页查询数据源", description = "根据条件分页查询数据源列表")
     @GetMapping
-    public ResponseEntity searchDatasources(
+    public ResponseEntity<?> searchDatasources(
             @Parameter(description = "名称关键字") @RequestParam(value = "name", required = false) String name,
             @Parameter(description = "是否启用") @RequestParam(value = "active", required = false) Boolean active,
             @Parameter(description = "页码") @RequestParam(value = "pageNum", defaultValue = "0") int pageNum,
@@ -78,14 +78,21 @@ public class DatasourceController {
 
     @Operation(summary = "测试数据源连接", description = "根据ID测试数据源连接是否成功")
     @PostMapping("/{id}/test")
-        public ResponseEntity testConnection(
+    public ResponseEntity<?> testConnection(
             @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id) {
         return ResponseEntity.ok(datasourceService.testConnection(id));
     }
 
+    @Operation(summary = "校验数据源连接", description = "根据连接信息测试数据库连接是否成功")
+    @PostMapping("/validate")
+    public ResponseEntity<?> validateConnection(
+            @Parameter(description = "数据源连接信息", required = true) @Valid @RequestBody DatasourceCreateDto createDto) {
+        return ResponseEntity.ok(datasourceService.validateConnection(createDto));
+    }
+
     @Operation(summary = "采集数据源表结构", description = "根据ID采集数据库的表结构信息")
     @GetMapping("/{id}/schema")
-        public ResponseEntity collectSchema(
+    public ResponseEntity<?> collectSchema(
             @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
             @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema) {
         if (schema == null || schema.isEmpty()) {
@@ -96,9 +103,10 @@ public class DatasourceController {
 
     @Operation(summary = "导出指定schema的表结构", description = "根据ID与schema导出数据库表结构为JSON文件")
     @GetMapping("/{id}/schema/export")
-        public ResponseEntity<byte[]> exportSchema(
+    public ResponseEntity<byte[]> exportSchema(
             @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
-            @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema) throws Exception {
+            @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema)
+            throws Exception {
         DatabaseSchemaDto dto = (schema == null || schema.isEmpty())
                 ? datasourceService.collectSchema(id)
                 : datasourceService.collectSchema(id, schema);
@@ -119,7 +127,7 @@ public class DatasourceController {
 
     @Operation(summary = "导出表结构为Excel", description = "根据ID与可选schema导出数据库表结构为XLSX文件")
     @GetMapping("/{id}/schema/export/excel")
-        public ResponseEntity<byte[]> exportSchemaExcel(
+    public ResponseEntity<byte[]> exportSchemaExcel(
             @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
             @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema) {
         DatabaseSchemaDto dto = (schema == null || schema.isEmpty())
@@ -127,12 +135,13 @@ public class DatasourceController {
                 : datasourceService.collectSchema(id, schema);
 
         try (Workbook workbook = new XSSFWorkbook();
-             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream()) {
+                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream()) {
             // Sheet: Tables
             org.apache.poi.ss.usermodel.Sheet tables = workbook.createSheet("Tables");
             org.apache.poi.ss.usermodel.Row th = tables.createRow(0);
-            String[] tCols = {"tableCat", "tableSchem", "tableName", "tableType", "remarks"};
-            for (int i = 0; i < tCols.length; i++) th.createCell(i).setCellValue(tCols[i]);
+            String[] tCols = { "tableCat", "tableSchem", "tableName", "tableType", "remarks" };
+            for (int i = 0; i < tCols.length; i++)
+                th.createCell(i).setCellValue(tCols[i]);
             int tr = 1;
             if (dto.getTables() != null) {
                 for (com.ck.quiz.datasource.dto.TableSchemaDto t : dto.getTables()) {
@@ -148,12 +157,15 @@ public class DatasourceController {
             // Sheet: Columns
             org.apache.poi.ss.usermodel.Sheet columns = workbook.createSheet("Columns");
             org.apache.poi.ss.usermodel.Row ch = columns.createRow(0);
-            String[] cCols = {"tableName", "columnName", "dataType", "columnSize", "decimalDigits", "nullable", "defaultValue", "primaryKey", "remarks"};
-            for (int i = 0; i < cCols.length; i++) ch.createCell(i).setCellValue(cCols[i]);
+            String[] cCols = { "tableName", "columnName", "dataType", "columnSize", "decimalDigits", "nullable",
+                    "defaultValue", "primaryKey", "remarks" };
+            for (int i = 0; i < cCols.length; i++)
+                ch.createCell(i).setCellValue(cCols[i]);
             int cr = 1;
             if (dto.getTables() != null) {
                 for (com.ck.quiz.datasource.dto.TableSchemaDto t : dto.getTables()) {
-                    if (t.getColumns() == null) continue;
+                    if (t.getColumns() == null)
+                        continue;
                     for (com.ck.quiz.datasource.dto.ColumnSchemaDto c : t.getColumns()) {
                         org.apache.poi.ss.usermodel.Row r = columns.createRow(cr++);
                         r.createCell(0).setCellValue(t.getTableName() == null ? "" : t.getTableName());
@@ -169,8 +181,10 @@ public class DatasourceController {
                 }
             }
 
-            for (int i = 0; i < 5; i++) tables.autoSizeColumn(i);
-            for (int i = 0; i < 9; i++) columns.autoSizeColumn(i);
+            for (int i = 0; i < 5; i++)
+                tables.autoSizeColumn(i);
+            for (int i = 0; i < 9; i++)
+                columns.autoSizeColumn(i);
 
             workbook.write(baos);
             byte[] bytes = baos.toByteArray();
@@ -178,8 +192,10 @@ public class DatasourceController {
                     (schema == null || schema.isEmpty()) ? "all" : schema, id);
 
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-            headers.setContentType(org.springframework.http.MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-            headers.setContentDisposition(org.springframework.http.ContentDisposition.attachment().filename(fileName).build());
+            headers.setContentType(org.springframework.http.MediaType
+                    .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDisposition(
+                    org.springframework.http.ContentDisposition.attachment().filename(fileName).build());
 
             return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
         } catch (java.io.IOException e) {
@@ -189,17 +205,16 @@ public class DatasourceController {
 
     @Operation(summary = "获取可选schema列表", description = "根据ID获取数据库的schema（无schema则返回catalog）")
     @GetMapping("/{id}/schemas")
-        public ResponseEntity listSchemas(
+    public ResponseEntity<?> listSchemas(
             @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id) {
         return ResponseEntity.ok(datasourceService.listSchemas(id));
     }
 
     @Operation(summary = "自动生成表结构备注", description = "使用大模型为指定数据源与schema的表和字段自动生成中文备注")
     @GetMapping("/{id}/schema/generate-remarks")
-        public ResponseEntity<Integer> generateRemarks(
+    public ResponseEntity<Integer> generateRemarks(
             @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
-            @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
-            @RequestParam(value = "schema", required = false) String schema) {
+            @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema) {
 
         Integer count = datasourceService.generateRemarks(id, schema);
         return ResponseEntity.ok(count);
@@ -207,10 +222,9 @@ public class DatasourceController {
 
     @Operation(summary = "自动对表进行分类", description = "使用大模型为指定数据源与schema的表自动分类（门户、文档库、知识编排、监控运营、数据接入、系统管理）")
     @GetMapping("/{id}/schema/select-group")
-        public ResponseEntity<Integer> selectGroup(
+    public ResponseEntity<Integer> selectGroup(
             @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
-            @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
-            @RequestParam(value = "schema", required = false) String schema) {
+            @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema) {
 
         Integer count = datasourceService.selectGroup(id, schema);
         return ResponseEntity.ok(count);
@@ -218,10 +232,9 @@ public class DatasourceController {
 
     @Operation(summary = "导出表结构为Excel（使用服务层）", description = "根据ID与可选schema导出数据库表结构为XLSX文件")
     @GetMapping("/{id}/schema/export/excel/v2")
-        public void exportSchemaExcelV2(
+    public void exportSchemaExcelV2(
             @Parameter(description = "数据源ID", required = true) @PathVariable("id") String id,
-            @Parameter(description = "schema名称（MySQL等将作为catalog使用）")
-            @RequestParam(value = "schema", required = false) String schema,
+            @Parameter(description = "schema名称（MySQL等将作为catalog使用）") @RequestParam(value = "schema", required = false) String schema,
             HttpServletResponse response) {
         try {
             // 调用服务层方法直接生成并写入Excel
@@ -231,7 +244,5 @@ public class DatasourceController {
             throw new RuntimeException("导出Excel失败", e);
         }
     }
-
-
 
 }

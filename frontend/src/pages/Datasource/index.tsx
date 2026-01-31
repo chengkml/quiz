@@ -12,11 +12,23 @@ import {
     getDatasourceList,
     getSchemas,
     testConnection,
+    validateConnection,
     updateDatasource,
 } from './api';
 import { DataManager } from '../../components/DataManager';
 
 const Option = Select.Option;
+
+const DATASOURCE_TYPES = [
+    { label: 'MySQL', value: 'MYSQL', driver: 'com.mysql.cj.jdbc.Driver', urlTemplate: 'jdbc:mysql://localhost:3306/db?useSSL=false&serverTimezone=UTC' },
+    { label: 'PostgreSQL', value: 'POSTGRESQL', driver: 'org.postgresql.Driver', urlTemplate: 'jdbc:postgresql://localhost:5432/db' },
+    { label: 'Oracle', value: 'ORACLE', driver: 'oracle.jdbc.OracleDriver', urlTemplate: 'jdbc:oracle:thin:@localhost:1521:xe' },
+    { label: 'SQL Server', value: 'SQLSERVER', driver: 'com.microsoft.sqlserver.jdbc.SQLServerDriver', urlTemplate: 'jdbc:sqlserver://localhost:1433;databaseName=db' },
+    { label: 'ClickHouse', value: 'CLICKHOUSE', driver: 'com.clickhouse.jdbc.ClickHouseDriver', urlTemplate: 'jdbc:clickhouse://localhost:8123/default' },
+    { label: 'MariaDB', value: 'MARIADB', driver: 'org.mariadb.jdbc.Driver', urlTemplate: 'jdbc:mariadb://localhost:3306/db' },
+    { label: 'SQLite', value: 'SQLITE', driver: 'org.sqlite.JDBC', urlTemplate: 'jdbc:sqlite:data.db' },
+    { label: 'DM (达梦)', value: 'DM', driver: 'dm.jdbc.driver.DmDriver', urlTemplate: 'jdbc:dm://localhost:5236' },
+];
 
 function DatasourceManager() {
     // 表格数据与状态
@@ -133,6 +145,7 @@ function DatasourceManager() {
             editForm.setFieldsValue({
                 id: res.data.id,
                 name: res.data.name,
+                type: res.data.type,
                 driver: res.data.driver,
                 jdbcUrl: res.data.jdbcUrl,
                 username: res.data.username,
@@ -276,7 +289,16 @@ const handleTestConnection = async (record: any) => {
 
     const columns = [
         {title: '名称', dataIndex: 'name', width: 160},
-        {title: '驱动', dataIndex: 'driver', width: 140},
+        {
+            title: '类型', 
+            dataIndex: 'type', 
+            width: 120,
+            render: (val) => {
+                const type = DATASOURCE_TYPES.find(t => t.value === val);
+                return type ? <Tag color="arcoblue">{type.label}</Tag> : (val || '--');
+            }
+        },
+        {title: '驱动', dataIndex: 'driver', width: 140, ellipsis: true},
         {title: 'JDBC URL', dataIndex: 'jdbcUrl', ellipsis: true, tooltip: true},
         {title: '用户名', dataIndex: 'username', width: 120},
         {title: '描述', dataIndex: 'description', ellipsis: true, tooltip: true},
@@ -424,14 +446,51 @@ const handleTestConnection = async (record: any) => {
             <Modal
                 title="新增数据源"
                 visible={addModalVisible}
-                onOk={handleAddSubmit}
                 onCancel={() => setAddModalVisible(false)}
+                footer={
+                    <Space>
+                        <Button onClick={() => setAddModalVisible(false)}>取消</Button>
+                        <Button 
+                            onClick={async () => {
+                                try {
+                                    const values = await addForm.validate();
+                                    const res = await validateConnection(values);
+                                    const ok = res?.data?.success ?? true;
+                                    Message[ok ? 'success' : 'error'](res?.data?.message || (ok ? '连接成功' : '连接失败'));
+                                } catch (e: any) {
+                                    if (e?.errorFields) return;
+                                    Message.error(e?.message || '配置校验失败');
+                                }
+                            }}
+                        >
+                            测试连接
+                        </Button>
+                        <Button type="primary" onClick={handleAddSubmit}>保存</Button>
+                    </Space>
+                }
                 okText="保存"
                 cancelText="取消"
             >
-                <Form form={addForm} layout="vertical">
+                <Form form={addForm} layout="vertical" onValuesChange={(changedValues) => {
+                    if (changedValues.type) {
+                        const typeCfg = DATASOURCE_TYPES.find(t => t.value === changedValues.type);
+                        if (typeCfg) {
+                            addForm.setFieldsValue({
+                                driver: typeCfg.driver,
+                                jdbcUrl: typeCfg.urlTemplate
+                            });
+                        }
+                    }
+                }}>
                     <Form.Item label="名称" field="name" rules={[{required: true, message: '请输入名称'}]}>
                         <Input placeholder="数据源名称"/>
+                    </Form.Item>
+                    <Form.Item label="数据源类型" field="type" rules={[{required: true, message: '请选择数据源类型'}]}>
+                        <Select placeholder="请选择数据库类型">
+                            {DATASOURCE_TYPES.map(t => (
+                                <Option key={t.value} value={t.value}>{t.label}</Option>
+                            ))}
+                        </Select>
                     </Form.Item>
                     <Form.Item label="驱动类名" field="driver">
                         <Input placeholder="可选，例：com.mysql.cj.jdbc.Driver"/>
@@ -461,17 +520,54 @@ const handleTestConnection = async (record: any) => {
             <Modal
                 title="编辑数据源"
                 visible={editModalVisible}
-                onOk={handleEditSubmit}
                 onCancel={() => setEditModalVisible(false)}
+                footer={
+                    <Space>
+                        <Button onClick={() => setEditModalVisible(false)}>取消</Button>
+                        <Button 
+                            onClick={async () => {
+                                try {
+                                    const values = await editForm.validate();
+                                    const res = await validateConnection(values);
+                                    const ok = res?.data?.success ?? true;
+                                    Message[ok ? 'success' : 'error'](res?.data?.message || (ok ? '连接成功' : '连接失败'));
+                                } catch (e: any) {
+                                    if (e?.errorFields) return;
+                                    Message.error(e?.message || '配置校验失败');
+                                }
+                            }}
+                        >
+                            测试连接
+                        </Button>
+                        <Button type="primary" onClick={handleEditSubmit}>保存</Button>
+                    </Space>
+                }
                 okText="保存"
                 cancelText="取消"
             >
-                <Form form={editForm} layout="vertical">
+                <Form form={editForm} layout="vertical" onValuesChange={(changedValues) => {
+                     if (changedValues.type) {
+                        const typeCfg = DATASOURCE_TYPES.find(t => t.value === changedValues.type);
+                        if (typeCfg) {
+                            editForm.setFieldsValue({
+                                driver: typeCfg.driver,
+                                jdbcUrl: typeCfg.urlTemplate
+                            });
+                        }
+                    }
+                }}>
                     <Form.Item field="id" hidden>
                         <Input/>
                     </Form.Item>
                     <Form.Item label="名称" field="name" rules={[{required: true, message: '请输入名称'}]}>
                         <Input placeholder="数据源名称"/>
+                    </Form.Item>
+                    <Form.Item label="数据源类型" field="type" rules={[{required: true, message: '请选择数据源类型'}]}>
+                         <Select placeholder="请选择数据库类型">
+                            {DATASOURCE_TYPES.map(t => (
+                                <Option key={t.value} value={t.value}>{t.label}</Option>
+                            ))}
+                        </Select>
                     </Form.Item>
                     <Form.Item label="驱动类名" field="driver">
                         <Input placeholder="可选，例：com.mysql.cj.jdbc.Driver"/>

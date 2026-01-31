@@ -30,6 +30,8 @@ public interface DatasourceService {
      */
     Map<String, Object> testConnection(String id);
 
+    Map<String, Object> validateConnection(DatasourceCreateDto createDto);
+
     /**
      * 采集指定数据源的表结构
      */

@@ -15,6 +15,8 @@ public class DatasourceCreateDto {
     @NotBlank(message = "名称不能为空")
     private String name;
 
+    private String type;
+
     private String driver;
 
     @NotBlank(message = "JDBC连接串不能为空")

@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 public class DatasourceDto {
     private String id;
     private String name;
+    private String type;
     private String driver;
     private String jdbcUrl;
     private String username;

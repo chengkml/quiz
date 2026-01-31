@@ -1,22 +1,25 @@
 import axios from '@/core/src/http';
 
 // 获取数据源列表（分页查询）
-export const getDatasourceList = (params) => axios.get('/datasource', { params });
+export const getDatasourceList = (params: any) => axios.get('/datasource', { params });
 
 // 获取数据源详情
 export const getDatasourceById = (id: string) => axios.get(`/datasource/${id}`);
 
 // 创建数据源
-export const createDatasource = (params) => axios.post('/datasource/create', params);
+export const createDatasource = (params: any) => axios.post('/datasource/create', params);
 
 // 更新数据源
-export const updateDatasource = (params) => axios.put('/datasource/update', params);
+export const updateDatasource = (params: any) => axios.put('/datasource/update', params);
 
 // 删除数据源
 export const deleteDatasource = (id: string) => axios.delete(`/datasource/${id}`);
 
 // 测试数据源连接
 export const testConnection = (id: string) => axios.post(`/datasource/${id}/test`);
+
+// 校验数据源连接
+export const validateConnection = (params: any) => axios.post('/datasource/validate', params);
 
 // 采集数据源表结构
 export const collectSchema = (id: string, schema?: string) => axios.get(`/datasource/${id}/schema`, { params: { schema } });
