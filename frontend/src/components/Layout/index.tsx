@@ -37,6 +37,7 @@ import {logoutUser} from '@/pages/User/api';
 import {getUnreadCount, getUnreadMessages, SystemMessageDto} from '@/pages/Notification/systemMessageApi';
 import { markAsRead } from '@/pages/SystemMessage/api';
 import {wsClient} from '@/core/websocket';
+import GlobalAssistant from '../GlobalAssistant';
 import './style.less';
 
 const {Content, Header, Sider} = Layout;
@@ -558,6 +559,9 @@ const AppLayout: React.FC = () => {
                     <Outlet/>
                 </Content>
             </Layout>
+
+            {/* Global Assistant Component */}
+            <GlobalAssistant />
         </Layout>
     );
 };

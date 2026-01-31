@@ -1,0 +1,152 @@
+@assistant-width: 380px;
+@assistant-height: 600px;
+@primary-color: var(--color-primary-6);
+@bg-color: var(--color-bg-2);
+@border-color: var(--color-border-2);
+
+.global-assistant {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+
+    // 悬浮按钮
+    .assistant-trigger {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: @primary-color;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.34, 0.69, 0.1, 1);
+        color: #fff;
+        font-size: 24px;
+
+        &:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        &.open {
+            transform: rotate(45deg);
+            background-color: var(--color-danger-6); // 打开时变成关闭/甚至红色? 或者保持原样，只是icon变了
+        }
+    }
+
+    // 聊天窗口
+    .assistant-window {
+        width: @assistant-width;
+        height: @assistant-height;
+        background-color: @bg-color;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 16px; // 距离按钮的间距
+        overflow: hidden;
+        transform-origin: bottom right;
+        transition: all 0.3s cubic-bezier(0.34, 0.69, 0.1, 1);
+        border: 1px solid @border-color;
+
+        // 动画状态
+        &.hidden {
+            opacity: 0;
+            transform: scale(0.8) translateY(20px);
+            pointer-events: none;
+            height: 0;
+            margin-bottom: 0;
+        }
+
+        .window-header {
+            height: 50px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid @border-color;
+            background-color: var(--color-fill-2);
+
+            .title {
+                font-weight: 600;
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .actions {
+                display: flex;
+                gap: 8px;
+                color: var(--color-text-3);
+                cursor: pointer;
+            }
+        }
+
+        .window-content {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background-color: var(--color-fill-1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+
+            .message-item {
+                display: flex;
+                gap: 8px;
+                max-width: 85%;
+
+                &.user {
+                    align-self: flex-end;
+                    flex-direction: row-reverse;
+
+                    .message-bubble {
+                        background-color: @primary-color;
+                        color: #fff;
+                        border-radius: 12px 2px 12px 12px;
+                    }
+                }
+
+                &.assistant {
+                    align-self: flex-start;
+
+                    .message-bubble {
+                        background-color: var(--color-bg-1);
+                        border: 1px solid @border-color;
+                        border-radius: 2px 12px 12px 12px;
+                    }
+                }
+
+                .avatar {
+                    flex-shrink: 0;
+                    margin-top: 2px;
+                }
+
+                .message-bubble {
+                    padding: 8px 12px;
+                    font-size: 14px;
+                    line-height: 1.5;
+                    word-break: break-word;
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+                }
+            }
+        }
+
+        .window-footer {
+            padding: 12px;
+            border-top: 1px solid @border-color;
+            background-color: @bg-color;
+
+            .input-wrapper {
+                display: flex;
+                gap: 8px;
+            }
+        }
+    }
+}
