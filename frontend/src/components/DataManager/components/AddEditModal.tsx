@@ -14,6 +14,7 @@ interface AddEditModalProps {
   title?: string;
   formConfig?: FormFieldConfig[];
   children?: React.ReactNode;
+  width?: number | string;
 }
 
 /**
@@ -30,6 +31,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
   title,
   formConfig = [],
   children,
+  width,
 }) => {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -86,6 +88,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
       onCancel={handleCancel}
       confirmLoading={submitting || loading}
       maskClosable={false}
+      style={{ width }}
     >
       <Spin loading={loading} style={{ width: "100%" }}>
         <Form

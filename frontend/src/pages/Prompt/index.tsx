@@ -22,10 +22,31 @@ import {
 import UserAvatar from "@/components/UserAvatar";
 import { DataManager, AddEditModal } from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
-import { FormFieldConfig } from "@/components/types/types";
+import { FormFieldConfig, PaginationConfig } from "@/components/types/types";
 import renderDate from '@/utils/timeUtil';
 import Editor from "@monaco-editor/react";
 import "./style/index.less";
+
+const MarkdownEditor = ({ value, onChange }: { value?: string, onChange?: (val: string | undefined) => void }) => {
+  return (
+    <div style={{ border: '1px solid var(--color-border-2)', borderRadius: 4, overflow: 'hidden' }}>
+      <Editor
+        height="400px"
+        defaultLanguage="markdown"
+        value={value || ''}
+        theme="vs-dark" 
+        options={{
+          minimap: { enabled: false },
+          lineNumbers: 'off',
+          scrollBeyondLastLine: false,
+          wordWrap: 'on',
+          fontSize: 14,
+        }}
+        onChange={onChange}
+      />
+    </div>
+  );
+};
 
 function PromptTemplateManagement() {
   // 状态管理
@@ -33,7 +54,7 @@ function PromptTemplateManagement() {
   const [loading, setLoading] = useState(false);
 
   // DataManager 分页状态
-  const [pagination, setPagination] = useState({
+  const [pagination, setPagination] = useState<PaginationConfig>({
     current: 1,
     pageSize: 20,
     total: 0,
@@ -164,55 +185,9 @@ function PromptTemplateManagement() {
         required: true,
         placeholder: "请输入模板内容",
         rules: [{ required: true, message: "请输入模板内容" }],
-        render: (value, form) => {
-           return (
-             <div style={{ border: '1px solid var(--color-border-2)', borderRadius: 4, overflow: 'hidden' }}>
-               <Editor
-                 height="400px"
-                 defaultLanguage="markdown"
-                 value={value}
-                 theme="vs-dark" 
-                 options={{
-                   minimap: { enabled: false },
-                   lineNumbers: 'off',
-                   scrollBeyondLastLine: false,
-                   wordWrap: 'on',
-                   fontSize: 14,
-                 }}
-                 onChange={(val) => {
-                     // Update form value when editor content changes
-                     // We need to find a way to update the form value since 'form' here is allValues, not the form instance if relying on utils.
-                     // Wait, checking utils.ts again:
-                     // render(fieldValue, allValues)
-                     // It doesn't pass the form instance to render function directly in the signature I saw earlier?
-                     // Let me double check Step 586.
-                     // The signature is: render(fieldValue, allValues).
-                     // However, inside renderFormField:
-                     // const handleChange = onChange && form ? (value: any) => { ... } : undefined;
-                     // 
-                     // Pass 'onChange' to the config! 
-                     // Actually, if I use a custom render, the `render` function returns a ReactNode.
-                     // This node needs to trigger the onChange of the Form.Item or controls its own value.
-                     // But `renderFormField` wraps `fieldNode` in `Form.Item`.
-                     // If I return a controlled component, it receives `value` and `onChange` from Form.Item if I didn't wrap it?
-                     // Wait, `renderFormField` calls `render(fieldValue, allValues)`.
-                     // It consumes the result as `fieldNode`.
-                     // Then it calls `React.createElement(Form.Item, { ...formItemProps }, fieldNode)`.
-                     // The `Form.Item` in Arco Design clones the child and passes `value` and `onChange` if it's a valid element.
-                     // So if `render` returns an `Editor`, `Form.Item` *might* pass `value` and `onChange` to it?
-                     // Monaco Editor's props are `value` and `onChange`.
-                     // `onChange` signature in Monaco is `(value, event) => void`. 
-                     // Arco Form `onChange` expects `(value) => void`.
-                     // They are compatible enough.
-                     // So I can just return <Editor ... /> and let Form.Item injection work, OR I can manually bridge it if needed.
-                     // However, `render` is called with current value.
-                     // Let's rely on Form.Item injection, but explicitly set value to be sure.
-                 }}
-               />
-             </div>
-           );
-           // Wait, I need to wrap it in a component that handles the onChange adapter if signatures mismatch or for better control.
-           // Let's create a small adapter component inline or outside.
+        render: (value) => {
+           // Form.Item will inject value and onChange to this component instance
+           return <MarkdownEditor value={value} />;
          }
       },
       {
@@ -221,16 +196,12 @@ function PromptTemplateManagement() {
         type: "textarea",
         placeholder: "请输入模板描述",
         rules: [{ max: 500, message: "模板描述不能超过500个字符" }],
-        props: {
-          autoSize: { minRows: 3, maxRows: 6 },
-        },
       },
       {
         field: "variables",
         label: "变量列表",
         type: "input",
         placeholder: "例如：question,context,options",
-        description: "请输入模板中使用的变量，以逗号分隔",
         rules: [{ max: 500, message: "变量列表不能超过500个字符" }],
       },
     ];
