@@ -17,6 +17,7 @@ import {
     IconSun,
     IconMoon,
     IconCheckCircleFill,
+    IconRobot,
 } from '@arco-design/web-react/icon';
 // 主题切换逻辑
 const getInitTheme = () => {
@@ -62,6 +63,16 @@ const AppLayout: React.FC = () => {
     const location = useLocation();
     const [openKeys, setOpenKeys] = useState<string[]>([]);
     const [collapsed, setCollapsed] = useState(false);
+    const [showAssistant, setShowAssistant] = useState(false);
+
+    // 切换助手显示
+    const handleToggleAssistant = () => {
+        const nextState = !showAssistant;
+        setShowAssistant(nextState);
+        if (nextState) {
+            setCollapsed(true);
+        }
+    };
     const {user, logout, menuTree, loadMenuFromServer} = useUser();
     const [loading, setLoading] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -412,8 +423,18 @@ const AppLayout: React.FC = () => {
                             {theme === 'dark' ? <IconSun /> : <IconMoon />}
                         </button>
                     </Tooltip>
-                    {/* Global Assistant */}
-                    <GlobalAssistant />
+                    {/* Global Assistant Trigger */}
+                    <Tooltip content={showAssistant ? '收起助手' : '智能助手'} position="bottom">
+                        <button
+                            className="theme-toggle-btn"
+                            type="button"
+                            aria-label={showAssistant ? '收起助手' : '智能助手'}
+                            onClick={handleToggleAssistant}
+                            style={showAssistant ? { color: 'var(--color-primary-6)', backgroundColor: 'var(--color-fill-2)' } : {}}
+                        >
+                            <IconRobot />
+                        </button>
+                    </Tooltip>
                     {/* System Message */}
                     <Dropdown
                         trigger={['click']}
@@ -561,6 +582,20 @@ const AppLayout: React.FC = () => {
                 <Content style={{height: '100%', padding: 0, overflow: 'auto'}}>
                     <Outlet/>
                 </Content>
+                <Sider
+                    collapsed={!showAssistant}
+                    collapsible
+                    trigger={null}
+                    collapsedWidth={0}
+                    width={380}
+                    style={{
+                        height: '100%',
+                        borderLeft: '1px solid var(--color-border-2)',
+                        boxShadow: 'none'
+                    }}
+                >
+                    <GlobalAssistant onClose={() => setShowAssistant(false)} />
+                </Sider>
             </Layout>
 
         </Layout>

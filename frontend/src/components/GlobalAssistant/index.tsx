@@ -22,8 +22,7 @@ interface Message {
   timestamp: number;
 }
 
-const GlobalAssistant: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
+const GlobalAssistant: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -34,22 +33,22 @@ const GlobalAssistant: React.FC = () => {
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  const currentAssistantMessageRef = useRef<string>('');
+  
   // 滚动到底部
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
-    if (isOpen) {
-      scrollToBottom();
-    }
-  }, [messages, isOpen]);
+    scrollToBottom();
+  }, [messages]);
 
   // 发送消息
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  const handleSend = async () => {
+    if (!inputValue.trim() || isLoading) return;
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -61,18 +60,70 @@ const GlobalAssistant: React.FC = () => {
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
     setIsLoading(true);
+    
+    // 创建助理消息占位
+    const assistantMsgId = (Date.now() + 1).toString();
+    const assistantMsg: Message = {
+      id: assistantMsgId,
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now()
+    };
+    setMessages(prev => [...prev, assistantMsg]);
+    currentAssistantMessageRef.current = '';
 
-    // 模拟回复延迟
-    setTimeout(() => {
-      const assistantMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: `我收到了你的消息：“${userMsg.content}”。目前我还在开发中，暂时没有连接到后端服务。`,
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, assistantMsg]);
-      setIsLoading(false);
-    }, 1000);
+    try {
+      // 动态导入以避免循环依赖或路径问题（如果 fetchStream 在 page 目录下）
+      // 假设 fetchStream 可以从 '@/pages/Chat/api' 导入
+      const { fetchStream } = await import('@/pages/Chat/api');
+      
+      await fetchStream(
+        '/chat/stream',
+        {
+          sessionId: sessionId || undefined,
+          message: {
+            role: 'user',
+            content: userMsg.content
+          }
+        },
+        (content, response) => {
+           // 更新 sessionId
+           if (response && response.sessionId && !sessionId) {
+             setSessionId(response.sessionId);
+           }
+           
+           currentAssistantMessageRef.current += content;
+           
+           setMessages(prev => {
+             return prev.map(msg => {
+               if (msg.id === assistantMsgId) {
+                 return { ...msg, content: currentAssistantMessageRef.current };
+               }
+               return msg;
+             });
+           });
+        },
+        () => {
+          setIsLoading(false);
+        },
+        (err) => {
+          console.error(err);
+          currentAssistantMessageRef.current += '\n[出错啦，请稍后再试]';
+          setMessages(prev => {
+             return prev.map(msg => {
+               if (msg.id === assistantMsgId) {
+                 return { ...msg, content: currentAssistantMessageRef.current };
+               }
+               return msg;
+             });
+           });
+          setIsLoading(false);
+        }
+      );
+    } catch (error) {
+       console.error("Failed to load api or fetch", error);
+       setIsLoading(false);
+    }
   };
 
   // 键盘事件
@@ -84,19 +135,8 @@ const GlobalAssistant: React.FC = () => {
   };
 
   return (
-    <div className="global-assistant">
-      {/* 悬浮按钮 (Now in Header) */}
-      <Tooltip content={isOpen ? '收起助手' : '智能助手'} position="bottom">
-        <div 
-          className={classNames('assistant-trigger', { open: isOpen })}
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          <IconRobot style={{ fontSize: 20 }} />
-        </div>
-      </Tooltip>
-
-      {/* 聊天窗口 */}
-      <div className={classNames('assistant-window', { hidden: !isOpen })}>
+    <div className="global-assistant-panel">
+      {/* 聊天窗口内容 */}
         <div className="window-header">
           <div className="title">
             <IconRobot style={{ fontSize: 20, color: 'var(--color-primary-6)' }} />
@@ -104,7 +144,7 @@ const GlobalAssistant: React.FC = () => {
           </div>
           <div className="actions">
             <Tooltip content="收起">
-              <IconClose onClick={() => setIsOpen(false)} style={{ fontSize: 16 }} />
+              <IconClose onClick={onClose} style={{ fontSize: 16 }} />
             </Tooltip>
           </div>
         </div>
@@ -119,6 +159,9 @@ const GlobalAssistant: React.FC = () => {
               )}
               <div className="message-bubble">
                 {msg.content}
+                {msg.role === 'assistant' && isLoading && msg.id === messages[messages.length-1].id && (
+                   <span className="typing-cursor">|</span>
+                )}
               </div>
               {msg.role === 'user' && (
                 <Avatar size={32} className="avatar" style={{ backgroundColor: '#ff7d00' }}>
@@ -127,16 +170,6 @@ const GlobalAssistant: React.FC = () => {
               )}
             </div>
           ))}
-          {isLoading && (
-            <div className="message-item assistant">
-              <Avatar size={32} className="avatar" style={{ backgroundColor: 'var(--color-fill-3)' }}>
-                 <IconRobot style={{ color: 'var(--color-text-2)' }} />
-              </Avatar>
-              <div className="message-bubble" style={{ color: 'var(--color-text-3)' }}>
-                 正在思考...
-              </div>
-            </div>
-          )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -164,7 +197,6 @@ const GlobalAssistant: React.FC = () => {
              />
           </div>
         </div>
-      </div>
     </div>
   );
 };

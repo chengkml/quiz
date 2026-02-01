@@ -53,13 +53,14 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public ChatCompletionResponse chat(String userId, ChatCompletionRequest request) {
-        if (request == null || request.getMessage() == null || !StringUtils.hasText(request.getMessage().getContent())) {
+        if (request == null || request.getMessage() == null
+                || !StringUtils.hasText(request.getMessage().getContent())) {
             throw new IllegalArgumentException("message content cannot be empty");
         }
         ChatSession session = resolveSession(userId, request);
         List<ChatMessage> history = chatMessageRepository.findBySessionIdOrderByCreateDateAsc(session.getId());
         ChatMessagePayload payload = request.getMessage();
-        
+
         // Save User Message
         ChatMessage userMessage = saveUserMessage(session.getId(), payload.getContent(), history);
         history.add(userMessage);
@@ -69,12 +70,12 @@ public class ChatServiceImpl implements ChatService {
 
         // Build Prompt
         Prompt prompt = buildPrompt(history, context);
-        
+
         // Call LLM
         OpenAiChatModel chatModel = llmModelService.getChatModel(session.getModelName());
         ChatClient client = ChatClient.builder(chatModel).build();
         String answer = client.prompt(prompt).call().content();
-        
+
         // Save Assistant Message
         saveAssistantMessage(session, answer, userMessage.getSeq() + 1);
 
@@ -87,7 +88,8 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public Flux<ChatCompletionResponse> streamChat(String userId, ChatCompletionRequest request) {
-        if (request == null || request.getMessage() == null || !StringUtils.hasText(request.getMessage().getContent())) {
+        if (request == null || request.getMessage() == null
+                || !StringUtils.hasText(request.getMessage().getContent())) {
             throw new IllegalArgumentException("message content cannot be empty");
         }
 
@@ -111,7 +113,7 @@ public class ChatServiceImpl implements ChatService {
 
         OpenAiChatModel chatModel = llmModelService.getChatModel(session.getModelName());
         ChatClient client = ChatClient.builder(chatModel).build();
-        
+
         return client.prompt(prompt).stream().content()
                 .map(content -> {
                     contentBuilder.append(content);
@@ -173,23 +175,21 @@ public class ChatServiceImpl implements ChatService {
         return response;
     }
 
-
-
     private String retrieveContext(String query, String knowledgeSetId, String modelName) {
         if (!StringUtils.hasText(knowledgeSetId)) {
             return "";
         }
-        
+
         VectorSearchFilter filter = VectorSearchFilter.builder()
                 .knowledgeSetId(knowledgeSetId)
                 .build();
-                
+
         List<VectorSearchResultDto> results = vectorService.search(query, 3, null, filter);
-        
+
         if (results == null || results.isEmpty()) {
             return "";
         }
-        
+
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < results.size(); i++) {
             VectorSearchResultDto result = results.get(i);
@@ -204,9 +204,17 @@ public class ChatServiceImpl implements ChatService {
 
         // System Prompt
         String systemText = "You are a helpful assistant.";
+
+        // Attempt to load system prompt from template if configured in session
+        // (assuming session might have promptTemplateId)
+        // Or if simple logic: if it's the global assistant (no ID in request, new
+        // session), maybe check a global setting?
+        // For now, let's keep it simple but allow extension.
+        // We can add a "systemPrompt" field to ChatConfig or ChatSession later.
+
         if (StringUtils.hasText(ragContext)) {
-            systemText += "\n\nPlease answer the user's question based on the following context:\n" + ragContext + 
-                          "\n\nIf the context does not contain the answer, please answer based on your own knowledge.";
+            systemText += "\n\nPlease answer the user's question based on the following context:\n" + ragContext +
+                    "\n\nIf the context does not contain the answer, please answer based on your own knowledge.";
         }
         messages.add(new org.springframework.ai.chat.messages.SystemMessage(systemText));
 
@@ -226,7 +234,8 @@ public class ChatServiceImpl implements ChatService {
     public Page<ChatSessionDto> listSessions(String userId, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), size <= 0 ? 20 : size);
         Page<ChatSession> sessionPage = chatSessionRepository.findByCreateUserOrderByUpdateDateDesc(userId, pageable);
-        List<ChatSessionDto> dtos = sessionPage.getContent().stream().map(this::toSessionDto).collect(Collectors.toList());
+        List<ChatSessionDto> dtos = sessionPage.getContent().stream().map(this::toSessionDto)
+                .collect(Collectors.toList());
         return new PageImpl<>(dtos, pageable, sessionPage.getTotalElements());
     }
 
