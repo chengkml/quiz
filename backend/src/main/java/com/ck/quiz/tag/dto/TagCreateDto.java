@@ -18,7 +18,10 @@ public class TagCreateDto extends CreateDto {
     @NotBlank(message = "标签中文名不能为空")
     @Size(max = 256, message = "标签中文名不能超过256个字符")
     private String label;
-    
+
+    @Size(max = 64, message = "标签类型不能超过64个字符")
+    private String type;
+
     @Size(max = 512, message = "标签描述不能超过512个字符")
     private String descr;
 

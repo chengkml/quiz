@@ -9,4 +9,6 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class TagQueryDto extends QueryDto {
 
+    private String type;
+
 }

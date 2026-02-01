@@ -11,4 +11,6 @@ public interface TagRepository extends BaseRepository<Tag> {
 
     Tag findByCreateUserAndName(String userId, String tagName);
 
+    Tag findByCreateUserAndNameAndType(String userId, String tagName, String type);
+
 }

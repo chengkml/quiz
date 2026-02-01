@@ -8,14 +8,17 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TagUpdateDto extends UpdateDto{
+public class TagUpdateDto extends UpdateDto {
 
     @Size(max = 128, message = "标签英文名不能超过128个字符")
     private String name;
 
     @Size(max = 256, message = "标签中文名不能超过256个字符")
     private String label;
-    
+
+    @Size(max = 64, message = "标签类型不能超过64个字符")
+    private String type;
+
     @Size(max = 512, message = "标签描述不能超过512个字符")
     private String descr;
 

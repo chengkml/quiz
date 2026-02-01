@@ -57,6 +57,45 @@ public abstract class BaseServiceImpl<C extends CreateDto, U extends UpdateDto, 
 
     protected abstract M newModel();
 
+    protected String getTagType() {
+        return null;
+    }
+
+    protected void saveTags(String objId, List<String> tagNames, String createUser) {
+        if (tagNames == null || tagNames.isEmpty()) {
+            return;
+        }
+        String type = getTagType();
+        for (String tagName : tagNames) {
+            Tag tag;
+            if (StringUtils.isNotBlank(type)) {
+                tag = tagRepository.findByCreateUserAndNameAndType(createUser, tagName, type);
+            } else {
+                // 如果没有指定类型，尝试直接查找（兼容旧数据或无类型标签）
+                // 优先尝试找无类型的
+                tag = tagRepository.findByCreateUserAndNameAndType(createUser, tagName, null);
+                if (tag == null) {
+                    // Fallback: use the old method which might return something if unique
+                    // constraint wasn't strict before,
+                    // but now with (name, type, user), checking raw name might fail if multiple
+                    // exist.
+                    // So let's stick to strict type check logic.
+                    // If getTagType() is null, we look for type IS NULL.
+                }
+            }
+
+            if (tag != null) {
+                TagObjRela rela = new TagObjRela();
+                rela.setRelaId(IdHelper.genUuid());
+                rela.setTagId(tag.getId());
+                rela.setObjId(objId);
+                tagObjRelaRepository.save(rela);
+            } else {
+                throw new IllegalArgumentException("Tag not found: " + tagName);
+            }
+        }
+    }
+
     @Override
     @Transactional
     public D create(C createDto) {
@@ -79,19 +118,7 @@ public abstract class BaseServiceImpl<C extends CreateDto, U extends UpdateDto, 
             }
         }
         if (createDto.getTags() != null && !createDto.getTags().isEmpty()) {
-            String createUser = savedModel.getCreateUser();
-            for (String tagName : createDto.getTags()) {
-                Tag tag = tagRepository.findByCreateUserAndName(createUser, tagName);
-                if (tag != null) {
-                    TagObjRela rela = new TagObjRela();
-                    rela.setRelaId(IdHelper.genUuid());
-                    rela.setTagId(tag.getId());
-                    rela.setObjId(savedModel.getId());
-                    tagObjRelaRepository.save(rela);
-                } else {
-                    throw new IllegalArgumentException("Tag not found: " + tagName);
-                }
-            }
+            saveTags(savedModel.getId(), createDto.getTags(), savedModel.getCreateUser());
         }
         return convertToDto(savedModel, true);
     }
@@ -133,23 +160,7 @@ public abstract class BaseServiceImpl<C extends CreateDto, U extends UpdateDto, 
         if (updateDto.getTags() != null) {
             // 删除现有的标签关联
             tagObjRelaRepository.deleteByObjId(updatedModel.getId());
-
-            if (!updateDto.getTags().isEmpty()) {
-                // 添加新的标签关联
-                String createUser = updatedModel.getCreateUser();
-                for (String tagName : updateDto.getTags()) {
-                    Tag tag = tagRepository.findByCreateUserAndName(createUser, tagName);
-                    if (tag != null) {
-                        TagObjRela rela = new TagObjRela();
-                        rela.setRelaId(IdHelper.genUuid());
-                        rela.setTagId(tag.getId());
-                        rela.setObjId(updatedModel.getId());
-                        tagObjRelaRepository.save(rela);
-                    } else {
-                        throw new IllegalArgumentException("Tag not found: " + tagName);
-                    }
-                }
-            }
+            saveTags(updatedModel.getId(), updateDto.getTags(), updatedModel.getCreateUser());
         }
 
         return convertToDto(updatedModel, true);
@@ -197,6 +208,29 @@ public abstract class BaseServiceImpl<C extends CreateDto, U extends UpdateDto, 
         if (loadProps == null || !loadProps) {
             return dto;
         }
+
+        // 加载分组信息
+        if (StringUtils.isNotBlank(model.getId())) {
+            List<GroupObjRela> groupRelas = groupObjRelaRepository.findByObjId(model.getId());
+            if (!groupRelas.isEmpty()) {
+                groupRepository.findById(groupRelas.get(0).getGroupId()).ifPresent(group -> {
+                    dto.setGroupName(group.getName());
+                    dto.setGroupLabel(group.getLabel());
+                });
+            }
+        }
+
+        // 加载标签信息
+        if (StringUtils.isNotBlank(model.getId())) {
+            List<TagObjRela> tagRelas = tagObjRelaRepository.findByObjId(model.getId());
+            if (!tagRelas.isEmpty()) {
+                List<String> tagIds = tagRelas.stream().map(TagObjRela::getTagId).collect(Collectors.toList());
+                List<Tag> tags = tagRepository.findAllById(tagIds);
+                dto.setTagNames(tags.stream().map(Tag::getName).collect(Collectors.toList()));
+                dto.setTagLabels(tags.stream().map(Tag::getLabel).collect(Collectors.toList()));
+            }
+        }
+
         String createUserId = model.getCreateUser();
         String updateUserId = model.getUpdateUser();
 
@@ -224,10 +258,65 @@ public abstract class BaseServiceImpl<C extends CreateDto, U extends UpdateDto, 
 
     @Override
     public List<D> convertToDtos(List<M> models) {
+        if (models == null || models.isEmpty()) {
+            return new ArrayList<>();
+        }
         List<D> dtos = models.stream().map(model -> convertToDto(model, false)).collect(Collectors.toList());
+        List<String> objIds = models.stream().map(Model::getId).collect(Collectors.toList());
+
+        // 批量加载分组关联
+        List<GroupObjRela> groupRelas = groupObjRelaRepository.findByObjIdIn(objIds);
+        if (!groupRelas.isEmpty()) {
+            Map<String, String> objToGroupIdMap = groupRelas.stream()
+                    .collect(Collectors.toMap(GroupObjRela::getObjId, GroupObjRela::getGroupId, (v1, v2) -> v1));
+            List<String> groupIds = new ArrayList<>(objToGroupIdMap.values());
+            if (!groupIds.isEmpty()) {
+                Map<String, Group> groupMap = groupRepository.findAllById(groupIds).stream()
+                        .collect(Collectors.toMap(Group::getId, group -> group));
+                dtos.forEach(dto -> {
+                    String groupId = objToGroupIdMap.get(dto.getId());
+                    if (groupId != null) {
+                        Group group = groupMap.get(groupId);
+                        if (group != null) {
+                            dto.setGroupName(group.getName());
+                            dto.setGroupLabel(group.getLabel());
+                        }
+                    }
+                });
+            }
+        }
+
+        // 批量加载标签关联
+        List<TagObjRela> tagRelas = tagObjRelaRepository.findByObjIdIn(objIds);
+        if (!tagRelas.isEmpty()) {
+            Map<String, List<String>> objToTagIdsMap = tagRelas.stream()
+                    .collect(Collectors.groupingBy(TagObjRela::getObjId,
+                            Collectors.mapping(TagObjRela::getTagId, Collectors.toList())));
+
+            List<String> allTagIds = tagRelas.stream().map(TagObjRela::getTagId).distinct()
+                    .collect(Collectors.toList());
+            if (!allTagIds.isEmpty()) {
+                Map<String, Tag> tagMap = tagRepository.findAllById(allTagIds).stream()
+                        .collect(Collectors.toMap(Tag::getId, tag -> tag));
+
+                dtos.forEach(dto -> {
+                    List<String> tagIds = objToTagIdsMap.get(dto.getId());
+                    if (tagIds != null) {
+                        List<Tag> tags = tagIds.stream()
+                                .map(tagMap::get)
+                                .filter(tag -> tag != null)
+                                .collect(Collectors.toList());
+                        dto.setTagNames(tags.stream().map(Tag::getName).collect(Collectors.toList()));
+                        dto.setTagLabels(tags.stream().map(Tag::getLabel).collect(Collectors.toList()));
+                    }
+                });
+            }
+        }
+
         Map<String, List<D>> createUserToGroups = dtos.stream()
                 .collect(Collectors.groupingBy(D::getCreateUser));
         Map<String, List<D>> updateUserToGroups = dtos.stream()
+                .filter(d -> d.getUpdateUser() != null)
                 .collect(Collectors.groupingBy(D::getUpdateUser));
         userService.getUserMapByIds(new ArrayList<>(createUserToGroups.keySet())).forEach((userId, userDto) -> {
             List<D> userGroups = createUserToGroups.get(userId);

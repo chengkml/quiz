@@ -12,8 +12,8 @@ import org.hibernate.annotations.Comment;
 @Comment("标签表")
 @EqualsAndHashCode(callSuper = true)
 @Table(name = "tag", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_tag_name_create_user", columnNames = { "name", "create_user" }),
-        @UniqueConstraint(name = "uk_tag_label_create_user", columnNames = { "label", "create_user" })
+        @UniqueConstraint(name = "uk_tag_name_type_create_user", columnNames = { "name", "type", "create_user" }),
+        @UniqueConstraint(name = "uk_tag_label_type_create_user", columnNames = { "label", "type", "create_user" })
 })
 public class Tag extends Model {
 
@@ -24,6 +24,10 @@ public class Tag extends Model {
     @Column(length = 256, nullable = false)
     @Comment("标签中文名")
     private String label;
+
+    @Column(length = 64)
+    @Comment("标签类型")
+    private String type;
 
     @Column(length = 512)
     @Comment("标签描述")

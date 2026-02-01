@@ -18,6 +18,8 @@ import com.ck.quiz.prompt.dto.PromptTemplateDto;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import com.ck.quiz.tag_obj.entity.TagObjRela;
+import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,6 +48,11 @@ public class MermaidDiagramServiceImpl
         BaseServiceImpl<MermaidDiagramCreateDto, MermaidDiagramUpdateDto, MermaidDiagramQueryDto, MermaidDiagramDto, MermaidDiagram, MermaidDiagramRepository>
         implements MermaidDiagramService {
 
+    @Override
+    protected String getTagType() {
+        return "MERMAID";
+    }
+
     @Autowired
     private LLMModelRepository llmModelRepository;
 
@@ -72,11 +79,15 @@ public class MermaidDiagramServiceImpl
         StringBuilder sql = new StringBuilder(
                 "select d.*, g.name as group_name, g.label as group_label from mermaid_diagram d " +
                         "left join obj_group_obj_rela r on d.id = r.obj_id " +
-                        "left join obj_group g on r.group_id = g.id where 1=1 ");
+                        "left join obj_group g on r.group_id = g.id " +
+                        "left join obj_tag_obj_rela tr on tr.obj_id = d.id " +
+                        "left join tag t on t.id = tr.tag_id where 1=1 ");
 
-        StringBuilder countSql = new StringBuilder("select count(1) from mermaid_diagram d " +
+        StringBuilder countSql = new StringBuilder("select count(distinct d.id) from mermaid_diagram d " +
                 "left join obj_group_obj_rela r on d.id = r.obj_id " +
-                "left join obj_group g on r.group_id = g.id where 1=1 ");
+                "left join obj_group g on r.group_id = g.id " +
+                "left join obj_tag_obj_rela tr on tr.obj_id = d.id " +
+                "left join tag t on t.id = tr.tag_id where 1=1 ");
 
         Map<String, Object> params = new HashMap<>();
 
@@ -88,6 +99,13 @@ public class MermaidDiagramServiceImpl
         // 分组过滤
         if (queryDto.getGroup() != null && !queryDto.getGroup().isEmpty()) {
             JdbcQueryHelper.equals("group", queryDto.getGroup(), " and g.name = :group ", params, sql, countSql);
+        }
+
+        // 标签过滤
+        if (queryDto.getTags() != null && !queryDto.getTags().isEmpty()) {
+            sql.append(" AND t.name IN (:tags) ");
+            countSql.append(" AND t.name IN (:tags) ");
+            params.put("tags", queryDto.getTags());
         }
 
         // 默认按更新时间降序
@@ -119,6 +137,36 @@ public class MermaidDiagramServiceImpl
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;
         });
+
+        // 批量加载 Tags
+        if (!dtos.isEmpty()) {
+            List<String> objIds = dtos.stream().map(MermaidDiagramDto::getId).collect(Collectors.toList());
+            List<TagObjRela> tagRelas = tagObjRelaRepository.findByObjIdIn(objIds);
+            if (!tagRelas.isEmpty()) {
+                Map<String, List<String>> objToTagIdsMap = tagRelas.stream()
+                        .collect(Collectors.groupingBy(TagObjRela::getObjId,
+                                Collectors.mapping(TagObjRela::getTagId, Collectors.toList())));
+                List<String> allTagIds = tagRelas.stream().map(TagObjRela::getTagId).distinct()
+                        .collect(Collectors.toList());
+                if (!allTagIds.isEmpty()) {
+                    Map<String, com.ck.quiz.tag.entity.Tag> tagMap = tagRepository.findAllById(allTagIds).stream()
+                            .collect(Collectors.toMap(com.ck.quiz.tag.entity.Tag::getId, tag -> tag));
+                    dtos.forEach(dto -> {
+                        List<String> tagIds = objToTagIdsMap.get(dto.getId());
+                        if (tagIds != null) {
+                            List<com.ck.quiz.tag.entity.Tag> tags = tagIds.stream()
+                                    .map(tagMap::get)
+                                    .filter(tag -> tag != null)
+                                    .collect(Collectors.toList());
+                            dto.setTagNames(tags.stream().map(com.ck.quiz.tag.entity.Tag::getName)
+                                    .collect(Collectors.toList()));
+                            dto.setTagLabels(tags.stream().map(com.ck.quiz.tag.entity.Tag::getLabel)
+                                    .collect(Collectors.toList()));
+                        }
+                    });
+                }
+            }
+        }
 
         return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, dtos, pageNum, pageSize);
     }

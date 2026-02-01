@@ -8,7 +8,10 @@ import com.ck.quiz.llmmodel.dto.LLMModelUpdateDto;
 import com.ck.quiz.llmmodel.entity.LLMModel;
 import com.ck.quiz.llmmodel.repository.LLMModelRepository;
 import com.ck.quiz.llmmodel.service.LLMModelService;
+import com.ck.quiz.tag.entity.Tag;
+import com.ck.quiz.tag_obj.entity.TagObjRela;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import java.util.stream.Collectors;
 
 import org.springframework.ai.document.MetadataMode;
 import org.springframework.ai.openai.OpenAiChatModel;
@@ -29,6 +32,11 @@ public class LLMModelServiceImpl extends
         BaseServiceImpl<LLMModelCreateDto, LLMModelUpdateDto, LLMModelQueryDto, LLMModelDto, LLMModel, LLMModelRepository>
         implements LLMModelService {
 
+    @Override
+    protected String getTagType() {
+        return "LLM_MODEL";
+    }
+
     @Autowired
     private LLMModelRepository llmModelRepository;
 
@@ -45,13 +53,18 @@ public class LLMModelServiceImpl extends
     @Override
     public Page<LLMModelDto> search(String userId, LLMModelQueryDto queryDto) {
         StringBuilder sql = new StringBuilder(
-                "SELECT m.id, m.name, m.provider, m.type, m.descr, " +
+                "SELECT DISTINCT m.id, m.name, m.provider, m.type, m.descr, " +
                         "m.api_key, m.api_endpoint, m.context_window, m.input_price_per1k, m.output_price_per1k, " +
                         "m.is_default, m.create_date, m.create_user, m.update_date, m.update_user, m.config, " +
                         "u.user_name AS create_user_name " +
-                        "FROM llm_model m LEFT JOIN users u ON u.user_id = m.create_user ");
+                        "FROM llm_model m " +
+                        "LEFT JOIN users u ON u.user_id = m.create_user " +
+                        "LEFT JOIN obj_tag_obj_rela tr ON tr.obj_id = m.id " +
+                        "LEFT JOIN tag t ON t.id = tr.tag_id ");
 
-        StringBuilder countSql = new StringBuilder("SELECT COUNT(1) FROM llm_model m ");
+        StringBuilder countSql = new StringBuilder("SELECT COUNT(DISTINCT m.id) FROM llm_model m " +
+                "LEFT JOIN obj_tag_obj_rela tr ON tr.obj_id = m.id " +
+                "LEFT JOIN tag t ON t.id = tr.tag_id ");
 
         sql.append(" WHERE 1=1 ");
         countSql.append(" WHERE 1=1 ");
@@ -75,6 +88,13 @@ public class LLMModelServiceImpl extends
         if (queryDto.getIsDefault() != null && !queryDto.getIsDefault().isEmpty()) {
             JdbcQueryHelper.equals("isDefault", queryDto.getIsDefault(), " AND m.is_default = :isDefault ", params, sql,
                     countSql);
+        }
+
+        // 标签过滤
+        if (queryDto.getTags() != null && !queryDto.getTags().isEmpty()) {
+            sql.append(" AND t.name IN (:tags) ");
+            countSql.append(" AND t.name IN (:tags) ");
+            params.put("tags", queryDto.getTags());
         }
 
         JdbcQueryHelper.order("create_date", "desc", sql);
@@ -107,6 +127,36 @@ public class LLMModelServiceImpl extends
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;
         });
+
+        // 批量加载 Tags
+        if (!list.isEmpty())
+
+        {
+            List<String> objIds = list.stream().map(LLMModelDto::getId).collect(Collectors.toList());
+            List<TagObjRela> tagRelas = tagObjRelaRepository.findByObjIdIn(objIds);
+            if (!tagRelas.isEmpty()) {
+                java.util.Map<String, List<String>> objToTagIdsMap = tagRelas.stream()
+                        .collect(Collectors.groupingBy(TagObjRela::getObjId,
+                                Collectors.mapping(TagObjRela::getTagId, Collectors.toList())));
+                List<String> allTagIds = tagRelas.stream().map(TagObjRela::getTagId).distinct()
+                        .collect(Collectors.toList());
+                if (!allTagIds.isEmpty()) {
+                    java.util.Map<String, Tag> tagMap = tagRepository.findAllById(allTagIds).stream()
+                            .collect(Collectors.toMap(Tag::getId, tag -> tag));
+                    list.forEach(dto -> {
+                        List<String> tagIds = objToTagIdsMap.get(dto.getId());
+                        if (tagIds != null) {
+                            List<Tag> tags = tagIds.stream()
+                                    .map(tagMap::get)
+                                    .filter(tag -> tag != null)
+                                    .collect(Collectors.toList());
+                            dto.setTagNames(tags.stream().map(Tag::getName).collect(Collectors.toList()));
+                            dto.setTagLabels(tags.stream().map(Tag::getLabel).collect(Collectors.toList()));
+                        }
+                    });
+                }
+            }
+        }
 
         return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list,
                 queryDto.getPageNum(), queryDto.getPageSize());

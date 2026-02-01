@@ -11,7 +11,10 @@ import com.ck.quiz.mindmap.dto.*;
 import com.ck.quiz.mindmap.entity.MindMap;
 import com.ck.quiz.mindmap.repository.MindMapRepository;
 import com.ck.quiz.mindmap.service.MindMapService;
+import com.ck.quiz.tag.entity.Tag;
+import com.ck.quiz.tag_obj.entity.TagObjRela;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
+import java.util.stream.Collectors;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
@@ -43,6 +46,11 @@ import java.util.Optional;
 public class MindMapServiceImpl extends
         BaseServiceImpl<MindMapCreateDto, MindMapUpdateDto, MindMapQueryDto, MindMapDto, MindMap, MindMapRepository>
         implements MindMapService {
+
+    @Override
+    protected String getTagType() {
+        return "MIND_MAP";
+    }
 
     @Autowired
     private MindMapRepository mindMapRepository;
@@ -109,6 +117,12 @@ public class MindMapServiceImpl extends
                     throw new RuntimeException("Group not found: " + mindMapBasicInfoUpdateDto.getGroup());
                 }
             }
+        }
+
+        // 处理TAG逻辑
+        if (mindMapBasicInfoUpdateDto.getTags() != null) {
+            tagObjRelaRepository.deleteByObjId(updatedMindMap.getId());
+            saveTags(updatedMindMap.getId(), mindMapBasicInfoUpdateDto.getTags(), updatedMindMap.getCreateUser());
         }
 
         // 同步到向量库
@@ -293,12 +307,16 @@ public class MindMapServiceImpl extends
                         "FROM mind_map m " +
                         "left join users u on u.user_id = m.create_user " +
                         "left join obj_group_obj_rela r ON r.obj_id = m.id " +
-                        "left join obj_group g ON g.id = r.group_id ");
+                        "left join obj_group g ON g.id = r.group_id " +
+                        "left join obj_tag_obj_rela tr on tr.obj_id = m.id " +
+                        "left join tag t on t.id = tr.tag_id ");
 
         StringBuilder countSql = new StringBuilder(
-                "SELECT COUNT(1) FROM mind_map m " +
+                "SELECT COUNT(DISTINCT m.id) FROM mind_map m " +
                         "left join obj_group_obj_rela r ON r.obj_id = m.id " +
-                        "left join obj_group g ON g.id = r.group_id ");
+                        "left join obj_group g ON g.id = r.group_id " +
+                        "left join obj_tag_obj_rela tr on tr.obj_id = m.id " +
+                        "left join tag t on t.id = tr.tag_id ");
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         sql.append("WHERE m.create_user = :createUser ");
@@ -319,6 +337,13 @@ public class MindMapServiceImpl extends
             sql.append(" AND g.name IN (:groups) ");
             countSql.append(" AND g.name IN (:groups) ");
             params.put("groups", queryDto.getGroups());
+        }
+
+        // 标签过滤
+        if (queryDto.getTags() != null && !queryDto.getTags().isEmpty()) {
+            sql.append(" AND t.name IN (:tags) ");
+            countSql.append(" AND t.name IN (:tags) ");
+            params.put("tags", queryDto.getTags());
         }
 
         sql.append(" ORDER BY m.create_date DESC ");
@@ -345,6 +370,36 @@ public class MindMapServiceImpl extends
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;
         });
+
+        // 批量加载 Tags
+        if (!list.isEmpty()) {
+            List<String> objIds = list.stream().map(MindMapDto::getId).collect(Collectors.toList());
+            List<TagObjRela> tagRelas = tagObjRelaRepository.findByObjIdIn(objIds);
+            if (!tagRelas.isEmpty()) {
+                Map<String, List<String>> objToTagIdsMap = tagRelas.stream()
+                        .collect(Collectors.groupingBy(TagObjRela::getObjId,
+                                Collectors.mapping(TagObjRela::getTagId, Collectors.toList())));
+                List<String> allTagIds = tagRelas.stream().map(TagObjRela::getTagId).distinct()
+                        .collect(Collectors.toList());
+                if (!allTagIds.isEmpty()) {
+                    Map<String, Tag> tagMap = tagRepository.findAllById(allTagIds).stream()
+                            .collect(Collectors.toMap(Tag::getId, tag -> tag));
+                    list.forEach(dto -> {
+                        List<String> tagIds = objToTagIdsMap.get(dto.getId());
+                        if (tagIds != null) {
+                            List<com.ck.quiz.tag.entity.Tag> tags = tagIds.stream()
+                                    .map(tagMap::get)
+                                    .filter(tag -> tag != null)
+                                    .collect(Collectors.toList());
+                            dto.setTagNames(tags.stream().map(com.ck.quiz.tag.entity.Tag::getName)
+                                    .collect(Collectors.toList()));
+                            dto.setTagLabels(tags.stream().map(com.ck.quiz.tag.entity.Tag::getLabel)
+                                    .collect(Collectors.toList()));
+                        }
+                    });
+                }
+            }
+        }
 
         // 获取总数
         Long total = namedParameterJdbcTemplate.queryForObject(countSql.toString(), params, Long.class);

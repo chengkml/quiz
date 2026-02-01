@@ -12,6 +12,8 @@ public class TagDto extends Dto {
 
     private String label;
 
+    private String type;
+
     private String descr;
 
     private String color;

@@ -22,7 +22,8 @@ import java.util.Map;
 
 @Service
 @Transactional
-public class TagServiceImpl extends BaseServiceImpl<TagCreateDto, TagUpdateDto, TagQueryDto, TagDto, Tag, TagRepository> implements TagService {
+public class TagServiceImpl extends BaseServiceImpl<TagCreateDto, TagUpdateDto, TagQueryDto, TagDto, Tag, TagRepository>
+        implements TagService {
 
     @Autowired
     private TagRepository tagRepository;
@@ -36,12 +37,19 @@ public class TagServiceImpl extends BaseServiceImpl<TagCreateDto, TagUpdateDto, 
 
         // 按关键词模糊查询
         JdbcQueryHelper.lowerLike("keyWord", queryDto.getKeyWord(),
-                " and (lower(t.name) like :keyWord or lower(t.label) like :keyWord) ", params, namedParameterJdbcTemplate, sql, countSql);
+                " and (lower(t.name) like :keyWord or lower(t.label) like :keyWord) ", params,
+                namedParameterJdbcTemplate, sql, countSql);
 
         // 按创建用户过滤
         if (StringUtils.hasText(userId)) {
             JdbcQueryHelper.equals("createUser", userId,
                     " AND t.create_user = :createUser ", params, sql, countSql);
+        }
+
+        // 按类型过滤
+        if (StringUtils.hasText(queryDto.getType())) {
+            JdbcQueryHelper.equals("type", queryDto.getType(),
+                    " AND t.type = :type ", params, sql, countSql);
         }
 
         // 排序
@@ -63,10 +71,13 @@ public class TagServiceImpl extends BaseServiceImpl<TagCreateDto, TagUpdateDto, 
                     t.setId(rs.getString("tag_id"));
                     t.setName(rs.getString("name"));
                     t.setLabel(rs.getString("label"));
+                    t.setType(rs.getString("type"));
                     t.setDescr(rs.getString("descr"));
                     t.setColor(rs.getString("color"));
                     t.setCreateUser(rs.getString("create_user"));
-                    t.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
+                    t.setCreateDate(
+                            rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime()
+                                    : null);
                     t.setUpdateDate(
                             rs.getTimestamp("update_date") != null ? rs.getTimestamp("update_date").toLocalDateTime()
                                     : null);
@@ -85,11 +96,17 @@ public class TagServiceImpl extends BaseServiceImpl<TagCreateDto, TagUpdateDto, 
     }
 
     @Override
-    public boolean checkNameUniq(String userId, String tagName, String excludeTagId) {
+    public boolean checkNameUniq(String userId, String tagName, String type, String excludeTagId) {
         if (!StringUtils.hasText(tagName)) {
             return true;
         }
-        Tag tag = tagRepository.findByCreateUserAndName(userId, tagName);
+        Tag tag;
+        if (StringUtils.hasText(type)) {
+            tag = tagRepository.findByCreateUserAndNameAndType(userId, tagName, type);
+        } else {
+            tag = tagRepository.findByCreateUserAndName(userId, tagName);
+        }
+
         if (tag == null) {
             return true;
         }

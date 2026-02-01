@@ -29,9 +29,10 @@ public class TagController extends BaseController<TagCreateDto, TagUpdateDto, Ta
     @GetMapping("/check/name")
     public ResponseEntity<Boolean> checkTagName(
             @Parameter(description = "标签英文名", required = true) @RequestParam("tagName") String tagName,
+            @Parameter(description = "标签类型") @RequestParam(value = "type", required = false) String type,
             @Parameter(description = "排除的标签ID") @RequestParam(value = "excludeTagId", required = false) String excludeTagId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return ResponseEntity.ok(tagService.checkNameUniq(authentication.getName(), tagName, excludeTagId));
+        return ResponseEntity.ok(tagService.checkNameUniq(authentication.getName(), tagName, type, excludeTagId));
     }
 
     @Override

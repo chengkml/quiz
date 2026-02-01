@@ -9,6 +9,6 @@ import com.ck.quiz.tag.entity.Tag;
 
 public interface TagService extends BaseService<TagCreateDto, TagUpdateDto, TagQueryDto, TagDto, Tag> {
 
-    boolean checkNameUniq(String userId, String name, String excludeId);
+    boolean checkNameUniq(String userId, String name, String type, String excludeId);
 
 }

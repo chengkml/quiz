@@ -9,6 +9,8 @@ public interface TagObjRelaRepository extends JpaRepository<TagObjRela, String> 
 
     List<TagObjRela> findByObjId(String objId);
 
+    List<TagObjRela> findByObjIdIn(List<String> objIds);
+
     void deleteByObjId(String objId);
 
     void deleteByObjIdAndTagId(String objId, String tagId);
