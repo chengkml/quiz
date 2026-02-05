@@ -1,52 +1,79 @@
 #!/bin/bash
 
-# ===============================
-# 启动 quiz 应用（Linux 版）
-# ===============================
+# ============================================================
+# 启动 quiz 应用（2G内存优化版）
+# ============================================================
 
+# 1. 环境变量设置（确保 crontab 重启时能找到 java）
+# 如果 which java 的路径不是 /usr/bin/java，请修改下行
+export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
+
+# 2. 基础路径配置
 APP_NAME="quiz"
-JAR_FILE="/opt/quiz/quiz-1.0.0.jar"
-LIB_DIR="/opt/quiz/lib"        # 依赖 Jar 所在目录
-CONFIG_FILE="/opt/quiz/application-prod.yml"  # 外部配置文件
+BASE_DIR="/opt/quiz"
+JAR_FILE="$BASE_DIR/quiz-1.0.0.jar"
+LIB_DIR="$BASE_DIR/lib"
+CONFIG_DIR="$BASE_DIR/"
 MAIN_CLASS="com.ck.quiz.QuizApplication"
+
+# 3. 运行环境配置
 PORT=${PORT:-8089}
-PROFILE=${SPRING_PROFILES_ACTIVE:-prod}  # 默认生产环境
-LOG_DIR="/opt/quiz/logs"
+PROFILE=${SPRING_PROFILES_ACTIVE:-prod}
+LOG_DIR="$BASE_DIR/logs"
 LOG_FILE="$LOG_DIR/${APP_NAME}.log"
 PID_FILE="/var/run/${APP_NAME}.pid"
+
+# 4. JVM 内存优化参数 (针对 2G 物理内存)
+# -Xms/Xmx: 限制堆内存为 1GB
+# -XX:MaxMetaspaceSize: 限制元空间为 256MB
+# -XX:+HeapDumpOnOutOfMemoryError: OOM时自动生成dump文件用于分析
+JAVA_OPTS="-Xms1024m -Xmx1024m \
+-XX:MetaspaceSize=128m \
+-XX:MaxMetaspaceSize=256m \
+-XX:MaxDirectMemorySize=256m \
+-XX:+HeapDumpOnOutOfMemoryError \
+-XX:HeapDumpPath=$LOG_DIR/oom_dump.hprof \
+-Dfile.encoding=UTF-8"
+
+# --- 脚本逻辑开始 ---
 
 # 创建日志目录
 mkdir -p "$LOG_DIR"
 
-# 如果 PID 文件存在，尝试杀掉旧进程
+# 检查并清理旧进程
 if [ -f "$PID_FILE" ]; then
     PID=$(cat "$PID_FILE")
     if ps -p "$PID" > /dev/null 2>&1; then
-        echo "[$(date)] Stopping existing $APP_NAME process with PID $PID..."
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] 正在停止旧进程 PID: $PID..."
         kill "$PID" 2>/dev/null || true
-        sleep 2
+        sleep 5
+        # 如果还没停止，强制杀掉
         if ps -p "$PID" > /dev/null 2>&1; then
-            echo "[$(date)] Process $PID still running, force kill..."
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] 进程未停止，强制执行 kill -9..."
             kill -9 "$PID" 2>/dev/null || true
         fi
     fi
     rm -f "$PID_FILE"
 fi
 
-# 启动新进程（classpath:application.yml 为基础，外部application-prod.yml覆盖）
-echo "[$(date)] Starting $MAIN_CLASS on port $PORT with profile: $PROFILE ..."
-nohup java -Dfile.encoding=UTF-8 -cp "$JAR_FILE:$LIB_DIR/*" "$MAIN_CLASS" \
+# 启动新进程
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] 正在启动 $APP_NAME..."
+echo "端口: $PORT | Profile: $PROFILE"
+echo "内存配置: Xmx=1024m"
+
+cd "$BASE_DIR" || exit
+
+nohup java $JAVA_OPTS -cp "$JAR_FILE:$LIB_DIR/*" "$MAIN_CLASS" \
     --server.port="$PORT" \
     --spring.profiles.active="$PROFILE" \
-    --spring.config.location="classpath:/,file:/opt/quiz/" \
+    --spring.config.location="classpath:/,file:$CONFIG_DIR" \
     >> "$LOG_FILE" 2>&1 &
 
-# 写入 PID 文件
-echo $! > "$PID_FILE"
+# 保存 PID
+NEW_PID=$!
+echo $NEW_PID > "$PID_FILE"
 
-echo "[$(date)] $APP_NAME started in background. PID: $(cat $PID_FILE)"
-echo "Log file: $LOG_FILE"
-echo "Config file: $CONFIG_FILE"
-echo "Profile: $PROFILE"
-
-
+# 验证是否启动成功
+sleep 2
+if ps -p $NEW_PID > /dev/null 2>&1; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] 启动成功！PID:
