@@ -4,8 +4,7 @@
 # 启动 quiz 应用（2G内存优化版）
 # ============================================================
 
-# 1. 环境变量设置（确保 crontab 重启时能找到 java）
-# 如果 which java 的路径不是 /usr/bin/java，请修改下行
+# 1. 环境变量设置
 export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
 
 # 2. 基础路径配置
@@ -23,10 +22,7 @@ LOG_DIR="$BASE_DIR/logs"
 LOG_FILE="$LOG_DIR/${APP_NAME}.log"
 PID_FILE="/var/run/${APP_NAME}.pid"
 
-# 4. JVM 内存优化参数 (针对 2G 物理内存)
-# -Xms/Xmx: 限制堆内存为 1GB
-# -XX:MaxMetaspaceSize: 限制元空间为 256MB
-# -XX:+HeapDumpOnOutOfMemoryError: OOM时自动生成dump文件用于分析
+# 4. JVM 内存优化参数
 JAVA_OPTS="-Xms1024m -Xmx1024m \
 -XX:MetaspaceSize=128m \
 -XX:MaxMetaspaceSize=256m \
@@ -47,7 +43,6 @@ if [ -f "$PID_FILE" ]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] 正在停止旧进程 PID: $PID..."
         kill "$PID" 2>/dev/null || true
         sleep 5
-        # 如果还没停止，强制杀掉
         if ps -p "$PID" > /dev/null 2>&1; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] 进程未停止，强制执行 kill -9..."
             kill -9 "$PID" 2>/dev/null || true
@@ -63,6 +58,7 @@ echo "内存配置: Xmx=1024m"
 
 cd "$BASE_DIR" || exit
 
+# 启动命令
 nohup java $JAVA_OPTS -cp "$JAR_FILE:$LIB_DIR/*" "$MAIN_CLASS" \
     --server.port="$PORT" \
     --spring.profiles.active="$PROFILE" \
@@ -73,7 +69,11 @@ nohup java $JAVA_OPTS -cp "$JAR_FILE:$LIB_DIR/*" "$MAIN_CLASS" \
 NEW_PID=$!
 echo $NEW_PID > "$PID_FILE"
 
-# 验证是否启动成功
+# 验证是否启动成功 (修复后的部分)
 sleep 2
 if ps -p $NEW_PID > /dev/null 2>&1; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] 启动成功！PID:
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] 启动成功！PID: $NEW_PID"
+else
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] 启动失败，请检查日志: $LOG_FILE"
+    exit 1
+fi
