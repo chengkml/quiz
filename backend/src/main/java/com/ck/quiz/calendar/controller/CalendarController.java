@@ -15,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Tag(name = "日程管理", description = "日程事件的创建、更新、删除、查询等接口")
 @RestController
@@ -28,14 +27,9 @@ public class CalendarController extends
 
     @Operation(summary = "流式生成日程（SSE）", description = "根据日程描述调用大模型流式生成日程信息")
     @GetMapping(path = "/generate/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<SseEmitter> streamGenerateEvent(
+    public reactor.core.publisher.Flux<String> streamGenerateEvent(
             @Parameter(description = "日程描述") @RequestParam("descr") String descr) {
-        SseEmitter emitter = calendarEventService.streamGenerateEvent(descr);
-        return ResponseEntity.ok()
-                .header("X-Accel-Buffering", "no")
-                .header("Cache-Control", "no-cache")
-                .header("Connection", "keep-alive")
-                .body(emitter);
+        return calendarEventService.streamGenerateEvent(descr);
     }
 
     @Operation(summary = "完成日程", description = "根据日程ID标记日程为完成")

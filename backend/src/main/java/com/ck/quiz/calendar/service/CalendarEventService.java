@@ -6,11 +6,12 @@ import com.ck.quiz.calendar.dto.CalendarEventDto;
 import com.ck.quiz.calendar.dto.CalendarEventQueryDto;
 import com.ck.quiz.calendar.dto.CalendarEventUpdateDto;
 import com.ck.quiz.calendar.entity.CalendarEvent;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
 
-public interface CalendarEventService extends BaseService<CalendarEventCreateDto, CalendarEventUpdateDto, CalendarEventQueryDto, CalendarEventDto, CalendarEvent> {
+public interface CalendarEventService extends
+        BaseService<CalendarEventCreateDto, CalendarEventUpdateDto, CalendarEventQueryDto, CalendarEventDto, CalendarEvent> {
 
-    SseEmitter streamGenerateEvent(String descr);
+    Flux<String> streamGenerateEvent(String descr);
 
     CalendarEventDto complete(String userId, String eventId);
 }

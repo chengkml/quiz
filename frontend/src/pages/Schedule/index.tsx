@@ -267,6 +267,11 @@ function ScheduleManager() {
             es.onmessage = (event) => {
                 const data = event.data;
 
+                // 跳过初始连接消息
+                if (data === 'connected') {
+                    return;
+                }
+
                 if (!isParsingResult) {
                     if (data.includes('[PARSE_RESULT]')) {
                         isParsingResult = true;
