@@ -8,10 +8,41 @@
         overflow: auto;
         position: relative;
         user-select: none;
+        background-color: #f8f9fa;
+        background-image:
+            radial-gradient(#e5e7eb 1px, transparent 1px);
+        background-size: 20px 20px;
+        border-radius: 0 0 12px 12px;
     }
 
     /* Mind Elixir styles adjustments for viewer */
     .mind-elixir-container {
         height: 100% !important;
+    }
+
+    /* 节点样式 - 改为长方形 */
+    :global(.mind-elixir) {
+        tpc {
+            border-radius: 6px !important;
+            padding: 8px 18px !important;
+            min-width: 100px !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
+            border: 1px solid rgba(0, 0, 0, 0.05) !important;
+        }
+
+        /* 隐藏展开/收起按钮 */
+        me-ep {
+            display: none !important;
+        }
+
+        /* 根节点样式 */
+        me-root me-tpc {
+            background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%) !important;
+            color: #fff !important;
+            border-radius: 8px !important;
+            padding: 12px 24px !important;
+            font-weight: 600 !important;
+            box-shadow: 0 6px 16px rgba(22, 119, 255, 0.25) !important;
+        }
     }
 }

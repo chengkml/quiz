@@ -44,10 +44,48 @@ const MermaidViewer: React.FC<MermaidViewerProps> = ({ code }) => {
   }, [code]);
 
   return (
-    <div style={{ padding: 20, textAlign: 'center', minHeight: 200, overflow: 'auto' }}>
-       {loading && <Spin />}
-       {error && <div style={{color: 'red'}}>{error}</div>}
-       <div ref={containerRef} />
+    <div className="mermaid-viewer-wrapper" style={{ 
+      padding: '24px', 
+      textAlign: 'center', 
+      minHeight: '300px', 
+      overflow: 'auto',
+      background: '#f8f9fa',
+      backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
+      backgroundSize: '20px 20px',
+      borderRadius: '12px',
+      border: '1px solid #f0f0f0',
+      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative'
+    }}>
+       {loading && (
+         <div style={{ position: 'absolute', zIndex: 10 }}>
+           <Spin size={32} tip="正在渲染流程图..." />
+         </div>
+       )}
+       {error && (
+         <div style={{ 
+           color: '#f53f3f', 
+           background: '#fff2f0', 
+           padding: '12px 20px', 
+           borderRadius: '8px',
+           border: '1px solid #ffccc7',
+           fontSize: '14px'
+         }}>
+           <strong>渲染失败:</strong> {error}
+         </div>
+       )}
+       <div 
+         ref={containerRef} 
+         style={{ 
+           maxWidth: '100%', 
+           opacity: loading ? 0.3 : 1,
+           transition: 'opacity 0.3s ease'
+         }} 
+       />
     </div>
   );
 };
