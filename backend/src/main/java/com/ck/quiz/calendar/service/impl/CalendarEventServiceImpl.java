@@ -155,8 +155,6 @@ public class CalendarEventServiceImpl
     public Flux<String> streamGenerateEvent(String descr) {
         return Flux.create(sink -> {
             try {
-                // 发送初始连接消息
-                sink.next("connected");
 
                 ObjectMapper objectMapper = new ObjectMapper();
                 objectMapper.findAndRegisterModules();
