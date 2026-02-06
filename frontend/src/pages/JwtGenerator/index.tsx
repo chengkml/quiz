@@ -139,7 +139,7 @@ const JwtGeneratorPage: React.FC = () => {
 
                     {!loading && !token && (
                         <div className="empty-state">
-                            <IconKey className="empty-icon" />
+                            <IconInfo className="empty-icon" />
                             <div className="empty-text">输入用户 ID 并点击生成按钮获取 JWT Token</div>
                         </div>
                     )}
