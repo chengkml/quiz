@@ -55,3 +55,7 @@ quiz:
       bucket: mybucket
       endpoint: http://localhost:9000
       base-path:
+
+springdoc:
+  api-docs:
+    path: /api/v3/api-docs
