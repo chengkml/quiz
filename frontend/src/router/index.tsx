@@ -64,6 +64,7 @@ import PersonalKnowledge from "@/pages/PersonalKnowledge";
 import DataQuery from "@/pages/DataQuery";
 import JwtGenerator from "@/pages/JwtGenerator";
 import ApiTester from "@/pages/ApiTester";
+import TagManager from "@/pages/Tag";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -328,6 +329,11 @@ const protectedPages = [
     path: "api-tester",
     element: <ApiTester />,
     requiredPath: "api-tester",
+  },
+  {
+    path: "tag",
+    element: <TagManager />,
+    requiredPath: "tag",
   },
 ];
 
