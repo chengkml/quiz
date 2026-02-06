@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Card, Input, Message, Spin } from '@arco-design/web-react';
-import { IconCopy, IconKey, IconInfo } from '@arco-design/web-react/icon';
+import { IconCopy, IconInfo } from '@arco-design/web-react/icon';
 import { generateJwt } from './api';
 import './index.less';
 
@@ -64,7 +64,7 @@ const JwtGeneratorPage: React.FC = () => {
                     className="jwt-card"
                     title={
                         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <IconKey style={{ fontSize: 18 }} />
+                            <IconInfo style={{ fontSize: 18 }} />
                             JWT Token 生成器
                         </span>
                     }
