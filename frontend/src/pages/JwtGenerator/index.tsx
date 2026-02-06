@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Card, Input, Message, Spin } from '@arco-design/web-react';
-import { IconCopy, IconKey, IconInfoCircle } from '@arco-design/web-react/icon';
+import { IconCopy, IconKey, IconInfo } from '@arco-design/web-react/icon';
 import { generateJwt } from './api';
 import './index.less';
 
@@ -117,7 +117,7 @@ const JwtGeneratorPage: React.FC = () => {
 
                             <div className="usage-section">
                                 <div className="usage-title">
-                                    <IconInfoCircle />
+                                    <IconInfo />
                                     使用方法
                                 </div>
                                 <div className="usage-code">
