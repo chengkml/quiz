@@ -62,6 +62,7 @@ import CanvasEditor from "@/pages/Orchestration/CanvasEditor";
 import PasswordManager from "@/pages/PasswordManager";
 import PersonalKnowledge from "@/pages/PersonalKnowledge";
 import DataQuery from "@/pages/DataQuery";
+import JwtGenerator from "@/pages/JwtGenerator";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -316,6 +317,11 @@ const protectedPages = [
     path: "data-query",
     element: <DataQuery />,
     requiredPath: "data-query",
+  },
+  {
+    path: "jwt-generator",
+    element: <JwtGenerator />,
+    requiredPath: "jwt-generator",
   },
 ];
 
