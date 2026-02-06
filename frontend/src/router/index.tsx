@@ -63,6 +63,7 @@ import PasswordManager from "@/pages/PasswordManager";
 import PersonalKnowledge from "@/pages/PersonalKnowledge";
 import DataQuery from "@/pages/DataQuery";
 import JwtGenerator from "@/pages/JwtGenerator";
+import ApiTester from "@/pages/ApiTester";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -322,6 +323,11 @@ const protectedPages = [
     path: "jwt-generator",
     element: <JwtGenerator />,
     requiredPath: "jwt-generator",
+  },
+  {
+    path: "api-tester",
+    element: <ApiTester />,
+    requiredPath: "api-tester",
   },
 ];
 
