@@ -15,6 +15,7 @@ import {
     Tooltip,
     Switch,
     InputNumber,
+    AutoComplete,
 } from '@arco-design/web-react';
 import {
     IconCopy,
@@ -99,6 +100,85 @@ const ApiTesterPage: React.FC = () => {
             }
         }
     }, [autoAddAuth]);
+
+    interface ApiEndpoint {
+        path: string;
+        method: string;
+        summary: string;
+        tag: string;
+    }
+
+    const [endpoints, setEndpoints] = useState<ApiEndpoint[]>([]);
+    const [endpointsLoading, setEndpointsLoading] = useState(false);
+
+    // 获取 Swagger 端点
+    const fetchSwaggerEndpoints = async () => {
+        setEndpointsLoading(true);
+        try {
+            // 尝试获取 Swagger 文档，不同环境可能路径不同
+            // 后端 context-path 为 /quiz，但前端代理可能已经处理了
+            // 尝试几个常见的路径
+            const paths = ['/v3/api-docs', '/api/v3/api-docs', '/quiz/v3/api-docs'];
+            let data: any = null;
+
+            for (const path of paths) {
+                try {
+                    const res = await fetch(path);
+                    if (res.ok) {
+                        data = await res.json();
+                        break;
+                    }
+                } catch (e) {
+                    console.warn(`Failed to fetch swagger from ${path}`, e);
+                }
+            }
+
+            if (!data) {
+                // 如果后端没有配置跨域或路径不匹配，尝试通过代理的前缀
+                // 这里假设是开发环境，通过 /api 代理转发
+                try {
+                    const res = await fetch('/api/v3/api-docs');
+                     if (res.ok) {
+                        data = await res.json();
+                    }
+                } catch (e) {
+                     // ignore
+                }
+            }
+
+            if (data && data.paths) {
+                const parsed: ApiEndpoint[] = [];
+                
+                for (const [path, methods] of Object.entries(data.paths)) {
+                    for (const [method, info] of Object.entries(methods as any)) {
+                        if (['get', 'post', 'put', 'delete', 'patch'].includes(method.toLowerCase())) {
+                            const apiInfo = info as any;
+                            parsed.push({
+                                path,
+                                method: method.toUpperCase(),
+                                summary: apiInfo.summary || apiInfo.operationId || path,
+                                tag: apiInfo.tags?.[0] || '其他',
+                            });
+                        }
+                    }
+                }
+                // 按 URL 排序
+                parsed.sort((a, b) => a.path.localeCompare(b.path));
+                setEndpoints(parsed);
+                // Message.success(`成功加载 ${parsed.length} 个 API 端点`);
+            }
+        } catch (error) {
+            console.error('获取接口列表失败', error);
+            // Message.error('获取接口列表失败');
+        } finally {
+            setEndpointsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchSwaggerEndpoints();
+    }, []);
+
 
     // 构建完整 URL（含查询参数）
     const buildFullUrl = (): string => {
@@ -431,14 +511,63 @@ const ApiTesterPage: React.FC = () => {
                                 </Option>
                             ))}
                         </Select>
-                        <Input
-                            className="url-input"
-                            placeholder="输入请求 URL, 例如: https://api.example.com/users"
-                            value={url}
-                            onChange={setUrl}
-                            onPressEnter={handleSend}
-                        />
+                        
+                        <div style={{ flex: 1, position: 'relative' }}>
+                            <AutoComplete
+                                placeholder="输入或选择 API 端点"
+                                value={url}
+                                onChange={setUrl}
+                                onSelect={(val, option) => {
+                                    setUrl(val);
+                                    if (option.extra && option.extra.method) {
+                                        setMethod(option.extra.method);
+                                    }
+                                }}
+                                onPressEnter={handleSend}
+                                data={endpoints.map(ep => ({
+                                    value: `${ep.path}`,
+                                    name: `[${ep.tag}] ${ep.summary}`,
+                                    label: (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <span>
+                                                <Tag color={METHOD_COLORS[ep.method] || 'gray'} size="small" style={{ marginRight: 8, width: 60, textAlign: 'center' }}>
+                                                    {ep.method}
+                                                </Tag>
+                                                <Typography.Text type="secondary" style={{ marginRight: 8 }}>
+                                                    {ep.path}
+                                                </Typography.Text>
+                                                <span>{ep.summary}</span>
+                                            </span>
+                                            <Tag size="small">{ep.tag}</Tag>
+                                        </div>
+                                    ),
+                                    extra: ep
+                                }))}
+                                triggerElement={<Input className="url-input" />}
+                                style={{ width: '100%' }}
+                                allowClear
+                            />
+                            {endpoints.length === 0 && (
+                                <Button 
+                                    type="text" 
+                                    size="mini"
+                                    loading={endpointsLoading}
+                                    icon={<IconRefresh />} 
+                                    onClick={fetchSwaggerEndpoints}
+                                    style={{ position: 'absolute', right: 30, top: 4, zIndex: 2 }}
+                                />
+                            )}
+                        </div>
+
                         <Space>
+                            <Tooltip content="刷新 API 列表">
+                                <Button
+                                    type="secondary"
+                                    icon={<IconRefresh />}
+                                    loading={endpointsLoading}
+                                    onClick={fetchSwaggerEndpoints}
+                                />
+                            </Tooltip>
                             <Tooltip content="复制 cURL 命令">
                                 <Button
                                     type="outline"
