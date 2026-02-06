@@ -19,11 +19,12 @@ const JwtGeneratorPage: React.FC = () => {
         setLoading(true);
         try {
             const res = await generateJwt(userId.trim());
-            if (res.data?.data) {
-                setToken(res.data.data);
+            // 后端直接返回 token 字符串，res.data 即为 token
+            if (res.data) {
+                setToken(res.data);
                 Message.success('Token 生成成功');
             } else {
-                Message.error(res.data?.message || 'Token 生成失败');
+                Message.error('Token 生成失败');
             }
         } catch (error: any) {
             Message.error(error.message || 'Token 生成失败');
