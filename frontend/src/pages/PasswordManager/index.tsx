@@ -20,7 +20,7 @@ import {
 } from "@arco-design/web-react/icon";
 import { DataManager, AddEditModal } from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
-import GroupTree from "../MindMap/components/GroupTree";
+
 import { FormFieldConfig } from "@/components/types/types";
 import renderDate from "@/utils/timeUtil";
 import {
@@ -32,6 +32,7 @@ import {
   sendSalt,
   PasswordDto,
 } from "./api";
+import { getGroupList } from "../Group/api";
 import "./style/index.less";
 import copy from "copy-to-clipboard";
 
@@ -51,7 +52,7 @@ const PasswordManager: React.FC = () => {
     keyWord: "",
     category: "",
   });
-  const [selectedGroupKeys, setSelectedGroupKeys] = useState<string[]>([]);
+
 
   // Modal states
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -63,6 +64,24 @@ const PasswordManager: React.FC = () => {
   const [verifyCode, setVerifyCode] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [verifyPendingRecord, setVerifyPendingRecord] = useState<PasswordDto | null>(null);
+
+  // Group options for select dropdown
+  const [groupOptions, setGroupOptions] = useState<{ label: string; value: string }[]>([]);
+
+  // Fetch group list for dropdown
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const res = await getGroupList({ type: 'password', pageSize: 1000 });
+        const list = res.data?.content || [];
+        const options = list.map((g: any) => ({ label: g.name, value: g.name }));
+        setGroupOptions(options);
+      } catch (e) {
+        console.error("Failed to load group list", e);
+      }
+    };
+    fetchGroups();
+  }, []);
 
   // Forms
   const editFormRef = useRef<any>(null);
@@ -76,20 +95,6 @@ const PasswordManager: React.FC = () => {
         pageNum: pagination.current - 1,
         pageSize: pagination.pageSize,
       };
-      // If group selected, use it (assuming single selection or first one for simple category filter)
-      // The backend expects 'category' string for exact match if we follow simple pattern, 
-      // or we update backend to support list. 
-      // Based on existing code, `category` is a single string field.
-      // GroupTree returns array of keys (names).
-      if (selectedGroupKeys.length > 0 && !selectedGroupKeys.includes('all')) {
-          targetParams.category = selectedGroupKeys[0];
-      } else {
-        // If 'all' or empty, and user didn't manually type category in search filter
-         // (Keep searchParams.category if set by manual filter, or strictly follow tree)
-         // Usually tree selection overrides manual category filter or vice versa.
-         // Let's assume tree sets category.
-         if(selectedGroupKeys.includes('all')) targetParams.category = "";
-      }
 
       const res = await searchPassword(targetParams);
       const data = res.data;
@@ -107,7 +112,7 @@ const PasswordManager: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [pagination.current, pagination.pageSize, searchParams, selectedGroupKeys]);
+  }, [pagination.current, pagination.pageSize, searchParams]);
 
   // Actions
   const handleSearch = (values: any) => {
@@ -198,10 +203,6 @@ const PasswordManager: React.FC = () => {
   const handleSave = async (values: any) => {
       try {
           const payload = { ...values };
-          // If group selected and creating new, default category to selected group
-          if (!payload.category && selectedGroupKeys.length > 0 && !selectedGroupKeys.includes('all')) {
-              payload.category = selectedGroupKeys[0];
-          }
 
           if (currentRecord) {
               await updatePassword({ ...payload, id: currentRecord.id });
@@ -325,7 +326,10 @@ const PasswordManager: React.FC = () => {
       {
           field: "category",
           label: "分组",
-          type: "input"
+          type: "select",
+          options: groupOptions,
+          placeholder: "请选择分组",
+          allowClear: true
       },
       {
           field: "remark",
@@ -350,18 +354,7 @@ const PasswordManager: React.FC = () => {
         config={{
             displayMode: "table",
             filterContent,
-            tableColumns: columns,
-            showTree: true,
-            treeContent: (
-                <GroupTree
-                    type="password"
-                    selectedKeys={selectedGroupKeys}
-                    onSelect={(keys) => {
-                        if (keys.includes('all')) setSelectedGroupKeys([]);
-                        else setSelectedGroupKeys(keys);
-                    }}
-                />
-            )
+            tableColumns: columns
         }}
       />
       

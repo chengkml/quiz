@@ -3,7 +3,11 @@ name: 全栈开发专家
 description: 整合前后端开发与Git版本控制的全能开发助手，提供端到端的开发流程指导
 ---
 
-此技能为本项目独有的全栈开发工作流，整合了 React (Arco Design) 前端、Java (Spring Boot) 后端及 Git 协作的最佳实践。
+此技能为本项目独有的全栈开发工作流，整合了前端、后端及 Git 协作的最佳实践。
+
+> **注意**：具体的前后端开发规范已拆分为独立 Skill，请按需参考：
+> - **后端开发**：`.agent/skills/backend_dev/SKILL.md`
+> - **前端开发**：`.agent/skills/frontend_dev/SKILL.md`
 
 ## 开发工作流 (Standard Workflow)
 
@@ -27,18 +31,20 @@ description: 整合前后端开发与Git版本控制的全能开发助手，提�
 
 ### 阶段 2：后端开发 (Backend First)
 如果设计文档包含后端变更，**必须**先完成后端开发。
-1.  **代码修改**：
+1.  **参考规范**：
+    *   **务必**阅读 **[后端开发助手]** Skill (`.agent/skills/backend_dev/SKILL.md`)。
+2.  **代码修改**：
     *   根据设计文档的 *后端设计* 章节，创建 Entity、Repository、Service 和 Controller。
     *   文件路径通常在 `d:\idea_repo\quiz\backend\src\main\java\...\`
-2.  **编译检查**：
+3.  **编译检查**：
     *   修改完成后，**务必**运行 **[Java 编译与自动修复]** Skill (`.agent/skills/java_compile_check/SKILL.md`)。
     *   确保后端编译通过 (`BUILD SUCCESSFUL`) 后再进行下一步。
 
 ### 阶段 3：前端开发 (Frontend Implementation)
 后端接口准备就绪后，进行前端界面开发。
 1.  **参考规范**：
-    *   **务必**阅读 **[Arco Design 开发助手]** Skill (`.agent/skills/arco_design_dev/SKILL.md`)。
-    *   特别是列表页，请使用 `DataManager` 组件，而非手写 Table。
+    *   **务必**阅读 **[前端开发助手]** Skill (`.agent/skills/frontend_dev/SKILL.md`)。
+    *   列表页请使用 `DataManager` 组件，而非手写 Table。
 2.  **代码修改**：
     *   根据设计文档的 *前端设计* 章节，定义 API 和 React 组件。
     *   API 定义位置: `src/pages/.../api`
