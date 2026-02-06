@@ -67,8 +67,9 @@ frontend/src/
    - **表单**：使用 `AddEditModal` 或 `FilterForm`
    
    ```tsx
-   import { DataManager, AddEditModal } from '@/components/DataManager';
+   import DataManager from '@/components/DataManager';
    import FilterForm from '@/components/FilterForm';
+   import './style/index.less';
    
    const XxxPage: React.FC = () => {
        // 状态定义
@@ -76,22 +77,36 @@ frontend/src/
        // 操作处理函数
        
        return (
-           <DataManager
-               data={data}
-               loading={loading}
-               pagination={pagination}
-               config={{
-                   displayMode: 'table',
-                   tableColumns: columns,
-                   filterContent: <FilterForm ... />
-               }}
-               actions={{ onAdd, onEdit, onDelete }}
-           />
+           <div className="xxx-manager">
+               <DataManager
+                   data={data}
+                   loading={loading}
+                   pagination={pagination}
+                   config={{
+                       displayMode: 'table',
+                       tableColumns: columns,
+                       filterContent: <FilterForm ... />
+                   }}
+                   actions={{ onAdd, onEdit, onDelete }}
+               />
+           </div>
        );
    };
    ```
 
-4. **添加路由** (`router/index.tsx`)
+4. **页面样式规范** (`style/index.less`)
+   
+   > **重要**：使用 `DataManager` 组件的页面，样式以 DataManager 为主，页面容器只需设置 `height: 100%`。
+   
+   ```less
+   .xxx-manager {
+     height: 100%;
+   }
+   ```
+   
+   参考实现：[Todo 页面样式](file:///d:/idea_repo/quiz/frontend/src/pages/Todo/style/index.less)
+
+5. **添加路由** (`router/index.tsx`)
    ```tsx
    import XxxPage from '@/pages/XxxModule';
    
