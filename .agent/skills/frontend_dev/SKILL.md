@@ -40,8 +40,11 @@ frontend/src/
    ```
 
 2. **定义 API** (`api/index.ts`)
+   
+   > **注意**：`@/core/src/http` 的 baseURL 已包含 `/api` 前缀，因此 API 路径不需要再加 `/api`，例如使用 `/xxx/search` 而非 `/api/xxx/search`。
+   
    ```typescript
-   import axios from '@/utils/request';
+   import axios from '@/core/src/http';
    
    export interface XxxDto {
        id: number;

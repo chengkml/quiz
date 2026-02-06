@@ -6,4 +6,4 @@ import axios from '@/core/src/http';
  * @returns JWT Token 字符串
  */
 export const generateJwt = (userId: string) =>
-    axios.post('/api/jwt/generate', null, { params: { userId } });
+    axios.post('/jwt/generate', null, { params: { userId } });
