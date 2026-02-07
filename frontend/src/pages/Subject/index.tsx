@@ -18,6 +18,7 @@ import {
   updateSubject,
   checkSubjectName
 } from './api';
+import renderDate from '@/utils/timeUtil';
 import {
   IconDelete,
   IconEdit,
@@ -78,25 +79,9 @@ function SubjectManager() {
   }, [pagination.current, pagination.pageSize]);
 
   // 时间格式化
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderTimeText = (value) => {
-    if (!value) return '--';
-    const now = new Date();
-    const date = new Date(value);
-    const diffMs = now.getTime() - date.getTime();
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffDays === 0) {
-      if (diffSeconds < 60) return `${diffSeconds}秒前`;
-      if (diffMinutes < 60) return `${diffMinutes}分钟前`;
-      return `${diffHours}小时前`;
-    } else if (diffDays === 1) {
-      return `昨天 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-    } else {
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    }
+    return renderDate(value);
   };
 
   // 搜索表单配置

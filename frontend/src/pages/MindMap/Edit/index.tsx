@@ -21,7 +21,8 @@ import {
     updateMindMapData,
 } from '../api/mindMapService';
 import {MindMapData, MindMapDto} from '../types';
-import { Input, Modal } from '@arco-design/web-react';
+import { Input, Modal, Select } from '@arco-design/web-react';
+import { getLLMModelsByType } from '@/services/llmModelService';
 
 const { Content } = Layout;
 
@@ -54,6 +55,9 @@ const MindMapEditPage: React.FC<MindMapEditPageProps> = (props) => {
     const [aiLoading, setAiLoading] = useState(false);
     const [aiStreamContent, setAiStreamContent] = useState("");
     const aiEventSourceRef = useRef<EventSource | null>(null);
+    const [models, setModels] = useState<any[]>([]);
+    const [modelsLoading, setModelsLoading] = useState(false);
+    const [currentModel, setCurrentModel] = useState('');
 
     // 代码查看状态
     const [codeModalVisible, setCodeModalVisible] = useState(false);
@@ -157,6 +161,37 @@ const MindMapEditPage: React.FC<MindMapEditPageProps> = (props) => {
             isMounted = false;
         };
     }, [id, doInitMindMap]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadModels = async () => {
+            setModelsLoading(true);
+            try {
+                const res = await getLLMModelsByType('TEXT');
+                if (!isMounted) return;
+                if (res.data && Array.isArray(res.data)) {
+                    setModels(res.data);
+                    const defaultModel = res.data.find((m: any) => m.isDefault === '1' || m.isDefault === 1);
+                    if (defaultModel) setCurrentModel(defaultModel.name);
+                    else if (res.data.length > 0) setCurrentModel(res.data[0].name);
+                }
+            } catch (error) {
+                if (isMounted) {
+                    console.error('获取模型列表失败:', error);
+                    Message.error('获取模型列表失败');
+                }
+            } finally {
+                if (isMounted) setModelsLoading(false);
+            }
+        };
+
+        loadModels();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     /** 组件挂载状态管理 */
     useLayoutEffect(() => {
@@ -329,7 +364,9 @@ const MindMapEditPage: React.FC<MindMapEditPageProps> = (props) => {
             aiEventSourceRef.current.close();
         }
 
-        const url = `/api/mindmap/generate/stream?descr=${encodeURIComponent(aiPrompt)}`;
+        const qs = [`descr=${encodeURIComponent(aiPrompt)}`];
+        if (currentModel) qs.push(`modelName=${encodeURIComponent(currentModel)}`);
+        const url = `/api/mindmap/generate/stream?${qs.join('&')}`;
         /**
          * 注意：通常 SSE 不支持自定义 Header（如 Token），
          * 这里假设后端采用了 Cookie 认证或 Params 认证，
@@ -674,6 +711,21 @@ const MindMapEditPage: React.FC<MindMapEditPageProps> = (props) => {
                     maskClosable={!aiLoading}
                 >
                     <div style={{ marginBottom: 10 }}>
+                        <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontWeight: 'bold' }}>模型:</span>
+                            <Select
+                                placeholder="选择模型"
+                                style={{ minWidth: 220 }}
+                                loading={modelsLoading}
+                                value={currentModel || undefined}
+                                allowClear
+                                onChange={(value) => setCurrentModel(value)}
+                                options={models.map((model: any) => ({
+                                    label: model.name,
+                                    value: model.name,
+                                }))}
+                            />
+                        </div>
                         <span style={{ fontWeight: 'bold' }}>描述您的需求:</span>
                         <Input.TextArea 
                             placeholder="例如：生成一份关于Java集合框架的思维导图，包含List, Set, Map等..." 

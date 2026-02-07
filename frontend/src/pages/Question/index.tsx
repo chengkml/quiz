@@ -242,10 +242,6 @@ function QuestionManager() {
                             }}
                             className="handle-dropdown-menu"
                         >
-                            <Menu.Item key="detail">
-                                <IconEye style={{marginRight: '5px'}}/>
-                                详情
-                            </Menu.Item>
                             <Menu.Item key="edit">
                                 <IconEdit style={{marginRight: '5px'}}/>
                                 编辑

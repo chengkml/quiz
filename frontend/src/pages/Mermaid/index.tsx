@@ -26,6 +26,7 @@ import {
 } from "@arco-design/web-react/icon";
 import mermaid from "mermaid";
 import "./index.less";
+import { getLLMModelsByType } from '@/services/llmModelService';
 
 const { Row, Col } = Grid;
 const { Content } = Layout;
@@ -142,6 +143,9 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
   const [inputPrompt, setInputPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [models, setModels] = useState<any[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [currentModel, setCurrentModel] = useState('');
 
   const [diagramId, setDiagramId] = useState<string>("");
   const navigate = useNavigate();
@@ -175,6 +179,37 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
       securityLevel: "loose",
       fontFamily: "Arial, sans-serif",
     });
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadModels = async () => {
+      setModelsLoading(true);
+      try {
+        const res = await getLLMModelsByType('TEXT');
+        if (!isMounted) return;
+        if (res.data && Array.isArray(res.data)) {
+          setModels(res.data);
+          const defaultModel = res.data.find((m: any) => m.isDefault === '1' || m.isDefault === 1);
+          if (defaultModel) setCurrentModel(defaultModel.name);
+          else if (res.data.length > 0) setCurrentModel(res.data[0].name);
+        }
+      } catch (e) {
+        if (isMounted) {
+          console.error('获取模型列表失败:', e);
+          Message.error('获取模型列表失败');
+        }
+      } finally {
+        if (isMounted) setModelsLoading(false);
+      }
+    };
+
+    loadModels();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -275,7 +310,7 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
             body: JSON.stringify({
                 messages: newMessages,
                 diagramData: code, // Send current code as context
-                modelName: null
+              modelName: currentModel || undefined
             })
         });
 
@@ -401,17 +436,29 @@ const MermaidEditor: React.FC<MermaidEditorProps> = ({
                           }}
                           disabled={isGenerating}
                       />
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, gap: 8 }}>
+                          <Select
+                            placeholder="选择模型"
+                            style={{ minWidth: 200 }}
+                            loading={modelsLoading}
+                            value={currentModel || undefined}
+                            allowClear
+                            onChange={(value) => setCurrentModel(value)}
+                            options={models.map((model: any) => ({
+                              label: model.name,
+                              value: model.name,
+                            }))}
+                          />
                           <Button 
-                              type="primary" 
-                              size="small" 
-                              icon={<IconSend />} 
-                              loading={isGenerating}
-                              onClick={handleSendMessage}
+                            type="primary" 
+                            size="small" 
+                            icon={<IconSend />} 
+                            loading={isGenerating}
+                            onClick={handleSendMessage}
                           >
-                              发送
+                            发送
                           </Button>
-                      </div>
+                        </div>
                   </div>
               </div>
             </Col>

@@ -37,8 +37,10 @@ const getCategoriesBySubjectId = (subjectId) => axios.get(`/categories/subject/$
 const getKnowledgeQuestions = knowledgeId => axios.get(`/knowledge/${knowledgeId}/questions`);
 
 // 流式润色知识点URL
-const streamPolishKnowledgeUrl = (content) => {
-    return `/api/knowledge/polish/stream?content=${encodeURIComponent(content)}`;
+const streamPolishKnowledgeUrl = (content, modelName?: string) => {
+  const qs = [`content=${encodeURIComponent(content)}`];
+  if (modelName) qs.push(`modelName=${encodeURIComponent(modelName)}`);
+  return `/api/knowledge/polish/stream?${qs.join('&')}`;
 };
 
 export {

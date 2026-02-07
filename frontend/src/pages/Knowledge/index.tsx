@@ -28,9 +28,11 @@ import {
     getSubjectCategoryTree,
 } from './api';
 import { DataManager } from '../../components/DataManager';
+import renderDate from '@/utils/timeUtil';
 import { IconDelete, IconEdit, IconList, IconPlus } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import { CKEditor } from 'ckeditor4-react';
+import { getLLMModelsByType } from '@/services/llmModelService';
 
 declare const __APP_BASE_PATH__: string;
 
@@ -133,44 +135,7 @@ function KnowledgeManager() {
             title: '创建时间',
             dataIndex: 'createDate',
             width: 170,
-            render: (value) => {
-                if (!value) return '--';
-
-                const now = new Date();
-                const date = new Date(value);
-                const diffMs = now.getTime() - date.getTime();
-                const diffSeconds = Math.floor(diffMs / 1000);
-                const diffMinutes = Math.floor(diffSeconds / 60);
-                const diffHours = Math.floor(diffMinutes / 60);
-                const diffDays = Math.floor(diffHours / 24);
-
-                // 今天
-                if (diffDays === 0) {
-                    if (diffSeconds < 60) {
-                        return `${diffSeconds}秒前`;
-                    } else if (diffMinutes < 60) {
-                        return `${diffMinutes}分钟前`;
-                    } else {
-                        return `${diffHours}小时前`;
-                    }
-                }
-                // 昨天
-                else if (diffDays === 1) {
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    return `昨天 ${hours}:${minutes}`;
-                }
-                // 昨天之前
-                else {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const seconds = String(date.getSeconds()).padStart(2, '0');
-                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-                }
-            },
+            render: (value) => renderDate(value),
         },
         {
             title: '操作',
@@ -294,6 +259,9 @@ function KnowledgeManager() {
     const [polishLoading, setPolishLoading] = useState(false);
     const polishEventSourceRef = useRef(null);
     const [targetEditor, setTargetEditor] = useState(null);
+    const [models, setModels] = useState<any[]>([]);
+    const [modelsLoading, setModelsLoading] = useState(false);
+    const [currentModel, setCurrentModel] = useState('');
 
     // CKEditor 工具栏配置
     const editorToolbarConfig = [
@@ -358,7 +326,7 @@ function KnowledgeManager() {
             polishEventSourceRef.current.close();
         }
 
-        const url = streamPolishKnowledgeUrl(content);
+        const url = streamPolishKnowledgeUrl(content, currentModel || undefined);
         // @ts-ignore
         const es = new EventSource(url);
         polishEventSourceRef.current = es;
@@ -559,6 +527,24 @@ function KnowledgeManager() {
         }
     };
 
+    const loadModels = async () => {
+        setModelsLoading(true);
+        try {
+            const res = await getLLMModelsByType('TEXT');
+            if (res.data && Array.isArray(res.data)) {
+                setModels(res.data);
+                const defaultModel = res.data.find((m: any) => m.isDefault === '1' || m.isDefault === 1);
+                if (defaultModel) setCurrentModel(defaultModel.name);
+                else if (res.data.length > 0) setCurrentModel(res.data[0].name);
+            }
+        } catch (error) {
+            console.error('获取模型列表失败:', error);
+            Message.error('获取模型列表失败');
+        } finally {
+            setModelsLoading(false);
+        }
+    };
+
     // 处理搜索关键字变化
     const handleSearchChange = (value) => {
         setSearchKeyword(value);
@@ -619,6 +605,7 @@ function KnowledgeManager() {
         fetchTableData();
         fetchSubjects();
         fetchSubjectCategoryTree();
+        loadModels();
 
         const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
@@ -884,6 +871,21 @@ label="知识点内容"
                 cancelText="取消"
                 style={{ width: 800 }}
             >
+                <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontWeight: 600 }}>模型</span>
+                    <Select
+                        placeholder="选择模型"
+                        style={{ minWidth: 240 }}
+                        loading={modelsLoading}
+                        value={currentModel || undefined}
+                        allowClear
+                        onChange={(value) => setCurrentModel(value)}
+                        options={models.map((model: any) => ({
+                            label: model.name,
+                            value: model.name,
+                        }))}
+                    />
+                </div>
                 <div style={{ height: '400px', overflow: 'auto', border: '1px solid #e5e6eb', padding: '10px', borderRadius: '4px', position: 'relative' }}>
                     {polishContent ? (
                         <div dangerouslySetInnerHTML={{ __html: polishContent }} />

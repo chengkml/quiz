@@ -180,10 +180,6 @@ const {Row, Col} = Grid;
                                         开始考试
                                     </Menu.Item>
                                 )}
-                                <Menu.Item key="detail">
-                                    <IconEye style={{marginRight: '5px'}}/>
-                                    查看详情
-                                </Menu.Item>
                                 <Menu.Item key="questions">
                                     <IconSettings style={{marginRight: '5px'}}/>
                                     管理题目
@@ -466,6 +462,12 @@ const {Row, Col} = Grid;
                     showModeToggle: false,
                     tableColumns: columns,
                     filterContent,
+                    tableProps: {
+                        onRow: (record) => ({
+                            onClick: () => navigate(`/frame/exam/detail/${record.id}`),
+                            style: { cursor: 'pointer' }
+                        })
+                    }
                 }}
                 tableScrollHeight={tableScrollHeight}
             />

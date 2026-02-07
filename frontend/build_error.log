@@ -1,0 +1,102 @@
+yarn run v1.22.22
+$ webpack --config webpack.prod.js
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+assets by status 15.6 MiB [1m[32m[cached][39m[22m 2834 assets
+Entrypoint [1mmain[39m[22m = [1m[32m111.c81336d99c0ee8fa6754.css[39m[22m [1m[32m111.87998ee786f337e85303.js[39m[22m [1m[32mmain.314f78ee58e5d9fcd92a.css[39m[22m [1m[32mmain.8f37ff9ca1f82ac60d13.js[39m[22m 4 auxiliary assets
+orphan modules 15.2 MiB (javascript) 54.9 KiB (runtime) [1m[33m[orphan][39m[22m 3395 modules
+runtime modules 9.4 KiB 16 modules
+cacheable modules 17.4 MiB (javascript) 1.44 MiB (css/mini-extract)
+  modules by path [1m./node_modules/[39m[22m 15.2 MiB (javascript) 668 KiB (css/mini-extract)
+    javascript modules 15.2 MiB 736 modules
+    css modules 668 KiB
+      css ./node_modules/css-loader/dist/cjs.js![1m./node_modules/@arco-design/web-react/dist/css/arco.css[39m[22m 658 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
+      css ./node_modules/css-loader/dist/cjs.js![1m./node_modules/mind-elixir/dist/MindElixir.css[39m[22m 10.4 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
+  modules by path [1m./src/[39m[22m 808 KiB (css/mini-extract) 2.21 MiB (javascript)
+    modules by path [1m./src/pages/[39m[22m 84.5 KiB (css/mini-extract) 10.7 KiB (javascript) 51 modules
+    modules by path [1m./src/components/[39m[22m 19.3 KiB
+      modules by path [1m./src/components/DataManager/[39m[22m 7.93 KiB 3 modules
+      + 3 modules
+    + 4 modules
+
+[1mLOG from ./node_modules/less-loader/dist/cjs.js less-loader ./node_modules/css-loader/dist/cjs.js!./node_modules/less-loader/dist/cjs.js!./src/theme/src/index.less[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Collapse\style\index.less on line 6, column 12:[39m[22m
+<w> [1m[33m6 .icon-hover([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Menu\style\index.less on line 557, column 22:[39m[22m
+<w> [1m[33m557     .applyStyleToItem(  @rtl-style-item-text);[39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Notification\style\index.less on line 169, column 14:[39m[22m
+<w> [1m[33m169   .icon-hover([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\PageHeader\style\index.less on line 49, column 14:[39m[22m
+<w> [1m[33m49   .icon-hover([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\PageHeader\style\index.less on line 55, column 17:[39m[22m
+<w> [1m[33m55   .icon-hover-bg([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Message\style\index.less on line 138, column 14:[39m[22m
+<w> [1m[33m138   .icon-hover([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Tag\style\index.less on line 22, column 14:[39m[22m
+<w> [1m[33m22   .icon-hover([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Tabs\style\index.less on line 157, column 34:[39m[22m
+<w> [1m[33m157       padding: .get-title-padding([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Tabs\style\index.less on line 236, column 32:[39m[22m
+<w> [1m[33m236     padding: .get-title-padding([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Tabs\style\index.less on line 306, column 34:[39m[22m
+<w> [1m[33m306       padding: .get-title-padding([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Tabs\style\index.less on line 418, column 34:[39m[22m
+<w> [1m[33m418       padding: .get-title-padding([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Tabs\style\index.less on line 480, column 34:[39m[22m
+<w> [1m[33m480       padding: .get-title-padding([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Tabs\style\index.less on line 706, column 40:[39m[22m
+<w> [1m[33m706         padding-top: .get-title-padding([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Input\style\size.less on line 150, column 20:[39m[22m
+<w> [1m[33m150     .size-font-size([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Input\style\size.less on line 159, column 20:[39m[22m
+<w> [1m[33m159     .size-font-size([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Input\style\size.less on line 168, column 20:[39m[22m
+<w> [1m[33m168     .size-font-size([39m[22m
+<w> [1m[33m[39m[22m
+<w> [1m[33mDEPRECATED WARNING: Whitespace between a mixin name and parentheses for a mixin call is deprecated in D:\idea_repo\quiz\frontend\node_modules\@arco-design\web-react\es\Input\style\size.less on line 177, column 20:[39m[22m
+<w> [1m[33m177     .size-font-size([39m[22m
+<w> [1m[33m[39m[22m
+
+[1m[31mERROR[39m[22m in [1m./src/pages/Orchestration/FlowEditor/index.tsx[39m[22m [1m[32m14:0-139[39m[22m
+[1mModule [1m[31mnot found[39m[22m[1m: [1m[31mError[39m[22m[1m: Can't resolve 'reactflow' in 'D:\idea_repo\quiz\frontend\src\pages\Orchestration\FlowEditor'[39m[22m
+ @ ./src/pages/Orchestration/CanvasEditor.tsx 16:0-38 288:38-48
+ @ ./src/router/index.tsx 68:0-62 468:46-58
+ @ ./src/App.tsx 3:0-34 8:12-18
+ @ ./src/index.tsx 3:0-24 42:36-39
+
+[1m[31mERROR[39m[22m in [1m./src/pages/Orchestration/FlowEditor/index.tsx[39m[22m [1m[32m15:0-34[39m[22m
+[1mModule [1m[31mnot found[39m[22m[1m: [1m[31mError[39m[22m[1m: Can't resolve 'reactflow/dist/style.css' in 'D:\idea_repo\quiz\frontend\src\pages\Orchestration\FlowEditor'[39m[22m
+ @ ./src/pages/Orchestration/CanvasEditor.tsx 16:0-38 288:38-48
+ @ ./src/router/index.tsx 68:0-62 468:46-58
+ @ ./src/App.tsx 3:0-34 8:12-18
+ @ ./src/index.tsx 3:0-24 42:36-39
+
+[1m[31mERROR[39m[22m in [1m./src/pages/Orchestration/FlowEditor/nodes/BaseNode.tsx[39m[22m [1m[32m2:0-45[39m[22m
+[1mModule [1m[31mnot found[39m[22m[1m: [1m[31mError[39m[22m[1m: Can't resolve 'reactflow' in 'D:\idea_repo\quiz\frontend\src\pages\Orchestration\FlowEditor\nodes'[39m[22m
+ @ ./src/pages/Orchestration/FlowEditor/nodes/index.tsx 3:0-34 5:42-50 13:42-50 21:42-50 28:42-50 35:42-50 42:42-50
+ @ ./src/pages/Orchestration/FlowEditor/index.tsx 19:0-95 21:9-18 22:7-14 23:7-14 24:13-26 25:9-18 26:13-26
+ @ ./src/pages/Orchestration/CanvasEditor.tsx 16:0-38 288:38-48
+ @ ./src/router/index.tsx 68:0-62 468:46-58
+ @ ./src/App.tsx 3:0-34 8:12-18
+ @ ./src/index.tsx 3:0-24 42:36-39
+
+[1m[33m3 errors have detailed information that is not shown.
+Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.[39m[22m
+
+webpack 5.101.3 compiled with [1m[31m3 errors[39m[22m in 221775 ms
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

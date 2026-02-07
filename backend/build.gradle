@@ -61,9 +61,19 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.3'
     implementation 'com.xfvape.uid:uid-generator:0.0.4-RELEASE'
 
+    // Document Conversion
+    implementation 'org.zwobble.mammoth:mammoth:1.8.0'
+    implementation 'org.jsoup:jsoup:1.17.2' 
+    implementation 'org.apache.pdfbox:pdfbox:3.0.0'
+    implementation 'org.apache.pdfbox:pdfbox-io:3.0.0'
+
     // HTML to PDF conversion - using iText
     implementation 'com.itextpdf:itextpdf:5.5.13.3'
     implementation 'com.itextpdf.tool:xmlworker:5.5.13.3'
+
+    // WebMagic crawler framework
+    implementation 'us.codecraft:webmagic-core:0.9.1'
+    implementation 'us.codecraft:webmagic-extension:0.9.1'
 
     implementation 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

@@ -18,6 +18,7 @@ import com.ck.quiz.utils.IdHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
@@ -45,6 +49,7 @@ public class ChatServiceImpl implements ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final LLMModelService llmModelService;
     private final VectorService vectorService;
+    private final com.ck.quiz.tokenusage.service.TokenUsageService tokenUsageService;
 
     @Value("${chat.max-history-messages:20}")
     private int maxHistoryMessages;
@@ -74,7 +79,24 @@ public class ChatServiceImpl implements ChatService {
         // Call LLM
         OpenAiChatModel chatModel = llmModelService.getChatModel(session.getModelName());
         ChatClient client = ChatClient.builder(chatModel).build();
-        String answer = client.prompt(prompt).call().content();
+        ChatResponse response = client.prompt(prompt).call().chatResponse();
+        String answer = response.getResult().getOutput().getText();
+
+        // Record token usage
+        try {
+            tokenUsageService.recordUsage(
+                    session.getModelName(),
+                    chatModel.getDefaultOptions() != null ? "OpenAI" : null,
+                    response.getMetadata(),
+                    "CHAT",
+                    session.getId(),
+                    session.getSessionUuid(),
+                    payload.getContent(),
+                    answer,
+                    userId);
+        } catch (Exception e) {
+            log.error("记录token使用失败", e);
+        }
 
         // Save Assistant Message
         saveAssistantMessage(session, answer, userMessage.getSeq() + 1);
@@ -171,7 +193,35 @@ public class ChatServiceImpl implements ChatService {
         ChatCompletionResponse response = new ChatCompletionResponse();
         response.setSessionId(session.getSessionUuid());
         response.setMessages(trimmed.stream().map(this::toMessageDto).collect(Collectors.toList()));
-        response.setUsage(null);
+
+        // Calculate total usage for this session
+        try {
+            List<com.ck.quiz.tokenusage.entity.TokenUsage> usageList = tokenUsageService
+                    .queryBySessionId(session.getSessionUuid()).stream()
+                    .map(dto -> {
+                        com.ck.quiz.tokenusage.entity.TokenUsage usage = new com.ck.quiz.tokenusage.entity.TokenUsage();
+                        usage.setPromptTokens(dto.getPromptTokens());
+                        usage.setCompletionTokens(dto.getCompletionTokens());
+                        usage.setTotalTokens(dto.getTotalTokens());
+                        return usage;
+                    }).collect(Collectors.toList());
+
+            if (!usageList.isEmpty()) {
+                com.ck.quiz.chat.dto.ChatUsageDto usageDto = new com.ck.quiz.chat.dto.ChatUsageDto();
+                usageDto.setPromptTokens(
+                        usageList.stream().mapToInt(com.ck.quiz.tokenusage.entity.TokenUsage::getPromptTokens).sum());
+                usageDto.setCompletionTokens(usageList.stream()
+                        .mapToInt(com.ck.quiz.tokenusage.entity.TokenUsage::getCompletionTokens).sum());
+                usageDto.setTotalTokens(
+                        usageList.stream().mapToInt(com.ck.quiz.tokenusage.entity.TokenUsage::getTotalTokens).sum());
+                response.setUsage(usageDto);
+            } else {
+                response.setUsage(null);
+            }
+        } catch (Exception e) {
+            log.warn("获取token使用统计失败", e);
+            response.setUsage(null);
+        }
         return response;
     }
 

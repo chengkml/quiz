@@ -199,6 +199,14 @@ npm run build
 - 样式使用 Less，类名采用 kebab-case
 - 颜色使用 CSS 变量 (如 `var(--color-primary-6)`)
 - 响应式布局使用 Grid 或 Flex
+- **用户信息展示**：所有的创建人、更新人展示都**必须**使用中文名。请优先使用后端返回的 `createUserName`/`updateUserName` 字段。涉及用户对象渲染时，**必须**使用 `@/utils/userUtils` 工具类。
+- **时间展示**：所有的时间展示处理都**必须**使用 `@/utils/timeUtil` 工具类进行渲染（`import renderDate from '@/utils/timeUtil'`）。
+- **交互规范**：如果页面支持查看详情，**必须**通过点击表格行或卡片整体触发详情查看，**禁止**在操作列中添加"查看详情"按钮。
+- **样式约束**：
+  - **主容器**：使用 Flexbox 纵向布局，背景色使用全局变量 `var(--background-color-base)`。
+  - **内容区域**：采用卡片式风格（白色背景，8px 圆角，带有阴影 `box-shadow`），内边距 `16px`，外边距 `10px`。
+  - **变量使用**：广泛使用 CSS 变量（如 `--color-primary`, `--color-text-1`）以确保与系统主题一致。
+  - **图标使用**：使用 Arco Design 图标库（如 `IconClockCircle`, `IconCheckCircle` 等）作为状态指示。
 
 ## 参考资料
 

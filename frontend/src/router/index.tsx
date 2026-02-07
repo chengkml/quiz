@@ -34,6 +34,7 @@ import MindMapEditPage from "@/pages/MindMap/Edit";
 import { UserProvider, useUser } from "@/contexts/UserContext";
 import { MenuTreeDto, MenuType } from "@/types/menu";
 import Model from "@/pages/LlmModel";
+import TokenUsagePage from "@/pages/TokenUsage";
 import FuncDocManager from "@/pages/FuncDoc";
 import FuncDocDetail from "@/pages/FuncDoc/Detail";
 import FuncDocFeatures from "@/pages/FuncDoc/Features";
@@ -236,6 +237,7 @@ const protectedPages = [
   { path: "job", element: <JobManager />, requiredPath: "job" },
   { path: "history", element: <ExamHistoryManager />, requiredPath: "history" },
   { path: "llmmodel", element: <Model />, requiredPath: "llmmodel" },
+  { path: "token-usage", element: <TokenUsagePage />, requiredPath: "token-usage" },
   { path: "mindmap", element: <MindMapPage />, requiredPath: "mindmap" },
   { path: "FuncDoc", element: <FuncDocManager />, requiredPath: "funcDoc" },
   {

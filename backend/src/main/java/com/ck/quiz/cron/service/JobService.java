@@ -335,7 +335,7 @@ public class JobService {
     }
 
     public List<Map<String, Object>> getJobOptions() {
-        return Arrays.stream(new Class[] { NotificationJob.class, LocalScriptExecJob.class, RemoteScriptExecJob.class })
+        return Arrays.stream(new Class[] { NotificationJob.class, LocalScriptExecJob.class, RemoteScriptExecJob.class, com.ck.quiz.crawler.job.WebMagicCrawlerJob.class })
                 .filter(clazz -> AbstractJob.class.isAssignableFrom(clazz)
                         || AbstractAsyncJob.class.isAssignableFrom(clazz)) // 必须继承 AbstractJob
                 .filter(clazz -> !Modifier.isAbstract(clazz.getModifiers())) // 排除抽象类

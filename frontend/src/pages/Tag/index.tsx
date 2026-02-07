@@ -8,6 +8,7 @@ import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
 
 import { deleteTag, getTagById, getTagList, TagDto } from './api';
+import renderDate from '@/utils/timeUtil';
 import './style/index.less';
 
 const { Content } = Layout;
@@ -102,9 +103,7 @@ function TagManager() {
             dataIndex: 'createDate',
             width: 170,
             render: (value: string) => {
-                if (!value) return '--';
-                const date = new Date(value);
-                return date.toLocaleString();
+                return renderDate(value);
             },
         },
     ];

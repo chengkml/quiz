@@ -34,6 +34,7 @@ export const getSchedulesByDateRange = (startDate: string, endDate: string) =>
 export const streamGenerateEventUrl = (params: any) => {
   const qs = [];
   if (params.descr !== undefined) qs.push(`descr=${encodeURIComponent(params.descr)}`);
+  if (params.modelName !== undefined) qs.push(`modelName=${encodeURIComponent(params.modelName)}`);
   return `/api/calendar/generate/stream?${qs.join('&')}`;
 };
 

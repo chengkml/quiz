@@ -6,6 +6,7 @@ import FilterForm from '@/components/FilterForm';
 import { DetailFieldConfig, FormFieldConfig } from '@/components/types/types';
 import UserAvatar from '@/components/UserAvatar';
 import { deleteSysLog, getSysLogById, searchSysLog, SysLogDto } from './api';
+import renderDate from '@/utils/timeUtil';
 
 const { Content } = Layout;
 const { Row, Col } = Grid;
@@ -29,37 +30,6 @@ function SysLogPage() {
   const [deleteVisible, setDeleteVisible] = useState(false);
 
   const filterFormRef = useRef<any>(null);
-
-  // 时间格式化（与其它页面一致的相对/绝对展示）
-  const formatDateTime = (value?: string) => {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return '-';
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffDays === 0) {
-      if (diffSeconds < 60) return `${diffSeconds}秒前`;
-      if (diffMinutes < 60) return `${diffMinutes}分钟前`;
-      return `${diffHours}小时前`;
-    } else if (diffDays === 1) {
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      return `昨天 ${hours}:${minutes}`;
-    } else {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      const seconds = String(date.getSeconds()).padStart(2, '0');
-      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    }
-  };
 
   const tableColumns = [
     { title: '模块', dataIndex: 'module', width: 140, ellipsis: true },
@@ -92,7 +62,7 @@ function SysLogPage() {
       title: '创建时间',
       dataIndex: 'createDate',
       width: 180,
-      render: (v: string) => formatDateTime(v),
+      render: (v: string) => renderDate(v),
     },
   ];
 
@@ -120,9 +90,9 @@ function SysLogPage() {
     { key: 'createUserName', label: '创建人', dataIndex: 'createUserName', render: (name, rec) => (
       <UserAvatar name={name || rec?.createUser || ''} showName />
     ) },
-    { key: 'createDate', label: '创建时间', dataIndex: 'createDate', render: (v) => formatDateTime(v) },
+    { key: 'createDate', label: '创建时间', dataIndex: 'createDate', render: (v) => renderDate(v) },
     { key: 'updateUserName', label: '更新人', dataIndex: 'updateUserName' },
-    { key: 'updateDate', label: '更新时间', dataIndex: 'updateDate', render: (v) => formatDateTime(v) },
+    { key: 'updateDate', label: '更新时间', dataIndex: 'updateDate', render: (v) => renderDate(v) },
     { key: 'requestParams', label: '请求参数', dataIndex: 'requestParams' },
     { key: 'responseData', label: '响应数据', dataIndex: 'responseData' },
     { key: 'errorMessage', label: '错误信息', dataIndex: 'errorMessage' },
@@ -241,7 +211,6 @@ function SysLogPage() {
             pagination={pagination}
             onPaginationChange={(p) => handlePageChange(p.current, p.pageSize)}
             actions={{
-              onView: handleView,
               onDelete: handleDelete,
             }}
             config={{
@@ -259,6 +228,12 @@ function SysLogPage() {
                   />
                 </div>
               ),
+              tableProps: {
+                onRow: (record) => ({
+                    onClick: () => handleView(record),
+                    style: { cursor: 'pointer' }
+                })
+              }
             }}
             tableScrollHeight={tableScrollHeight}
           />

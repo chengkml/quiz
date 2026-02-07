@@ -101,3 +101,4 @@ set JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8"
 - 所有接口使用 `ResponseData` 包装返回值
 - 分页接口使用 Spring Data 的 `Page` 对象
 - 错误处理使用全局异常处理器
+- **查询接口增强**：所有的查询接口（列表或详情）返回 `createUser`/`updateUser` 时，**必须**同时返回对应的用户中文名（如 `createUserName`/`updateUserName`）。需在 DTO 中添加相应字段并在 Service 层进行填充。

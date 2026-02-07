@@ -10,6 +10,7 @@ import AddEditKnowledgeSetModal from './components/AddEditKnowledgeSetModal';
 import SearchDrawer from './components/SearchDrawer';
 import KnowledgeSourceManager from '../KnowledgeSource';
 import { deleteKnowledgeSet, getKnowledgeSetById, getKnowledgeSetList } from './api';
+import renderDate from '@/utils/timeUtil';
 import './style/index.less';
 
 const { Content } = Layout;
@@ -47,25 +48,10 @@ function KnowledgeSetManager() {
     });
 
     // Time format
+    // Time format
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const renderTimeText = (value: string) => {
-        if (!value) return '--';
-        const now = new Date();
-        const date = new Date(value);
-        const diffMs = now.getTime() - date.getTime();
-        const diffSeconds = Math.floor(diffMs / 1000);
-        const diffMinutes = Math.floor(diffSeconds / 60);
-        const diffHours = Math.floor(diffMinutes / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        if (diffDays === 0) {
-            if (diffSeconds < 60) return `${diffSeconds}秒前`;
-            if (diffMinutes < 60) return `${diffMinutes}分钟前`;
-            return `${diffHours}小时前`;
-        } else if (diffDays === 1) {
-            return `昨天 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-        } else {
-            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        }
+        return renderDate(value);
     };
 
     // Columns
@@ -111,6 +97,7 @@ function KnowledgeSetManager() {
             title: '创建时间',
             dataIndex: 'createDate',
             width: 170,
+            render: (text: string) => renderDate(text),
         },
         {
             title: '操作',

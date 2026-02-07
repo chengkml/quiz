@@ -1,8 +1,9 @@
-import React, {useState} from 'react';
-import {Button, Card, Form, Grid, Image, Layout, Message, Spin, Upload} from '@arco-design/web-react';
+import React, {useEffect, useState} from 'react';
+import {Button, Card, Form, Grid, Image, Layout, Message, Select, Spin, Upload} from '@arco-design/web-react';
 import {IconCopy, IconDelete, IconImage, IconRefresh} from '@arco-design/web-react/icon';
 import {Content} from 'antd/es/layout/layout';
 import './index.less';
+import { getLLMModelsByType } from '@/services/llmModelService';
 
 const Row = Grid.Row;
 const Col = Grid.Col;
@@ -29,6 +30,40 @@ const OcrPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [errorDetail, setErrorDetail] = useState<string | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [models, setModels] = useState<any[]>([]);
+    const [modelsLoading, setModelsLoading] = useState(false);
+    const [currentModel, setCurrentModel] = useState('');
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadModels = async () => {
+            setModelsLoading(true);
+            try {
+                const res = await getLLMModelsByType('VISION');
+                if (!isMounted) return;
+                if (res.data && Array.isArray(res.data)) {
+                    setModels(res.data);
+                    const defaultModel = res.data.find((m: any) => m.isDefault === '1' || m.isDefault === 1);
+                    if (defaultModel) setCurrentModel(defaultModel.name);
+                    else if (res.data.length > 0) setCurrentModel(res.data[0].name);
+                }
+            } catch (error) {
+                if (isMounted) {
+                    console.error('获取模型列表失败:', error);
+                    Message.error('获取模型列表失败');
+                }
+            } finally {
+                if (isMounted) setModelsLoading(false);
+            }
+        };
+
+        loadModels();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     // 处理图片上传
     const handleCustomUpload = async (option: any) => {
@@ -68,7 +103,9 @@ const OcrPage: React.FC = () => {
         try {
             const formData = new FormData();
             formData.append('image', file);
-            // 如需指定模型，可 append('model', 'modelName')
+            if (currentModel) {
+                formData.append('model', currentModel);
+            }
 
             const resp = await fetch('/api/ocr/recognize', {
                 method: 'POST',
@@ -223,6 +260,21 @@ const OcrPage: React.FC = () => {
                 <Content>
                     <Row gutter={20} style={{height: '100%'}}>
                         <Col span={10}>
+                            <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontWeight: 600 }}>识别模型</span>
+                                <Select
+                                    placeholder="选择模型"
+                                    style={{ minWidth: 220 }}
+                                    loading={modelsLoading}
+                                    value={currentModel || undefined}
+                                    allowClear
+                                    onChange={(value) => setCurrentModel(value)}
+                                    options={models.map((model: any) => ({
+                                        label: model.name,
+                                        value: model.name,
+                                    }))}
+                                />
+                            </div>
                             <Card 
                                 className="upload-card" 
                                 title="上传图片" 

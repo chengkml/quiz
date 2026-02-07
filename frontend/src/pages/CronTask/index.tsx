@@ -7,6 +7,7 @@ import { FormFieldConfig } from '@/components/types/types';
 import './style/index.less';
 import { getCronTaskList, deleteCronTask, saveCronTask, triggerCronTask, getTaskOptions, CronTaskDto } from './api';
 import { getQueueList } from '../Job/api';
+import renderDate from '@/utils/timeUtil';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -50,20 +51,6 @@ function CronTaskManager() {
   // 筛选表单字段配置
   const [filterFormFields, setFilterFormFields] = useState<FormFieldConfig[]>([]);
 
-  // 时间格式化
-  const formatDateTime = (value?: string) => {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return '-';
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-  };
-
   // 表格列定义
   const columns = [
     { title: '任务名称', dataIndex: 'label', width: 120, ellipsis: true },
@@ -78,7 +65,7 @@ function CronTaskManager() {
       const it = map[state] || { color: 'gray', text: state };
       return <Tag color={it.color} bordered>{it.text}</Tag>;
     } },
-    { title: '下次运行时间', dataIndex: 'nextFireTime', width: 180, render: (value: string) => formatDateTime(value) },
+    { title: '下次运行时间', dataIndex: 'nextFireTime', width: 180, render: (value: string) => renderDate(value) },
     { title: '操作', width: 150, align: 'center', fixed: 'right' as any, render: (_: any, record: CronTaskDto) => (
       <Dropdown
         position="bl"

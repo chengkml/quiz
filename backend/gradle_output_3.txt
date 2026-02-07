@@ -1,0 +1,45 @@
+﻿
+D:\idea_repo\quiz\backend>if "Windows_NT" == "Windows_NT" setlocal
+
+D:\idea_repo\quiz\backend>set DIRNAME=D:\idea_repo\quiz\backend\ 
+
+D:\idea_repo\quiz\backend>if "D:\idea_repo\quiz\backend\" == "" set DIRNAME=. 
+
+D:\idea_repo\quiz\backend>set APP_BASE_NAME=gradlew 
+
+D:\idea_repo\quiz\backend>set APP_HOME=D:\idea_repo\quiz\backend\ 
+
+D:\idea_repo\quiz\backend>for %i in ("D:\idea_repo\quiz\backend\") do set APP_HOME=%~fi 
+
+D:\idea_repo\quiz\backend>set APP_HOME=D:\idea_repo\quiz\backend\ 
+
+D:\idea_repo\quiz\backend>set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m" 
+
+D:\idea_repo\quiz\backend>if defined JAVA_HOME goto findJavaFromJavaHome 
+
+D:\idea_repo\quiz\backend>set JAVA_HOME=D:\Java\jdk-17 
+
+D:\idea_repo\quiz\backend>set JAVA_EXE=D:\Java\jdk-17/bin/java.exe 
+
+D:\idea_repo\quiz\backend>if exist "D:\Java\jdk-17/bin/java.exe" goto execute 
+
+D:\idea_repo\quiz\backend>set CLASSPATH= 
+
+D:\idea_repo\quiz\backend>"D:\Java\jdk-17/bin/java.exe" "-Xmx64m" "-Xms64m"   "-Dorg.gradle.appname=gradlew" -classpath "" -jar "D:\idea_repo\quiz\backend\\gradle\wrapper\gradle-wrapper.jar" compileJava 
+
+> Task :compileJava
+
+[Incubating] Problems report is available at: file:///D:/idea_repo/quiz/backend/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 44s
+1 actionable task: 1 executed
+
+D:\idea_repo\quiz\backend>if 0 EQU 0 goto mainEnd 
+
+D:\idea_repo\quiz\backend>if "Windows_NT" == "Windows_NT" endlocal

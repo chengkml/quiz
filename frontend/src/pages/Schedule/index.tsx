@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import './style/index.less';
 import {createSchedule, getSchedulesByDateRange, updateSchedule, streamGenerateEventUrl, completeSchedule} from './api';
 import {formatLunarDate, getHolidays} from './utils/lunar';
+import { getLLMModelsByType } from '@/services/llmModelService';
 
 const {Content} = Layout;
 const {Option} = Select;
@@ -80,6 +81,9 @@ function ScheduleManager() {
     const [streamingContent, setStreamingContent] = useState('');
     const [generatedEventData, setGeneratedEventData] = useState<any>(null);
     const [showStreamLog, setShowStreamLog] = useState(true);
+    const [models, setModels] = useState<any[]>([]);
+    const [modelsLoading, setModelsLoading] = useState(false);
+    const [currentModel, setCurrentModel] = useState('');
     const streamingContainerRef = useRef<HTMLDivElement | null>(null);
     const generateEventSourceRef = useRef<EventSource | null>(null);
 
@@ -138,6 +142,24 @@ function ScheduleManager() {
             ]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadModels = async () => {
+        setModelsLoading(true);
+        try {
+            const res = await getLLMModelsByType('TEXT');
+            if (res.data && Array.isArray(res.data)) {
+                setModels(res.data);
+                const defaultModel = res.data.find((m: any) => m.isDefault === '1' || m.isDefault === 1);
+                if (defaultModel) setCurrentModel(defaultModel.name);
+                else if (res.data.length > 0) setCurrentModel(res.data[0].name);
+            }
+        } catch (error) {
+            console.error('获取模型列表失败:', error);
+            Message.error('获取模型列表失败');
+        } finally {
+            setModelsLoading(false);
         }
     };
 
@@ -258,7 +280,10 @@ function ScheduleManager() {
                 generateEventSourceRef.current = null;
             }
 
-            const url = streamGenerateEventUrl({descr: generateDescription});
+            const url = streamGenerateEventUrl({
+                descr: generateDescription,
+                modelName: currentModel || undefined,
+            });
             const es = new EventSource(url);
             generateEventSourceRef.current = es;
 
@@ -806,6 +831,10 @@ function ScheduleManager() {
         loadSchedules();
     }, [currentDate, viewType]);
 
+    useEffect(() => {
+        loadModels();
+    }, []);
+
     // 监听窗口大小变化
     useEffect(() => {
         const handleResize = () => {
@@ -911,6 +940,21 @@ function ScheduleManager() {
                                 marginBottom: '16px'
                             }}>
                                 <div style={{marginBottom: '12px', fontWeight: 600}}>🤖 AI 生成日程</div>
+                                <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontWeight: 600 }}>模型</span>
+                                    <Select
+                                        placeholder="选择模型"
+                                        style={{ minWidth: 220 }}
+                                        loading={modelsLoading}
+                                        value={currentModel || undefined}
+                                        allowClear
+                                        onChange={(value) => setCurrentModel(value)}
+                                        options={models.map((model: any) => ({
+                                            label: model.name,
+                                            value: model.name,
+                                        }))}
+                                    />
+                                </div>
                                 <div style={{marginBottom: '12px'}}>
                                     <TextArea
                                         placeholder="请描述要生成的日程，例如：明天下午3点开会，会议时间持续2小时"

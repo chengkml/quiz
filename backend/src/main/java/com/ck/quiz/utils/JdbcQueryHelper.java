@@ -33,16 +33,19 @@ public class JdbcQueryHelper {
 
     private static final Logger LOG = LoggerFactory.getLogger(JdbcQueryHelper.class);
 
-    private static final Pattern SQL_INJECTION_PATTERN = Pattern.compile("\\b(and|exec|insert|select|drop|grant|alter|delete|update|count|chr|mid|master|truncate|case|sleep|char|declare|or|where|union|limit|from|substr|for)\\b");
+    private static final Pattern SQL_INJECTION_PATTERN = Pattern.compile(
+            "\\b(and|exec|insert|select|drop|grant|alter|delete|update|count|chr|mid|master|truncate|case|sleep|char|declare|or|where|union|limit|from|substr|for)\\b");
 
-    public static void equals(String name, String param, StringBuilder sb, String sqlSegment, Map<String, Object> params) {
+    public static void equals(String name, String param, StringBuilder sb, String sqlSegment,
+            Map<String, Object> params) {
         if (StringUtils.isNotBlank(param)) {
             sb.append(sqlSegment);
             params.put(name, param);
         }
     }
 
-    public static void equals(String name, String param, String sqlSegment, Map<String, Object> params, StringBuilder... sbs) {
+    public static void equals(String name, String param, String sqlSegment, Map<String, Object> params,
+            StringBuilder... sbs) {
         if (StringUtils.isNotBlank(param)) {
             for (StringBuilder sb : sbs) {
                 sb.append(sqlSegment);
@@ -51,14 +54,16 @@ public class JdbcQueryHelper {
         }
     }
 
-    public static void in(String name, List<String> pars, StringBuilder sb, String sqlSegment, Map<String, Object> params) {
+    public static void in(String name, List<String> pars, StringBuilder sb, String sqlSegment,
+            Map<String, Object> params) {
         if (pars != null && !pars.isEmpty()) {
             sb.append(sqlSegment);
             params.put(name, pars);
         }
     }
 
-    public static void in(String name, List<String> pars, String sqlSegment, Map<String, Object> params, StringBuilder... sbs) {
+    public static void in(String name, List<String> pars, String sqlSegment, Map<String, Object> params,
+            StringBuilder... sbs) {
         if (pars != null && !pars.isEmpty()) {
             for (StringBuilder sb : sbs) {
                 sb.append(sqlSegment);
@@ -68,11 +73,12 @@ public class JdbcQueryHelper {
     }
 
     public static void lowerLike(String name, String param, StringBuilder sb, String sqlSegment,
-                                 Map<String, Object> params, NamedParameterJdbcTemplate jt) {
+            Map<String, Object> params, NamedParameterJdbcTemplate jt) {
         String dbType = getDatabaseType(jt.getJdbcTemplate().getDataSource());
         if (StringUtils.isNotBlank(param)) {
             if ("mysql".equalsIgnoreCase(dbType)) {
-                param = param.replaceAll("\\/", "//").replaceAll("\\%", "/%").replaceAll("_", "/_").replaceAll("\\\\", "/\\\\");
+                param = param.replaceAll("\\/", "//").replaceAll("\\%", "/%").replaceAll("_", "/_").replaceAll("\\\\",
+                        "/\\\\");
                 sqlSegment = sqlSegment.replaceAll(name, name + " escape '\\/'");
             } else if ("oracle".equalsIgnoreCase(dbType)) {
                 param = param.replaceAll("\\\\", "\\\\\\\\").replaceAll("\\%", "\\\\%").replaceAll("_", "\\\\_");
@@ -86,11 +92,12 @@ public class JdbcQueryHelper {
     }
 
     public static void lowerLike(String name, String param, String sqlSegment,
-                                 Map<String, Object> params, NamedParameterJdbcTemplate jt, StringBuilder... sbs) {
+            Map<String, Object> params, NamedParameterJdbcTemplate jt, StringBuilder... sbs) {
         String dbType = getDatabaseType(jt.getJdbcTemplate().getDataSource());
-            if (StringUtils.isNotBlank(param)) {
+        if (StringUtils.isNotBlank(param)) {
             if ("mysql".equalsIgnoreCase(dbType)) {
-                param = param.replaceAll("\\/", "//").replaceAll("\\%", "/%").replaceAll("_", "/_").replaceAll("\\\\", "/\\\\");
+                param = param.replaceAll("\\/", "//").replaceAll("\\%", "/%").replaceAll("_", "/_").replaceAll("\\\\",
+                        "/\\\\");
                 sqlSegment = sqlSegment.replaceAll(name, name + " escape '\\/'");
             } else if ("oracle".equalsIgnoreCase(dbType)) {
                 param = param.replaceAll("\\\\", "\\\\\\\\").replaceAll("\\%", "\\\\%").replaceAll("_", "\\\\_");
@@ -106,14 +113,17 @@ public class JdbcQueryHelper {
     }
 
     public static void datetimeBetween(String fieldName, String startName, Date startTime, String endName, Date endTime,
-                                       Map<String, Object> params, NamedParameterJdbcTemplate jt, StringBuilder... sbs) {
+            Map<String, Object> params, NamedParameterJdbcTemplate jt, StringBuilder... sbs) {
         String dsType = getDatabaseType(jt.getJdbcTemplate().getDataSource());
         if (startTime != null && endTime != null) {
             for (StringBuilder sb : sbs) {
                 if (dsType.equals("mysql") || dsType.equals("postgresql")) {
-                    sb.append("and ").append(fieldName).append(" between :").append(startName).append(" and :").append(endName).append(" ");
+                    sb.append("and ").append(fieldName).append(" between :").append(startName).append(" and :")
+                            .append(endName).append(" ");
                 } else if (dsType.equals("oracle") || dsType.equals("dm")) {
-                    sb.append("and (").append(fieldName).append(" > to_date(:").append(startName).append(",'yyyy-mm-dd hh24:mi:ss') and ").append(fieldName).append("<to_date(:").append(endName).append(",'yyyy-mm-dd hh24:mi:ss')) ");
+                    sb.append("and (").append(fieldName).append(" > to_date(:").append(startName)
+                            .append(",'yyyy-mm-dd hh24:mi:ss') and ").append(fieldName).append("<to_date(:")
+                            .append(endName).append(",'yyyy-mm-dd hh24:mi:ss')) ");
                 } else {
                     LOG.warn("暂不支持对数据库类型为“{}”的sql进行日期特殊处理！", dsType);
                 }
@@ -168,7 +178,8 @@ public class JdbcQueryHelper {
             DataSourceUtils.releaseConnection(con, dataSource);
         }
         String result = "";
-        Pattern pattern = Pattern.compile(".*(db2|oracle|mysql|sql server|hive|teradata|gbase|vertica|postgresql|dm).*");
+        Pattern pattern = Pattern
+                .compile(".*(db2|oracle|mysql|sql server|hive|teradata|gbase|vertica|postgresql|dm).*");
         Matcher m = pattern.matcher(driverName.toLowerCase());
         if (m.matches()) {
             result = m.group(1);
@@ -191,7 +202,8 @@ public class JdbcQueryHelper {
         if (orderColumn != null && orderColumn.length() >= 0) {
             limitSQL.append(" order by " + orderColumn + "");
         }
-        limitSQL.append(") t2 where pseudo_column_rownum between ").append(start + 1).append(" and ").append(start + limit);
+        limitSQL.append(") t2 where pseudo_column_rownum between ").append(start + 1).append(" and ")
+                .append(start + limit);
         return limitSQL.toString();
     }
 
@@ -208,7 +220,8 @@ public class JdbcQueryHelper {
         if (orderColumn != null && orderColumn.length() >= 0) {
             limitSQL.append(" order by " + orderColumn + "");
         }
-        limitSQL.append(") t2 where pseudo_column_rownum between ").append(start + 1).append(" and ").append(start + limit);
+        limitSQL.append(") t2 where pseudo_column_rownum between ").append(start + 1).append(" and ")
+                .append(start + limit);
         return limitSQL.toString();
     }
 
@@ -258,8 +271,10 @@ public class JdbcQueryHelper {
         return limitSQL.toString();
     }
 
-    public static Page toPage(NamedParameterJdbcTemplate jt, String countSql, Map<String, Object> params, List objListt, int pageNum, int pageSize) {
-        return new PageImpl(objListt, PageRequest.of(pageNum, pageSize), jt.queryForObject(countSql, params, Long.class));
+    public static Page toPage(NamedParameterJdbcTemplate jt, String countSql, Map<String, Object> params, List objListt,
+            int pageNum, int pageSize) {
+        return new PageImpl(objListt, PageRequest.of(pageNum, pageSize),
+                jt.queryForObject(countSql, params, Long.class));
     }
 
     public static void order(String sortColumn, String sortType, StringBuilder sb) {
@@ -276,13 +291,35 @@ public class JdbcQueryHelper {
         }
     }
 
+    public static List<Map<String, Object>> queryListWithPage(NamedParameterJdbcTemplate jt, String sql,
+            Map<String, Object> params, int offset, int limit) {
+        String dbType = getDatabaseType(jt.getJdbcTemplate().getDataSource());
+        String pageSql = "";
+        switch (dbType) {
+            case "oracle":
+            case "dm":
+                pageSql = getOracleLimitSQL(sql, limit, offset, null);
+                break;
+            case "mysql":
+                pageSql = getMysqlLimitSQL(sql, limit, offset, null);
+                break;
+            case "postgresql":
+                pageSql = getPgLimitSQL(sql, limit, offset, null);
+                break;
+            default:
+                pageSql = sql;
+        }
+        return jt.queryForList(pageSql, params);
+    }
+
     public static String explainSql(String explainSql, Map<String, Object> sqlParams) {
         Iterator<Map.Entry<String, Object>> it = sqlParams.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> e = it.next();
             try {
                 if (e.getValue() instanceof List) {
-                    explainSql = explainSql.replaceAll(":" + e.getKey(), "'" + String.join("','", (List) e.getValue()) + "'");
+                    explainSql = explainSql.replaceAll(":" + e.getKey(),
+                            "'" + String.join("','", (List) e.getValue()) + "'");
                 } else if (e.getValue() instanceof Integer) {
                     explainSql = explainSql.replaceAll(":" + e.getKey(), "'" + (Integer) e.getValue() + "'");
                 } else {
@@ -295,4 +332,3 @@ public class JdbcQueryHelper {
         return explainSql;
     }
 }
-
