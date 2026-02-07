@@ -20,7 +20,7 @@ jobs:
       - name: 配置Node
         uses: actions/setup-node@v3
         with:
-          node-version: '16.13.1'
+          node-version: '22.22.0'
 
       - name: 缓存Yarn依赖
         uses: actions/cache@v3
