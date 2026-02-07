@@ -14,7 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "知识来源管理", description = "知识来源管理相关API")
 @RestController
 @RequestMapping("/api/knowledge-source")
-public class KnowledgeSourceController extends BaseController<KnowledgeSourceCreateDto, KnowledgeSourceUpdateDto, KnowledgeSourceQueryDto, KnowledgeSourceDto> {
+public class KnowledgeSourceController extends
+        BaseController<KnowledgeSourceCreateDto, KnowledgeSourceUpdateDto, KnowledgeSourceQueryDto, KnowledgeSourceDto> {
 
     private final KnowledgeSourceService knowledgeSourceService;
 
@@ -25,5 +26,11 @@ public class KnowledgeSourceController extends BaseController<KnowledgeSourceCre
     @Override
     protected BaseService<KnowledgeSourceCreateDto, KnowledgeSourceUpdateDto, KnowledgeSourceQueryDto, KnowledgeSourceDto, ?> getService() {
         return knowledgeSourceService;
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/test-connection")
+    public void testConnection(@org.springframework.web.bind.annotation.RequestBody KnowledgeSourceDto dto)
+            throws Exception {
+        knowledgeSourceService.testConnection(dto.getType(), dto.getContent());
     }
 }

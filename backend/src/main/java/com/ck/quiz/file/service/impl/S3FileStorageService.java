@@ -84,6 +84,29 @@ public class S3FileStorageService implements FileStorageService {
     }
 
     @Override
+    public void move(String sourcePath, String targetPath) {
+        try {
+            String sourceKey = getKey(sourcePath);
+            String targetKey = getKey(targetPath);
+
+            CopyObjectRequest copyReq = CopyObjectRequest.builder()
+                    .bucket(bucketName)
+                    .copySource(bucketName + "/" + sourceKey)
+                    .key(targetKey)
+                    .build();
+            s3Client.copyObject(copyReq);
+
+            DeleteObjectRequest delReq = DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(sourceKey)
+                    .build();
+            s3Client.deleteObject(delReq);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to move object in S3", e);
+        }
+    }
+
+    @Override
     public List<FileInfo> list(String path) {
         try {
             String tempPrefix = getKey(path);

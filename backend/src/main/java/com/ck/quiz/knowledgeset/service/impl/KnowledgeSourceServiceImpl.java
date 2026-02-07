@@ -23,14 +23,15 @@ import com.ck.quiz.cron.service.JobService;
 import com.ck.quiz.knowledgeset.job.KnowledgeProcessingJob;
 import com.ck.quiz.knowledgeset.service.VectorService;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Service
-public class KnowledgeSourceServiceImpl extends BaseServiceImpl<KnowledgeSourceCreateDto, KnowledgeSourceUpdateDto, KnowledgeSourceQueryDto, KnowledgeSourceDto, KnowledgeSource, KnowledgeSourceRepository> implements KnowledgeSourceService {
+public class KnowledgeSourceServiceImpl extends
+        BaseServiceImpl<KnowledgeSourceCreateDto, KnowledgeSourceUpdateDto, KnowledgeSourceQueryDto, KnowledgeSourceDto, KnowledgeSource, KnowledgeSourceRepository>
+        implements KnowledgeSourceService {
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
@@ -80,28 +81,29 @@ public class KnowledgeSourceServiceImpl extends BaseServiceImpl<KnowledgeSourceC
     @Transactional
     public void delete(String userId, String id) {
         KnowledgeSource source = repository.findById(id).orElseThrow(() -> new RuntimeException("知识来源不存在"));
-        
+
         // 删除对应的向量和切片数据
         vectorService.deleteBySourceId(id);
-        
+
         super.delete(userId, id);
     }
 
     @Override
     @Transactional
     public KnowledgeSourceDto update(String userId, KnowledgeSourceUpdateDto updateDto) {
-        KnowledgeSource source = repository.findById(updateDto.getId()).orElseThrow(() -> new RuntimeException("知识来源不存在"));
-        
+        KnowledgeSource source = repository.findById(updateDto.getId())
+                .orElseThrow(() -> new RuntimeException("知识来源不存在"));
+
         // 检查是否修改了可能影响向量的内容 (如重新上传了文件，或者修改了切分配置)
         // 假设 UpdateDto 中如果包含 content 且不为空，则认为需要重新处理
         // 或者如果 type 从 FILE 变更为其他（虽然通常 type 不变）
-        
+
         // 简单策略：如果状态重置为 PENDING 或者 content 发生变化，则触发重新处理
         boolean needReprocess = false;
-        
+
         // 复制属性
         BeanUtils.copyProperties(updateDto, source);
-        
+
         // 如果显式设置状态为 PENDING，则重新触发任务
         if ("PENDING".equals(updateDto.getStatus())) {
             needReprocess = true;
@@ -109,7 +111,7 @@ public class KnowledgeSourceServiceImpl extends BaseServiceImpl<KnowledgeSourceC
 
         // 保存更新
         KnowledgeSource saved = repository.save(source);
-        
+
         if (needReprocess) {
             // 先清理旧数据
             vectorService.deleteBySourceId(updateDto.getId());
@@ -118,7 +120,7 @@ public class KnowledgeSourceServiceImpl extends BaseServiceImpl<KnowledgeSourceC
                 createDocumentProcessingJob(saved);
             }
         }
-        
+
         return convertToDto(saved, true);
     }
 
@@ -128,36 +130,40 @@ public class KnowledgeSourceServiceImpl extends BaseServiceImpl<KnowledgeSourceC
             jobDto.setTaskClass(KnowledgeProcessingJob.class.getName());
             jobDto.setQueueName("knowledge-queue"); // 指定队列
             jobDto.setPriority(10);
-            
+
             Map<String, Object> params = new HashMap<>();
             params.put("sourceId", source.getId());
             params.put("splitMethod", "TOKEN"); // 默认切分方式，可根据 meta 或其他字段配置
             params.put("chunkSize", 500);
             params.put("overlap", 50);
-            
+
             jobDto.setTaskParams(objectMapper.writeValueAsString(params));
-            
+
             jobService.addJob(jobDto);
         } catch (Exception e) {
             throw new RuntimeException("创建文档处理任务失败", e);
         }
     }
-    
+
     @Override
     public Page<KnowledgeSourceDto> search(String userId, KnowledgeSourceQueryDto queryDto) {
-        StringBuilder sql = new StringBuilder("select ks.*, u.user_name create_user_name from knowledge_source ks left join users u on u.user_id = ks.create_user where 1=1 ");
+        StringBuilder sql = new StringBuilder(
+                "select ks.*, u.user_name create_user_name from knowledge_source ks left join users u on u.user_id = ks.create_user where 1=1 ");
         StringBuilder countSql = new StringBuilder("select count(1) from knowledge_source ks where 1=1 ");
         Map<String, Object> params = new HashMap<>();
-        
-        JdbcQueryHelper.equals("knowledgeSetId", queryDto.getKnowledgeSetId(), " and ks.knowledge_set_id = :knowledgeSetId ", params, sql, countSql);
-        JdbcQueryHelper.lowerLike("nameKey", queryDto.getKeyWord(), " and lower(ks.name) like :nameKey ", params, jdbcTemplate, sql, countSql);
+
+        JdbcQueryHelper.equals("knowledgeSetId", queryDto.getKnowledgeSetId(),
+                " and ks.knowledge_set_id = :knowledgeSetId ", params, sql, countSql);
+        JdbcQueryHelper.lowerLike("nameKey", queryDto.getKeyWord(), " and lower(ks.name) like :nameKey ", params,
+                jdbcTemplate, sql, countSql);
         JdbcQueryHelper.equals("status", queryDto.getStatus(), " and ks.status = :status ", params, sql, countSql);
         JdbcQueryHelper.equals("type", queryDto.getType(), " and ks.type = :type ", params, sql, countSql);
-        
+
         JdbcQueryHelper.order("create_date", "desc", sql);
-        
-        String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
-        
+
+        String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(),
+                queryDto.getPageSize());
+
         List<KnowledgeSourceDto> list = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
             KnowledgeSourceDto dto = new KnowledgeSourceDto();
             dto.setId(rs.getString("id"));
@@ -169,14 +175,14 @@ public class KnowledgeSourceServiceImpl extends BaseServiceImpl<KnowledgeSourceC
             dto.setMeta(rs.getString("meta"));
             dto.setDescr(rs.getString("descr"));
             dto.setLanguage(rs.getString("language"));
-            
+
             java.sql.Timestamp createTime = rs.getTimestamp("create_date");
             if (createTime != null) {
                 dto.setCreateDate(createTime.toLocalDateTime());
             }
             dto.setCreateUser(rs.getString("create_user"));
             dto.setCreateUserName(rs.getString("create_user_name"));
-            
+
             java.sql.Timestamp updateTime = rs.getTimestamp("update_date");
             if (updateTime != null) {
                 dto.setUpdateDate(updateTime.toLocalDateTime());
@@ -184,7 +190,46 @@ public class KnowledgeSourceServiceImpl extends BaseServiceImpl<KnowledgeSourceC
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;
         });
-        
-        return JdbcQueryHelper.toPage(jdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
+
+        return JdbcQueryHelper.toPage(jdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(),
+                queryDto.getPageSize());
+    }
+
+    @Override
+    public void testConnection(String type, String content) throws Exception {
+        if (!"DB".equals(type)) {
+            throw new RuntimeException("Test connection is only supported for DB type");
+        }
+
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> config = objectMapper.readValue(content, Map.class);
+            String driver = (String) config.get("driver");
+            String host = (String) config.get("host");
+            String port = String.valueOf(config.get("port"));
+            String database = (String) config.get("database");
+            String user = (String) config.get("user");
+            String password = (String) config.get("password");
+
+            String url = "";
+            String driverClassName = "";
+
+            if ("MySQL".equalsIgnoreCase(driver)) {
+                url = String.format("jdbc:mysql://%s:%s/%s?useSSL=false&serverTimezone=UTC", host, port, database);
+                driverClassName = "com.mysql.cj.jdbc.Driver";
+            } else if ("PostgreSQL".equalsIgnoreCase(driver)) {
+                url = String.format("jdbc:postgresql://%s:%s/%s", host, port, database);
+                driverClassName = "org.postgresql.Driver";
+            } else {
+                throw new RuntimeException("Unsupported driver: " + driver);
+            }
+
+            Class.forName(driverClassName);
+            try (java.sql.Connection ignored = java.sql.DriverManager.getConnection(url, user, password)) {
+                // Connection successful
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Connection failed: " + e.getMessage());
+        }
     }
 }

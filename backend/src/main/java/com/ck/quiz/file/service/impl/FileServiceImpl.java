@@ -260,4 +260,87 @@ public class FileServiceImpl implements FileService {
             return fileMetadataRepository.save(metadata);
         }
     }
+
+    @Override
+    @Transactional
+    public void deleteBatch(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        for (String id : ids) {
+            delete(id);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void move(List<String> ids, String targetPath) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        String normalizedTarget = normalizePath(targetPath);
+        for (String id : ids) {
+            moveSingle(id, normalizedTarget);
+        }
+    }
+
+    private void moveSingle(String id, String targetPath) {
+        FileMetadata metadata = get(id);
+        String oldPath = metadata.getStoragePath();
+        if (oldPath == null || oldPath.isEmpty()) {
+            return;
+        }
+
+        if (Boolean.TRUE.equals(metadata.getIsFolder())) {
+            if (!oldPath.endsWith("/")) {
+                oldPath = oldPath + "/";
+            }
+            String newFolderPath = targetPath + metadata.getOriginalName() + "/";
+            if (oldPath.equals(newFolderPath)) {
+                return;
+            }
+            if (!targetPath.isEmpty() && targetPath.startsWith(oldPath)) {
+                throw new IllegalArgumentException("Cannot move a folder into itself");
+            }
+
+            List<FileMetadata> allAffected = fileMetadataRepository.findByStoragePathStartingWith(oldPath);
+            for (FileMetadata item : allAffected) {
+                String itemOldPath = item.getStoragePath();
+                String itemNewPath = newFolderPath + itemOldPath.substring(oldPath.length());
+                if (!Boolean.TRUE.equals(item.getIsFolder())) {
+                    fileStorageService.move(itemOldPath, itemNewPath);
+                }
+                item.setStoragePath(itemNewPath);
+                if (item.getId().equals(id)) {
+                    item.setOriginalName(metadata.getOriginalName());
+                }
+            }
+            fileMetadataRepository.saveAll(allAffected);
+        } else {
+            String fileName = oldPath.contains("/")
+                    ? oldPath.substring(oldPath.lastIndexOf("/") + 1)
+                    : oldPath;
+            String newPath = targetPath + fileName;
+            if (oldPath.equals(newPath)) {
+                return;
+            }
+            fileStorageService.move(oldPath, newPath);
+            metadata.setStoragePath(newPath);
+            fileMetadataRepository.save(metadata);
+        }
+    }
+
+    private String normalizePath(String path) {
+        if (path == null || path.trim().isEmpty()) {
+            return "";
+        }
+        String normalized = path.trim();
+        if (normalized.startsWith("/")) {
+            normalized = normalized.substring(1);
+        }
+        if (!normalized.endsWith("/")) {
+            normalized = normalized + "/";
+        }
+        return normalized;
+    }
 }

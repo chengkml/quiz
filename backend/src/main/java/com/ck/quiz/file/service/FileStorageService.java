@@ -27,6 +27,13 @@ public interface FileStorageService {
     void delete(String path);
 
     /**
+     * Move or rename a file within the storage backend
+     * @param sourcePath The original file path
+     * @param targetPath The target file path
+     */
+    void move(String sourcePath, String targetPath);
+
+    /**
      * List files in a directory
      * @param path The directory path
      * @return List of file info

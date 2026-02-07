@@ -21,8 +21,16 @@ export function deleteFile(id: string) {
   return axios.delete('/file/delete', { params: { id } }).then(res => res.data);
 }
 
+export function batchDelete(ids: string[]) {
+  return axios.post('/file/batch-delete', { ids }).then(res => res.data);
+}
+
 export function renameFile(id: string, newName: string) {
   return axios.put('/file/rename', null, { params: { id, newName } }).then(res => res.data);
+}
+
+export function moveFiles(ids: string[], targetPath: string) {
+  return axios.post('/file/move', { ids, targetPath }).then(res => res.data);
 }
 
 export const UPLOAD_URL = '/api/file/upload';

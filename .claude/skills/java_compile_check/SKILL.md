@@ -37,6 +37,6 @@ cd d:\idea_repo\quiz\backend
 
 * **依赖检查**：若报错提示 `package ... does not exist`，请检查 `build.gradle` 中的依赖配置是否完整。
 * **测试代码**：若需同时验证单元测试，请将命令替换为 `.\gradlew.bat testClasses`。
-* **自动进化**：本技能仅针对语法和编译错误。对于复杂的逻辑 bug，请在运行通过后配合"单元测试 Skill"进一步验证。
+* **自动进化**：本技能仅针对语法和编译错误。对于复杂的逻辑 bug，请在运行通过后配合“单元测试 Skill”进一步验证。
 
 ---

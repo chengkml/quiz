@@ -153,63 +153,41 @@ public class CalendarEventServiceImpl
 
     @Override
     public Flux<String> streamGenerateEvent(String descr) {
-        return Flux.create(sink -> {
-            try {
+        // 1. 获取基础配置（这部分是同步的，可以直接写）
+        OpenAiChatModel chatModel = llmModelService.getChatModel(null);
+        ChatClient chat = ChatClient.builder(chatModel).build();
+        String prompt = buildEventPrompt(descr);
 
-                ObjectMapper objectMapper = new ObjectMapper();
-                objectMapper.findAndRegisterModules();
+        // 用来记录完整内容，最后解析 JSON
+        StringBuilder fullContent = new StringBuilder();
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
-                OpenAiChatModel chatModel;
-                try {
-                    chatModel = llmModelService.getChatModel(null);
-                } catch (Exception ex) {
-                    sink.next("[ERROR]" + ex.getMessage());
-                    sink.error(ex);
-                    return;
-                }
-
-                ChatClient chat = ChatClient.builder(chatModel).build();
-                StringBuilder fullContent = new StringBuilder();
-                String prompt = buildEventPrompt(descr);
-
-                // 使用流式调用
-                chat.prompt()
-                        .user(prompt)
-                        .stream()
-                        .content()
-                        .doOnSubscribe(s -> log.info("[Calendar] Stream generation started"))
-                        .doOnNext(chunk -> {
-                            log.info("[Calendar] Received chunk: {}", chunk);
-                            sink.next(chunk);
-                            fullContent.append(chunk);
-                        })
-                        .doOnError(err -> {
-                            log.error("[Calendar] Stream error", err);
-                            sink.next("[ERROR]" + err.getMessage());
-                            sink.error(err);
-                        })
-                        .doOnComplete(() -> {
-                            log.info("[Calendar] Stream completion");
-                            // 流式内容接收完毕后，尝试解析最终的 JSON 结果
-                            String content = fullContent.toString().trim();
-                            try {
-                                CalendarEventCreateDto eventDto = objectMapper.readValue(content,
-                                        CalendarEventCreateDto.class);
-                                sink.next("\n\n[PARSE_RESULT]\n");
-                                String json = objectMapper.writeValueAsString(eventDto);
-                                sink.next("[EVENT]" + json);
-                            } catch (Exception parseEx) {
-                                log.error("[Calendar] JSON parse error", parseEx);
-                                sink.next("[ERROR]解析JSON失败: " + parseEx.getMessage());
-                            }
-                            sink.complete();
-                        })
-                        .subscribe();
-            } catch (Exception e) {
-                log.error("[Calendar] 生成日程服务异常", e);
-                sink.next("[ERROR]服务异常: " + e.getMessage());
-                sink.error(e);
-            }
-        });
+        // 2. 直接返回 ChatClient 的流，利用响应式操作符进行副作用处理
+        return chat.prompt()
+                .user(prompt)
+                .stream()
+                .content()
+                .doOnSubscribe(s -> log.info("[Calendar] Stream generation started"))
+                .doOnNext(chunk -> {
+                    log.info("[Calendar] Received chunk: {}", chunk);
+                    fullContent.append(chunk);
+                })
+                // 使用 concatWith 在流结束前插入解析结果
+                .concatWith(Flux.defer(() -> {
+                    // 当主流完成时，这个 lambda 会执行
+                    String content = fullContent.toString().trim();
+                    try {
+                        CalendarEventCreateDto eventDto = objectMapper.readValue(content, CalendarEventCreateDto.class);
+                        String json = objectMapper.writeValueAsString(eventDto);
+                        return Flux.just("\n\n[PARSE_RESULT]\n", "[EVENT]" + json);
+                    } catch (Exception parseEx) {
+                        log.error("[Calendar] JSON parse error", parseEx);
+                        return Flux.just("[ERROR]解析JSON失败: " + parseEx.getMessage());
+                    }
+                }))
+                .doOnComplete(() -> log.info("[Calendar] Stream completion"))
+                .doOnError(err -> log.error("[Calendar] Stream error", err))
+                // 如果出错，把错误信息也转成字符串发给前端
+                .onErrorResume(e -> Flux.just("[ERROR]服务异常: " + e.getMessage()));
     }
 }

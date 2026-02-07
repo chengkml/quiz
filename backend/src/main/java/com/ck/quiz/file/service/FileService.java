@@ -60,4 +60,14 @@ public interface FileService {
      * Rename file or folder
      */
     FileMetadata rename(String id, String newName);
+
+    /**
+     * Batch delete files or folders
+     */
+    void deleteBatch(List<String> ids);
+
+    /**
+     * Move files or folders to a target path
+     */
+    void move(List<String> ids, String targetPath);
 }

@@ -7,28 +7,16 @@ description: 基于 todo 列表逐个分析需求，生成详细的设计文档
 
 ## 工作流程
 
-### 1. 初始化环境 (Reset Environment)
-**每次**开始新一轮需求分析前，必须清理旧数据：
-1.  **清空旧设计**: 删除 `d:\idea_repo\quiz\todo\` 目录下所有 `design_*.md` 文件。
+### 1. 初始化环境 (Clean Completed)
+开始新一轮需求分析前，清理已完成的数据：
+1.  **清理已完成需求的设计文档**: 读取 `todo.md` 中 **已完成 (Done)** 部分的任务，删除对应的 `design_*.md` 文件。
+2.  **清空已完成列表**: 将 `todo.md` 中 **已完成 (Done)** 部分清空，保留待办和进行中的任务。
     ```powershell
-    Remove-Item "d:\idea_repo\quiz\todo\design_*.md" -ErrorAction SilentlyContinue
-    ```
-2.  **重置 Todo 列表**: 将 `todo.md` 内容重置为初始状态（清空之前的勾选状态）。
-    ```markdown
-    # 需求列表
-
-    > 记录待开发的功能、Bug修复及优化项。
-
-    ## 待办 (To Do)
-    - [ ] 
-
-    ## 以此进行中 (In Progress)
-
-    ## 已完成 (Done)
+    # 示例：手动编辑 todo.md，删除 "## 已完成 (Done)" 下的所有任务项
     ```
 
-### 2. 定义需求列表 (Define Requirements)
-询问用户或根据指令，将新的需求项填入 `todo.md` 的 **待办 (To Do)** 列表中。
+### 2. 增量添加需求 (Add Requirements)
+询问用户或根据指令，将**新的需求项**增量添加到 `todo.md` 的 **待办 (To Do)** 列表中，保留现有的待办和进行中任务。
 
 ### 3. 连接上下文 (Context Loading)
 读取 `todo.md` 确认当前要分析的需求。

@@ -1,6 +1,8 @@
 package com.ck.quiz.file.controller;
 
+import com.ck.quiz.file.dto.BatchDeleteRequest;
 import com.ck.quiz.file.dto.FileInfo;
+import com.ck.quiz.file.dto.MoveRequest;
 import com.ck.quiz.file.entity.FileMetadata;
 import com.ck.quiz.file.service.FileService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,6 +63,13 @@ public class FileController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Batch delete files")
+    @PostMapping("/batch-delete")
+    public ResponseEntity<Void> batchDelete(@RequestBody BatchDeleteRequest request) {
+        fileService.deleteBatch(request != null ? request.getIds() : null);
+        return ResponseEntity.ok().build();
+    }
+
     @Operation(summary = "List files")
     @GetMapping("/list")
     public ResponseEntity<List<FileInfo>> list(@RequestParam(value = "path", defaultValue = "") String path) {
@@ -71,5 +80,14 @@ public class FileController {
     @PutMapping("/rename")
     public ResponseEntity<FileMetadata> rename(@RequestParam("id") String id, @RequestParam("newName") String newName) {
         return ResponseEntity.ok(fileService.rename(id, newName));
+    }
+
+    @Operation(summary = "Move files or folders")
+    @PostMapping("/move")
+    public ResponseEntity<Void> move(@RequestBody MoveRequest request) {
+        if (request != null) {
+            fileService.move(request.getIds(), request.getTargetPath());
+        }
+        return ResponseEntity.ok().build();
     }
 }

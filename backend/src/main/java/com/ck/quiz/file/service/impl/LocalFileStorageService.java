@@ -76,6 +76,21 @@ public class LocalFileStorageService implements FileStorageService {
     }
 
     @Override
+    public void move(String sourcePath, String targetPath) {
+        try {
+            Path sourceFullPath = getFullPath(sourcePath);
+            Path targetFullPath = getFullPath(targetPath);
+            if (!Files.exists(sourceFullPath)) {
+                throw new RuntimeException("File not found: " + sourcePath);
+            }
+            Files.createDirectories(targetFullPath.getParent());
+            Files.move(sourceFullPath, targetFullPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to move file locally", e);
+        }
+    }
+
+    @Override
     public List<FileInfo> list(String path) {
         try {
             Path fullPath = getFullPath(path);

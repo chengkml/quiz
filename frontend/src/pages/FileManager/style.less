@@ -1,0 +1,114 @@
+.file-manager {
+  --file-card-bg: var(--color-bg-1);
+  --file-card-border: var(--color-border-2);
+  --file-card-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.file-manager__layout {
+  display: flex;
+  height: 100%;
+}
+
+.file-manager__sidebar {
+  padding: 16px 0 16px 16px;
+}
+
+.file-manager__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.file-manager__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.file-manager__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.file-manager__actionbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: var(--color-fill-2);
+  border: 1px solid var(--color-border-2);
+}
+
+.file-manager__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  overflow: auto;
+  padding-bottom: 6px;
+}
+
+.file-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 12px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--file-card-border);
+  background: var(--file-card-bg);
+  transition: all 0.2s ease;
+  min-height: 200px;
+}
+
+.file-card:hover {
+  border-color: var(--color-primary-6);
+  box-shadow: var(--file-card-shadow);
+}
+
+.file-card--selected {
+  border-color: var(--color-primary-6);
+  background: var(--color-primary-light-1);
+}
+
+.file-card__select {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+.file-card__icon {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.file-card__name {
+  text-align: center;
+  font-weight: 600;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-card__meta {
+  color: var(--color-text-3);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.file-card__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+}

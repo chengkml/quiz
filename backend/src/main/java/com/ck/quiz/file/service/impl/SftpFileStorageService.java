@@ -156,6 +156,23 @@ public class SftpFileStorageService implements FileStorageService {
     }
 
     @Override
+    public void move(String sourcePath, String targetPath) {
+        ChannelSftp channel = null;
+        try {
+            channel = createChannel();
+            String fullSourcePath = getFullPath(sourcePath);
+            String fullTargetPath = getFullPath(targetPath);
+            String parentDir = fullTargetPath.substring(0, fullTargetPath.lastIndexOf("/"));
+            createDirs(channel, parentDir);
+            channel.rename(fullSourcePath, fullTargetPath);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to move file on SFTP", e);
+        } finally {
+            disconnect(channel);
+        }
+    }
+
+    @Override
     public List<FileInfo> list(String path) {
         ChannelSftp channel = null;
         try {

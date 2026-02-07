@@ -7,5 +7,7 @@ import com.ck.quiz.knowledgeset.dto.KnowledgeSourceQueryDto;
 import com.ck.quiz.knowledgeset.dto.KnowledgeSourceUpdateDto;
 import com.ck.quiz.knowledgeset.entity.KnowledgeSource;
 
-public interface KnowledgeSourceService extends BaseService<KnowledgeSourceCreateDto, KnowledgeSourceUpdateDto, KnowledgeSourceQueryDto, KnowledgeSourceDto, KnowledgeSource> {
+public interface KnowledgeSourceService extends
+        BaseService<KnowledgeSourceCreateDto, KnowledgeSourceUpdateDto, KnowledgeSourceQueryDto, KnowledgeSourceDto, KnowledgeSource> {
+    void testConnection(String type, String content) throws Exception;
 }
