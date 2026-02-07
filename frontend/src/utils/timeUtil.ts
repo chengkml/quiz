@@ -1,4 +1,4 @@
-const renderDate = (value) => {
+const renderDate = (value: string | number | Date) => {
     if (!value) return '--';
 
     const now = new Date();
