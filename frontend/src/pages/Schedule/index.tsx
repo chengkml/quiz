@@ -24,23 +24,39 @@ interface ScheduleItem {
     allDay?: boolean;
     color?: string;
     status: string;
+    priority?: string;
     completedAt?: string;
 }
 
+const priorityOptions = [
+  { label: "高", value: "HIGH" },
+  { label: "中", value: "MEDIUM" },
+  { label: "低", value: "LOW" },
+];
+
+const priorityColorMap: Record<string, string> = {
+  HIGH: "red",
+  MEDIUM: "orange",
+  LOW: "green",
+};
+
 const statusColorMap: Record<string, string> = {
     SCHEDULED: '#1677ff',
+    IN_PROGRESS: '#165dff',
     COMPLETED: '#52c41a',
     CANCELLED: '#f5222d',
 };
 
 const statusLabelMap: Record<string, string> = {
     SCHEDULED: '计划',
+    IN_PROGRESS: '处理中',
     COMPLETED: '完成',
     CANCELLED: '取消',
 };
 
-const statusBadgeColorMap: Record<string, 'blue' | 'green' | 'red'> = {
+const statusBadgeColorMap: Record<string, 'blue' | 'green' | 'red' | 'arcoblue'> = {
     SCHEDULED: 'blue',
+    IN_PROGRESS: 'arcoblue',
     COMPLETED: 'green',
     CANCELLED: 'red',
 };
@@ -53,6 +69,7 @@ const toScheduleItem = (event: any): ScheduleItem => ({
     endTime: event.endTime,
     allDay: event.allDay,
     status: event.status,
+    priority: event.priority || 'MEDIUM',
     completedAt: event.completedAt,
     color: statusColorMap[event.status] || '#165dff',
 });
@@ -245,6 +262,7 @@ function ScheduleManager() {
                     startTime: dayjs(schedule.startTime),
                     endTime: dayjs(schedule.endTime),
                     status: schedule.status,
+                    priority: schedule.priority || 'MEDIUM',
                     allDay: schedule.allDay ?? false,
                 });
             }, 50);
@@ -410,6 +428,9 @@ function ScheduleManager() {
         if (eventData.allDay !== undefined) {
             formData.allDay = eventData.allDay;
         }
+        if (eventData.priority) {
+            formData.priority = eventData.priority;
+        }
 
         setTimeout(() => {
             formRef.current?.setFieldsValue?.(formData);
@@ -444,6 +465,7 @@ function ScheduleManager() {
                     title: values.title,
                     descr: values.descr,
                     status: values.status,
+                    priority: values.priority || 'MEDIUM',
                     startTime: dayjs(values.startTime).format('YYYY-MM-DDTHH:mm:ss'),
                     endTime: dayjs(values.endTime).format('YYYY-MM-DDTHH:mm:ss'),
                     allDay: values.allDay ?? false,
@@ -585,10 +607,11 @@ function ScheduleManager() {
                         </div>
                     )}
                     <div style={{maxHeight: '55px', overflow: 'auto', display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'flex-start', marginTop: '8px'}}>
-                        {['SCHEDULED', 'COMPLETED', 'CANCELLED'].map(status => {
+                        {['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].map(status => {
                             const count = daySchedules.filter(s => s.status === status).length;
                             const iconMap = {
                                 SCHEDULED: <IconClockCircle style={{fontSize: '13px'}} />,
+                                IN_PROGRESS: <IconClockCircle style={{fontSize: '13px', color: '#165dff'}} />,
                                 COMPLETED: <IconCheckCircle style={{fontSize: '13px'}} />,
                                 CANCELLED: <IconCloseCircle style={{fontSize: '13px'}} />
                             };
@@ -684,6 +707,7 @@ function ScheduleManager() {
                             daySchedules.map(schedule => {
                                 const statusColors = {
                                     SCHEDULED: { bg: 'linear-gradient(135deg, #e6f4ff 0%, #bae0ff 100%)', border: '#91caff', text: '#0050b3' },
+                                    IN_PROGRESS: { bg: 'linear-gradient(135deg, #e6f7ff 0%, #91caff 100%)', border: '#1890ff', text: '#096dd9' },
                                     COMPLETED: { bg: 'linear-gradient(135deg, #f0f9ff 0%, #bae6fd 100%)', border: '#7dd3fc', text: '#0369a1' },
                                     CANCELLED: { bg: 'linear-gradient(135deg, #fff1f0 0%, #ffccc7 100%)', border: '#ffa39e', text: '#cf1322' }
                                 };
@@ -719,6 +743,11 @@ function ScheduleManager() {
                                                 </Tag>
                                                 <span>🕐 {dayjs(schedule.startTime).format('HH:mm')} - {dayjs(schedule.endTime).format('HH:mm')}</span>
                                             </div>
+                                            {schedule.priority && schedule.priority !== 'MEDIUM' && (
+                                                <Tag color={priorityColorMap[schedule.priority]} size="small" style={{ fontSize: '11px' }} bordered>
+                                                    {priorityOptions.find(o => o.value === schedule.priority)?.label}
+                                                </Tag>
+                                            )}
                                             {schedule.status === 'SCHEDULED' && (
                                                 <Button
                                                     type="primary"
@@ -1125,8 +1154,21 @@ function ScheduleManager() {
                     >
                         <Select placeholder="请选择日程状态">
                             <Option value="SCHEDULED">已计划</Option>
+                            <Option value="IN_PROGRESS">处理中</Option>
                             <Option value="COMPLETED">已完成</Option>
                             <Option value="CANCELLED">已取消</Option>
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        label="优先级"
+                        field="priority"
+                    >
+                        <Select placeholder="请选择优先级" allowClear>
+                            {priorityOptions.map((opt) => (
+                                <Option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </Option>
+                            ))}
                         </Select>
                     </Form.Item>
                     {isEditMode && currentSchedule?.completedAt && (

@@ -12,14 +12,12 @@ import java.time.LocalDateTime;
 @Entity
 @Comment("日程事件实体")
 @EqualsAndHashCode(callSuper = true)
-@Table(
-        name = "calendar_event",
-        indexes = {
-                @Index(name = "idx_calendar_event_status", columnList = "status"),
-                @Index(name = "idx_calendar_event_start", columnList = "start_time"),
-                @Index(name = "idx_calendar_event_end", columnList = "end_time")
-        }
-)
+@Table(name = "calendar_event", indexes = {
+        @Index(name = "idx_calendar_event_status", columnList = "status"),
+        @Index(name = "idx_calendar_event_priority", columnList = "priority"),
+        @Index(name = "idx_calendar_event_start", columnList = "start_time"),
+        @Index(name = "idx_calendar_event_end", columnList = "end_time")
+})
 public class CalendarEvent extends Model {
 
     @Column(length = 256, nullable = false)
@@ -34,6 +32,11 @@ public class CalendarEvent extends Model {
     @Column(length = 20, nullable = false)
     @Comment("状态：SCHEDULED, COMPLETED, CANCELLED")
     private Status status = Status.SCHEDULED;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    @Comment("优先级：LOW, MEDIUM, HIGH")
+    private Priority priority = Priority.MEDIUM;
 
     @Column(nullable = false)
     @Comment("开始时间")
@@ -51,7 +54,14 @@ public class CalendarEvent extends Model {
 
     public enum Status {
         SCHEDULED,
+        IN_PROGRESS,
         COMPLETED,
         CANCELLED
+    }
+
+    public enum Priority {
+        LOW,
+        MEDIUM,
+        HIGH
     }
 }

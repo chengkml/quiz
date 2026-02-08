@@ -17,6 +17,8 @@ public class CalendarEventUpdateDto extends UpdateDto {
 
     private CalendarEvent.Status status;
 
+    private CalendarEvent.Priority priority;
+
     private LocalDateTime startTime;
 
     private LocalDateTime endTime;

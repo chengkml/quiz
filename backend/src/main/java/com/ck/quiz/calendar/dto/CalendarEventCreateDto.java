@@ -21,6 +21,8 @@ public class CalendarEventCreateDto extends CreateDto {
 
     private CalendarEvent.Status status = CalendarEvent.Status.SCHEDULED;
 
+    private CalendarEvent.Priority priority = CalendarEvent.Priority.MEDIUM;
+
     @NotNull(message = "开始时间不能为空")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime startTime;

@@ -15,6 +15,8 @@ public class CalendarEventQueryDto extends QueryDto {
 
     private CalendarEvent.Status status;
 
+    private CalendarEvent.Priority priority;
+
     private LocalDateTime startTimeFrom;
 
     private LocalDateTime startTimeTo;

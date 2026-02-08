@@ -11,14 +11,11 @@ import java.time.LocalDateTime;
 @Entity
 @Comment("待办表")
 @EqualsAndHashCode(callSuper = true)
-@Table(
-        name = "todo",
-        indexes = {
-                @Index(name = "idx_todo_status", columnList = "status"),
-                @Index(name = "idx_todo_priority", columnList = "priority"),
-                @Index(name = "idx_todo_due_date", columnList = "due_date")
-        }
-)
+@Table(name = "todo", indexes = {
+        @Index(name = "idx_todo_status", columnList = "status"),
+        @Index(name = "idx_todo_priority", columnList = "priority"),
+        @Index(name = "idx_todo_due_date", columnList = "due_date")
+})
 public class Todo extends Model {
 
     @Column(length = 256, nullable = false)
@@ -32,20 +29,24 @@ public class Todo extends Model {
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
     @Comment("状态")
-    private Status status = Status.PENDING;
+    private Status status = Status.SCHEDULED;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
     @Comment("优先级")
     private Priority priority = Priority.MEDIUM;
 
+    @Comment("开始时间")
+    private LocalDateTime startTime;
+
     @Comment("截止时间")
     private LocalDateTime dueDate;
 
     public enum Status {
-        PENDING,
+        SCHEDULED,
         IN_PROGRESS,
-        COMPLETED
+        COMPLETED,
+        CANCELLED
     }
 
     public enum Priority {

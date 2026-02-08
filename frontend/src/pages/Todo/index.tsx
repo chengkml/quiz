@@ -16,7 +16,6 @@ import {
 import DataManager from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
 import { FormFieldConfig } from "@/components/types/types";
-import UserAvatar from "@/components/UserAvatar";
 import {
   IconCheck,
   IconDelete,
@@ -58,7 +57,7 @@ function TodoManager() {
   // 搜索条件
   const [searchParams, setSearchParams] = useState({
     title: null,
-    status: 'PENDING',  // 默认查询待处理状态
+    status: 'SCHEDULED',  // 默认查询待处理状态
     priority: null,
   });
 
@@ -77,9 +76,10 @@ function TodoManager() {
 
   // 状态与优先级选项
   const statusOptions = [
-    { label: "待处理", value: "PENDING" },
+    { label: "已计划", value: "SCHEDULED" },
     { label: "处理中", value: "IN_PROGRESS" },
     { label: "已完成", value: "COMPLETED" },
+    { label: "已取消", value: "CANCELLED" },
   ];
   const priorityOptions = [
     { label: "低", value: "LOW" },
@@ -161,7 +161,7 @@ function TodoManager() {
   // 重置处理
   const handleReset = () => {
     // 重置为默认状态：待处理
-    const defaultParams = { status: 'PENDING' };
+    const defaultParams = { status: 'SCHEDULED' };
     setSearchParams(defaultParams as any);
     setPagination((prev) => ({ ...prev, current: 1 }));
     fetchTableData(defaultParams, pagination.pageSize, 1);
@@ -193,6 +193,9 @@ function TodoManager() {
         const payload = {
           ...values,
           // 统一转换为 LocalDateTime 可解析格式
+          startTime: values.startTime
+            ? dayjs(values.startTime).format("YYYY-MM-DDTHH:mm:ss")
+            : null,
           dueDate: values.dueDate
             ? dayjs(values.dueDate).format("YYYY-MM-DDTHH:mm:ss")
             : null,
@@ -220,6 +223,7 @@ function TodoManager() {
         descr: record.descr,
         status: record.status,
         priority: record.priority,
+        startTime: record.startTime ? dayjs(record.startTime) : null,
         dueDate: record.dueDate ? dayjs(record.dueDate) : null,
       });
     }, 50);
@@ -235,6 +239,9 @@ function TodoManager() {
           descr: values.descr,
           status: values.status,
           priority: values.priority,
+          startTime: values.startTime
+            ? dayjs(values.startTime).format("YYYY-MM-DDTHH:mm:ss")
+            : null,
           dueDate: values.dueDate
             ? dayjs(values.dueDate).format("YYYY-MM-DDTHH:mm:ss")
             : null,
@@ -464,7 +471,7 @@ function TodoManager() {
       onSearch={handleSearch}
       onReset={handleReset}
       initialValues={{
-        status: 'PENDING',  // 初始显示待处理
+        status: 'SCHEDULED',  // 初始显示待处理
       }}
     />
   );
@@ -535,6 +542,9 @@ function TodoManager() {
                 ))}
               </Select>
             </Form.Item>
+            <Form.Item label="开始时间" field="startTime">
+              <DatePicker showTime style={{ width: "100%" }} />
+            </Form.Item>
             <Form.Item label="截止时间" field="dueDate">
               <DatePicker showTime style={{ width: "100%" }} />
             </Form.Item>
@@ -588,6 +598,9 @@ function TodoManager() {
                 ))}
               </Select>
             </Form.Item>
+            <Form.Item label="开始时间" field="startTime">
+              <DatePicker showTime style={{ width: "100%" }} />
+            </Form.Item>
             <Form.Item label="截止时间" field="dueDate">
               <DatePicker showTime style={{ width: "100%" }} />
             </Form.Item>
@@ -623,9 +636,10 @@ function TodoManager() {
                   value: (() => {
                     const status = currentRecord.status;
                     const map: Record<string, any> = {
-                      PENDING: { color: "gray", text: "待处理" },
+                      SCHEDULED: { color: "gray", text: "已计划" },
                       IN_PROGRESS: { color: "blue", text: "处理中" },
                       COMPLETED: { color: "green", text: "已完成" },
+                      CANCELLED: { color: "red", text: "已取消" },
                     };
                     const it = map[status] || {
                       color: "arcoblue",
@@ -649,6 +663,12 @@ function TodoManager() {
                     };
                     return <Tag color={it.color} bordered>{it.text}</Tag>;
                   })(),
+                },
+                {
+                  label: "开始时间",
+                  value: currentRecord.startTime
+                    ? renderDate(currentRecord.startTime)
+                    : "-",
                 },
                 {
                   label: "截止时间",

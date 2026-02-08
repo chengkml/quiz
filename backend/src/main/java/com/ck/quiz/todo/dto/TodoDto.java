@@ -9,10 +9,12 @@ import java.time.LocalDateTime;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TodoDto extends Dto{
+public class TodoDto extends Dto {
     private String title;
     private String descr;
     private Todo.Status status;
     private Todo.Priority priority;
+    private LocalDateTime startTime;
+
     private LocalDateTime dueDate;
 }
