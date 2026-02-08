@@ -7,7 +7,9 @@ import {
   Menu,
   Message,
   Modal,
+  Space,
   Tag,
+  Tooltip,
   Drawer,
 } from "@arco-design/web-react";
 import {
@@ -275,48 +277,33 @@ const MermaidMgrPage: React.FC = () => {
       align: "center" as const,
       fixed: "right" as const,
       render: (_: any, record: any) => (
-        <Dropdown
-          position="bl"
-          droplist={
-            <Menu
-              onClickMenuItem={(key) => {
-                switch (key) {
-                  case "draw":
-                    handleDraw(record);
-                    break;
-                  case "edit":
-                    handleEdit(record);
-                    break;
-                  case "delete":
-                    handleDelete(record);
-                    break;
-                }
-              }}
-              className="handle-dropdown-menu"
-            >
-              <Menu.Item key="draw">
-                <IconMindMapping style={{ marginRight: 5 }} />
-                绘图
-              </Menu.Item>
-              <Menu.Item key="edit">
-                <IconEdit style={{ marginRight: 5 }} />
-                编辑
-              </Menu.Item>
-              <Menu.Item key="delete">
-                <IconDelete style={{ marginRight: 5 }} />
-                删除
-              </Menu.Item>
-            </Menu>
-          }
-        >
-          <Button
-            type="text"
-            className="more-btn"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <IconList />
-          </Button>
-        </Dropdown>
+        <Space size="large">
+          <Tooltip content="绘图">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconMindMapping />}
+              onClick={() => handleDraw(record)}
+            />
+          </Tooltip>
+          <Tooltip content="编辑">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconEdit />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
+          <Tooltip content="删除">
+            <Button
+              type="text"
+              size="small"
+              status="danger"
+              icon={<IconDelete />}
+              onClick={() => handleDelete(record)}
+            />
+          </Tooltip>
+        </Space>
       ),
     },
   ];

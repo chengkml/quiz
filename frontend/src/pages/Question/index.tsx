@@ -13,6 +13,7 @@ import {
     Message,
     Modal,
     Select,
+    Space,
     Spin,
     Tag,
     Tooltip,
@@ -229,40 +230,46 @@ function QuestionManager() {
         },
         {
             title: '操作',
-            width: 100,
+            width: 120,
             align: 'center',
             fixed: 'right',
             render: (_, record) => (
-                <Dropdown
-                    position="bl"
-                    droplist={
-                        <Menu
-                            onClickMenuItem={(key, e) => {
-                                handleMenuClick(key, e, record);
+                <Space size="large" className="table-btn-group">
+                    <Tooltip content="详情">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconEye/>}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDetail(record);
                             }}
-                            className="handle-dropdown-menu"
-                        >
-                            <Menu.Item key="edit">
-                                <IconEdit style={{marginRight: '5px'}}/>
-                                编辑
-                            </Menu.Item>
-                            <Menu.Item key="delete">
-                                <IconDelete style={{marginRight: '5px'}}/>
-                                删除
-                            </Menu.Item>
-                        </Menu>
-                    }
-                >
-                    <Button
-                        type="text"
-                        className="more-btn"
-                        onClick={e => {
-                            e.stopPropagation();
-                        }}
-                    >
-                        <IconList/>
-                    </Button>
-                </Dropdown>
+                        />
+                    </Tooltip>
+                    <Tooltip content="编辑">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconEdit/>}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(record);
+                            }}
+                        />
+                    </Tooltip>
+                    <Tooltip content="删除">
+                        <Button
+                            type="text"
+                            size="small"
+                            status="danger"
+                            icon={<IconDelete/>}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(record);
+                            }}
+                        />
+                    </Tooltip>
+                </Space>
             ),
         },
     ];
@@ -1104,6 +1111,12 @@ function QuestionManager() {
                         </div>
                     ),
                     tableColumns: columns,
+                    tableProps: {
+                        onRow: (record) => ({
+                            onClick: () => handleDetail(record),
+                            style: { cursor: 'pointer' }
+                        })
+                    }
                 }}
                 tableScrollHeight={tableScrollHeight}
             />

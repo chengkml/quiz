@@ -7,8 +7,7 @@ import {
   Modal,
   Space,
   Table,
-  Dropdown,
-  Menu,
+  Tooltip,
 } from "@arco-design/web-react";
 import {
   IconDelete,
@@ -325,36 +324,31 @@ function WxAppManager() {
       fixed: "right" as const,
       render: (_: any, record: WxAppResponse) => (
         <Space size="large" className="table-btn-group">
-          <Dropdown
-            position="bl"
-            droplist={
-              <Menu
-                onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}
-                className="handle-dropdown-menu"
-              >
-                <Menu.Item key="users">
-                  <IconUser style={{ marginRight: 5 }} />
-                  查看用户
-                </Menu.Item>
-                <Menu.Item key="edit">
-                  <IconEdit style={{ marginRight: 5 }} />
-                  编辑
-                </Menu.Item>
-                <Menu.Item key="delete">
-                  <IconDelete style={{ marginRight: 5 }} />
-                  删除
-                </Menu.Item>
-              </Menu>
-            }
-          >
+          <Tooltip content="查看用户">
             <Button
               type="text"
-              className="more-btn"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <IconList />
-            </Button>
-          </Dropdown>
+              size="small"
+              icon={<IconUser />}
+              onClick={() => handleViewUsers(record)}
+            />
+          </Tooltip>
+          <Tooltip content="编辑">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconEdit />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
+          <Tooltip content="删除">
+            <Button
+              type="text"
+              size="small"
+              status="danger"
+              icon={<IconDelete />}
+              onClick={() => handleDelete(record)}
+            />
+          </Tooltip>
         </Space>
       ),
     },

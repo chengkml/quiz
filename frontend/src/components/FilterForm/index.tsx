@@ -108,9 +108,16 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
     }
   }, [onValuesChange, updateValueList]);
 
-  // 获取当前筛选条件
+  // 获取当前筛选条件（过滤掉无效值）
   const getFilterValues = useCallback(() => {
-    return { ...valuesRef.current };
+    const currentValues = { ...valuesRef.current };
+
+    // 过滤掉 null、undefined、空字符串
+    return Object.fromEntries(
+      Object.entries(currentValues).filter(([_, v]) => {
+        return v !== null && v !== undefined && v !== "";
+      })
+    );
   }, []);
 
   // 重置表单

@@ -281,8 +281,12 @@ const PasswordManager: React.FC = () => {
         fixed: "right" as const,
         render: (_: any, record: PasswordDto) => (
             <Space>
-                <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEdit(record)}>编辑</Button>
-                <Button type="text" size="small" status="danger" icon={<IconDelete />} onClick={() => handleDelete(record)}>删除</Button>
+                <Tooltip content="编辑">
+                    <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEdit(record)} />
+                </Tooltip>
+                <Tooltip content="删除">
+                    <Button type="text" size="small" status="danger" icon={<IconDelete />} onClick={() => handleDelete(record)} />
+                </Tooltip>
             </Space>
         )
     }
@@ -375,7 +379,7 @@ const PasswordManager: React.FC = () => {
                     disabled={Date.now() < countdown}
                     onClick={handleSendCode}
                   >
-                      {Date.now() < countdown ? <Countdown value={countdown} format="s 秒后重发" onFinish={() => setCountdown(0)} now={Date.now} /> : "发送验证码"}
+                      {Date.now() < countdown ? <Countdown value={countdown} format="s 秒后重发" onFinish={() => setCountdown(0)} now={Date.now()} /> : "发送验证码"}
                   </Button>
               </Space>
               <Input 

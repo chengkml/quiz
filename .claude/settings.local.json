@@ -8,7 +8,11 @@
       "Bash(if [ -f .claudeignore ])",
       "Bash(then:*)",
       "Bash(else echo \"File does not exist\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(npm run build)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
     ]
   }
 }

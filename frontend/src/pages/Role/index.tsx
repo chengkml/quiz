@@ -10,6 +10,7 @@ import {
   Modal,
   Space,
   Tag,
+  Tooltip,
   Tree,
 } from "@arco-design/web-react";
 import "./style/index.less";
@@ -41,6 +42,25 @@ import renderDate from "@/utils/timeUtil";
 
 const { Content } = Layout;
 
+interface Role {
+  id: string;
+  name: string;
+  descr?: string;
+  state: string;
+  createDate?: string;
+  createUserName?: string;
+  createUser?: string;
+}
+
+interface MenuNode {
+  menuId: string;
+  menuName?: string;
+  menuLabel?: string;
+  children?: MenuNode[];
+  key?: string;
+  title?: string;
+}
+
 function RoleManager() {
   // 状态管理
   const [data, setData] = useState([]);
@@ -69,19 +89,19 @@ function RoleManager() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
   // 当前操作的角色
-  const [currentRole, setCurrentRole] = useState(null);
+  const [currentRole, setCurrentRole] = useState<Role | null>(null);
 
   // 分配菜单：抽屉、加载、树数据与选中项
   const [assignVisible, setAssignVisible] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
-  const [menuTreeData, setMenuTreeData] = useState([]);
-  const [checkedMenuKeys, setCheckedMenuKeys] = useState([]);
+  const [menuTreeData, setMenuTreeData] = useState<MenuNode[]>([]);
+  const [checkedMenuKeys, setCheckedMenuKeys] = useState<string[]>([]);
 
   // 表单引用
   const filterFormRef = useRef<any>(null);
 
   // 验证角色ID唯一性
-  const validateRoleId = async (value, callback) => {
+  const validateRoleId = async (value: string, callback: any) => {
     if (!value) {
       return callback();
     }
@@ -102,14 +122,14 @@ function RoleManager() {
   };
 
   // 验证角色名称唯一性
-  const validateRoleName = async (value, callback) => {
+  const validateRoleName = async (value: string, callback: any) => {
     if (!value) {
       return callback();
     }
 
     try {
-      const excludeRoleId = currentRole?.id || null;
-      const response = await checkRoleName(value, excludeRoleId);
+      const excludeRoleId = currentRole?.id;
+      const response = await checkRoleName(value, excludeRoleId as any);
       if (!response.data) {
         callback("角色名称已存在");
       } else {
@@ -140,15 +160,15 @@ function RoleManager() {
       title: "角色描述",
       dataIndex: "descr",
       key: "descr",
-      render: (descr) => descr || "-",
+      render: (descr: string) => descr || "-",
     },
     {
       title: "状态",
       dataIndex: "state",
       key: "state",
-      align: "center",
+      align: "center" as const,
       width: 80,
-      render: (state) => (
+      render: (state: string) => (
         <Tag color={state === "ENABLED" ? "green" : "red"} bordered>
           {state === "ENABLED" ? "启用" : "禁用"}
         </Tag>
@@ -159,14 +179,14 @@ function RoleManager() {
       dataIndex: "createDate",
       key: "createDate",
       width: 170,
-      render: (value) => renderDate(value),
+      render: (value: string) => renderDate(value),
     },
     {
       title: "创建人",
       dataIndex: "createUserName",
       key: "createUserName",
       width: 140,
-      render: (name, record) => (
+      render: (name: string, record: Role) => (
         <UserAvatar name={name || (record?.createUser ?? "")} showName />
       ),
     },
@@ -174,48 +194,44 @@ function RoleManager() {
       title: "操作",
       key: "action",
       width: 100,
-      align: "center",
-      fixed: "right",
-      render: (_, record) => (
-        <Space size="large" className="dropdown-demo table-btn-group">
-          <Dropdown
-            position="bl"
-            droplist={
-              <Menu
-                onClickMenuItem={(key, e) => {
-                  handleMenuClick(key, e, record);
-                }}
-                className="handle-dropdown-menu"
-              >
-                <Menu.Item key="assign">
-                  <IconMenu style={{ marginRight: "5px" }} />
-                  分配菜单
-                </Menu.Item>
-                <Menu.Item key="edit">
-                  <IconEdit style={{ marginRight: "5px" }} />
-                  编辑
-                </Menu.Item>
-                <Menu.Item key="toggle">
-                  <IconUser style={{ marginRight: "5px" }} />
-                  {record.state === "ENABLED" ? "禁用" : "启用"}
-                </Menu.Item>
-                <Menu.Item key="delete">
-                  <IconDelete style={{ marginRight: "5px" }} />
-                  删除
-                </Menu.Item>
-              </Menu>
-            }
-          >
+      align: "center" as const,
+      fixed: "right" as const,
+      render: (_: any, record: Role) => (
+        <Space size="large" className="table-btn-group">
+          <Tooltip content="分配菜单">
             <Button
               type="text"
-              className="more-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              <IconList />
-            </Button>
-          </Dropdown>
+              size="small"
+              icon={<IconMenu />}
+              onClick={() => handleAssignMenus(record)}
+            />
+          </Tooltip>
+          <Tooltip content="编辑">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconEdit />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
+          <Tooltip content={record.state === "ENABLED" ? "禁用" : "启用"}>
+            <Button
+              type="text"
+              size="small"
+              status={record.state === "ENABLED" ? "warning" : "success"}
+              icon={<IconUser />}
+              onClick={() => handleToggleState(record)}
+            />
+          </Tooltip>
+          <Tooltip content="删除">
+            <Button
+              type="text"
+              size="small"
+              status="danger"
+              icon={<IconDelete />}
+              onClick={() => handleDelete(record)}
+            />
+          </Tooltip>
         </Space>
       ),
     },
@@ -288,7 +304,7 @@ function RoleManager() {
   };
 
   // 获取角色列表
-  const fetchRoles = async (params = {}) => {
+  const fetchRoles = async (params: any = {}) => {
     setLoading(true);
     try {
       const queryParams = {
@@ -315,7 +331,7 @@ function RoleManager() {
   };
 
   // 搜索处理
-  const handleSearch = (values) => {
+  const handleSearch = (values: any) => {
     // 过滤空值
     const filterValues = Object.fromEntries(
       Object.entries(values).filter(([_, v]) => v !== "" && v !== undefined)
@@ -344,7 +360,7 @@ function RoleManager() {
   );
 
   // 切换角色状态
-  const handleToggleState = async (record) => {
+  const handleToggleState = async (record: Role) => {
     try {
       if (record.state === "ENABLED") {
         await disableRole(record.id);
@@ -361,7 +377,7 @@ function RoleManager() {
   };
 
   // 处理菜单点击
-  const handleMenuClick = (key, event, record) => {
+  const handleMenuClick = (key: string, event: any, record: Role) => {
     event.stopPropagation();
     if (key === "edit") {
       handleEdit(record);
@@ -375,7 +391,7 @@ function RoleManager() {
   };
 
   // 将后端MenuDto转换为Tree组件数据结构
-  const convertToTreeNodes = (nodes = []) => {
+  const convertToTreeNodes = (nodes: MenuNode[] = []): any[] => {
     return (nodes || []).map((n) => ({
       key: n.menuId,
       title: n.menuLabel || n.menuName || n.menuId,
@@ -384,9 +400,9 @@ function RoleManager() {
   };
 
   // 提取树中的所有key
-  const extractKeys = (allTree, nodes = []) => {
-    const keys = [];
-    const walk = (list) => {
+  const extractKeys = (allTree: any[], nodes: any[] = []) => {
+    const keys: string[] = [];
+    const walk = (list: any[]) => {
       (list || []).forEach((n) => {
         keys.push(n.menuId || n.key);
         if (n.children && n.children.length) {
@@ -398,20 +414,20 @@ function RoleManager() {
     return keys;
   };
 
-  const removeCheckParents = (allTree, assignedKeys) => {
+  const removeCheckParents = (allTree: any[], assignedKeys: string[]) => {
     // 创建一个 Set 便于快速查找
     const assignedSet = new Set(assignedKeys);
 
     // 判断一个节点是否所有子节点都被选中
-    const isAllChildrenChecked = (node) => {
+    const isAllChildrenChecked = (node: any) => {
       if (!node.children || node.children.length === 0) return true;
       return node.children.every(
-        (child) => assignedSet.has(child.key) && isAllChildrenChecked(child)
+        (child: any) => assignedSet.has(child.key) && isAllChildrenChecked(child)
       );
     };
 
     // 遍历树，移除不满足条件的父节点
-    const filterKeys = (node) => {
+    const filterKeys = (node: any) => {
       if (node.children && node.children.length) {
         node.children.forEach(filterKeys); // 先处理子节点
       }
@@ -432,7 +448,7 @@ function RoleManager() {
   };
 
   // 打开分配菜单抽屉并加载数据
-  const handleAssignMenus = async (record) => {
+  const handleAssignMenus = async (record: Role) => {
     setCurrentRole(record);
     setAssignVisible(true);
     setAssignLoading(true);
@@ -483,20 +499,20 @@ function RoleManager() {
   };
 
   // 编辑角色
-  const handleEdit = (record) => {
+  const handleEdit = (record: Role) => {
     setCurrentRole(record);
     setIsEdit(true);
     setAddEditVisible(true);
   };
 
   // 删除角色
-  const handleDelete = (record) => {
+  const handleDelete = (record: Role) => {
     setCurrentRole(record);
     setDeleteModalVisible(true);
   };
 
   // 确认添加/编辑角色
-  const handleAddEditSubmit = async (values) => {
+  const handleAddEditSubmit = async (values: any) => {
     try {
       if (isEdit) {
         await updateRole(values);
@@ -506,7 +522,7 @@ function RoleManager() {
         Message.success("角色创建成功");
       }
       fetchRoles();
-    } catch (error) {
+    } catch (error: any) {
       let msg = isEdit ? "更新角色信息失败" : "创建角色失败";
       if (error.response?.data?.message) {
         msg = error.response.data.message;

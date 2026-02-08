@@ -12,6 +12,7 @@ import {
   Space,
   Spin,
   Tag,
+  Tooltip,
 } from "@arco-design/web-react";
 import UserAvatar from "@/components/UserAvatar";
 import "./style/index.less";
@@ -149,49 +150,49 @@ function UserManager() {
       align: "center",
       fixed: "right",
       render: (_, record) => (
-        <Space size="large" className="dropdown-demo table-btn-group">
-          <Dropdown
-            position="bl"
-            droplist={
-              <Menu
-                onClickMenuItem={(key, e) => {
-                  handleMenuClick(key, e, record);
-                }}
-                className="handle-dropdown-menu"
-              >
-                <Menu.Item key="edit">
-                  <IconEdit style={{ marginRight: "5px" }} />
-                  编辑
-                </Menu.Item>
-                <Menu.Item key="resetPassword">
-                  <IconRefresh style={{ marginRight: "5px" }} />
-                  重置密码
-                </Menu.Item>
-                <Menu.Item key="assignRoles">
-                  <IconMenu style={{ marginRight: "5px" }} />
-                  分配角色
-                </Menu.Item>
-                <Menu.Item key="toggleState">
-                  <IconUser style={{ marginRight: "5px" }} />
-                  {record.state === "ENABLED" ? "禁用" : "启用"}
-                </Menu.Item>
-                <Menu.Item key="delete">
-                  <IconDelete style={{ marginRight: "5px" }} />
-                  删除
-                </Menu.Item>
-              </Menu>
-            }
-          >
+        <Space size="large" className="table-btn-group">
+          <Tooltip content="编辑">
             <Button
               type="text"
-              className="more-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              <IconList />
-            </Button>
-          </Dropdown>
+              size="small"
+              icon={<IconEdit />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
+          <Tooltip content="重置密码">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconRefresh />}
+              onClick={() => handleResetPassword(record)}
+            />
+          </Tooltip>
+          <Tooltip content="分配角色">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconMenu />}
+              onClick={() => openAssignRoles(record)}
+            />
+          </Tooltip>
+          <Tooltip content={record.state === "ENABLED" ? "禁用" : "启用"}>
+            <Button
+              type="text"
+              size="small"
+              status={record.state === "ENABLED" ? "warning" : "success"}
+              icon={<IconUser />}
+              onClick={() => handleToggleState(record)}
+            />
+          </Tooltip>
+          <Tooltip content="删除">
+            <Button
+              type="text"
+              size="small"
+              status="danger"
+              icon={<IconDelete />}
+              onClick={() => handleDelete(record)}
+            />
+          </Tooltip>
         </Space>
       ),
     },

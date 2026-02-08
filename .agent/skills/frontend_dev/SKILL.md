@@ -208,6 +208,34 @@ npm run build
   - **变量使用**：广泛使用 CSS 变量（如 `--color-primary`, `--color-text-1`）以确保与系统主题一致。
   - **图标使用**：使用 Arco Design 图标库（如 `IconClockCircle`, `IconCheckCircle` 等）作为状态指示。
 
+### 表格操作按钮规范
+
+位于 `src/components/DataManager/components/TableList.tsx` 中，针对每一行数据的操作按钮应遵循以下规范：
+
+> **重要**：表格操作列**禁止**使用下拉菜单 (Dropdown Menu) 收纳按钮。所有操作按钮必须直接平铺展示，如果按钮过多，请考虑精简或使用图标按钮+Tooltip的形式。
+
+- **查看按钮** (如果启用):
+  - 组件: `<Button>`
+  - 类型: `type="text"` (文本按钮，无背景边框)
+  - 尺寸: `size="small"`
+  - 图标: `<IconEye />`
+  - Tooltip: "查看"
+
+- **编辑按钮**:
+  - 组件: `<Button>`
+  - 类型: `type="text"`
+  - 尺寸: `size="small"`
+  - 图标: `<IconEdit />`
+  - Tooltip: "编辑"
+
+- **删除按钮**:
+  - 组件: `<Button>`
+  - 类型: `type="text"`
+  - 状态: `status="danger"` (危险状态，通常图标为红色)
+  - 尺寸: `size="small"`
+  - 图标: `<IconDelete />`
+  - Tooltip: "删除"
+
 ## 参考资料
 
 - [Arco Design React](https://arco.design/react/docs/start)

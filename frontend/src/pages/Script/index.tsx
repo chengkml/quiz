@@ -16,6 +16,7 @@ import {
   Switch,
   Table,
   Tag,
+  Tooltip,
 } from "@arco-design/web-react";
 import {
   IconDelete,
@@ -270,44 +271,41 @@ function ScriptManager() {
       fixed: "right" as any,
       render: (_: any, record: any) => (
         <Space size="large" className="table-btn-group">
-          <Dropdown
-            position="bl"
-            droplist={
-              <Menu
-                onClickMenuItem={(key, e) =>
-                  handleJobsMenuClick(key, e, record)
-                }
-                className="handle-dropdown-menu"
-              >
-                {record.state !== "SUCCESS" &&
-                  record.state !== "STOPPED" &&
-                  record.state !== "FAILED" && (
-                    <Menu.Item key="stop">
-                      <IconStop style={{ marginRight: 5 }} />
-                      停止
-                    </Menu.Item>
-                  )}
-                <Menu.Item key="log">
-                  <IconInfo style={{ marginRight: 5 }} />
-                  日志
-                </Menu.Item>
-                {["RUNNING"].indexOf(record.state) === -1 && (
-                  <Menu.Item key="delete">
-                    <IconDelete style={{ marginRight: 5 }} />
-                    删除
-                  </Menu.Item>
-                )}
-              </Menu>
-            }
-          >
+          {record.state !== "SUCCESS" &&
+            record.state !== "STOPPED" &&
+            record.state !== "FAILED" && (
+              <Tooltip content="停止">
+                <Button
+                  type="text"
+                  size="small"
+                  status="warning"
+                  icon={<IconStop />}
+                  onClick={() => setStopModalVisible(true)}
+                />
+              </Tooltip>
+            )}
+          <Tooltip content="日志">
             <Button
               type="text"
-              className="more-btn"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <IconList />
-            </Button>
-          </Dropdown>
+              size="small"
+              icon={<IconInfo />}
+              onClick={() => {
+                setCurrentJobId(record.id);
+                setLogModalVisible(true);
+              }}
+            />
+          </Tooltip>
+          {["RUNNING"].indexOf(record.state) === -1 && (
+            <Tooltip content="删除">
+              <Button
+                type="text"
+                size="small"
+                status="danger"
+                icon={<IconDelete />}
+                onClick={() => setJobDeleteModalVisible(true)}
+              />
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -688,57 +686,61 @@ function ScriptManager() {
       fixed: "right" as any,
       render: (_: any, record: any) => (
         <Space size="large" className="table-btn-group">
-          <Dropdown
-            position="bl"
-            droplist={
-              <Menu
-                onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}
-                className="handle-dropdown-menu"
-              >
-                {/* 编辑按钮 */}
-                <Menu.Item key="edit">
-                  <IconEdit style={{ marginRight: 5 }} />
-                  编辑
-                </Menu.Item>
-                {/* 根据状态显示启用/禁用按钮 */}
-                {record.state === "DISABLED" && (
-                  <Menu.Item key="enable">
-                    <IconUnlock style={{ marginRight: 5 }} />
-                    启用
-                  </Menu.Item>
-                )}
-                {record.state === "ENABLED" && (
-                  <Menu.Item key="disable">
-                    <IconLock style={{ marginRight: 5 }} />
-                    禁用
-                  </Menu.Item>
-                )}
-                {/* 执行按钮 */}
-                <Menu.Item key="exec">
-                  <IconPlayArrow style={{ marginRight: 5 }} />
-                  执行
-                </Menu.Item>
-                {/* 作业按钮 */}
-                <Menu.Item key="jobs">
-                  <IconList style={{ marginRight: 5 }} />
-                  作业
-                </Menu.Item>
-                {/* 删除按钮 */}
-                <Menu.Item key="delete">
-                  <IconDelete style={{ marginRight: 5 }} />
-                  删除
-                </Menu.Item>
-              </Menu>
-            }
-          >
+          <Tooltip content="编辑">
             <Button
               type="text"
-              className="more-btn"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <IconList />
-            </Button>
-          </Dropdown>
+              size="small"
+              icon={<IconEdit />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
+          {record.state === "DISABLED" && (
+            <Tooltip content="启用">
+              <Button
+                type="text"
+                size="small"
+                status="success"
+                icon={<IconUnlock />}
+                onClick={() => handleEnable(record)}
+              />
+            </Tooltip>
+          )}
+          {record.state === "ENABLED" && (
+            <Tooltip content="禁用">
+              <Button
+                type="text"
+                size="small"
+                status="warning"
+                icon={<IconLock />}
+                onClick={() => handleDisable(record)}
+              />
+            </Tooltip>
+          )}
+          <Tooltip content="执行">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconPlayArrow />}
+              onClick={() => handleExec(record)}
+            />
+          </Tooltip>
+          <Tooltip content="作业">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconList />}
+              onClick={() => handleJobs(record)}
+            />
+          </Tooltip>
+          <Tooltip content="删除">
+            <Button
+              type="text"
+              size="small"
+              status="danger"
+              icon={<IconDelete />}
+              onClick={() => handleDelete(record)}
+            />
+          </Tooltip>
         </Space>
       ),
     },

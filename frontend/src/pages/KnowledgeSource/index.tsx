@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import UserAvatar from '@/components/UserAvatar';
-import { Button, Card, Dropdown, Layout, Menu, Message, Modal, Space, Tag, Typography } from '@arco-design/web-react';
+import { Button, Card, Dropdown, Layout, Menu, Message, Modal, Space, Tag, Tooltip, Typography } from '@arco-design/web-react';
 import { IconDelete, IconEdit, IconList, IconFile, IconStorage } from '@arco-design/web-react/icon';
 import { DataManager } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
@@ -63,6 +63,34 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
             dataIndex: 'createDate',
             width: 170,
             render: (text: string) => renderDate(text),
+        },
+        {
+            title: '操作',
+            dataIndex: 'action',
+            width: 120,
+            align: 'center',
+            fixed: 'right',
+            render: (_, record) => (
+                <Space size="large">
+                    <Tooltip content="编辑">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconEdit />}
+                            onClick={() => handleEdit(record)}
+                        />
+                    </Tooltip>
+                    <Tooltip content="删除">
+                        <Button
+                            type="text"
+                            size="small"
+                            status="danger"
+                            icon={<IconDelete />}
+                            onClick={() => handleDelete(record)}
+                        />
+                    </Tooltip>
+                </Space>
+            ),
         },
     ];
 
@@ -233,9 +261,9 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
                             <Menu onClickMenuItem={(key, e) => {
                                 e.stopPropagation();
                                 if (key === 'edit') {
-                                    actions.onEdit(item);
+                                    handleEdit(item);
                                 } else if (key === 'delete') {
-                                    actions.onDelete(item);
+                                    handleDelete(item);
                                 }
                             }}>
                                 <Menu.Item key="edit"><IconEdit style={{ marginRight: 8 }} />编辑</Menu.Item>
@@ -278,8 +306,6 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
                         onPaginationChange={handlePaginationChange}
                         actions={{
                             onAdd: handleAdd,
-                            onEdit: handleEdit,
-                            onDelete: handleDelete,
                         }}
                         config={{
                             displayMode: 'table',
