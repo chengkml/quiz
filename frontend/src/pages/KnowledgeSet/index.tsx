@@ -54,6 +54,10 @@ function KnowledgeSetManager() {
         return renderDate(value);
     };
 
+    // Detail modal state
+    const [detailModalVisible, setDetailModalVisible] = useState(false);
+    const [detailRecord, setDetailRecord] = useState<any | null>(null);
+
     // Columns
     const tableColumns = [
         {
@@ -105,13 +109,29 @@ function KnowledgeSetManager() {
             width: 200,
             fixed: 'right' as const,
             render: (_: any, record: any) => (
-                <Space>
-                    <Button type="text" size="small" onClick={() => handleOpenSourceDrawer(record.id)} icon={<IconStorage />}>
-                        来源
-                    </Button>
-                    <Button type="text" size="small" onClick={() => handleEdit(record)} icon={<IconEdit />}>
-                        编辑
-                    </Button>
+                <div style={{ display: "flex", gap: 16 }}>
+                    <Tooltip content="来源">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconStorage />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenSourceDrawer(record.id);
+                            }}
+                        />
+                    </Tooltip>
+                    <Tooltip content="编辑">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconEdit />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(record);
+                            }}
+                        />
+                    </Tooltip>
                     <Dropdown
                         droplist={
                             <Menu onClickMenuItem={(key) => {
@@ -126,14 +146,20 @@ function KnowledgeSetManager() {
                             </Menu>
                         }
                     >
-                        <Button type="text" size="small" icon={<IconList />}>
-                            更多
-                        </Button>
+                        <Tooltip content="更多">
+                            <Button type="text" size="small" icon={<IconList />} onClick={(e) => e.stopPropagation()} />
+                        </Tooltip>
                     </Dropdown>
-                </Space>
+                </div>
             ),
         },
     ];
+
+    // Handle detail
+    const handleDetail = (record: any) => {
+        setDetailRecord(record);
+        setDetailModalVisible(true);
+    };
 
     // Search fields
     const searchFormFields: FormFieldConfig[] = [
@@ -386,7 +412,13 @@ function KnowledgeSetManager() {
                         showModeToggle: false,
                         renderShortCard,
                         cardColumns: 4,
-                        cardGutter: 16
+                        cardGutter: 16,
+                        tableProps: {
+                            onRow: (record: any) => ({
+                                onClick: () => handleDetail(record),
+                                style: { cursor: 'pointer' }
+                            })
+                        }
                     }}
                     tableScrollHeight={tableScrollHeight}
                 />
@@ -412,6 +444,110 @@ function KnowledgeSetManager() {
                     knowledgeSetId={searchKnowledgeSetId}
                     onCancel={handleCloseSearchDrawer}
                 />
+
+                {/* 详情查看对话框 */}
+                {detailModalVisible && detailRecord && (
+                    <Modal
+                        title="知识库详情"
+                        visible={detailModalVisible}
+                        onCancel={() => setDetailModalVisible(false)}
+                        footer={null}
+                        style={{ maxWidth: 600 }}
+                    >
+                        <div style={{ paddingTop: 16 }}>
+                            {/* 状态和可见性标签 */}
+                            <div style={{ marginBottom: 16 }}>
+                                <div style={{ display: "flex", gap: 16 }}>
+                                    {detailRecord.status === 'ENABLED' ? <Tag color="green" bordered>启用</Tag> : <Tag color="red" bordered>禁用</Tag>}
+                                    {detailRecord.visibility === 'PUBLIC' ? <Tag color="green" bordered>公开</Tag> : <Tag color="red" bordered>私有</Tag>}
+                                </div>
+                            </div>
+
+                            {/* 名称 */}
+                            <div style={{ marginBottom: 16 }}>
+                                <strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
+                                    名称:
+                                </strong>
+                                <div
+                                    style={{
+                                        padding: "12px 16px",
+                                        backgroundColor: "var(--color-info-light-1)",
+                                        borderRadius: 6,
+                                        color: "var(--color-text-3)",
+                                        lineHeight: 1.6,
+                                    }}
+                                >
+                                    {detailRecord.name}
+                                </div>
+                            </div>
+
+                            {/* 描述 */}
+                            {detailRecord.descr && (
+                                <div style={{ marginBottom: 16 }}>
+                                    <strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
+                                        描述:
+                                    </strong>
+                                    <div
+                                        style={{
+                                            padding: "12px 16px",
+                                            backgroundColor: "var(--color-fill-2)",
+                                            borderRadius: 6,
+                                            color: "var(--color-text-3)",
+                                            lineHeight: 1.6,
+                                            whiteSpace: "pre-wrap",
+                                        }}
+                                    >
+                                        {detailRecord.descr}
+                                    </div>
+                                </div>
+                            )}
+
+                             {/* 标签 */}
+                             {detailRecord.tags && (
+                                <div style={{ marginBottom: 16 }}>
+                                    <strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
+                                        标签:
+                                    </strong>
+                                    <div>
+                                        {detailRecord.tags.split(',').map((tag: string) => (
+                                            <Tag key={tag} style={{marginRight: 4}} bordered>{tag}</Tag>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 创建信息 */}
+                            <div
+                                style={{
+                                    marginTop: 16,
+                                    paddingTop: 16,
+                                    borderTop: "1px solid var(--color-border-2)",
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        color: "var(--color-text-2)",
+                                        fontSize: 14,
+                                    }}
+                                >
+                                    <div>
+                                        <span style={{ fontWeight: 500 }}>创建人：</span>
+                                        <UserAvatar
+                                            name={detailRecord.createUserName || detailRecord.createUser || ""}
+                                            showName
+                                        />
+                                    </div>
+                                    <div>
+                                        <span style={{ fontWeight: 500 }}>创建时间：</span>
+                                        {renderDate(detailRecord.createDate)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </Modal>
+                )}
             </Content>
         </Layout>
     );

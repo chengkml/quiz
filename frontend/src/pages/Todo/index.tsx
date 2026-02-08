@@ -150,11 +150,22 @@ function TodoManager() {
 
   // 搜索处理
   const handleSearch = (values: any) => {
+    // 过滤掉空值，确保清空输入框时对应字段被移除
     const filterValues = Object.fromEntries(
-      Object.entries(values).filter(([_, v]) => v !== "" && v !== undefined)
+      Object.entries(values).filter(([_, v]) => v !== "" && v !== undefined && v !== null)
     );
-    setSearchParams((prev) => ({ ...prev, ...filterValues }));
+    // 直接替换 searchParams，而不是合并，这样可以去掉未包含在 filterValues 中的旧字段
+    setSearchParams(filterValues as any);
     setPagination((prev) => ({ ...prev, current: 1 }));
+  };
+
+  // 重置处理
+  const handleReset = () => {
+    // 重置为默认状态：待处理
+    const defaultParams = { status: 'PENDING' };
+    setSearchParams(defaultParams as any);
+    setPagination((prev) => ({ ...prev, current: 1 }));
+    fetchTableData(defaultParams, pagination.pageSize, 1);
   };
 
   // 分页变化
@@ -469,6 +480,7 @@ function TodoManager() {
       ref={filterFormRef}
       formFields={searchFormFields}
       onSearch={handleSearch}
+      onReset={handleReset}
       initialValues={{
         status: 'PENDING',  // 初始显示待处理
       }}
