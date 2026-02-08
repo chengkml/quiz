@@ -95,19 +95,6 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
     setValueList(newValueList);
   }, [formFields]);
 
-  // 表单值变化回调
-  const handleValuesChange = useCallback((changeValue: any, currentValues: any) => {
-    updateValueList(currentValues);
-    setValues(currentValues);
-    valuesRef.current = currentValues;
-    
-    if (onValuesChange) {
-      setTimeout(() => {
-        onValuesChange(changeValue, currentValues);
-      }, 0);
-    }
-  }, [onValuesChange, updateValueList]);
-
   // 获取当前筛选条件（过滤掉无效值）
   const getFilterValues = useCallback(() => {
     const currentValues = { ...valuesRef.current };
@@ -119,6 +106,48 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
       })
     );
   }, []);
+
+  // 查询按钮
+  const handleSearch = useCallback(() => {
+    if (onSearch) {
+      onSearch(getFilterValues());
+    }
+  }, [onSearch, getFilterValues]);
+
+  // 表单值变化回调
+  const handleValuesChange = useCallback((changeValue: any, currentValues: any) => {
+    updateValueList(currentValues);
+    setValues(currentValues);
+    valuesRef.current = currentValues;
+    
+    // 自动触发查询逻辑：当非输入类组件值变化时，自动触发查询
+    const changedField = Object.keys(changeValue)[0];
+    if (changedField) {
+      const fieldConfig = formFields.find(f => f.field === changedField);
+      if (fieldConfig) {
+        // 定义需要自动触发查询的组件类型
+        const autoSearchTypes = ['select', 'radio', 'checkbox', 'date', 'date-range', 'month', 'year', 'week', 'time', 'cascader'];
+        const type = fieldConfig.type || 'input';
+        
+        // 排除 input, textarea, password, number 等输入类组件
+        // 或者显式包含选择类组件
+        if (autoSearchTypes.includes(type)) {
+          // 使用 setTimeout 确保状态更新后再查询，且避免过于频繁
+           setTimeout(() => {
+             handleSearch();
+           }, 50);
+        }
+      }
+    }
+
+    if (onValuesChange) {
+      setTimeout(() => {
+        onValuesChange(changeValue, currentValues);
+      }, 0);
+    }
+  }, [onValuesChange, updateValueList, formFields, handleSearch]);
+
+
 
   // 重置表单
   const handleResetForm = useCallback(() => {
@@ -153,20 +182,15 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
     }
   }, [updateValueList]);
 
-  // 查询按钮
-  const handleSearch = useCallback(() => {
-    if (onSearch) {
-      onSearch(getFilterValues());
-    }
-  }, [onSearch, getFilterValues]);
+
 
   // 点击组件外部时收起更多筛选项
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: any) => {
       if (!expanded) return;
       
       const triggerNode = findDOMNode(triggerRef.current);
-      if (triggerNode && !contains(triggerNode as Element, e.target as Element)) {
+      if (triggerNode && !contains(triggerNode as HTMLElement, e.target as HTMLElement)) {
         setExpanded(false);
       }
     };

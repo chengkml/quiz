@@ -18,7 +18,6 @@ import {
     IconDelete,
     IconInfo,
     IconList,
-    IconPlus,
     IconStop,
 } from '@arco-design/web-react/icon';
 import { useNavigate } from 'react-router-dom';
@@ -40,7 +39,6 @@ import { DataManager } from '../../components/DataManager';
 
 const { TextArea } = Input;
 const { Option } = Select;
-const { Row, Col } = Grid;
 
 function JobManager() {
     const navigate = useNavigate();
@@ -390,7 +388,7 @@ function JobManager() {
     useEffect(() => {
         const calculateTableHeight = () => {
             const windowHeight = window.innerHeight;
-            const otherElementsHeight = 250;
+            const otherElementsHeight = 330;
             const newHeight = Math.max(100, windowHeight - otherElementsHeight);
             setTableScrollHeight(newHeight);
         };
@@ -511,7 +509,6 @@ function JobManager() {
                 visible={addModalVisible}
                 onOk={handleAddConfirm}
                 onCancel={() => setAddModalVisible(false)}
-                width={600}
             >
                 <div
                     style={{

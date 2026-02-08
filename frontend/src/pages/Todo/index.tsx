@@ -2,12 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
   DatePicker,
-  Dropdown,
+  Descriptions,
   Form,
   Input,
-  Menu,
+  Link,
   Message,
   Modal,
+  Popconfirm,
   Select,
   Tag,
   Tooltip,
@@ -19,9 +20,6 @@ import UserAvatar from "@/components/UserAvatar";
 import {
   IconCheck,
   IconDelete,
-  IconEdit,
-  IconEye,
-  IconList,
   IconMindMapping,
 } from "@arco-design/web-react/icon";
 import { useNavigate } from "react-router-dom";
@@ -68,9 +66,9 @@ function TodoManager() {
   const [currentRecord, setCurrentRecord] = useState<any | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [detailRecord, setDetailRecord] = useState<any | null>(null);
+
+
 
   // 表单引用
   const addFormRef = useRef<any>(null);
@@ -104,6 +102,7 @@ function TodoManager() {
       type: "select",
       placeholder: "请选择状态",
       options: statusOptions,
+      initialValue: "PENDING",
       span: 6,
       allowClear: true,
     },
@@ -166,6 +165,9 @@ function TodoManager() {
     setSearchParams(defaultParams as any);
     setPagination((prev) => ({ ...prev, current: 1 }));
     fetchTableData(defaultParams, pagination.pageSize, 1);
+    
+    // 确保 FilterForm UI 也重置
+    filterFormRef.current?.setFieldsValue?.(defaultParams);
   };
 
   // 分页变化
@@ -249,18 +251,17 @@ function TodoManager() {
     }
   };
 
-  // 删除
-  const handleDelete = (record: any) => {
+  // 详情查看
+  const handleDetail = (record: any) => {
     setCurrentRecord(record);
-    setDeleteModalVisible(true);
+    setDetailModalVisible(true);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!currentRecord) return;
+  // 删除
+  const handleDelete = async (record: any) => {
     try {
-      await deleteTodo(currentRecord.id);
+      await deleteTodo(record.id);
       Message.success("待办删除成功");
-      setDeleteModalVisible(false);
       fetchTableData();
     } catch (error) {
       Message.error("待办删除失败");
@@ -295,25 +296,9 @@ function TodoManager() {
     }
   };
 
-  // 查看详情
-  const handleDetail = (record: any) => {
-    setDetailRecord(record);
-    setDetailModalVisible(true);
-  };
 
-  // 菜单点击
-  const handleMenuClick = (key: string, e: React.MouseEvent, record: any) => {
-    e.stopPropagation();
-    if (key === "edit") {
-      handleEdit(record);
-    } else if (key === "delete") {
-      handleDelete(record);
-    } else if (key === "analyze") {
-      handleAnalyze(record);
-    } else if (key === "complete") {
-      handleComplete(record);
-    }
-  };
+
+
 
   // 列配置
   const columns = [
@@ -321,6 +306,20 @@ function TodoManager() {
       title: "标题",
       dataIndex: "title",
       ellipsis: true,
+      render: (text: string, record: any) => (
+        <Link 
+          onClick={() => {
+            if (record.status === 'COMPLETED') {
+              handleDetail(record);
+            } else {
+              handleEdit(record);
+            }
+          }}
+          style={{ textDecoration: 'underline' }}
+        >
+          {text}
+        </Link>
+      ),
     },
     {
       title: "状态",
@@ -360,23 +359,7 @@ function TodoManager() {
         );
       },
     },
-    {
-      title: "截止时间",
-      dataIndex: "dueDate",
-      width: 180,
-      render: (value: string) => renderDate(value),
-    },
-    {
-      title: "创建人",
-      dataIndex: "createUserName",
-      width: 140,
-      render: (_: any, record: any) => (
-        <UserAvatar
-          name={record.createUserName || record.createUser || ""}
-          showName
-        />
-      ),
-    },
+
     {
       title: "创建时间",
       dataIndex: "createDate",
@@ -385,22 +368,11 @@ function TodoManager() {
     },
     {
       title: "操作",
-      width: 120,
+      width: 160,
       align: "center",
       fixed: "right",
       render: (_: any, record: any) => (
         <div className="table-btn-group" style={{ display: "flex", gap: 24 }}>
-          <Tooltip content="详情">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconEye />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDetail(record);
-              }}
-            />
-          </Tooltip>
           <Tooltip content="分析">
             <Button
               type="text"
@@ -412,42 +384,52 @@ function TodoManager() {
               }}
             />
           </Tooltip>
-          <Tooltip content="编辑">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconEdit />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEdit(record);
-              }}
-            />
-          </Tooltip>
-          {record.status !== "COMPLETED" && (
-            <Tooltip content="完成">
+
+          {record.status === "COMPLETED" ? (
+            <Tooltip content="待办已完成">
               <Button
                 type="text"
                 size="small"
                 status="success"
                 icon={<IconCheck />}
-                onClick={(e) => {
-                  e.stopPropagation();
+                disabled
+              />
+            </Tooltip>
+          ) : (
+            <Tooltip content="完成">
+              <Popconfirm
+                title="确认完成该待办吗？"
+                onOk={() => {
                   handleComplete(record);
                 }}
-              />
+                onCancel={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  status="success"
+                  icon={<IconCheck />}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Popconfirm>
             </Tooltip>
           )}
           <Tooltip content="删除">
-            <Button
-              type="text"
-              size="small"
-              status="danger"
-              icon={<IconDelete />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(record);
-              }}
-            />
+            <Popconfirm
+              title="确认删除该待办吗？"
+              onOk={() => handleDelete(record)}
+              onCancel={(e) => e.stopPropagation()}
+            >
+              <Button
+                type="text"
+                size="small"
+                status="danger"
+                icon={<IconDelete />}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Popconfirm>
           </Tooltip>
         </div>
       ),
@@ -502,12 +484,7 @@ function TodoManager() {
           displayMode: "table",
           filterContent,
           tableColumns: columns,
-          tableProps: {
-            onRow: (record: any) => ({
-              onClick: () => handleDetail(record),
-              style: { cursor: 'pointer' }
-            })
-          }
+          tableProps: {}
         }}
         tableScrollHeight={tableScrollHeight}
       />
@@ -618,167 +595,74 @@ function TodoManager() {
         </div>
       </Modal>
 
-      {/* 删除确认 */}
-      <Modal
-        title="确认删除"
-        visible={deleteModalVisible}
-        onOk={handleDeleteConfirm}
-        onCancel={() => setDeleteModalVisible(false)}
-      >
-        <div className="delete-modal">确定要删除该待办吗？此操作不可恢复。</div>
-      </Modal>
+
 
       {/* 详情查看对话框 */}
-      {detailModalVisible && detailRecord && (
-        <Modal
-          title="待办详情"
-          visible={detailModalVisible}
-          onCancel={() => setDetailModalVisible(false)}
-          footer={null}
-          style={{ maxWidth: 600 }}
+      <Modal
+        title="待办详情"
+        visible={detailModalVisible}
+        onOk={() => setDetailModalVisible(false)}
+        onCancel={() => setDetailModalVisible(false)}
+        footer={null}
+      >
+        <div
+          style={{
+            maxHeight: "60vh",
+            overflowY: "auto",
+            paddingRight: "10px",
+          }}
         >
-          <div style={{ paddingTop: 16 }}>
-            {/* 状态和优先级标签 */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", gap: 16 }}>
-                <Tag
-                  color={
-                    detailRecord.status === "PENDING"
-                      ? "gray"
-                      : detailRecord.status === "IN_PROGRESS"
-                      ? "blue"
-                      : "green"
-                  }
-                  bordered
-                >
-                  {detailRecord.status === "PENDING"
-                    ? "待处理"
-                    : detailRecord.status === "IN_PROGRESS"
-                    ? "处理中"
-                    : "已完成"}
-                </Tag>
-                <Tag
-                  color={
-                    detailRecord.priority === "LOW"
-                      ? "green"
-                      : detailRecord.priority === "MEDIUM"
-                      ? "orange"
-                      : "red"
-                  }
-                  bordered
-                >
-                  优先级：
-                  {detailRecord.priority === "LOW"
-                    ? "低"
-                    : detailRecord.priority === "MEDIUM"
-                    ? "中"
-                    : "高"}
-                </Tag>
-              </div>
-            </div>
+          {currentRecord && (
+            <Descriptions
+              column={1}
+              data={[
+                { label: "标题", value: currentRecord.title },
+                { label: "详细描述", value: currentRecord.descr || "-" },
+                {
+                  label: "状态",
+                  value: (() => {
+                    const status = currentRecord.status;
+                    const map: Record<string, any> = {
+                      PENDING: { color: "gray", text: "待处理" },
+                      IN_PROGRESS: { color: "blue", text: "处理中" },
+                      COMPLETED: { color: "green", text: "已完成" },
+                    };
+                    const it = map[status] || {
+                      color: "arcoblue",
+                      text: status,
+                    };
+                    return <Tag color={it.color} bordered>{it.text}</Tag>;
+                  })(),
+                },
+                {
+                  label: "优先级",
+                  value: (() => {
+                    const priority = currentRecord.priority;
+                    const map: Record<string, any> = {
+                      LOW: { color: "green", text: "低" },
+                      MEDIUM: { color: "orange", text: "中" },
+                      HIGH: { color: "red", text: "高" },
+                    };
+                    const it = map[priority] || {
+                      color: "arcoblue",
+                      text: priority,
+                    };
+                    return <Tag color={it.color} bordered>{it.text}</Tag>;
+                  })(),
+                },
+                {
+                  label: "截止时间",
+                  value: currentRecord.dueDate
+                    ? renderDate(currentRecord.dueDate)
+                    : "-",
+                },
+              ]}
+              labelStyle={{ width: 100, paddingRight: 20 }}
+            />
+          )}
+        </div>
+      </Modal>
 
-            {/* 标题 */}
-            <div style={{ marginBottom: 16 }}>
-              <strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
-                标题:
-              </strong>
-              <div
-                style={{
-                  padding: "12px 16px",
-                  backgroundColor: "var(--color-info-light-1)",
-                  borderRadius: 6,
-                  color: "var(--color-text-3)",
-                  lineHeight: 1.6,
-                }}
-              >
-                {detailRecord.title}
-              </div>
-            </div>
-
-            {/* 描述 */}
-            {detailRecord.descr && (
-              <div style={{ marginBottom: 16 }}>
-                <strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
-                  描述:
-                </strong>
-                <div
-                  style={{
-                    padding: "12px 16px",
-                    backgroundColor: "var(--color-fill-2)",
-                    borderRadius: 6,
-                    color: "var(--color-text-3)",
-                    lineHeight: 1.6,
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {detailRecord.descr}
-                </div>
-              </div>
-            )}
-
-            {/* 截止时间 */}
-            {detailRecord.dueDate && (
-              <div style={{ marginBottom: 16 }}>
-                <strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
-                  截止时间:
-                </strong>
-                <div
-                  style={{
-                    padding: "12px 16px",
-                    backgroundColor: "var(--color-fill-2)",
-                    borderRadius: 6,
-                    color: "var(--color-text-3)",
-                  }}
-                >
-                  {renderDate(detailRecord.dueDate)}
-                </div>
-              </div>
-            )}
-
-            {/* 创建信息 */}
-            <div
-              style={{
-                marginTop: 16,
-                paddingTop: 16,
-                borderTop: "1px solid var(--color-border-2)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  color: "var(--color-text-2)",
-                  fontSize: 14,
-                }}
-              >
-                <div>
-                  <span style={{ fontWeight: 500 }}>创建人：</span>
-                  <UserAvatar
-                    name={detailRecord.createUserName || detailRecord.createUser || ""}
-                    showName
-                  />
-                </div>
-                <div>
-                  <span style={{ fontWeight: 500 }}>创建时间：</span>
-                  {renderDate(detailRecord.createDate)}
-                </div>
-              </div>
-              {detailRecord.updateDate && (
-                <div
-                  style={{
-                    marginTop: 8,
-                    color: "var(--color-text-2)",
-                    fontSize: 14,
-                  }}
-                >
-                  <span style={{ fontWeight: 500 }}>更新时间：</span>
-                  {renderDate(detailRecord.updateDate)}
-                </div>
-              )}
-            </div>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

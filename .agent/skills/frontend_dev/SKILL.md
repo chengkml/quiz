@@ -171,21 +171,7 @@ const formConfig: FormFieldConfig[] = [
 ];
 ```
 
-### 4. 构建检查
 
-完成代码修改后，**必须**运行构建检查：
-
-```bash
-cd d:\idea_repo\quiz\frontend
-npm run build
-```
-
-**构建检查流程**：
-1. 执行 webpack 构建
-2. 如果失败，分析 TypeScript 或 Webpack 错误
-3. 定位错误文件和行号
-4. 修复代码后重新构建
-5. 重复直到构建成功 (Exit Code 0)
 
 ### 5. 常见问题
 
@@ -207,6 +193,17 @@ npm run build
   - **内容区域**：采用卡片式风格（白色背景，8px 圆角，带有阴影 `box-shadow`），内边距 `16px`，外边距 `10px`。
   - **变量使用**：广泛使用 CSS 变量（如 `--color-primary`, `--color-text-1`）以确保与系统主题一致。
   - **图标使用**：使用 Arco Design 图标库（如 `IconClockCircle`, `IconCheckCircle` 等）作为状态指示。
+  - **超链接规范**：
+    - 必须使用 Arco Design 的 `<Link>` 组件。
+    - 必须显式设置 `style={{ textDecoration: 'underline' }}` 以提供清晰的点击提示。
+    - 悬停时应显示手型光标（Link 组件默认行为）。
+
+### 搜索表单交互规范
+
+在使用 `FilterForm` 或自定义搜索表单时，必须遵循以下交互规范以提升用户体验：
+
+- **输入框 (Input)**：必须绑定 `onPressEnter` 事件，使用户按下回车键时立即触发查询。
+- **选择框 (Select)**：必须绑定 `onChange` 事件，使用户选择选项后立即触发查询，无需额外点击搜索按钮。
 
 ### 表格操作按钮规范
 
@@ -228,13 +225,18 @@ npm run build
   - 图标: `<IconEdit />`
   - Tooltip: "编辑"
 
-- **删除按钮**:
+-   **删除按钮**:
   - 组件: `<Button>`
   - 类型: `type="text"`
   - 状态: `status="danger"` (危险状态，通常图标为红色)
   - 尺寸: `size="small"`
   - 图标: `<IconDelete />`
   - Tooltip: "删除"
+
+- **操作确认规范**:
+  - 对于删除、完成等不可逆或重要操作，**禁止**使用全屏 Modal 弹窗进行确认。
+  - **必须**使用 `<Popconfirm>` 气泡确认框包裹操作按钮。
+  - 确认文案应简洁明了，例如"确认删除该记录吗？"。
 
 ## 参考资料
 
