@@ -255,15 +255,7 @@ const MermaidMgrPage: React.FC = () => {
         return <Tag bordered color={colors[colorIndex]}>{text || '未分类'}</Tag>;
       }
     },
-    {
-      title: "创建人",
-      dataIndex: "createUserName",
-      key: "createUserName",
-      width: 120,
-      render: (name: string, record: any) => (
-        <UserAvatar name={record?.createUserName || record?.createUser || ""} showName />
-      ),
-    },
+
     {
       title: "更新时间",
       dataIndex: "updateDate",
@@ -273,7 +265,7 @@ const MermaidMgrPage: React.FC = () => {
     },
     {
       title: "操作",
-      width: 120,
+      width: 200,
       align: "center" as const,
       fixed: "right" as const,
       render: (_: any, record: any) => (

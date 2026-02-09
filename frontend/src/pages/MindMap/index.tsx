@@ -14,6 +14,8 @@ import {
   Space,
   Tag,
   Tree,
+  Tooltip,
+  Popconfirm,
 } from "@arco-design/web-react";
 import {
   IconDelete,
@@ -285,15 +287,7 @@ const MindMapListPage: React.FC = () => {
       }
     },
     // Removed description column
-    {
-      title: "创建人",
-      dataIndex: "createUserName",
-      key: "createUserName",
-      width: 120,
-      render: (name: string, record: MindMapDto) => (
-        <UserAvatar name={name || record?.createUser || ""} showName />
-      ),
-    },
+
     {
       title: "创建时间",
       dataIndex: "createDate",
@@ -303,59 +297,51 @@ const MindMapListPage: React.FC = () => {
     },
     {
       title: "操作",
-      width: 120,
+      width: 200,
       align: "center" as const,
       fixed: "right" as const,
       render: (_: any, record: MindMapDto) => (
-        <Dropdown
-          position="bl"
-          droplist={
-            <Menu
-              onClickMenuItem={(key) => {
-                switch (key) {
-                  case "view":
-                    handleView(record);
-                    break;
-                  case "draw":
-                    handleDraw(record);
-                    break;
-                  case "edit":
-                    handleEdit(record);
-                    break;
-                  case "delete":
-                    handleDelete(record);
-                    break;
-                }
-              }}
-              className="handle-dropdown-menu"
-            >
-              <Menu.Item key="view">
-                <IconEye style={{ marginRight: 5 }} />
-                查看
-              </Menu.Item>
-              <Menu.Item key="draw">
-                <IconMindMapping style={{ marginRight: 5 }} />
-                绘图
-              </Menu.Item>
-              <Menu.Item key="edit">
-                <IconEdit style={{ marginRight: 5 }} />
-                编辑
-              </Menu.Item>
-              <Menu.Item key="delete">
-                <IconDelete style={{ marginRight: 5 }} />
-                删除
-              </Menu.Item>
-            </Menu>
-          }
-        >
-          <Button
-            type="text"
-            className="more-btn"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <IconList />
-          </Button>
-        </Dropdown>
+        <div className="table-btn-group" style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+          <Space>
+             <Tooltip content="绘图">
+              <Button
+                type="text"
+                size="small"
+                icon={<IconMindMapping />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDraw(record);
+                }}
+              />
+            </Tooltip>
+            <Tooltip content="编辑">
+              <Button
+                type="text"
+                size="small"
+                icon={<IconEdit />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(record);
+                }}
+              />
+            </Tooltip>
+            <Tooltip content="删除">
+              <Popconfirm
+                title="确认删除该思维导图吗？"
+                onOk={() => handleDelete(record)}
+                onCancel={(e) => e.stopPropagation()}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  status="danger"
+                  icon={<IconDelete />}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Popconfirm>
+            </Tooltip>
+          </Space>
+        </div>
       ),
     },
   ];
