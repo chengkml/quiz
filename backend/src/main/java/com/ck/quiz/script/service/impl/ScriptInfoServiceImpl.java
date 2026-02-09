@@ -11,6 +11,7 @@ import com.ck.quiz.script.repository.ScriptInfoRepository;
 import com.ck.quiz.script.repository.ScriptJobRepository;
 import com.ck.quiz.script.service.ScriptInfoService;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import com.ck.quiz.utils.IdHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -23,7 +24,9 @@ import java.util.Map;
 @Slf4j
 @Service
 @Transactional
-public class ScriptInfoServiceImpl extends BaseServiceImpl<ScriptInfoCreateDto, ScriptInfoUpdateDto, ScriptInfoQueryDto, ScriptInfoDto, ScriptInfo, ScriptInfoRepository> implements ScriptInfoService {
+public class ScriptInfoServiceImpl extends
+        BaseServiceImpl<ScriptInfoCreateDto, ScriptInfoUpdateDto, ScriptInfoQueryDto, ScriptInfoDto, ScriptInfo, ScriptInfoRepository>
+        implements ScriptInfoService {
 
     @Autowired
     private ScriptInfoRepository scriptInfoRepository;
@@ -40,7 +43,8 @@ public class ScriptInfoServiceImpl extends BaseServiceImpl<ScriptInfoCreateDto, 
 
         // 按名称/编码模糊查询
         JdbcQueryHelper.lowerLike("keyWord", queryDto.getKeyWord(),
-                " and (lower(s.script_name) like :keyWord or lower(s.script_code) like :keyWord) ", params, namedParameterJdbcTemplate, sql, countSql);
+                " and (lower(s.script_name) like :keyWord or lower(s.script_code) like :keyWord) ", params,
+                namedParameterJdbcTemplate, sql, countSql);
 
         // 排序
         JdbcQueryHelper.order("create_date", "desc", sql);
@@ -92,29 +96,74 @@ public class ScriptInfoServiceImpl extends BaseServiceImpl<ScriptInfoCreateDto, 
         return convertToDto(entity, true);
     }
 
+    @Autowired
+    private com.ck.quiz.cron.service.JobService jobService;
+
+    @Autowired
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
     @Override
     @Transactional
     public void execScript(String id, String queueId) {
         ScriptInfo entity = scriptInfoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("脚本信息不存在"));
-        
-        ScriptJob scriptJob = new ScriptJob();
-        scriptJob.setScriptId(id);
-        jobRepo.save(scriptJob);
+
+        try {
+            String taskClass;
+            Map<String, Object> taskParams = new HashMap<>();
+
+            // 判断是否远程脚本
+            boolean isRemote = "true".equalsIgnoreCase(entity.getRemoteScript())
+                    || "1".equals(entity.getRemoteScript());
+
+            if (isRemote) {
+                taskClass = com.ck.quiz.cron.exec.RemoteScriptExecJob.class.getName();
+                taskParams.put("host", entity.getHost());
+                taskParams.put("port", entity.getPort());
+                taskParams.put("username", entity.getUsername());
+                taskParams.put("password", entity.getPassword());
+            } else {
+                taskClass = com.ck.quiz.cron.exec.LocalScriptExecJob.class.getName();
+            }
+
+            taskParams.put("cmd", entity.getExecCmd());
+            taskParams.put("scriptId", entity.getId()); // 关联ID
+
+            com.ck.quiz.cron.dto.JobDto jobDto = new com.ck.quiz.cron.dto.JobDto();
+            jobDto.setTaskClass(taskClass);
+            jobDto.setTaskParams(objectMapper.writeValueAsString(taskParams));
+            jobDto.setQueueName(queueId);
+
+            // 调用 JobService 创建作业
+            String jobId = jobService.addJob(jobDto);
+
+            // 保存 ScriptJob 关联
+            ScriptJob scriptJob = new ScriptJob();
+            scriptJob.setId(IdHelper.genUuid());
+            scriptJob.setScriptId(id);
+            scriptJob.setJobId(jobId);
+            jobRepo.save(scriptJob);
+
+        } catch (Exception e) {
+            log.error("执行脚本失败: {}", e.getMessage(), e);
+            throw new RuntimeException("执行脚本失败: " + e.getMessage());
+        }
     }
 
     @Override
-    public Page<Map<String, Object>> searchJobs(int offset, int limit, String scriptId, String state, String taskClass, String queueName, String triggerType, String startTimeLt, String startTimeGt, String taskId, String keyWord) {
+    public Page<Map<String, Object>> searchJobs(int offset, int limit, String scriptId, String state, String taskClass,
+            String queueName, String triggerType, String startTimeLt, String startTimeGt, String taskId,
+            String keyWord) {
         // 通过 ScriptJob 关联查询脚本对应的所有 Job 记录
         StringBuilder sql = new StringBuilder(
                 "select j.*,q.queue_label from job j " +
-                "left join job_queue q on j.queue_name = q.queue_name " +
-                "inner join script_job sj on j.id = sj.job_id " +
-                "where sj.script_id = :scriptId ");
+                        "left join job_queue q on j.queue_name = q.queue_name " +
+                        "inner join script_job sj on j.id = sj.job_id " +
+                        "where sj.script_id = :scriptId ");
         StringBuilder countSql = new StringBuilder("select count(*) from job j " +
                 "inner join script_job sj on j.id = sj.job_id " +
                 "where sj.script_id = :scriptId ");
-        
+
         Map<String, Object> params = new HashMap<>();
         params.put("scriptId", scriptId);
 
@@ -131,7 +180,8 @@ public class ScriptInfoServiceImpl extends BaseServiceImpl<ScriptInfoCreateDto, 
         JdbcQueryHelper.equals("taskId", taskId, "and j.task_id = :taskId ", params, sql, countSql);
 
         // 关键字搜索
-        JdbcQueryHelper.lowerLike("keyWord", keyWord, "and lower(j.id) like :keyWord ", params, namedParameterJdbcTemplate, sql, countSql);
+        JdbcQueryHelper.lowerLike("keyWord", keyWord, "and lower(j.id) like :keyWord ", params,
+                namedParameterJdbcTemplate, sql, countSql);
 
         // 排序
         sql.append(" order by j.create_time desc ");

@@ -31,7 +31,7 @@ const getAllSubjects = () => axios.get('/subject/list');
 const getSubjectCategoryTree = () => axios.get('/category/subject-category-tree');
 
 // 根据学科ID获取分类列表
-const getCategoriesBySubjectId = (subjectId) => axios.get(`/categories/subject/${subjectId}`);
+const getCategoriesBySubjectId = (subjectId) => axios.post('/category/search', { subjectId, pageSize: 1000 });
 
 // 获取知识点关联的问题列表
 const getKnowledgeQuestions = knowledgeId => axios.get(`/knowledge/${knowledgeId}/questions`);

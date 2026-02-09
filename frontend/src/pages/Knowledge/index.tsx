@@ -26,6 +26,7 @@ import {
     updateKnowledge,
     streamPolishKnowledgeUrl,
     getSubjectCategoryTree,
+    getCategoriesBySubjectId,
 } from './api';
 import { DataManager } from '../../components/DataManager';
 import renderDate from '@/utils/timeUtil';
@@ -470,12 +471,11 @@ function KnowledgeManager() {
         }
         try {
             setCategoriesLoading(true);
-            // 通过知识点分页接口按学科筛选，获取较大页以填充下拉
-            const response = await getKnowledgeList({ subjectId, pageNum: 0, pageSize: 1000 });
+            const response = await getCategoriesBySubjectId(subjectId);
             const list = response.data?.content || [];
             setCategories(list.map((item: any) => ({
-                label: item.categoryName,
-                value: item.categoryId,
+                label: item.name,
+                value: item.id,
             })));
         } catch (error) {
             console.error('获取分类列表失败:', error);

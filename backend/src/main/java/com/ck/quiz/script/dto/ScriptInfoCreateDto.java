@@ -33,6 +33,6 @@ public class ScriptInfoCreateDto extends CreateDto {
     @Size(max = 128, message = "远程主机密码长度不能超过128个字符")
     private String password;
 
-    @Size(max = 512, message = "自定义执行命令长度不能超过512个字符")
+    @Size(max = 4096, message = "自定义执行命令长度不能超过4096个字符")
     private String execCmd;
 }

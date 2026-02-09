@@ -42,7 +42,7 @@ public class ScriptInfo extends Model {
     @Comment("远程主机密码")
     private String password;
 
-    @Column(length = 512, nullable = false)
+    @Column(length = 4096, nullable = false)
     @Comment("自定义执行命令模板")
     private String execCmd;
 

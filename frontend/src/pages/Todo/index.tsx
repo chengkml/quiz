@@ -102,7 +102,7 @@ function TodoManager() {
       type: "select",
       placeholder: "请选择状态",
       options: statusOptions,
-      initialValue: "PENDING",
+      initialValue: "SCHEDULED",
       span: 6,
       allowClear: true,
     },
@@ -335,7 +335,7 @@ function TodoManager() {
       width: 120,
       render: (status: string) => {
         const map: Record<string, any> = {
-          PENDING: { color: "gray", text: "待处理" },
+          SCHEDULED: { color: "gray", text: "已计划" },
           IN_PROGRESS: { color: "blue", text: "处理中" },
           COMPLETED: { color: "green", text: "已完成" },
         };

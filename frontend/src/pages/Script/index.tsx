@@ -146,15 +146,7 @@ function ScriptManager() {
       placeholder: "请输入脚本名称关键字",
       span: 6,
     },
-    {
-      field: "state",
-      label: "状态",
-      type: "select",
-      options: stateOptions,
-      placeholder: "请选择状态",
-      allowClear: true,
-      span: 6,
-    },
+
   ];
 
   // 执行脚本确认
@@ -616,37 +608,22 @@ function ScriptManager() {
 
   // 列配置
   const columns = [
-    {
-      title: "脚本编码",
-      dataIndex: "scriptCode",
-      ellipsis: true,
-      render: (text: string, record: any) =>
-        record.scriptCode || record.code || "-",
-    },
+
     {
       title: "脚本名称",
       dataIndex: "scriptName",
       ellipsis: true,
-      render: (text: string, record: any) =>
-        record.scriptName || record.name || "-",
+      render: (text: string, record: any) => (
+        <span
+          className="script-name-link"
+          onClick={() => handleJobs(record)}
+          style={{ color: "rgb(22,93,255)", cursor: "pointer" }}
+        >
+          {record.scriptName || record.name || "-"}
+        </span>
+      ),
     },
-    {
-      title: "状态",
-      dataIndex: "state",
-      width: 120,
-      render: (state: string) => {
-        const map: Record<string, any> = {
-          ENABLED: { color: "green", text: "启用" },
-          DISABLED: { color: "gray", text: "禁用" },
-        };
-        const it = map[state] || { color: "arcoblue", text: state };
-        return (
-          <Tag color={it.color} bordered>
-            {it.text}
-          </Tag>
-        );
-      },
-    },
+
     {
       title: "是否远程脚本",
       dataIndex: "remoteScript",
@@ -662,17 +639,7 @@ function ScriptManager() {
       },
     },
 
-    {
-      title: "创建人",
-      dataIndex: "createUserName",
-      width: 140,
-      render: (_: any, record: any) => (
-        <UserAvatar
-          name={record.createUserName || record.createUser || ""}
-          showName
-        />
-      ),
-    },
+
     {
       title: "创建时间",
       dataIndex: "createDate",
@@ -681,7 +648,7 @@ function ScriptManager() {
     },
     {
       title: "操作",
-      width: 120,
+      width: 200,
       align: "center",
       fixed: "right" as any,
       render: (_: any, record: any) => (
@@ -694,28 +661,7 @@ function ScriptManager() {
               onClick={() => handleEdit(record)}
             />
           </Tooltip>
-          {record.state === "DISABLED" && (
-            <Tooltip content="启用">
-              <Button
-                type="text"
-                size="small"
-                status="success"
-                icon={<IconUnlock />}
-                onClick={() => handleEnable(record)}
-              />
-            </Tooltip>
-          )}
-          {record.state === "ENABLED" && (
-            <Tooltip content="禁用">
-              <Button
-                type="text"
-                size="small"
-                status="warning"
-                icon={<IconLock />}
-                onClick={() => handleDisable(record)}
-              />
-            </Tooltip>
-          )}
+
           <Tooltip content="执行">
             <Button
               type="text"
@@ -724,14 +670,7 @@ function ScriptManager() {
               onClick={() => handleExec(record)}
             />
           </Tooltip>
-          <Tooltip content="作业">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconList />}
-              onClick={() => handleJobs(record)}
-            />
-          </Tooltip>
+
           <Tooltip content="删除">
             <Button
               type="text"
@@ -945,7 +884,7 @@ function ScriptManager() {
               field="execCmd"
               rules={[{ required: true, message: "请输入执行命令" }]}
             >
-              <Input placeholder="示例：python {entry} --config={file_path}/config.yaml" />
+              <Input.TextArea placeholder="示例：python {entry} --config={file_path}/config.yaml" autoSize={{ minRows: 3, maxRows: 6 }} />
             </Form.Item>
           </Form>
         </div>
@@ -1044,7 +983,7 @@ function ScriptManager() {
               field="execCmd"
               rules={[{ required: true, message: "请输入执行命令" }]}
             >
-              <Input placeholder="示例：python {entry} --config={file_path}/config.yaml" />
+              <Input.TextArea placeholder="示例：python {entry} --config={file_path}/config.yaml" autoSize={{ minRows: 3, maxRows: 6 }} />
             </Form.Item>
           </Form>
         </div>
