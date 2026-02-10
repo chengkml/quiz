@@ -8,6 +8,7 @@ import {
     Form,
     Input,
     InputNumber,
+    Link,
     Menu,
     Message,
     Modal,
@@ -198,12 +199,12 @@ function QuestionManager() {
             minWidth: 300,
             ellipsis: true,
             render: (value, record) => (
-                <span
-                    style={{cursor: 'pointer', color: 'var(--color-primary-6)'}}
+                <Link
+                    style={{ textDecoration: 'underline' }}
                     onClick={() => handleDetail(record)}
                 >
                     {value}
-                </span>
+                </Link>
             ),
         },
         {
@@ -360,23 +361,13 @@ function QuestionManager() {
             setTreeLoading(true);
             const response = await getSubjectCategoryTree();
             if (response.data) {
-                // 递归转换分类数据为Tree组件需要的格式
-                const convertCategoriesToTreeNodes = (categories) => {
-                    if (!categories || !Array.isArray(categories)) return [];
-                    return categories.map(category => ({
-                        key: category.id,
-                        title: category.name,
-                        subjectId: category.subjectId,
-                        categoryId: category.id,
-                        children: convertCategoriesToTreeNodes(category.children)
-                    }));
-                };
+                // 只保留第一层subject节点
                 const treeData = response.data.map(subject => ({
                     key: subject.id,
                     title: subject.name,
                     subjectId: subject.id,
                     categoryId: null,
-                    children: convertCategoriesToTreeNodes(subject.categories)
+                    children: []
                 }));
                 setTreeData(treeData);
                 setFilteredTreeData(treeData);

@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import UserAvatar from '@/components/UserAvatar';
-import { Button, Card, Dropdown, Layout, Menu, Message, Modal, Space, Tag, Tooltip, Typography } from '@arco-design/web-react';
-import { IconDelete, IconEdit, IconList, IconFile, IconStorage } from '@arco-design/web-react/icon';
+import { Button, Card, Layout, Message, Modal, Popconfirm, Space, Tag, Tooltip, Typography } from '@arco-design/web-react';
+import { IconDelete, IconEdit, IconFile, IconStorage } from '@arco-design/web-react/icon';
 import { DataManager } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
@@ -256,23 +256,33 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
                     </div>
                 }
                 extra={
-                    <Dropdown
-                        droplist={
-                            <Menu onClickMenuItem={(key, e) => {
-                                e.stopPropagation();
-                                if (key === 'edit') {
+                    <Space size="small">
+                        <Tooltip content="编辑">
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<IconEdit />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
                                     handleEdit(item);
-                                } else if (key === 'delete') {
-                                    handleDelete(item);
-                                }
-                            }}>
-                                <Menu.Item key="edit"><IconEdit style={{ marginRight: 8 }} />编辑</Menu.Item>
-                                <Menu.Item key="delete"><IconDelete style={{ marginRight: 8 }} />删除</Menu.Item>
-                            </Menu>
-                        }
-                    >
-                        <Button type="text" icon={<IconList />} size="mini" onClick={(e) => e.stopPropagation()} />
-                    </Dropdown>
+                                }}
+                            />
+                        </Tooltip>
+                        <Popconfirm
+                            title="确认删除该来源吗？"
+                            onOk={() => handleDelete(item)}
+                        >
+                            <Tooltip content="删除">
+                                <Button
+                                    type="text"
+                                    size="small"
+                                    status="danger"
+                                    icon={<IconDelete />}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </Tooltip>
+                        </Popconfirm>
+                    </Space>
                 }
             >
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

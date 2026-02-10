@@ -1,16 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
-  Dropdown,
-  Menu,
   Message,
   Modal,
+  Popconfirm,
   Space,
+  Tooltip,
 } from "@arco-design/web-react";
 import {
   IconDelete,
   IconEdit,
-  IconList,
   IconPlus,
 } from "@arco-design/web-react/icon";
 import {
@@ -115,37 +114,37 @@ function PromptTemplateManagement() {
     {
       title: "操作",
       key: "action",
-      width: 100,
+      width: 120,
       align: "center",
       fixed: "right",
       render: (_, record) => (
-        <Space size="large" className="dropdown-demo table-btn-group">
-          <Dropdown
-            position="bl"
-            droplist={
-              <Menu
-                onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}
-                className="handle-dropdown-menu"
-              >
-                <Menu.Item key="edit">
-                  <IconEdit style={{ marginRight: 5 }} />
-                  编辑
-                </Menu.Item>
-                <Menu.Item key="delete">
-                  <IconDelete style={{ marginRight: 5 }} />
-                  删除
-                </Menu.Item>
-              </Menu>
-            }
-          >
+        <Space size="small" className="table-btn-group">
+          <Tooltip title="编辑">
             <Button
               type="text"
-              className="more-btn"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <IconList />
-            </Button>
-          </Dropdown>
+              size="small"
+              icon={<IconEdit />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(record);
+              }}
+            />
+          </Tooltip>
+          
+          <Popconfirm
+            title="确认删除该提示词模板吗？"
+            onOk={() => handleDelete(record)}
+          >
+            <Tooltip title="删除">
+              <Button
+                type="text"
+                size="small"
+                status="danger"
+                icon={<IconDelete />}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Tooltip>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -246,14 +245,7 @@ function PromptTemplateManagement() {
   };
 
   // 菜单点击
-  const handleMenuClick = (key, event, record) => {
-    event.stopPropagation();
-    if (key === "edit") {
-      handleEdit(record);
-    } else if (key === "delete") {
-      handleDelete(record);
-    }
-  };
+  // 已移除 handleMenuClick，操作按钮已改为直接调用
 
   // 编辑
   const handleEdit = (record) => {

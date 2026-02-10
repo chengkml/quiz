@@ -41,7 +41,7 @@ const TableList = <T extends any>({
   // 添加操作列
   const actionColumn = {
     title: '操作',
-    width: 120,
+    width: 160,
     align: 'center',
     fixed: 'right' as const,
     render: (text: any, record: T) => (

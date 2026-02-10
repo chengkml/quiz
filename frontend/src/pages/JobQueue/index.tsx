@@ -1,23 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
-  Dropdown,
   Form,
   Grid,
   Input,
   Layout,
-  Menu,
   Message,
   Modal,
+  Popconfirm,
   Select,
   Space,
   Tag,
+  Tooltip,
 } from "@arco-design/web-react";
 import {
   IconCheckCircle,
   IconDelete,
   IconEdit,
-  IconList,
   IconPlus,
   IconSearch,
   IconUndo,
@@ -243,19 +242,6 @@ function JobQueueManager() {
   };
 
   // 菜单点击
-  const handleMenuClick = (key: string, e: React.MouseEvent, record: any) => {
-    e.stopPropagation();
-    if (key === "edit") {
-      handleEdit(record);
-    } else if (key === "delete") {
-      handleDelete(record);
-    } else if (key === "enable" && record.state !== "ENABLED") {
-      handleStateChange(record, "ENABLED");
-    } else if (key === "disable" && record.state !== "DISABLED") {
-      handleStateChange(record, "DISABLED");
-    }
-  };
-
   // 列配置
   const columns = [
     {
@@ -295,49 +281,62 @@ function JobQueueManager() {
     },
     {
       title: "操作",
-      width: 100,
+      width: 140,
       align: "center",
       fixed: "right" as any,
       render: (_: any, record: any) => (
-        <Space size="large" className="table-btn-group">
-          <Dropdown
-            position="bl"
-            droplist={
-              <Menu
-                onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}
-                className="handle-dropdown-menu"
-              >
-                <Menu.Item key="edit">
-                  <IconEdit style={{ marginRight: 5 }} />
-                  编辑
-                </Menu.Item>
-                {record.state !== "ENABLED" && (
-                  <Menu.Item key="enable">
-                    <IconCheckCircle style={{ marginRight: 5 }} />
-                    启用
-                  </Menu.Item>
-                )}
-                {record.state !== "DISABLED" && (
-                  <Menu.Item key="disable">
-                    <IconUndo style={{ marginRight: 5 }} />
-                    禁用
-                  </Menu.Item>
-                )}
-                <Menu.Item key="delete">
-                  <IconDelete style={{ marginRight: 5 }} />
-                  删除
-                </Menu.Item>
-              </Menu>
-            }
-          >
+        <Space size="small">
+          <Tooltip content="编辑">
             <Button
               type="text"
-              className="more-btn"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <IconList />
-            </Button>
-          </Dropdown>
+              size="small"
+              icon={<IconEdit />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(record);
+              }}
+            />
+          </Tooltip>
+          {record.state !== "ENABLED" && (
+            <Tooltip content="启用">
+              <Button
+                type="text"
+                size="small"
+                icon={<IconCheckCircle />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStateChange(record, "ENABLED");
+                }}
+              />
+            </Tooltip>
+          )}
+          {record.state !== "DISABLED" && (
+            <Tooltip content="禁用">
+              <Button
+                type="text"
+                size="small"
+                icon={<IconUndo />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStateChange(record, "DISABLED");
+                }}
+              />
+            </Tooltip>
+          )}
+          <Popconfirm
+            title="确认删除该队列吗？"
+            onOk={() => handleDelete(record)}
+          >
+            <Tooltip content="删除">
+              <Button
+                type="text"
+                size="small"
+                status="danger"
+                icon={<IconDelete />}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Tooltip>
+          </Popconfirm>
         </Space>
       ),
     },

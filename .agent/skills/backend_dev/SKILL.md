@@ -31,11 +31,20 @@ backend/src/main/java/com/ck/quiz/
    ```java
    @Data
    @Entity
-   @Table(name = "table_name")
+   @Table(name = "table_name", indexes = {
+       @Index(name = "idx_xxx_field1", columnList = "field1"),
+       @Index(name = "idx_xxx_field1_field2", columnList = "field1,field2")
+   })
    public class XxxEntity extends Model {
        // 字段定义
    }
    ```
+   
+   **索引命名规范**：
+   - 索引名称格式：`idx_<实体关键字>_<字段名>`
+   - `<实体关键字>` 必须使用实体中独有的关键字（如实体英文名缩写或模块名缩写），避免与其他实体索引名称冲突
+   - 例：`TokenUsageEntity` 的索引使用 `idx_tu_` 或 `idx_token_usage_` 前缀
+   - 联合索引多个字段用下划线连接：`idx_xxx_field1_field2`
 
 2. **Repository** - 继承 JpaRepository
    ```java
@@ -69,9 +78,9 @@ backend/src/main/java/com/ck/quiz/
    }
    ```
 
-### 2. 编译检查
+### 2. 编译检查（可选）
 
-完成代码修改后，**必须**运行编译检查：
+完成代码修改后，可以运行编译检查以验证代码质量：
 
 ```bash
 cd d:\idea_repo\quiz\backend
@@ -82,7 +91,7 @@ cd d:\idea_repo\quiz\backend
 set JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8"
 ```
 
-**编译检查流程**：
+**编译检查流程**（如需进行）：
 1. 执行 Gradle 编译命令
 2. 如果失败 (Exit Code 1)，分析错误信息
 3. 定位错误文件和行号

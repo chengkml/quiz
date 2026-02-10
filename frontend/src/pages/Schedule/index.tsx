@@ -692,7 +692,9 @@ function ScheduleManager() {
             const currentDay = weekStart.add(i, 'day');
             const daySchedules = schedules.filter(schedule =>
                 dayjs(schedule.startTime).format('YYYY-MM-DD') === currentDay.format('YYYY-MM-DD')
-            );
+            ).sort((a, b) => {
+                return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+            });
 
             const isToday = currentDay.isSame(dayjs(), 'day');
             const weekDayNames = ['日', '一', '二', '三', '四', '五', '六'];

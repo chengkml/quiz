@@ -10,14 +10,17 @@ import {
     Grid,
     Input,
     InputNumber,
+    Link,
     Menu,
     Message,
     Modal,
+    Popconfirm,
     Select,
     Space,
     Spin,
     Switch,
     Tag,
+    Tooltip,
     Tree,
 } from '@arco-design/web-react';
 import './style/index.less';
@@ -120,6 +123,14 @@ const {Row, Col} = Grid;
             dataIndex: 'name',
             width: 300,
             ellipsis: true,
+            render: (value, record) => (
+                <Link
+                    style={{ textDecoration: 'underline' }}
+                    onClick={() => handleManageQuestions(record)}
+                >
+                    {value}
+                </Link>
+            ),
         },
         {
             title: '所属学科',
@@ -171,59 +182,56 @@ const {Row, Col} = Grid;
         },
         {
             title: '操作',
-            width: 100,
+            width: 200,
             align: 'center',
             fixed: 'right',
             render: (_, record) => (
-                <Space size="large" className="dropdown-demo table-btn-group">
-                    <Dropdown
-                        position="bl"
-                        droplist={
-                            <Menu
-                                onClickMenuItem={(key, e) => {
-                                    handleMenuClick(key, e, record);
+                <Space size="medium" className="table-btn-group">
+                    {record.status === 'PUBLISHED' && (
+                        <Tooltip content="开始考试">
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<IconEye />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMenuClick('start', e, record);
                                 }}
-                                className="handle-dropdown-menu"
-                            >
-                                {record.status === 'PUBLISHED' && (
-                                    <Menu.Item key="start">
-                                        <IconEye style={{marginRight: '5px'}}/>
-                                        开始考试
-                                    </Menu.Item>
-                                )}
-                                <Menu.Item key="questions">
-                                    <IconSettings style={{marginRight: '5px'}}/>
-                                    管理题目
-                                </Menu.Item>
-                                {record.status === 'DRAFT' && (
-                                    <Menu.Item key="publish">
-                                        <IconPublic style={{marginRight: '5px'}}/>
-                                        发布
-                                    </Menu.Item>
-                                )}
-                                {record.status === 'PUBLISHED' && (
-                                    <Menu.Item key="archive">
-                                        <IconArchive style={{marginRight: '5px'}}/>
-                                        归档
-                                    </Menu.Item>
-                                )}
-                                <Menu.Item key="delete">
-                                    <IconDelete style={{marginRight: '5px'}}/>
-                                    删除
-                                </Menu.Item>
-                            </Menu>
-                        }
+                            />
+                        </Tooltip>
+                    )}
+                    {record.status === 'DRAFT' && (
+                        <Tooltip content="发布">
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<IconPublic />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMenuClick('publish', e, record);
+                                }}
+                            />
+                        </Tooltip>
+                    )}
+                    <Popconfirm
+                        title="确认删除该试卷吗？"
+                        onOk={(e) => {
+                            if (e) e.stopPropagation();
+                            handleMenuClick('delete', e as React.MouseEvent, record);
+                        }}
                     >
-                        <Button
-                            type="text"
-                            className="more-btn"
-                            onClick={e => {
-                                e.stopPropagation();
-                            }}
-                        >
-                            <IconList/>
-                        </Button>
-                    </Dropdown>
+                        <Tooltip content="删除">
+                            <Button
+                                type="text"
+                                size="small"
+                                status="danger"
+                                icon={<IconDelete />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                }}
+                            />
+                        </Tooltip>
+                    </Popconfirm>
                 </Space>
             ),
         },
@@ -403,7 +411,7 @@ const {Row, Col} = Grid;
                 navigate(`/frame/exam/take/${record.id}`);
                 break;
             case 'delete':
-                setDeleteModalVisible(true);
+                await handleDeleteConfirm();
                 break;
             default:
                 break;

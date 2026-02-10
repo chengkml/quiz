@@ -1,21 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
-  Dropdown,
   Form,
   Input,
-  Menu,
   Message,
   Modal,
   Space,
   Tag,
   Select,
+  Tooltip,
 } from "@arco-design/web-react";
 import {
   IconEdit,
   IconEye,
   IconPlayArrow,
-  IconList,
   IconPlus,
 } from "@arco-design/web-react/icon";
 import "./index.less";
@@ -82,17 +80,6 @@ function OrchestrationManager() {
   const filterFormRef = useRef<any>(null);
   const navigate = useNavigate();
 
-  const handleMenuClick = (key: string, e: React.MouseEvent, record: OrchestrationWorkflowDto) => {
-    e.stopPropagation();
-    if (key === "edit") {
-      handleEdit(record);
-    } else if (key === "canvas") {
-      navigate(`/frame/orchestration/edit/${record.id}`);
-    } else if (key === "run") {
-      handleStart(record);
-    }
-  };
-
   const columns = [
     {
       title: "编码",
@@ -126,9 +113,12 @@ function OrchestrationManager() {
     },
     {
       title: "创建人",
-      dataIndex: "createUser",
-      key: "createUser",
+      dataIndex: "createUserName",
+      key: "createUserName",
       width: 120,
+      render: (text: string, record: OrchestrationWorkflowDto) => (
+        <span>{text || record.createUser || '--'}</span>
+      ),
     },
     {
       title: "创建时间",
@@ -140,36 +130,44 @@ function OrchestrationManager() {
     {
       title: "操作",
       key: "action",
-      width: 100,
+      width: 140,
       fixed: "right",
       align: "center",
       render: (_: any, record: OrchestrationWorkflowDto) => (
-        <Space size="large">
-          <Dropdown
-            position="bl"
-            droplist={
-              <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}>
-                <Menu.Item key="edit">
-                  <IconEdit style={{ marginRight: 5 }} />
-                  编辑
-                </Menu.Item>
-                <Menu.Item key="canvas">
-                  <IconEye style={{ marginRight: 5 }} />
-                  画布
-                </Menu.Item>
-                <Menu.Item key="run">
-                  <IconPlayArrow style={{ marginRight: 5 }} />
-                  运行
-                </Menu.Item>
-              </Menu>
-            }
-          >
+        <Space size="small">
+          <Tooltip title="编辑">
             <Button
               type="text"
-              icon={<IconList />}
-              onClick={(e) => e.stopPropagation()}
+              size="small"
+              icon={<IconEdit />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(record);
+              }}
             />
-          </Dropdown>
+          </Tooltip>
+          <Tooltip title="画布">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconEye />}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/frame/orchestration/edit/${record.id}`);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="运行">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconPlayArrow />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStart(record);
+              }}
+            />
+          </Tooltip>
         </Space>
       ),
     },

@@ -36,11 +36,30 @@ public abstract class AbstractAsyncJob {
         Map<String, Object> queryParams = new HashMap<>();
         queryParams.put("id", jobId);
 
-        List<Map<String, Object>> list = HumpHelper
-                .lineToHump(jt.queryForList("select * from job where id=:id", queryParams));
+        // 添加重试逻辑：最多尝试5次，每次间隔500ms，确保事务已提交
+        List<Map<String, Object>> list = null;
+        int retryCount = 0;
+        int maxRetries = 5;
+        long retryDelayMs = 500;
+        
+        while (retryCount < maxRetries) {
+            list = HumpHelper.lineToHump(jt.queryForList("select * from job where id=:id", queryParams));
+            if (!list.isEmpty()) {
+                break;
+            }
+            retryCount++;
+            if (retryCount < maxRetries) {
+                try {
+                    Thread.sleep(retryDelayMs);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("任务查询被中断: " + jobId, e);
+                }
+            }
+        }
 
         if (list.isEmpty()) {
-            throw new RuntimeException("未查询到任务id为【" + jobId + "】的job任务");
+            throw new RuntimeException("未查询到任务id为【" + jobId + "】的job任务，已重试" + maxRetries + "次");
         }
 
         Map<String, Object> job = list.get(0);

@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
-  Dropdown,
   Form,
   Input,
-  Menu,
   Message,
   Modal,
+  Popconfirm,
   Space,
+  Tooltip,
 } from "@arco-design/web-react";
 import DataManager from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
@@ -16,7 +16,6 @@ import UserAvatar from "@/components/UserAvatar";
 import {
   IconDelete,
   IconEdit,
-  IconList,
 } from "@arco-design/web-react/icon";
 import renderDate from "@/utils/timeUtil";
 import "./style/index.less";
@@ -226,15 +225,6 @@ function GroupManager() {
   };
 
   // 菜单点击
-  const handleMenuClick = (key: string, e: React.MouseEvent, record: any) => {
-    e.stopPropagation();
-    if (key === "edit") {
-      handleEdit(record);
-    } else if (key === "delete") {
-      handleDelete(record);
-    }
-  };
-
   // 列配置
   const columns = [
     {
@@ -280,33 +270,32 @@ function GroupManager() {
       align: "center",
       fixed: "right",
       render: (_: any, record: any) => (
-        <Space size="large" className="table-btn-group">
-          <Dropdown
-            position="bl"
-            droplist={
-              <Menu
-                onClickMenuItem={(key, e) => handleMenuClick(key, e, record)}
-                className="handle-dropdown-menu"
-              >
-                <Menu.Item key="edit">
-                  <IconEdit style={{ marginRight: 5 }} />
-                  编辑
-                </Menu.Item>
-                <Menu.Item key="delete">
-                  <IconDelete style={{ marginRight: 5 }} />
-                  删除
-                </Menu.Item>
-              </Menu>
-            }
-          >
+        <Space size="small">
+          <Tooltip title="编辑">
             <Button
               type="text"
-              className="more-btn"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <IconList />
-            </Button>
-          </Dropdown>
+              size="small"
+              icon={<IconEdit />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(record);
+              }}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="确认删除该分组吗？"
+            onOk={() => handleDelete(record)}
+          >
+            <Tooltip title="删除">
+              <Button
+                type="text"
+                size="small"
+                status="danger"
+                icon={<IconDelete />}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Tooltip>
+          </Popconfirm>
         </Space>
       ),
     },

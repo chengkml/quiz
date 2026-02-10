@@ -121,13 +121,13 @@ frontend/src/
    }
    ```
 
-6. **构建检查**
+6. **构建检查（可选）**
 
-   开发完成后，**必须**调用 [前端编译与自动修复](file:///d:/idea_repo/quiz/.agent/skills/frontend_build_check/SKILL.md) 技能进行检查。
+   开发完成后，可以调用 [前端编译与自动修复](file:///d:/idea_repo/quiz/.agent/skills/frontend_build_check/SKILL.md) 技能进行检查。
    
    - 该技能会自动运行 Type Check 和 Build Check。
    - 如果发现错误，它会尝试自动修复。
-   - 确保所有检查通过后再提交代码。
+   - 如需进行检查，确保所有检查通过后再提交代码。
 
 ### 2. 使用 DataManager 组件
 

@@ -2,11 +2,12 @@ import React, { useCallback, useState, useEffect } from 'react';
 import {
   Button,
   Card,
-  Dropdown,
   Layout,
-  Menu,
   Message,
+  Popconfirm,
+  Space,
   Tag,
+  Tooltip,
   Typography,
 } from '@arco-design/web-react';
 import UserAvatar from '@/components/UserAvatar';
@@ -21,8 +22,7 @@ import {
 import renderDate from '@/utils/timeUtil';
 import {
   IconDelete,
-  IconEdit,
-  IconList
+  IconEdit
 } from '@arco-design/web-react/icon';
 import { DataManager, AddEditModal } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
@@ -186,25 +186,36 @@ function SubjectManager() {
       className="subject-card"
       title={<Tag color="blue" bordered>{item.label || item.name}</Tag>}
       extra={
-        <Dropdown
-          droplist={
-            <Menu onClickMenuItem={(key, e) => {
-              e.stopPropagation();
-              if (key === 'edit') {
+        <Space size="small">
+          <Tooltip title="编辑">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconEdit />}
+              onClick={(e) => {
+                e.stopPropagation();
                 setIsEdit(true);
                 setCurrentRecord(item);
                 setAddEditVisible(true);
-              } else if (key === 'delete') {
-                actions.onDelete(item);
-              }
-            }}>
-              <Menu.Item key="edit"><IconEdit style={{ marginRight: 8 }} />编辑</Menu.Item>
-              <Menu.Item key="delete"><IconDelete style={{ marginRight: 8 }} />删除</Menu.Item>
-            </Menu>
-          }
-        >
-          <Button type="text" icon={<IconList />} size="mini" />
-        </Dropdown>
+              }}
+            />
+          </Tooltip>
+          
+          <Popconfirm
+            title="确认删除该学科吗？"
+            onOk={() => actions.onDelete(item)}
+          >
+            <Tooltip title="删除">
+              <Button
+                type="text"
+                size="small"
+                status="danger"
+                icon={<IconDelete />}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
       }
     >
       <div className="card-content">

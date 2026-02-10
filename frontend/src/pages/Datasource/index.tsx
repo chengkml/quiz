@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Button, Form, Grid, Input, Message, Modal, Select, Space, Tag, Dropdown, Menu, Table} from '@arco-design/web-react';
-import {IconMore} from '@arco-design/web-react/icon';
+import {Button, Form, Grid, Input, Message, Modal, Select, Space, Tag, Table, Popconfirm, Tooltip} from '@arco-design/web-react';
+import {IconEdit, IconDelete, IconRefresh, IconDatabase} from '@arco-design/web-react/icon';
 import './style/index.less';
 import {
     collectSchema,
@@ -273,19 +273,7 @@ const handleTestConnection = async (record: any) => {
         }
     };
 
-    // 菜单点击
-    const handleMenuClick = (key: string, e: React.MouseEvent, record: any) => {
-        e.stopPropagation();
-        if (key === 'edit') {
-            openEditModal(record);
-        } else if (key === 'delete') {
-            openDeleteModal(record);
-        } else if (key === 'testConnection') {
-            handleTestConnection(record);
-        } else if (key === 'collectSchema') {
-            handleCollectSchema(record);
-        }
-    };
+    // handleMenuClick函数已移除，操作按钮直接调用对应的处理函数
 
     const columns = [
         {title: '名称', dataIndex: 'name', width: 160},
@@ -351,26 +339,67 @@ const handleTestConnection = async (record: any) => {
         {
             title: '操作',
             dataIndex: 'op',
-            width: 100,
+            width: 190,
             align: 'center',
             fixed: 'right' as any,
             render: (_: any, record: any) => (
-                <Space size="large" className="table-btn-group">
-                    <Dropdown
-                        position="bl"
-                        droplist={
-                            <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)} className="handle-dropdown-menu">
-                                <Menu.Item key="edit">编辑</Menu.Item>
-                                <Menu.Item key="delete">删除</Menu.Item>
-                                <Menu.Item key="testConnection">测试连接</Menu.Item>
-                                <Menu.Item key="collectSchema">采集表结构</Menu.Item>
-                            </Menu>
-                        }
+                <Space size="small">
+                    <Tooltip title="编辑">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconEdit />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                openEditModal(record);
+                            }}
+                        />
+                    </Tooltip>
+                    <Tooltip title="测试连接">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconRefresh />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleTestConnection(record);
+                            }}
+                        />
+                    </Tooltip>
+                    <Tooltip title="采集表结构">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconDatabase />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleCollectSchema(record);
+                            }}
+                        />
+                    </Tooltip>
+                    <Popconfirm
+                        title="确认删除该数据源吗？"
+                        onOk={async () => {
+                            setCurrentItem(record);
+                            try {
+                                await deleteDatasource(record.id);
+                                Message.success('删除成功');
+                                fetchTableData(pagination);
+                            } catch (e: any) {
+                                Message.error(e?.message || '删除失败');
+                            }
+                        }}
                     >
-                        <Button type="text" className="more-btn" onClick={(e) => e.stopPropagation()}>
-                            <IconMore />
-                        </Button>
-                    </Dropdown>
+                        <Tooltip title="删除">
+                            <Button
+                                type="text"
+                                size="small"
+                                status="danger"
+                                icon={<IconDelete />}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </Tooltip>
+                    </Popconfirm>
                 </Space>
             ),
         },

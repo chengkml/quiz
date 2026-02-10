@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Form, Grid, Input, Message, Modal, Select, Tag, Dropdown, Menu } from '@arco-design/web-react';
-import { IconDelete, IconEdit, IconPlus, IconRefresh, IconList } from '@arco-design/web-react/icon';
+import { Button, Form, Grid, Input, Message, Modal, Popconfirm, Select, Space, Tag, Tooltip } from '@arco-design/web-react';
+import { IconDelete, IconEdit, IconPlus, IconRefresh } from '@arco-design/web-react/icon';
 import { DataManager } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
@@ -66,30 +66,51 @@ function CronTaskManager() {
       return <Tag color={it.color} bordered>{it.text}</Tag>;
     } },
     { title: '下次运行时间', dataIndex: 'nextFireTime', width: 180, render: (value: string) => renderDate(value) },
-    { title: '操作', width: 150, align: 'center', fixed: 'right' as any, render: (_: any, record: CronTaskDto) => (
-      <Dropdown
-        position="bl"
-        droplist={
-          <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)} className="handle-dropdown-menu">
-            <Menu.Item key="edit">
-              <IconEdit style={{ marginRight: 5 }} />
-              编辑
-            </Menu.Item>
-            <Menu.Item key="trigger">
-              <IconRefresh style={{ marginRight: 5 }} />
-              触发
-            </Menu.Item>
-            <Menu.Item key="delete">
-              <IconDelete style={{ marginRight: 5 }} />
-              删除
-            </Menu.Item>
-          </Menu>
-        }
-      >
-        <Button type="text" className="more-btn" onClick={(e) => e.stopPropagation()}>
-          <IconList />
-        </Button>
-      </Dropdown>
+    { title: '操作', width: 140, align: 'center', fixed: 'right' as any, render: (_: any, record: CronTaskDto) => (
+      <Space size="small" className="table-btn-group">
+        <Tooltip title="编辑">
+          <Button
+            type="text"
+            size="small"
+            icon={<IconEdit />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEdit(record);
+            }}
+          />
+        </Tooltip>
+        
+        <Tooltip title="触发">
+          <Button
+            type="text"
+            size="small"
+            icon={<IconRefresh />}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentRecord(record);
+              setTriggerModalVisible(true);
+            }}
+          />
+        </Tooltip>
+        
+        <Popconfirm
+          title="确认删除该定时任务吗？"
+          onOk={() => {
+            setCurrentRecord(record);
+            setDeleteModalVisible(true);
+          }}
+        >
+          <Tooltip title="删除">
+            <Button
+              type="text"
+              size="small"
+              status="danger"
+              icon={<IconDelete />}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Tooltip>
+        </Popconfirm>
+      </Space>
     ) },
   ];
 
@@ -157,23 +178,7 @@ function CronTaskManager() {
     }, 100);
   };
 
-  // 菜单点击
-  const handleMenuClick = (key: string, _: any, record: CronTaskDto) => {
-    setCurrentRecord(record);
-    switch (key) {
-      case 'edit':
-        handleEdit(record);
-        break;
-      case 'trigger':
-        handleTrigger(record);
-        break;
-      case 'delete':
-        handleDelete(record);
-        break;
-      default:
-        break;
-    }
-  };
+  // 已移除 handleMenuClick，操作按钮已改为直接调用
 
   // 删除
   const handleDelete = (record: CronTaskDto) => {

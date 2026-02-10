@@ -6,21 +6,20 @@ import { FormFieldConfig } from '@/components/types/types';
 import renderDate from '@/utils/timeUtil';
 import {
     Button,
-    Dropdown,
     Form,
     Input,
-    Menu,
     Message,
     Modal,
+    Popconfirm,
     Select,
     Space,
     Tag,
+    Tooltip,
 } from '@arco-design/web-react';
 import {
     IconCheck,
     IconDelete,
     IconEdit,
-    IconList,
 } from '@arco-design/web-react/icon';
 import './style/index.less';
 import {
@@ -245,19 +244,6 @@ function LlmModelManager() {
 
 
     // 菜单点击
-    const handleMenuClick = (key: string, e: React.MouseEvent, record: any) => {
-        e.stopPropagation();
-        if (key === 'edit') {
-            handleEdit(record);
-        } else if (key === 'delete') {
-            handleDelete(record);
-        } else if (key === 'set-default') {
-            setDefaultModel(record.id).then(() => {
-                Message.success('已设置为默认模型');
-                fetchTableData();
-            }).catch(() => Message.error('设置默认模型失败'));
-        }
-    };
 
     // 类型映射与颜色
     const typeMap: Record<string, { label: string; color: string }> = {
@@ -288,23 +274,50 @@ function LlmModelManager() {
         { title: '创建时间', dataIndex: 'createDate', width: 180, render: (value: string) => renderDate(value) },
         {
             title: '操作',
-            width: 120,
+            width: 140,
             align: 'center' as any,
             fixed: 'right' as any,
             render: (_: any, record: any) => (
-                <Space size="large" className="table-btn-group">
-                    <Dropdown
-                        position="bl"
-                        droplist={
-                            <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)} className="handle-dropdown-menu">
-                                <Menu.Item key="edit"><IconEdit style={{marginRight: 5}}/> 编辑</Menu.Item>
-                                <Menu.Item key="set-default"><IconCheck style={{marginRight: 5}}/> 设为默认</Menu.Item>
-                                <Menu.Item key="delete"><IconDelete style={{marginRight: 5}}/> 删除</Menu.Item>
-                            </Menu>
-                        }
+                <Space size="small">
+                    <Tooltip title="编辑">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconEdit />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(record);
+                            }}
+                        />
+                    </Tooltip>
+                    <Tooltip title="设为默认">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconCheck />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setDefaultModel(record.id).then(() => {
+                                    Message.success('已设置为默认模形');
+                                    fetchTableData();
+                                }).catch(() => Message.error('设置默认模形失败'));
+                            }}
+                        />
+                    </Tooltip>
+                    <Popconfirm
+                        title="确认删除该模形吗？"
+                        onOk={() => handleDelete(record)}
                     >
-                        <Button type="text" className="more-btn" onClick={(e) => e.stopPropagation()}><IconList/></Button>
-                    </Dropdown>
+                        <Tooltip title="删除">
+                            <Button
+                                type="text"
+                                size="small"
+                                status="danger"
+                                icon={<IconDelete />}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </Tooltip>
+                    </Popconfirm>
                 </Space>
             ),
         },

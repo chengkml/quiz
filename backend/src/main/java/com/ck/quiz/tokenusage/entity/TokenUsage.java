@@ -11,10 +11,10 @@ import com.ck.quiz.base.entity.Model;
 @Comment("Token使用记录表")
 @EqualsAndHashCode(callSuper = true)
 @Table(name = "token_usage", indexes = {
-        @Index(name = "idx_model_name", columnList = "model_name"),
+        @Index(name = "idx_use_model_name", columnList = "model_name"),
         @Index(name = "idx_create_user", columnList = "create_user"),
-        @Index(name = "idx_create_date", columnList = "create_date"),
-        @Index(name = "idx_business_type", columnList = "business_type")
+        @Index(name = "idx_use_create_date", columnList = "create_date"),
+        @Index(name = "idx_use_business_type", columnList = "business_type")
 })
 public class TokenUsage extends Model {
 

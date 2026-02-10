@@ -3,16 +3,16 @@ import UserAvatar from '@/components/UserAvatar';
 import {
     Button,
     Drawer,
-    Dropdown,
     Form,
     Input,
     Layout,
-    Menu,
     Message,
     Modal,
+    Popconfirm,
     Select,
     Space,
     Spin,
+    Tooltip,
     Tree,
 } from '@arco-design/web-react';
 import './style/index.less';
@@ -124,15 +124,6 @@ function KnowledgeManager() {
             render: (value) => value || '--',
         },
         {
-            title: '创建人',
-            dataIndex: 'createUserName',
-            width: 120,
-            ellipsis: true,
-            render: (value, record) => (
-                <UserAvatar name={value || (record?.createUser ?? '')} showName />
-            ),
-        },
-        {
             title: '创建时间',
             dataIndex: 'createDate',
             width: 170,
@@ -140,41 +131,36 @@ function KnowledgeManager() {
         },
         {
             title: '操作',
-            width: 100,
+            width: 120,
             align: 'center',
             fixed: 'right',
             render: (_, record) => (
-                <Space size="large" className="table-btn-group">
-                    <Dropdown
-                        position="bl"
-                        droplist={
-                            <Menu
-                                onClickMenuItem={(key, e) => {
-                                    handleMenuClick(key, e, record);
-                                }}
-                                className="handle-dropdown-menu"
-                            >
-                                <Menu.Item key="edit">
-                                    <IconEdit style={{ marginRight: '5px' }} />
-                                    编辑
-                                </Menu.Item>
-                                <Menu.Item key="delete">
-                                    <IconDelete style={{ marginRight: '5px' }} />
-                                    删除
-                                </Menu.Item>
-                            </Menu>
-                        }
-                    >
+                <Space size="small">
+                    <Tooltip title="编辑">
                         <Button
                             type="text"
-                            className="more-btn"
+                            size="small"
+                            icon={<IconEdit />}
                             onClick={(e) => {
                                 e.stopPropagation();
+                                handleEdit(record);
                             }}
-                        >
-                            <IconList />
-                        </Button>
-                    </Dropdown>
+                        />
+                    </Tooltip>
+                    <Popconfirm
+                        title="确认删除该知识点吗？"
+                        onOk={() => handleDelete(record)}
+                    >
+                        <Tooltip title="删除">
+                            <Button
+                                type="text"
+                                size="small"
+                                status="danger"
+                                icon={<IconDelete />}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </Tooltip>
+                    </Popconfirm>
                 </Space>
             ),
         },

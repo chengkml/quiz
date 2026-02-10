@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Form, Grid, Input, Message, Modal, Select, Tag, Dropdown, Menu, InputNumber } from '@arco-design/web-react';
-import { IconDelete, IconEdit, IconPlus, IconRefresh, IconList, IconEye } from '@arco-design/web-react/icon';
+import { Button, Form, Grid, Input, Message, Modal, Popconfirm, Select, Space, Tag, Tooltip, InputNumber } from '@arco-design/web-react';
+import { IconDelete, IconEdit, IconPlus, IconRefresh, IconEye } from '@arco-design/web-react/icon';
 import { DataManager } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
@@ -101,34 +101,71 @@ function CrawlerManager() {
       return <Tag color={it.color} bordered>{it.text}</Tag>;
     } },
     { title: '创建时间', dataIndex: 'createTime', width: 180, render: (value: string) => renderDate(value) },
-    { title: '操作', width: 180, align: 'center' as any, fixed: 'right' as any, render: (_: any, record: CrawlerConfigDto) => (
-      <Dropdown
-        position="bl"
-        droplist={
-          <Menu onClickMenuItem={(key, e) => handleMenuClick(key, e, record)} className="handle-dropdown-menu">
-            <Menu.Item key="edit">
-              <IconEdit style={{ marginRight: 5 }} />
-              编辑
-            </Menu.Item>
-            <Menu.Item key="trigger">
-              <IconRefresh style={{ marginRight: 5 }} />
-              触发爬虫
-            </Menu.Item>
-            <Menu.Item key="results">
-              <IconEye style={{ marginRight: 5 }} />
-              查看结果
-            </Menu.Item>
-            <Menu.Item key="delete">
-              <IconDelete style={{ marginRight: 5 }} />
-              删除
-            </Menu.Item>
-          </Menu>
-        }
-      >
-        <Button type="text" className="more-btn" onClick={(e) => e.stopPropagation()}>
-          <IconList />
-        </Button>
-      </Dropdown>
+    { title: '操作', width: 160, align: 'center' as any, fixed: 'right' as any, render: (_: any, record: CrawlerConfigDto) => (
+      <Space size="small" className="table-btn-group">
+        <Tooltip content="编辑">
+          <Button
+            type="text"
+            size="small"
+            icon={<IconEdit />}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentRecord(record);
+              setAddModalVisible(true);
+            }}
+          />
+        </Tooltip>
+        
+        <Tooltip content="触发爬虫">
+          <Button
+            type="text"
+            size="small"
+            icon={<IconRefresh />}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentRecord(record);
+              setTriggerModalVisible(true);
+            }}
+          />
+        </Tooltip>
+        
+        <Tooltip content="查看结果">
+          <Button
+            type="text"
+            size="small"
+            icon={<IconEye />}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentRecord(record);
+              setResultModalVisible(true);
+              loadResultData(record.id!);
+            }}
+          />
+        </Tooltip>
+        
+        <Popconfirm
+          title="确认删除该爬虫配置吗？"
+          onOk={async () => {
+            try {
+              await deleteCrawlerConfig([record.id!]);
+              Message.success('删除成功');
+              loadTableData();
+            } catch (error: any) {
+              Message.error(error.message || '删除失败');
+            }
+          }}
+        >
+          <Tooltip content="删除">
+            <Button
+              type="text"
+              size="small"
+              status="danger"
+              icon={<IconDelete />}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Tooltip>
+        </Popconfirm>
+      </Space>
     ) },
   ];
 
@@ -201,21 +238,7 @@ function CrawlerManager() {
   };
 
   // 菜单点击
-  const handleMenuClick = (key: string, e: any, record: CrawlerConfigDto) => {
-    e.stopPropagation();
-    setCurrentRecord(record);
-
-    if (key === 'edit') {
-      setAddModalVisible(true);
-    } else if (key === 'delete') {
-      setDeleteModalVisible(true);
-    } else if (key === 'trigger') {
-      setTriggerModalVisible(true);
-    } else if (key === 'results') {
-      setResultModalVisible(true);
-      loadResultData(record.id!);
-    }
-  };
+  // 已移除 handleMenuClick，操作按钮已改为直接调用
 
   // 添加/编辑
   const handleAdd = () => {

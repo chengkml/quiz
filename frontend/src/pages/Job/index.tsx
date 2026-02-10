@@ -2,22 +2,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     Button,
     Drawer,
-    Dropdown,
     Form,
     Grid,
     Input,
     InputNumber,
-    Menu,
     Message,
     Modal,
+    Popconfirm,
     Select,
     Space,
     Tag,
+    Tooltip,
 } from '@arco-design/web-react';
 import {
     IconDelete,
     IconInfo,
-    IconList,
     IconStop,
 } from '@arco-design/web-react/icon';
 import { useNavigate } from 'react-router-dom';
@@ -60,7 +59,6 @@ function JobManager() {
     // 当前记录与弹窗
     const [currentRecord, setCurrentRecord] = useState<any | null>(null);
     const [addModalVisible, setAddModalVisible] = useState(false);
-    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [stopModalVisible, setStopModalVisible] = useState(false);
     const [retryModalVisible, setRetryModalVisible] = useState(false);
     const [logModalVisible, setLogModalVisible] = useState(false);
@@ -87,27 +85,7 @@ function JobManager() {
     // 筛选表单字段配置
     const [filterFormFields, setFilterFormFields] = useState<FormFieldConfig[]>([]);
 
-    // 菜单点击处理
-    const handleMenuClick = (key: string, _: any, record: any) => {
-        setCurrentRecord(record);
-        switch (key) {
-            case 'stop':
-                setStopModalVisible(true);
-                break;
-            case 'retry':
-                setRetryModalVisible(true);
-                break;
-            case 'log':
-                setCurrentJobId(record.id);
-                setLogModalVisible(true);
-                break;
-            case 'delete':
-                setDeleteModalVisible(true);
-                break;
-            default:
-                break;
-        }
-    };
+    // 已移除 handleMenuClick，操作按钮已改为直接调用
 
     // 表格列定义
     const columns = [
@@ -166,47 +144,64 @@ function JobManager() {
         },
         {
             title: '操作',
-            width: 100,
+            width: 150,
             align: 'center',
             fixed: 'right' as const,
             render: (_: any, record: any) => (
-                <Space size="large" className="table-btn-group">
-                    <Dropdown
-                        position="bl"
-                        droplist={
-                            <Menu
-                                onClickMenuItem={(key, e) =>
-                                    handleMenuClick(key, e, record)
-                                }
-                                className="handle-dropdown-menu"
-                            >
-                                {record.state === 'RUNNING' && (
-                                    <Menu.Item key="stop">
-                                        <IconStop style={{ marginRight: 5 }} />
-                                        停止
-                                    </Menu.Item>
-                                )}
-                                <Menu.Item key="log">
-                                    <IconInfo style={{ marginRight: 5 }} />
-                                    日志
-                                </Menu.Item>
-                                {['RUNNING'].indexOf(record.state) === -1 && (
-                                    <Menu.Item key="delete">
-                                        <IconDelete style={{ marginRight: 5 }} />
-                                        删除
-                                    </Menu.Item>
-                                )}
-                            </Menu>
-                        }
-                    >
+                <Space size="small" className="table-btn-group">
+                    {record.state === 'RUNNING' && (
+                        <Tooltip title="停止">
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<IconStop />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCurrentRecord(record);
+                                    setStopModalVisible(true);
+                                }}
+                            />
+                        </Tooltip>
+                    )}
+                    
+                    <Tooltip title="日志">
                         <Button
                             type="text"
-                            className="more-btn"
-                            onClick={(e) => e.stopPropagation()}
+                            size="small"
+                            icon={<IconInfo />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentJobId(record.id);
+                                setLogModalVisible(true);
+                            }}
+                        />
+                    </Tooltip>
+                    
+                    {['RUNNING'].indexOf(record.state) === -1 && (
+                        <Popconfirm
+                            title="确认删除该作业吗？"
+                            onOk={async () => {
+                                try {
+                                    await deleteJob(record.id);
+                                    Message.success('删除作业成功');
+                                    const filterValues = filterFormRef.current?.getFilterValues?.() || {};
+                                    searchTableData(filterValues);
+                                } catch (error) {
+                                    Message.error('删除作业失败');
+                                }
+                            }}
                         >
-                            <IconList />
-                        </Button>
-                    </Dropdown>
+                            <Tooltip title="删除">
+                                <Button
+                                    type="text"
+                                    size="small"
+                                    status="danger"
+                                    icon={<IconDelete />}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </Tooltip>
+                        </Popconfirm>
+                    )}
                 </Space>
             ),
         },
@@ -343,18 +338,7 @@ function JobManager() {
     };
 
     // 删除确认
-    const handleDeleteConfirm = async () => {
-        try {
-            await deleteJob(currentRecord?.id || '');
-            Message.success('删除作业成功');
-            setDeleteModalVisible(false);
-            // 刷新表格
-            const filterValues = filterFormRef.current?.getFilterValues?.() || {};
-            searchTableData(filterValues);
-        } catch (error) {
-            Message.error('删除作业失败');
-        }
-    };
+    // 删除逻辑已移至表格操作列的 Popconfirm 中
 
     // 停止作业确认
     const handleStopConfirm = async () => {
@@ -603,17 +587,7 @@ function JobManager() {
                 </div>
             </Modal>
 
-            {/* 删除确认 */}
-            <Modal
-                title="确认删除"
-                visible={deleteModalVisible}
-                onOk={handleDeleteConfirm}
-                onCancel={() => setDeleteModalVisible(false)}
-            >
-                <div className="delete-modal">
-                    确定要删除该作业吗？此操作不可恢复。
-                </div>
-            </Modal>
+            {/* 删除确认已改为 Popconfirm，无需 Modal */}
 
             {/* 停止作业确认 */}
             <Modal

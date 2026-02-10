@@ -28,6 +28,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -315,18 +317,24 @@ public class JobService {
             pendingJob.setPushTime(LocalDateTime.now());
             pendingJobRepository.save(pendingJob);
         } else {
-            DynamicCronTaskScheduler.executor.execute(() -> {
-                try {
-                    // 更新任务表为RUNNING
-                    Map<String, Object> runningParams = new HashMap<>();
-                    runningParams.put("id", jobId);
-                    runningParams.put("state", "RUNNING");
-                    runningParams.put("startTime", new Date());
-                    jt.update("update job set state = :state, start_time = :startTime where id = :id", runningParams);
-                    Method fireMethod = clazz.getMethod("fire", String.class);
-                    fireMethod.invoke(bean, jobId);
-                } catch (Exception e) {
-                    log.error("定时任务反射异常:{}", ExceptionUtils.getStackTrace(e));
+            // 注册事务同步钩子，确保在事务提交后再执行异步任务
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    DynamicCronTaskScheduler.executor.execute(() -> {
+                        try {
+                            // 更新任务表为RUNNING
+                            Map<String, Object> runningParams = new HashMap<>();
+                            runningParams.put("id", jobId);
+                            runningParams.put("state", "RUNNING");
+                            runningParams.put("startTime", new Date());
+                            jt.update("update job set state = :state, start_time = :startTime where id = :id", runningParams);
+                            Method fireMethod = clazz.getMethod("fire", String.class);
+                            fireMethod.invoke(bean, jobId);
+                        } catch (Exception e) {
+                            log.error("定时任务反射异常:{}", ExceptionUtils.getStackTrace(e));
+                        }
+                    });
                 }
             });
         }

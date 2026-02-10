@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserAvatar from '@/components/UserAvatar';
-import { Button, Card, Drawer, Dropdown, Layout, Menu, Message, Modal, Space, Tag, Typography } from '@arco-design/web-react';
-import { IconDelete, IconEdit, IconList, IconStorage } from '@arco-design/web-react/icon';
+import { Button, Card, Drawer, Layout, Message, Modal, Popconfirm, Space, Tag, Tooltip, Typography } from '@arco-design/web-react';
+import { IconDelete, IconEdit, IconSearch, IconStorage } from '@arco-design/web-react/icon';
 import { DataManager } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
@@ -106,10 +106,10 @@ function KnowledgeSetManager() {
         {
             title: '操作',
             dataIndex: 'operation',
-            width: 200,
+            width: 180,
             fixed: 'right' as const,
             render: (_: any, record: any) => (
-                <div style={{ display: "flex", gap: 16 }}>
+                <Space size="small">
                     <Tooltip content="来源">
                         <Button
                             type="text"
@@ -132,25 +132,32 @@ function KnowledgeSetManager() {
                             }}
                         />
                     </Tooltip>
-                    <Dropdown
-                        droplist={
-                            <Menu onClickMenuItem={(key) => {
-                                if (key === 'delete') {
-                                    handleDelete(record);
-                                } else if (key === 'search') {
-                                    handleOpenSearchDrawer(record.id);
-                                }
-                            }}>
-                                <Menu.Item key="search"><IconList style={{ marginRight: 8 }} />检索测试</Menu.Item>
-                                <Menu.Item key="delete"><IconDelete style={{ marginRight: 8 }} />删除</Menu.Item>
-                            </Menu>
-                        }
+                    <Tooltip content="检索测试">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconSearch />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenSearchDrawer(record.id);
+                            }}
+                        />
+                    </Tooltip>
+                    <Popconfirm
+                        title="确认删除该知识集吗?"
+                        onOk={() => handleDelete(record)}
                     >
-                        <Tooltip content="更多">
-                            <Button type="text" size="small" icon={<IconList />} onClick={(e) => e.stopPropagation()} />
+                        <Tooltip content="删除">
+                            <Button
+                                type="text"
+                                size="small"
+                                status="danger"
+                                icon={<IconDelete />}
+                                onClick={(e) => e.stopPropagation()}
+                            />
                         </Tooltip>
-                    </Dropdown>
-                </div>
+                    </Popconfirm>
+                </Space>
             ),
         },
     ];
