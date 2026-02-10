@@ -72,15 +72,6 @@ function CategoryManager() {
             render: (text) => text || '--',
         },
         {
-            title: '创建人',
-            dataIndex: 'createUserName',
-            key: 'createUserName',
-            width: 100,
-            render: (text, record) => (
-                <UserAvatar name={text || (record?.createUser ?? '')} showName />
-            ),
-        },
-        {
             title: '创建时间',
             dataIndex: 'createDate',
             width: 170,

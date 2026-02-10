@@ -11,6 +11,8 @@ import com.ck.quiz.category.service.CategoryService;
 import com.ck.quiz.knowledge.service.KnowledgeService;
 import com.ck.quiz.question.service.QuestionService;
 import com.ck.quiz.subject.dto.SubjectDto;
+import com.ck.quiz.subject.entity.Subject;
+import com.ck.quiz.subject.repository.SubjectRepository;
 import com.ck.quiz.subject.service.SubjectService;
 import com.ck.quiz.utils.JdbcQueryHelper;
 
@@ -24,6 +26,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -36,6 +40,9 @@ public class CategoryServiceImpl extends
 
     @Autowired
     private SubjectService subjectService;
+
+    @Autowired
+    private SubjectRepository subjectRepository;
 
     @Lazy
     @Autowired
@@ -94,14 +101,48 @@ public class CategoryServiceImpl extends
                     return c;
                 });
 
+        List<CategoryDto> categoryDtos = convertToDtos(categories);
+
+        // 填充学科信息
+        populateSubjectInfo(categoryDtos);
+
         // 组装分页对象
         return JdbcQueryHelper.toPage(
                 namedParameterJdbcTemplate,
                 countSql.toString(),
                 params,
-                convertToDtos(categories),
+                categoryDtos,
                 queryDto.getPageNum(),
                 queryDto.getPageSize());
+    }
+
+    private void populateSubjectInfo(List<CategoryDto> dtos) {
+        if (dtos == null || dtos.isEmpty()) {
+            return;
+        }
+
+        Set<String> subjectIds = dtos.stream()
+                .map(CategoryDto::getSubjectId)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
+
+        if (subjectIds.isEmpty()) {
+            return;
+        }
+
+        List<Subject> subjects = subjectRepository.findAllById(subjectIds);
+        Map<String, Subject> subjectMap = subjects.stream()
+                .collect(Collectors.toMap(Subject::getId, Function.identity()));
+
+        for (CategoryDto dto : dtos) {
+            if (StringUtils.hasText(dto.getSubjectId())) {
+                Subject subject = subjectMap.get(dto.getSubjectId());
+                if (subject != null) {
+                    dto.setSubjectName(subject.getName());
+                    dto.setSubjectLabel(subject.getLabel());
+                }
+            }
+        }
     }
 
     @Override
