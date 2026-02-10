@@ -6,7 +6,7 @@ import com.ck.quiz.question.dto.QuestionQueryDto;
 import com.ck.quiz.question.dto.QuestionUpdateDto;
 import com.ck.quiz.question.entity.Question;
 import org.springframework.data.domain.Page;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
@@ -83,7 +83,7 @@ public interface QuestionService {
      * @param modelName
      * @return
      */
-    SseEmitter streamGenerateQuestions(String knowledgeDescr, int num, String modelName);
+    Flux<String> streamGenerateQuestions(String knowledgeDescr, int num, String modelName);
 
     /**
      * 批量创建题目
