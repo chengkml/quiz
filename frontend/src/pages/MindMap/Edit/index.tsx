@@ -48,6 +48,7 @@ const MindMapEditPage: React.FC<MindMapEditPageProps> = (props) => {
     const [currentTheme, setCurrentTheme] = useState<string>('default');
     const [zoomLevel, setZoomLevel] = useState<number>(1);
     const [isDragging, setIsDragging] = useState(false);
+    const dragRef = useRef({ startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 });
 
     // AI 生成相关状态
     const [aiModalVisible, setAiModalVisible] = useState(false);
@@ -593,6 +594,41 @@ const MindMapEditPage: React.FC<MindMapEditPageProps> = (props) => {
         }
     };
 
+    const handleMouseDown = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        // 如果点击的是节点，则不触发拖拽画布
+        if (target.closest('me-tpc') || target.closest('tpc')) {
+            return;
+        }
+
+        setIsDragging(true);
+        const container = mindMapRef.current?.parentElement;
+        if (container) {
+            dragRef.current = {
+                startX: e.clientX,
+                startY: e.clientY,
+                scrollLeft: container.scrollLeft,
+                scrollTop: container.scrollTop
+            };
+        }
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging) return;
+        const container = mindMapRef.current?.parentElement;
+        if (container) {
+            e.preventDefault();
+            const dx = e.clientX - dragRef.current.startX;
+            const dy = e.clientY - dragRef.current.startY;
+            container.scrollLeft = dragRef.current.scrollLeft - dx;
+            container.scrollTop = dragRef.current.scrollTop - dy;
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
     return (
         <Layout style={{height: isDrawerMode ? '100%' : 'calc(100% - 20px)'}}>
             <Content className="mindmap-edit-page" style={{
@@ -686,16 +722,17 @@ const MindMapEditPage: React.FC<MindMapEditPageProps> = (props) => {
 
                 {/* 编辑器主体 */}
                 <div className="mindmap-editor-container" style={{flex: 1}}>
-                    <div 
-                        ref={mindMapRef} 
+                    <div
+                        ref={mindMapRef}
                         style={{
-                            height: '100%', 
+                            height: '100%',
                             width: '100%',
                             cursor: isDragging ? 'grabbing' : 'grab'
-                        }} 
-                        onMouseDown={() => setIsDragging(true)}
-                        onMouseUp={() => setIsDragging(false)}
-                        onMouseLeave={() => setIsDragging(false)}
+                        }}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
                     />
                 </div>
 
