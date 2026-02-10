@@ -229,11 +229,11 @@ function QuestionManager() {
         },
         {
             title: '操作',
-            width: 80,
+            width: 70,
             align: 'center',
             fixed: 'right',
             render: (_, record) => (
-                <Space size="medium" className="table-btn-group">
+                <Space size="small" className="table-btn-group">
                     <Tooltip content="编辑">
                         <Button
                             type="text"

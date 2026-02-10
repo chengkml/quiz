@@ -218,6 +218,7 @@ const formConfig: FormFieldConfig[] = [
 位于 `src/components/DataManager/components/TableList.tsx` 中，针对每一行数据的操作按钮应遵循以下规范：
 
 > **重要**：表格操作列**禁止**使用下拉菜单 (Dropdown Menu) 收纳按钮。所有操作按钮必须直接平铺展示，如果按钮过多，请考虑精简或使用图标按钮+Tooltip的形式。
+> **布局**：操作列宽度应适中（推荐宽度 120px-180px），并**固定在表格右侧** (`fixed: 'right'`)。
 
 - **查看按钮** (如果启用):
   - 组件: `<Button>`

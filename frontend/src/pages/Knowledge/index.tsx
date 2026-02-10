@@ -131,7 +131,7 @@ function KnowledgeManager() {
         },
         {
             title: '操作',
-            width: 120,
+            width: 150,
             align: 'center',
             fixed: 'right',
             render: (_, record) => (

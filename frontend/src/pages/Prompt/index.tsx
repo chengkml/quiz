@@ -96,15 +96,6 @@ function PromptTemplateManagement() {
       tooltip: true,
     },
     {
-      title: "创建人",
-      dataIndex: "createUserName",
-      key: "createUserName",
-      width: 120,
-      render: (name, record) => (
-        <UserAvatar name={name || (record?.createUser ?? "")} showName />
-      ),
-    },
-    {
       title: "创建时间",
       dataIndex: "createDate",
       key: "createDate",

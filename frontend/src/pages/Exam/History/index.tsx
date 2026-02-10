@@ -10,17 +10,19 @@ import {
     Message,
     Modal,
     Pagination,
+    Spin,
     Table,
     Tag,
+    Tree,
 } from '@arco-design/web-react';
 import './style/index.less';
-import {deleteExamHistory, getExamHistoryList} from './api';
+import {deleteExamHistory, getExamHistoryList, getSubjectCategoryTree} from './api';
 import {IconDelete, IconEye, IconList, IconSearch} from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
 
 const {Row, Col} = Grid;
 
-const {Content} = Layout;
+const {Content, Sider} = Layout;
 
 function ExamHistoryManager() {
     // 导航
@@ -31,6 +33,14 @@ function ExamHistoryManager() {
     const [loading, setLoading] = useState(false);
     const [tableLoading, setTableLoading] = useState(false);
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
+
+    // 左侧树相关状态
+    const [treeData, setTreeData] = useState([]);
+    const [treeLoading, setTreeLoading] = useState(false);
+    const [selectedTreeNode, setSelectedTreeNode] = useState(null);
+    const [expandedKeys, setExpandedKeys] = useState([]);
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [filteredTreeData, setFilteredTreeData] = useState([]);
 
     // 对话框状态
     const [showDetailPage, setShowDetailPage] = useState(false);
@@ -187,11 +197,12 @@ function ExamHistoryManager() {
     ];
 
     // 获取表格数据
-    const fetchTableData = async (params = {}, pageSize = pagination.pageSize, current = pagination.current) => {
+    const fetchTableData = async (params = {}, pageSize = pagination.pageSize, current = pagination.current, subjectId = selectedTreeNode) => {
         setTableLoading(true);
         try {
             const targetParams = {
                 ...params,
+                subjectId,
                 pageNum: current - 1,
                 pageSize: pageSize,
             };
@@ -214,7 +225,7 @@ function ExamHistoryManager() {
 
     // 搜索表格数据
     const searchTableData = (params) => {
-        fetchTableData(params, pagination.pageSize, 1);
+        fetchTableData(params, pagination.pageSize, 1, selectedTreeNode);
     };
 
     // 处理下拉菜单点击
@@ -253,7 +264,7 @@ function ExamHistoryManager() {
             if (response.data) {
                 Message.success('删除历史答卷成功');
                 setDeleteModalVisible(false);
-                fetchTableData();
+                fetchTableData({}, pagination.pageSize, pagination.current, selectedTreeNode);
             }
         } catch (error) {
             Message.error('删除历史答卷失败');
@@ -277,8 +288,43 @@ function ExamHistoryManager() {
         }
     }, [hasCheckedLastResult]);
 
+    // 获取学科分类树数据
+    const fetchSubjectCategoryTreeData = async () => {
+        try {
+            setTreeLoading(true);
+            const response = await getSubjectCategoryTree();
+            if (response.data) {
+                // 只保留第一层subject节点，类似试题管理页面的逻辑
+                const treeData = response.data.map(subject => ({
+                    key: subject.id,
+                    title: subject.name,
+                    subjectId: subject.id,
+                    children: []
+                }));
+                setTreeData(treeData);
+                setFilteredTreeData(treeData);
+                setExpandedKeys(treeData.map(item => item.key));
+            }
+        } catch (error) {
+            console.error('获取学科数据失败:', error);
+            Message.error('获取学科数据失败');
+        } finally {
+            setTreeLoading(false);
+        }
+    };
 
-    // 筛选表单配置已移除，直接在Form组件中定义
+    // 搜索过滤树数据
+    const filterTreeData = (data, keyword) => {
+        if (!keyword) return data;
+        return data.filter(node => node.title.toLowerCase().includes(keyword.toLowerCase()));
+    };
+
+    // 处理搜索输入变化
+    const handleSearchChange = (value) => {
+        setSearchKeyword(value);
+        const filtered = filterTreeData(treeData, value);
+        setFilteredTreeData(filtered);
+    };
 
     useEffect(() => {
         const calculateTableHeight = () => {
@@ -289,63 +335,111 @@ function ExamHistoryManager() {
         };
         calculateTableHeight();
         fetchTableData();
+        fetchSubjectCategoryTreeData();
         const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     return (
-        <Layout className="exam-history-manager">
-            <Content>
+        <Layout className="exam-history-manager" style={{ height: '100%' }}>
+            <Content style={{ height: '100%' }}>
                 {showDetailPage && currentResultId ? (
                     <></>
                 ) : (
-                    <>
-                        {/* 筛选表单 */}
-                        <Form ref={filterFormRef} layout="horizontal" className="filter-form"
-                              style={{marginTop: '10px'}}>
-                            <Row gutter={16}>
-                                <Col span={6}>
-                                    <Form.Item field="examName" label="名称">
-                                        <Input placeholder="请输入试卷名称"/>
-                                    </Form.Item>
-                                </Col>
-                                <Col span={6} style={{
-                                    display: 'flex',
-                                    justifyContent: 'flex-start',
-                                    alignItems: 'flex-end',
-                                    paddingBottom: '16px'
-                                }}>
-                                    <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                        const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                        searchTableData(values);
-                                    }}>
-                                        搜索
-                                    </Button>
-                                </Col>
-                            </Row>
-                        </Form>
-                        <Table
-                            columns={columns}
-                            data={tableData}
-                            loading={tableLoading}
-                            pagination={false}
-                            scroll={{
-                                y: tableScrollHeight,
+                    <Layout style={{ height: '100%', flexDirection: 'row' }}>
+                        {/* 左侧侧边栏 */}
+                        <Sider
+                            width={280}
+                            style={{
+                                marginRight: 16,
+                                background: 'var(--color-bg-2)',
+                                height: '100%',
+                                overflow: 'hidden',
+                                borderRadius: '4px'
                             }}
-                            rowKey="resultId"
-                        />
+                        >
+                            <div style={{ padding: '12px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ paddingBottom: '12px' }}>
+                                    <Input.Search
+                                        placeholder="搜索学科"
+                                        allowClear
+                                        value={searchKeyword}
+                                        onChange={handleSearchChange}
+                                    />
+                                </div>
+                                <div style={{ flex: 1, overflow: 'auto' }}>
+                                    <Spin loading={treeLoading} block>
+                                        {filteredTreeData.length > 0 ? (
+                                            <Tree
+                                                treeData={filteredTreeData}
+                                                expandedKeys={expandedKeys}
+                                                selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
+                                                onExpand={setExpandedKeys}
+                                                onSelect={(keys) => {
+                                                    const key = keys.length > 0 ? keys[0] : null;
+                                                    setSelectedTreeNode(key);
+                                                    fetchTableData(undefined, 1, undefined, key);
+                                                }}
+                                                blockNode
+                                                showLine
+                                            />
+                                        ) : (
+                                            <div style={{ textAlign: 'center', color: 'var(--color-text-2)', padding: '20px' }}>
+                                                暂无数据
+                                            </div>
+                                        )}
+                                    </Spin>
+                                </div>
+                            </div>
+                        </Sider>
 
-                        {/* 分页 */}
-                        <div className="pagination-wrapper">
-                            <Pagination
-                                {...pagination}
-                                onChange={(current, pageSize) => {
-                                    fetchTableData({}, pageSize, current);
+                        {/* 右侧内容 */}
+                        <Content style={{ background: 'var(--color-bg-2)', padding: '16px', overflow: 'auto', borderRadius: '4px' }}>
+                            <Form ref={filterFormRef} layout="horizontal" className="filter-form">
+                                <Row gutter={16}>
+                                    <Col span={6}>
+                                        <Form.Item field="examName" label="名称">
+                                            <Input placeholder="请输入试卷名称"/>
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={6} style={{
+                                        display: 'flex',
+                                        justifyContent: 'flex-start',
+                                        alignItems: 'flex-end',
+                                        paddingBottom: '16px'
+                                    }}>
+                                        <Button type="primary" icon={<IconSearch/>} onClick={() => {
+                                            const values = filterFormRef.current?.getFieldsValue?.() || {};
+                                            searchTableData(values);
+                                        }}>
+                                            搜索
+                                        </Button>
+                                    </Col>
+                                </Row>
+                            </Form>
+                            <Table
+                                columns={columns}
+                                data={tableData}
+                                loading={tableLoading}
+                                pagination={false}
+                                scroll={{
+                                    y: tableScrollHeight,
                                 }}
+                                rowKey="resultId"
                             />
-                        </div>
-                    </>
+
+                            {/* 分页 */}
+                            <div className="pagination-wrapper">
+                                <Pagination
+                                    {...pagination}
+                                    onChange={(current, pageSize) => {
+                                        fetchTableData({}, pageSize, current, selectedTreeNode);
+                                    }}
+                                />
+                            </div>
+                        </Content>
+                    </Layout>
                 )}
 
                 {/* 删除确认对话框 */}
