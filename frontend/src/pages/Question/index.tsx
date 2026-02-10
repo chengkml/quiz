@@ -194,6 +194,20 @@ function QuestionManager() {
     // 表格列配置
     const columns = [
         {
+            title: '题目',
+            dataIndex: 'content',
+            minWidth: 300,
+            ellipsis: true,
+            render: (value, record) => (
+                <span
+                    style={{cursor: 'pointer', color: 'var(--color-primary-6)'}}
+                    onClick={() => handleDetail(record)}
+                >
+                    {value}
+                </span>
+            ),
+        },
+        {
             title: '题目类型',
             dataIndex: 'type',
             width: 100,
@@ -206,21 +220,6 @@ function QuestionManager() {
             },
         },
         {
-            title: '题干内容',
-            dataIndex: 'content',
-            minWidth: 300,
-            ellipsis: true,
-        },
-        {
-            title: '创建人',
-            dataIndex: 'createUserName',
-            width: 120,
-            ellipsis: true,
-            render: (name, record) => (
-                <UserAvatar name={name || (record?.createUser ?? '')} showName />
-            ),
-        },
-        {
             title: '创建时间',
             dataIndex: 'createDate',
             width: 170,
@@ -230,22 +229,11 @@ function QuestionManager() {
         },
         {
             title: '操作',
-            width: 120,
+            width: 80,
             align: 'center',
             fixed: 'right',
             render: (_, record) => (
-                <Space size="large" className="table-btn-group">
-                    <Tooltip content="详情">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconEye/>}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleDetail(record);
-                            }}
-                        />
-                    </Tooltip>
+                <Space size="medium" className="table-btn-group">
                     <Tooltip content="编辑">
                         <Button
                             type="text"
@@ -1687,11 +1675,10 @@ function QuestionManager() {
                             <div style={{marginTop: 16, padding: '12px 0', borderTop: '1px solid #e5e6eb'}}>
                                 <div style={{
                                     display: 'flex',
-                                    justifyContent: 'space-between',
+                                    justifyContent: 'flex-end',
                                     color: 'var(--color-text-2)',
                                     fontSize: 14
                                 }}>
-                                    <span>创建人: <UserAvatar name={detailRecord.createUserName || ''} showName /></span>
                                     <span>创建时间: {renderDate(detailRecord.createDate)}</span>
                                 </div>
                             </div>

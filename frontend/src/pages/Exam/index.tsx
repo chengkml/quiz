@@ -15,8 +15,10 @@ import {
     Modal,
     Select,
     Space,
+    Spin,
     Switch,
     Tag,
+    Tree,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
@@ -40,7 +42,7 @@ import {
 
 import ExamQuestionManager from './components/ExamQuestionManager';
 import {getAllSubjects} from '../Subject/api';
-import {getCategoriesBySubjectId} from '../Category/api';
+import {getCategoriesBySubjectId, getSubjectCategoryTree} from '../Category/api';
 import {ExamDto, ExamQueryDto, ExamStatus, FormRef, PaginationConfig, StatusOption} from './types';
 import { DataManager } from '../../components/DataManager';
 import FilterForm from '@/components/FilterForm';
@@ -81,6 +83,15 @@ const {Row, Col} = Grid;
     const [subjects, setSubjects] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [smartGenerating, setSmartGenerating] = useState<boolean>(false);
+
+    // 左侧树相关状态
+    const [treeData, setTreeData] = useState<any[]>([]);
+    const [filteredTreeData, setFilteredTreeData] = useState<any[]>([]);
+    const [treeLoading, setTreeLoading] = useState(false);
+    const [selectedTreeNode, setSelectedTreeNode] = useState<any>(null);
+    const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [currentTreeNode, setCurrentTreeNode] = useState<any>(null);
 
     // 表单引用
     const filterFormRef = useRef<any>(null);
@@ -222,7 +233,8 @@ const {Row, Col} = Grid;
     const fetchTableData = async (
         params: any = searchParams,
         pageSize: number = pagination.pageSize,
-        current: number = pagination.current
+        current: number = pagination.current,
+        subjectId?: number
     ): Promise<void> => {
         setTableLoading(true);
         try {
@@ -231,6 +243,7 @@ const {Row, Col} = Grid;
                 status: params?.status,
                 pageNum: current - 1,
                 pageSize: pageSize,
+                subjectId: subjectId || currentTreeNode?.subjectId,
             };
             const response = await getExamList(targetParams);
             if (response.data) {
@@ -262,6 +275,110 @@ const {Row, Col} = Grid;
     // 分页变化
     const handlePaginationChange = (nextPagination: any) => {
         fetchTableData(searchParams, nextPagination.pageSize, nextPagination.current);
+    };
+
+    // 获取学科分类树
+    const fetchSubjectCategoryTree = async () => {
+        try {
+            setTreeLoading(true);
+            const response = await getSubjectCategoryTree();
+            if (response.data) {
+                const convertCategoriesToTreeNodes = (categories: any[]) => {
+                    if (!categories || !Array.isArray(categories)) return [];
+                    return categories.map(category => ({
+                        key: category.id,
+                        title: category.name,
+                        subjectId: category.subjectId,
+                        categoryId: category.id,
+                        children: convertCategoriesToTreeNodes(category.children)
+                    }));
+                };
+                const treeData = response.data.map((subject: any) => ({
+                    key: `subject-${subject.id}`,
+                    title: subject.name,
+                    subjectId: subject.id,
+                    categoryId: null,
+                    children: convertCategoriesToTreeNodes(subject.categories)
+                }));
+                setTreeData(treeData);
+                setFilteredTreeData(treeData);
+                setExpandedKeys(treeData.map((item: any) => item.key));
+            }
+        } catch (error) {
+            console.error('获取学科分类树失败:', error);
+            Message.error('获取学科分类树失败');
+        } finally {
+            setTreeLoading(false);
+        }
+    };
+
+    const findNodeInTree = (treeData: any[], key: string) => {
+        for (const item of treeData) {
+            if (item.key === key) {
+                return item;
+            }
+            if (item.children) {
+                const result = findNodeInTreeRecursive(item.children, key, item);
+                if (result) return result;
+            }
+        }
+        return null;
+    };
+
+    const findNodeInTreeRecursive = (children: any[], key: string, parent: any) => {
+        for (const child of children) {
+            if (child.key === key) {
+                return child;
+            }
+            if (child.children) {
+                const result = findNodeInTreeRecursive(child.children, key, child);
+                if (result) return result;
+            }
+        }
+        return null;
+    };
+
+    // 搜索过滤树数据
+    const filterTreeData = (data: any[], keyword: string) => {
+        if (!keyword) return data;
+
+        const filterNode = (node: any) => {
+            const titleMatch = node.title.toLowerCase().includes(keyword.toLowerCase());
+            const filteredChildren = node.children ? node.children.map(filterNode).filter(Boolean) : [];
+
+            if (titleMatch || filteredChildren.length > 0) {
+                return {
+                    ...node,
+                    children: filteredChildren
+                };
+            }
+            return null;
+        };
+
+        return data.map(filterNode).filter(Boolean);
+    };
+
+    // 处理搜索输入变化
+    const handleSearchChange = (value: string) => {
+        setSearchKeyword(value);
+        const filtered = filterTreeData(treeData, value);
+        setFilteredTreeData(filtered);
+
+        if (value) {
+            const getAllKeys = (nodes: any[]) => {
+                let keys: string[] = [];
+                nodes.forEach(node => {
+                    keys.push(node.key);
+                    if (node.children && node.children.length > 0) {
+                        keys = keys.concat(getAllKeys(node.children));
+                    }
+                });
+                return keys;
+            };
+            setExpandedKeys(getAllKeys(filtered));
+        } else {
+            setExpandedKeys(treeData.map((item: any) => item.key));
+        }
     };
 
     // 处理菜单点击
@@ -415,6 +532,7 @@ const {Row, Col} = Grid;
     // 初始化数据
     useEffect(() => {
         fetchTableData(searchParams);
+        fetchSubjectCategoryTree();
         calculateTableHeight();
         const handleResize = () => calculateTableHeight();
         window.addEventListener('resize', handleResize);
@@ -462,6 +580,67 @@ const {Row, Col} = Grid;
                     showModeToggle: false,
                     tableColumns: columns,
                     filterContent,
+                    showTree: true,
+                    treeContent: (
+                        <div style={{height: '100%'}} className="tree-container">
+                            <div style={{paddingBottom: '12px'}}>
+                                <Input.Search
+                                    placeholder="搜索学科分类"
+                                    allowClear
+                                    style={{width: '100%'}}
+                                    value={searchKeyword}
+                                    onChange={handleSearchChange}
+                                />
+                            </div>
+                            <div style={{height: 'calc(100% - 50px)'}}>
+                                <Spin loading={treeLoading}>
+                                    {filteredTreeData.length > 0 ? (
+                                        <Tree
+                                            treeData={filteredTreeData}
+                                            expandedKeys={expandedKeys}
+                                            selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
+                                            onExpand={(keys) => {
+                                                setExpandedKeys(keys as string[]);
+                                            }}
+                                            onSelect={(selectedKeys) => {
+                                                if (selectedKeys.length > 0) {
+                                                    setSelectedTreeNode(selectedKeys[0]);
+                                                    const selectedKey = selectedKeys[0];
+                                                    const nodeInfo = findNodeInTree(treeData, selectedKey);
+                                                    setCurrentTreeNode(nodeInfo);
+                                                    if (nodeInfo) {
+                                                        fetchTableData(null, null, 1, nodeInfo.subjectId);
+                                                    } else {
+                                                        fetchTableData();
+                                                    }
+                                                } else {
+                                                    setSelectedTreeNode(null);
+                                                    setCurrentTreeNode(null);
+                                                    fetchTableData();
+                                                }
+                                            }}
+                                            blockNode
+                                            showLine
+                                            style={{
+                                                backgroundColor: 'transparent',
+                                            }}
+                                        />
+                                    ) : (
+                                        <div
+                                            style={{
+                                                textAlign: 'center',
+                                                color: 'var(--color-text-2)',
+                                                padding: '20px 0',
+                                                fontSize: '14px',
+                                            }}
+                                        >
+                                            暂无数据
+                                        </div>
+                                    )}
+                                </Spin>
+                            </div>
+                        </div>
+                    ),
                     tableProps: {
                         onRow: (record) => ({
                             onClick: () => navigate(`/frame/exam/detail/${record.id}`),
