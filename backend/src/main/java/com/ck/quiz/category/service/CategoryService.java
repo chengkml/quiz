@@ -17,4 +17,6 @@ public interface CategoryService
 
     List<SubjectDto> getSubjectCategoryTree(String userId);
 
+    List<CategoryDto> listBySubjectId(String subjectId);
+
 }

@@ -43,7 +43,7 @@ const getQuestionKnowledge = questionId => axios.get(`/question/${questionId}/kn
 const getAllSubjects = () => axios.get('/subject/list');
 
 // 根据学科ID获取分类列表
-const getCategoriesBySubjectId = (subjectId) => axios.get(`/categories/subject/${subjectId}`);
+const getCategoriesBySubjectId = (subjectId) => axios.get(`/category/subject/${subjectId}`);
 
 // 获取学科分类树
 const getSubjectCategoryTree = () => axios.get('/category/subject-category-tree');

@@ -46,6 +46,13 @@ public class CategoryController
         return ResponseEntity.ok(subjectDtos);
     }
 
+    @Operation(summary = "根据学科获取目录", description = "根据学科ID获取目录列表")
+    @GetMapping("/subject/{subjectId}")
+    public ResponseEntity<List<CategoryDto>> getCategoriesBySubjectId(
+            @Parameter(description = "学科ID", required = true) @PathVariable("subjectId") String subjectId) {
+        return ResponseEntity.ok(categoryService.listBySubjectId(subjectId));
+    }
+
     @Override
     protected BaseService<CategoryCreateDto, CategoryUpdateDto, CategoryQueryDto, CategoryDto, ?> getService() {
         return categoryService;

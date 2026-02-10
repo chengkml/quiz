@@ -127,6 +127,13 @@ public class CategoryServiceImpl extends
         return subjects;
     }
 
+    @Override
+    public List<CategoryDto> listBySubjectId(String subjectId) {
+        List<Category> categories = categoryRepository.findBySubjectId(subjectId);
+        List<CategoryDto> categoryDtos = convertToDtos(categories);
+        return buildCategoryTree(new ArrayList<>(categoryDtos));
+    }
+
     private List<CategoryDto> buildCategoryTree(List<CategoryDto> categories) {
         if (categories == null || categories.isEmpty()) {
             return List.of();
