@@ -1,31 +1,27 @@
 package com.ck.quiz.mcp.service.impl;
 
 import com.ck.quiz.base.service.impl.BaseServiceImpl;
-import com.ck.quiz.mcp.dto.McpDiscoveredToolDto;
-import com.ck.quiz.mcp.dto.McpServerCreateDto;
-import com.ck.quiz.mcp.dto.McpServerDto;
-import com.ck.quiz.mcp.dto.McpServerQueryDto;
-import com.ck.quiz.mcp.dto.McpServerUpdateDto;
-import com.ck.quiz.mcp.dto.McpToolCreateDto;
-import com.ck.quiz.mcp.dto.McpToolDto;
-import com.ck.quiz.mcp.dto.McpToolImportItemDto;
+import com.ck.quiz.mcp.dto.*;
 import com.ck.quiz.mcp.entity.McpServer;
 import com.ck.quiz.mcp.entity.McpTool;
 import com.ck.quiz.mcp.repository.McpServerRepository;
 import com.ck.quiz.mcp.repository.McpToolRepository;
 import com.ck.quiz.mcp.service.McpServerService;
-import com.ck.quiz.mcp.service.McpToolService;
+import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,11 +30,16 @@ public class McpServerServiceImpl extends
         BaseServiceImpl<McpServerCreateDto, McpServerUpdateDto, McpServerQueryDto, McpServerDto, McpServer, McpServerRepository>
         implements McpServerService {
 
+    private static final Logger logger = LoggerFactory.getLogger(McpServerServiceImpl.class);
+
     @Autowired
     private McpToolRepository mcpToolRepository;
 
     @Autowired
-    private McpToolService mcpToolService;
+    private RestTemplate restTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Override
     protected McpServerDto newDto() {
@@ -52,7 +53,6 @@ public class McpServerServiceImpl extends
 
     @Override
     public McpServerDto create(McpServerCreateDto createDto) {
-        // 检查 identifier 是否已存在
         McpServer existing = repository.findByIdentifier(createDto.getIdentifier());
         if (existing != null) {
             throw new IllegalArgumentException("服务器标识已存在: " + createDto.getIdentifier());
@@ -64,40 +64,24 @@ public class McpServerServiceImpl extends
     public McpServerDto update(String userId, McpServerUpdateDto updateDto) {
         McpServer server = repository.findById(updateDto.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Server not found: " + updateDto.getId()));
+        
         if (server.getCreateUser() != null && !server.getCreateUser().equals(userId)) {
             throw new IllegalArgumentException("No permission to update server: " + updateDto.getId());
         }
-        // 检查更新的 identifier 是否已被其他记录使用
+
         if (updateDto.getIdentifier() != null && !updateDto.getIdentifier().equals(server.getIdentifier())) {
             McpServer existing = repository.findByIdentifier(updateDto.getIdentifier());
             if (existing != null) {
                 throw new IllegalArgumentException("服务器标识已存在: " + updateDto.getIdentifier());
             }
-        }
-        if (updateDto.getName() != null) {
-            server.setName(updateDto.getName());
-        }
-        if (updateDto.getIdentifier() != null) {
             server.setIdentifier(updateDto.getIdentifier());
         }
-        if (updateDto.getDescription() != null) {
-            server.setDescription(updateDto.getDescription());
-        }
-        if (updateDto.getEnv() != null) {
-            server.setEnv(updateDto.getEnv());
-        }
-        if (updateDto.getAddress() != null) {
-            server.setAddress(updateDto.getAddress());
-        }
-        if (updateDto.getProtocol() != null) {
-            server.setProtocol(updateDto.getProtocol());
-        }
-        if (updateDto.getAuthType() != null) {
-            server.setAuthType(updateDto.getAuthType());
-        }
-        if (updateDto.getNewAuthConfig() != null) {
-            server.setAuthConfig(updateDto.getNewAuthConfig());
-        }
+
+        if (updateDto.getName() != null) server.setName(updateDto.getName());
+        if (updateDto.getDescription() != null) server.setDescription(updateDto.getDescription());
+        if (updateDto.getAddress() != null) server.setAddress(updateDto.getAddress());
+        if (updateDto.getAuthConfig() != null) server.setAuthConfig(updateDto.getAuthConfig());
+
         McpServer saved = repository.save(server);
         return convertToDto(saved, true);
     }
@@ -105,6 +89,7 @@ public class McpServerServiceImpl extends
     @Override
     public McpServerDto convertToDto(McpServer model, Boolean loadProps) {
         McpServerDto dto = (McpServerDto) super.convertToDto(model, loadProps);
+        dto.setAuthConfig(model.getAuthConfig());
         dto.setHasAuthConfig(StringUtils.hasText(model.getAuthConfig()));
         return dto;
     }
@@ -114,93 +99,161 @@ public class McpServerServiceImpl extends
         StringBuilder sql = new StringBuilder("select s.* from mcp_server s where 1=1 ");
         StringBuilder countSql = new StringBuilder("select count(1) from mcp_server s where 1=1 ");
         Map<String, Object> params = new HashMap<>();
+
         JdbcQueryHelper.lowerLike("keyWord", queryDto.getKeyWord(),
                 " and (lower(s.name) like :keyWord or lower(s.identifier) like :keyWord) ", params,
                 namedParameterJdbcTemplate, sql, countSql);
-        if (StringUtils.hasText(queryDto.getEnv())) {
-            JdbcQueryHelper.equals("env", queryDto.getEnv(), " and s.env = :env ", params, sql, countSql);
-        }
+
         if (StringUtils.hasText(queryDto.getStatus())) {
-            JdbcQueryHelper.equals("status", queryDto.getStatus(), " and s.status = :status ", params, sql,
-                    countSql);
+            JdbcQueryHelper.equals("status", queryDto.getStatus(), " and s.status = :status ", params, sql, countSql);
         }
+
         JdbcQueryHelper.order("create_date", "desc", sql);
-        String limitSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(),
-                queryDto.getPageNum(), queryDto.getPageSize());
+        String limitSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(), queryDto.getPageSize());
+
         List<McpServerDto> list = namedParameterJdbcTemplate.query(limitSql, params, (rs, rowNum) -> {
             McpServerDto dto = new McpServerDto();
             dto.setId(rs.getString("id"));
             dto.setName(rs.getString("name"));
             dto.setIdentifier(rs.getString("identifier"));
             dto.setDescription(rs.getString("description"));
-            dto.setEnv(rs.getString("env"));
             dto.setAddress(rs.getString("address"));
-            dto.setProtocol(rs.getString("protocol"));
-            dto.setAuthType(rs.getString("auth_type"));
+            dto.setAuthConfig(rs.getString("auth_config"));
             dto.setStatus(rs.getString("status"));
-            dto.setLastHeartbeatAt(
-                    rs.getTimestamp("last_heartbeat_at") != null
-                            ? rs.getTimestamp("last_heartbeat_at").toLocalDateTime()
-                            : null);
-            dto.setHasAuthConfig(rs.getString("auth_config") != null);
+            dto.setLastHeartbeatAt(rs.getTimestamp("last_heartbeat_at") != null ? rs.getTimestamp("last_heartbeat_at").toLocalDateTime() : null);
+            dto.setHasAuthConfig(StringUtils.hasText(rs.getString("auth_config")));
             dto.setCreateUser(rs.getString("create_user"));
-            dto.setCreateDate(
-                    rs.getTimestamp("create_date") != null
-                            ? rs.getTimestamp("create_date").toLocalDateTime()
-                            : null);
-            dto.setUpdateUser(rs.getString("update_user"));
-            dto.setUpdateDate(
-                    rs.getTimestamp("update_date") != null
-                            ? rs.getTimestamp("update_date").toLocalDateTime()
-                            : null);
+            dto.setCreateDate(rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             return dto;
         });
-        return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list,
-                queryDto.getPageNum(), queryDto.getPageSize());
+
+        return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
     }
 
     @Override
-    public void healthCheck(String userId, String serverId) {
+    public McpServerDto healthCheck(String userId, String serverId) {
         McpServer server = repository.findById(serverId)
                 .orElseThrow(() -> new IllegalArgumentException("Server not found: " + serverId));
-        server.setLastHeartbeatAt(LocalDateTime.now());
-        if (!StringUtils.hasText(server.getStatus()) || "CREATED".equals(server.getStatus())) {
-            server.setStatus("ACTIVE");
+
+        Map<String, Object> pingRequest = Map.of(
+                "jsonrpc", "2.0",
+                "method", "ping",
+                "id", IdHelper.genUuid());
+
+        try {
+            logger.info("Health check request - Address: {}, Request: {}", server.getAddress(), pingRequest);
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(pingRequest, createHeaders(server));
+            ResponseEntity<Map> response = restTemplate.exchange(server.getAddress(), HttpMethod.POST, entity, Map.class);
+
+            logger.info("Health check response - Status: {}, Headers: {}, Body: {}", 
+                    response.getStatusCode(), response.getHeaders(), response.getBody());
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                server.setLastHeartbeatAt(LocalDateTime.now());
+                server.setStatus("ACTIVE");
+            }else{
+                server.setStatus("INACTIVE");
+            }
+        } catch (Exception e) {
+            server.setStatus("INACTIVE");
+            logger.error("MCP Ping failed for server: {}. Request: {}", serverId, pingRequest, e);
         }
-        repository.save(server);
+        McpServer saved = repository.save(server);
+        return convertToDto(saved, true);
     }
 
     @Override
     public List<McpDiscoveredToolDto> listDiscoveredTools(String serverId) {
-        List<McpTool> tools = mcpToolRepository.findByServerId(serverId);
-        return tools.stream().map(tool -> {
-            McpDiscoveredToolDto dto = new McpDiscoveredToolDto();
-            dto.setOriginName(tool.getOriginName());
-            dto.setOriginDescription(tool.getDescription());
-            dto.setSchemaDigest(null);
-            dto.setRegistered(true);
-            dto.setRegisteredToolId(tool.getId());
-            return dto;
-        }).collect(Collectors.toList());
+        McpServer server = repository.findById(serverId)
+                .orElseThrow(() -> new IllegalArgumentException("Server not found: " + serverId));
+
+        Map<String, Object> listRequest = Map.of(
+                "jsonrpc", "2.0",
+                "method", "tools/list",
+                "id", IdHelper.genUuid(),
+                "params", Collections.emptyMap());
+
+        try {
+            logger.info("List tools request - Address: {}, Request: {}", server.getAddress(), listRequest);
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(listRequest, createHeaders(server));
+            ResponseEntity<Map> response = restTemplate.exchange(server.getAddress(), HttpMethod.POST, entity, Map.class);
+
+            logger.info("List tools response - Status: {}, Headers: {}, Body: {}", 
+                    response.getStatusCode(), response.getHeaders(), response.getBody());
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Map<String, Object> body = response.getBody();
+                if (body.containsKey("result")) {
+                    Map<String, Object> result = (Map<String, Object>) body.get("result");
+                    List<Map<String, Object>> tools = (List<Map<String, Object>>) result.get("tools");
+
+                    if (tools != null) {
+                        return tools.stream().map(toolMap -> {
+                            String name = (String) toolMap.get("name");
+                            String desc = (String) toolMap.get("description");
+                            Map<String, Object> schema = (Map<String, Object>) toolMap.get("inputSchema");
+
+                            McpDiscoveredToolDto dto = new McpDiscoveredToolDto();
+                            dto.setName(name);
+                            dto.setDescription(desc);
+                            dto.setInputSchema(schema);
+
+                            // 同步保存到数据库
+                            saveMcpTool(serverId, server.getIdentifier(), name, desc, schema);
+                            return dto;
+                        }).collect(Collectors.toList());
+                    }
+                } else if (body.containsKey("error")) {
+                    logger.error("MCP server error: {}", body.get("error"));
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Discovery failed for server: {}. Request: {}", serverId, listRequest, e);
+            throw new RuntimeException("Tools discovery failed: " + e.getMessage());
+        }
+        return Collections.emptyList();
     }
 
-    @Override
-    public List<String> importTools(String userId, String serverId, List<McpToolImportItemDto> tools) {
-        return tools.stream().map(item -> {
-            McpToolCreateDto createDto = new McpToolCreateDto();
-            createDto.setServerId(serverId);
-            McpServer server = repository.findById(serverId)
-                    .orElseThrow(() -> new IllegalArgumentException("Server not found: " + serverId));
-            createDto.setEnv(server.getEnv());
-            createDto.setOriginName(item.getOriginName());
-            createDto.setDisplayName(item.getDisplayName());
-            createDto.setDescription(item.getDescription());
-            createDto.setCategory(item.getCategory());
-            createDto.setSchemaJson(null);
-            createDto.setStrategyJson(null);
-            createDto.setVisibilityJson(null);
-            McpToolDto dto = mcpToolService.create(createDto);
-            return dto.getId();
-        }).collect(Collectors.toList());
+    private HttpHeaders createHeaders(McpServer server) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (StringUtils.hasText(server.getAuthConfig())) {
+            // 默认采用 Bearer Token 模式（适配阿里云百炼等）
+            headers.set("Authorization", "Bearer " + server.getAuthConfig().trim());
+        }
+        return headers;
+    }
+
+    private void saveMcpTool(String serverId, String env, String toolName, String toolDescription, Map<String, Object> inputSchema) {
+        try {
+            // 查询是否已存在该服务器下的同名原始工具
+            List<McpTool> existing = mcpToolRepository.findByServerId(serverId);
+            Optional<McpTool> targetTool = existing.stream()
+                    .filter(t -> toolName.equals(t.getOriginName()))
+                    .findFirst();
+
+            McpTool tool = targetTool.orElseGet(() -> {
+                McpTool newTool = new McpTool();
+                newTool.setServerId(serverId);
+                newTool.setOriginName(toolName);
+                newTool.setDisplayName(toolName);
+                newTool.setStatus("REGISTERED");
+                return newTool;
+            });
+
+            tool.setEnv(env);
+            tool.setDescription(toolDescription);
+            tool.setSourceDeletedFlag(false);
+
+            if (inputSchema != null) {
+                tool.setSchemaJson(objectMapper.writeValueAsString(inputSchema));
+            }
+
+            mcpToolRepository.save(tool);
+        } catch (Exception e) {
+            logger.error("Save tool failed: {}", toolName, e);
+        }
     }
 }

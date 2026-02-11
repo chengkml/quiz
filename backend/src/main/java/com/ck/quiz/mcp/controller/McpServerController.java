@@ -44,11 +44,11 @@ public class McpServerController
 
     @Operation(summary = "MCP服务器健康检查")
     @PostMapping("/{id}/health-check")
-    public ResponseEntity<Void> healthCheck(
+    public ResponseEntity<McpServerDto> healthCheck(
             @Parameter(description = "服务器ID", required = true) @PathVariable("id") String id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        mcpServerService.healthCheck(authentication.getName(), id);
-        return ResponseEntity.ok().build();
+        McpServerDto result = mcpServerService.healthCheck(authentication.getName(), id);
+        return ResponseEntity.ok(result);
     }
 
     @Operation(summary = "查询已发现的工具列表")
@@ -58,13 +58,5 @@ public class McpServerController
         return ResponseEntity.ok(mcpServerService.listDiscoveredTools(id));
     }
 
-    @Operation(summary = "从MCP服务器导入工具")
-    @PostMapping("/{id}/tools/import")
-    public ResponseEntity<List<String>> importTools(
-            @Parameter(description = "服务器ID", required = true) @PathVariable("id") String id,
-            @RequestBody @Valid List<McpToolImportItemDto> tools) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return ResponseEntity.ok(mcpServerService.importTools(authentication.getName(), id, tools));
-    }
 }
 

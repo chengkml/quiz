@@ -4,6 +4,7 @@ import com.ck.quiz.wechart.entity.WxApp;
 import com.ck.quiz.wechart.repository.WxAppRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -21,7 +22,9 @@ public class WxLoginHelper {
 
     private static final String WX_CODE2SESSION_URL = "https://api.weixin.qq.com/sns/jscode2session";
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static final RestTemplate restTemplate = new RestTemplate();
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     private final WxAppRepository wxAppRepository;
 

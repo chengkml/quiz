@@ -3,8 +3,6 @@ package com.ck.quiz.mcp.service.impl;
 import com.ck.quiz.base.service.impl.BaseServiceImpl;
 import com.ck.quiz.mcp.dto.McpToolCreateDto;
 import com.ck.quiz.mcp.dto.McpToolDto;
-import com.ck.quiz.mcp.dto.McpToolMetricsPointDto;
-import com.ck.quiz.mcp.dto.McpToolMetricsResponseDto;
 import com.ck.quiz.mcp.dto.McpToolQueryDto;
 import com.ck.quiz.mcp.dto.McpToolUpdateDto;
 import com.ck.quiz.mcp.entity.McpTool;
@@ -17,8 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,60 +103,5 @@ public class McpToolServiceImpl extends
                 queryDto.getPageNum(), queryDto.getPageSize());
     }
 
-    @Override
-    public void enable(String userId, String id) {
-        McpTool tool = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Tool not found: " + id));
-        if (tool.getCreateUser() != null && !tool.getCreateUser().equals(userId)) {
-            throw new IllegalArgumentException("No permission to update tool: " + id);
-        }
-        tool.setStatus("ENABLED");
-        repository.save(tool);
-    }
-
-    @Override
-    public void disable(String userId, String id) {
-        McpTool tool = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Tool not found: " + id));
-        if (tool.getCreateUser() != null && !tool.getCreateUser().equals(userId)) {
-            throw new IllegalArgumentException("No permission to update tool: " + id);
-        }
-        tool.setStatus("DISABLED");
-        repository.save(tool);
-    }
-
-    @Override
-    public String cloneConfig(String userId, String id, String targetEnv) {
-        McpTool tool = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Tool not found: " + id));
-        McpTool cloned = new McpTool();
-        BeanUtils.copyProperties(tool, cloned);
-        cloned.setId(null);
-        cloned.setEnv(targetEnv);
-        cloned.setStatus("REGISTERED");
-        cloned.setCreateUser(userId);
-        cloned.setCreateDate(LocalDateTime.now());
-        cloned.setUpdateUser(null);
-        cloned.setUpdateDate(null);
-        McpTool saved = repository.save(cloned);
-        return saved.getId();
-    }
-
-    @Override
-    public List<McpToolDto> listRuntimeTools(String env, String appId) {
-        List<McpTool> tools;
-        if (StringUtils.hasText(appId)) {
-            tools = repository.findByEnvAndStatusAndVisibilityJsonContaining(env, "ENABLED", appId);
-        } else {
-            tools = repository.findByEnvAndStatus(env, "ENABLED");
-        }
-        return convertToDtos(tools);
-    }
-
-    @Override
-    public McpToolMetricsResponseDto queryMetrics(String toolId, LocalDateTime from, LocalDateTime to) {
-        McpToolMetricsResponseDto response = new McpToolMetricsResponseDto();
-        response.setSuccessRate(new ArrayList<>());
-        response.setLatencyP95(new ArrayList<>());
-        response.setLatencyP99(new ArrayList<>());
-        return response;
-    }
 }
 

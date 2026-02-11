@@ -1,24 +1,24 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { DataManager } from '@/components/DataManager';
+import React, { useCallback, useState, useEffect } from 'react';
+import { DataManager, AddEditModal } from '@/components/DataManager';
+import FilterForm from '@/components/FilterForm';
 import {
   Button,
-  Form,
-  Grid,
-  Input,
+  Drawer,
+  Empty,
   Message,
-  Modal,
-  Select,
+  Popconfirm,
   Space,
+  Spin,
   Tag,
+  Tooltip,
 } from '@arco-design/web-react';
 import {
   IconDelete,
   IconEdit,
-  IconHeart,
-  IconList,
   IconRefresh,
-  IconSearch,
 } from '@arco-design/web-react/icon';
+import renderDate from '@/utils/timeUtil';
+import { FormFieldConfig } from '@/components/types/types';
 import './style/index.less';
 import {
   createMcpServer,
@@ -26,14 +26,13 @@ import {
   healthCheckMcpServer,
   searchMcpServers,
   updateMcpServer,
+  listDiscoveredTools,
 } from './api';
 
-const { Row, Col } = Grid;
-const { Option } = Select;
-
 function McpServerManager() {
+  // 状态管理
   const [tableData, setTableData] = useState<any[]>([]);
-  const [tableLoading, setTableLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 20,
@@ -42,24 +41,19 @@ function McpServerManager() {
     showJumper: true,
     showPageSize: true,
   });
-  const [tableScrollHeight, setTableScrollHeight] = useState(420);
 
-  const [currentRecord, setCurrentRecord] = useState<any | null>(null);
-  const [addModalVisible, setAddModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [addEditVisible, setAddEditVisible] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [currentRecord, setCurrentRecord] = useState<any>(null);
 
-  const addFormRef = useRef<any>(null);
-  const editFormRef = useRef<any>(null);
-  const filterFormRef = useRef<any>(null);
+  // 工具查看抽屉相关状态
+  const [toolsDrawerVisible, setToolsDrawerVisible] = useState(false);
+  const [selectedServer, setSelectedServer] = useState<any>(null);
+  const [toolsList, setToolsList] = useState<any[]>([]);
+  const [toolsLoading, setToolsLoading] = useState(false);
+  const [loadingAllTools, setLoadingAllTools] = useState(false);
 
-  const envOptions = [
-    { label: '开发', value: 'dev' },
-    { label: '测试', value: 'test' },
-    { label: '预发', value: 'stage' },
-    { label: '生产', value: 'prod' },
-  ];
-
+  // 选项配置
   const statusOptions = [
     { label: '已创建', value: 'CREATED' },
     { label: '可用', value: 'ACTIVE' },
@@ -67,167 +61,228 @@ function McpServerManager() {
     { label: '禁用', value: 'INACTIVE' },
   ];
 
-  const formatDateTime = (value?: string) => {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return '-';
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-  };
-
-  const fetchTableData = async (
-    params: any = {},
-    pageSize: number = pagination.pageSize,
-    current: number = pagination.current,
-  ) => {
-    setTableLoading(true);
-    try {
-      const query = {
-        keyWord: params.keyWord || '',
-        env: params.env || '',
-        status: params.status || '',
-        pageNum: current - 1,
-        pageSize,
-      };
-      const response = await searchMcpServers(query);
-      if (response.data) {
-        setTableData(response.data.content || []);
-        setPagination(prev => ({
-          ...prev,
-          current,
-          pageSize,
-          total: response.data.totalElements || 0,
-        }));
-      }
-    } catch (e) {
-      Message.error('获取 MCP 服务器列表失败');
-    } finally {
-      setTableLoading(false);
-    }
-  };
-
-  const searchTableData = (params: any) => {
-    fetchTableData(params, pagination.pageSize, 1);
-  };
-
-  const handlePaginationChange = (nextPagination: any) => {
-    const values = filterFormRef.current?.getFieldsValue?.() || {};
-    fetchTableData(values, nextPagination.pageSize, nextPagination.current);
-  };
-
-  const handleAdd = () => {
-    setCurrentRecord(null);
-    setAddModalVisible(true);
-    setTimeout(() => {
-      addFormRef.current?.resetFields?.();
-    }, 50);
-  };
-
-  const handleAddConfirm = async () => {
-    try {
-      const values = await addFormRef.current?.validate?.();
-      if (values) {
-        await createMcpServer(values);
-        Message.success('创建 MCP 服务器成功');
-        setAddModalVisible(false);
-        addFormRef.current?.resetFields?.();
-        fetchTableData();
-      }
-    } catch (error) {
-      if ((error as any)?.fields) return;
-      Message.error('创建 MCP 服务器失败');
-    }
-  };
-
-  const handleEdit = (record: any) => {
-    setCurrentRecord(record);
-    setEditModalVisible(true);
-    setTimeout(() => {
-      editFormRef.current?.setFieldsValue?.({
-        id: record.id,
-        name: record.name,
-        identifier: record.identifier,
-        description: record.description,
-        env: record.env,
-        address: record.address,
-        protocol: record.protocol,
-        authType: record.authType,
-      });
-    }, 50);
-  };
-
-  const handleEditConfirm = async () => {
-    try {
-      const values = await editFormRef.current?.validate?.();
-      if (values && currentRecord) {
-        await updateMcpServer(values);
-        Message.success('更新 MCP 服务器成功');
-        setEditModalVisible(false);
-        editFormRef.current?.resetFields?.();
-        fetchTableData();
-      }
-    } catch (error) {
-      if ((error as any)?.fields) return;
-      Message.error('更新 MCP 服务器失败');
-    }
-  };
-
-  const handleDelete = (record: any) => {
-    setCurrentRecord(record);
-    setDeleteModalVisible(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!currentRecord) return;
-    try {
-      await deleteMcpServer(currentRecord.id);
-      Message.success('删除 MCP 服务器成功');
-      setDeleteModalVisible(false);
-      fetchTableData();
-    } catch (error) {
-      Message.error('删除 MCP 服务器失败');
-    }
-  };
-
-  const handleHealthCheck = async (record: any) => {
-    try {
-      await healthCheckMcpServer(record.id);
-      Message.success('健康检查已触发');
-      fetchTableData();
-    } catch (error) {
-      Message.error('健康检查失败');
-    }
-  };
-
-  const statusTagMap: Record<
-    string,
-    { label: string; color: string }
-  > = {
+  const statusTagMap: Record<string, { label: string; color: string }> = {
     CREATED: { label: '已创建', color: 'blue' },
     ACTIVE: { label: '可用', color: 'green' },
     DEGRADED: { label: '降级', color: 'orangered' },
     INACTIVE: { label: '禁用', color: 'gray' },
   };
 
-  const columns = [
-    { title: '名称', dataIndex: 'name', ellipsis: true },
-    { title: '标识', dataIndex: 'identifier', ellipsis: true },
+  // 初始化数据
+  useEffect(() => {
+    fetchData({}, 1, 20);
+  }, []);
+
+  // 获取数据
+  const fetchData = useCallback(async (params = {}, page?: number, pageSize?: number) => {
+    try {
+      setLoading(true);
+      const queryParams = {
+        keyWord: params.keyWord || '',
+        env: params.env || '',
+        status: params.status || '',
+        pageNum: (page ?? pagination.current) - 1,
+        pageSize: pageSize ?? pagination.pageSize
+      };
+
+      const response = await searchMcpServers(queryParams);
+      if (response.data) {
+        setTableData(response.data.content || []);
+        setPagination(prev => ({
+          ...prev,
+          current: (queryParams.pageNum || 0) + 1,
+          pageSize: queryParams.pageSize || 20,
+          total: response.data.totalElements || 0
+        }));
+      }
+    } catch (error) {
+      console.error('获取 MCP 服务器列表失败:', error);
+      Message.error('获取 MCP 服务器列表失败');
+    } finally {
+      setLoading(false);
+    }
+  }, [pagination.current, pagination.pageSize]);
+
+  // 搜索表单配置
+  const searchFormFields: FormFieldConfig[] = [
     {
-      title: '环境',
-      dataIndex: 'env',
-      width: 120,
-      render: (v: string) => v || '-',
+      field: 'keyWord',
+      label: '关键字',
+      type: 'input',
+      placeholder: '名称或标识模糊搜索',
+      span: 8,
     },
-    { title: '地址', dataIndex: 'address', ellipsis: true },
     {
-      title: '协议',
-      dataIndex: 'protocol',
-      width: 100,
+      field: 'status',
+      label: '状态',
+      type: 'select',
+      placeholder: '请选择状态',
+      allowClear: true,
+      options: statusOptions,
+      span: 8,
+    }
+  ];
+
+  // 新增/编辑表单配置
+  const getFormConfig = (isEditMode: boolean): FormFieldConfig[] => [
+    {
+      field: 'name',
+      label: '名称',
+      type: 'input',
+      placeholder: '请输入服务器名称',
+      rules: [{ required: true, message: '请输入服务器名称' }],
+      span: 24,
+    },
+    {
+      field: 'identifier',
+      label: '标识',
+      type: 'input',
+      placeholder: '用于唯一标识服务器的英文标识',
+      rules: [{ required: true, message: '请输入服务器标识' }],
+      span: 24,
+    },
+    {
+      field: 'description',
+      label: '描述',
+      type: 'textarea',
+      placeholder: '请输入描述',
+      rules: [{ maxLength: 500, message: '描述长度不超过500字符' }],
+      span: 24,
+    },
+    {
+      field: 'address',
+      label: '地址',
+      type: 'input',
+      placeholder: '如 https://mcp.example.com',
+      rules: [{ required: true, message: '请输入服务器地址' }],
+      span: 24,
+    },
+    {
+      field: 'authConfig',
+      label: '认证配置',
+      type: 'textarea',
+      placeholder: '可选，配置内容',
+      rules: [{ maxLength: 4000, message: '配置长度不超过4000字符' }],
+      span: 24,
+    }
+  ];
+
+  // 提交处理
+  const handleSubmit = async (values: any) => {
+    try {
+      if (isEdit) {
+        await updateMcpServer({ ...values, id: currentRecord.id });
+        Message.success('更新 MCP 服务器成功');
+      } else {
+        await createMcpServer(values);
+        Message.success('创建 MCP 服务器成功');
+      }
+      setAddEditVisible(false);
+      setCurrentRecord(null);
+      fetchData();
+    } catch (error: any) {
+      console.error(isEdit ? '更新失败:' : '创建失败:', error);
+      const errorMsg = error?.response?.data?.message || error?.message || (isEdit ? '更新 MCP 服务器失败' : '创建 MCP 服务器失败');
+      Message.error(errorMsg);
+      throw error;
+    }
+  };
+
+  // 删除处理
+  const handleDelete = async (record: any) => {
+    try {
+      await deleteMcpServer(record.id);
+      Message.success('删除 MCP 服务器成功');
+      fetchData();
+    } catch (error) {
+      console.error('删除失败:', error);
+      Message.error('删除 MCP 服务器失败');
+    }
+  };
+
+  // 健康检查
+  const handleHealthCheck = async (record: any) => {
+    try {
+      const result = await healthCheckMcpServer(record.id);
+      if (result.data) {
+        const status = result.data.status;
+        let statusMsg = '检查完成';
+        if (status === 'ACTIVE') {
+          statusMsg = '服务器状态：正常';
+        } else if (status === 'DEGRADED') {
+          statusMsg = '服务器状态：降级';
+        } else if (status === 'INACTIVE') {
+          statusMsg = '服务器状态：离线';
+        }
+        Message.success(`健康检查完成 - ${statusMsg}`);
+      }
+      fetchData();
+    } catch (error) {
+      console.error('健康检查失败:', error);
+      Message.error('健康检查失败');
+    }
+  };
+
+  // 打开工具查看抽屉
+  const handleViewTools = async (record: any) => {
+    try {
+      setToolsLoading(true);
+      setSelectedServer(record);
+      setToolsDrawerVisible(true);
+      const response = await listDiscoveredTools(record.id);
+      setToolsList(response.data || []);
+    } catch (error) {
+      console.error('获取工具列表失败:', error);
+      Message.error('获取工具列表失败');
+      setToolsList([]);
+    } finally {
+      setToolsLoading(false);
+    }
+  };
+
+  // 加载整个服务器的所有工具
+  const handleLoadAllTools = async () => {
+    try {
+      setLoadingAllTools(true);
+      const response = await listDiscoveredTools(selectedServer.id);
+      const tools = response.data || [];
+      if (tools.length === 0) {
+        Message.warning('没有可加载的工具');
+        return;
+      }
+      Message.success(`成功加载 ${tools.length} 个工具`);
+      setToolsList([]);
+    } catch (error) {
+      console.error('加载工具失败:', error);
+      Message.error('加载工具失败');
+    } finally {
+      setLoadingAllTools(false);
+    }
+  };
+
+  // 表格列配置
+  const tableColumns = [
+    {
+      title: '名称',
+      dataIndex: 'name',
+      width: 150,
+      ellipsis: true,
+      render: (text: string, record: any) => (
+        <Button
+          type="text"
+          size="small"
+          style={{ textDecoration: 'underline', padding: 0, height: 'auto' }}
+          onClick={() => handleViewTools(record)}
+        >
+          {text}
+        </Button>
+      ),
+    },
+    {
+      title: '地址',
+      dataIndex: 'address',
+      width: 200,
+      ellipsis: true,
     },
     {
       title: '状态',
@@ -243,321 +298,156 @@ function McpServerManager() {
       },
     },
     {
-      title: '最近心跳时间',
+      title: '最近心跳',
       dataIndex: 'lastHeartbeatAt',
       width: 180,
-      render: (v: string) => formatDateTime(v),
+      render: (v: string) => renderDate(v),
     },
     {
       title: '创建时间',
       dataIndex: 'createDate',
       width: 180,
-      render: (v: string) => formatDateTime(v),
+      render: (v: string) => renderDate(v),
     },
+  ];
+
+  // 自定义操作列 - 延迟定义以避免闭包问题
+  const customTableColumns = [
+    ...tableColumns,
     {
       title: '操作',
-      width: 200,
-      align: 'center' as any,
-      fixed: 'right' as any,
-      render: (_: any, record: any) => (
-        <Space>
-          <Button
-            size="small"
-            icon={<IconHeart />}
-            onClick={e => {
-              e.stopPropagation();
-              handleHealthCheck(record);
-            }}
+      width: 140,
+      fixed: 'right' as const,
+      render: (_, record: any) => (
+        <Space size="small">
+          <Tooltip content="健康检查">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconRefresh />}
+              onClick={() => handleHealthCheck(record)}
+            />
+          </Tooltip>
+          <Tooltip content="编辑">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconEdit />}
+              onClick={() => {
+                setIsEdit(true);
+                setCurrentRecord(record);
+                setAddEditVisible(true);
+              }}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="确定删除？"
+            onOk={() => handleDelete(record)}
           >
-            健康检查
-          </Button>
-          <Button
-            size="small"
-            icon={<IconEdit />}
-            onClick={e => {
-              e.stopPropagation();
-              handleEdit(record);
-            }}
-          >
-            编辑
-          </Button>
-          <Button
-            size="small"
-            status="danger"
-            icon={<IconDelete />}
-            onClick={e => {
-              e.stopPropagation();
-              handleDelete(record);
-            }}
-          >
-            删除
-          </Button>
+            <Tooltip content="删除">
+              <Button
+                type="text"
+                status="danger"
+                size="small"
+                icon={<IconDelete />}
+              />
+            </Tooltip>
+          </Popconfirm>
         </Space>
       ),
     },
   ];
 
-  useEffect(() => {
-    const calcHeight = () => {
-      const windowHeight = window.innerHeight;
-      const otherHeight = 250;
-      const newHeight = Math.max(100, windowHeight - otherHeight);
-      setTableScrollHeight(newHeight);
-    };
-    calcHeight();
-    const defaultParams: any = {};
-    fetchTableData(defaultParams);
-    setTimeout(() => {
-      filterFormRef.current?.setFieldsValue?.(defaultParams);
-    }, 50);
-    const handleResize = () => calcHeight();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const filterContent = (
-    <Form
-      ref={filterFormRef}
-      layout="horizontal"
-      className="filter-form"
-      style={{ marginTop: '10px' }}
-      onValuesChange={() => {
-        const values = filterFormRef.current?.getFieldsValue?.() || {};
-        searchTableData(values);
-      }}
-    >
-      <Row gutter={16}>
-        <Col span={6}>
-          <Form.Item field="keyWord" label="关键字">
-            <Input placeholder="名称或标识模糊搜索" />
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item field="env" label="环境">
-            <Select placeholder="请选择环境" allowClear>
-              {envOptions.map(opt => (
-                <Option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item field="status" label="状态">
-            <Select placeholder="请选择状态" allowClear>
-              {statusOptions.map(opt => (
-                <Option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col
-          span={6}
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-start',
-            alignItems: 'flex-end',
-            paddingBottom: '16px',
-          }}
-        >
-          <Space>
-            <Button
-              type="primary"
-              icon={<IconSearch />}
-              onClick={() => {
-                const values =
-                  filterFormRef.current?.getFieldsValue?.() || {};
-                searchTableData(values);
-              }}
-            >
-              搜索
-            </Button>
-            <Button
-              icon={<IconRefresh />}
-              onClick={() => {
-                filterFormRef.current?.resetFields?.();
-                searchTableData({});
-              }}
-            >
-              重置
-            </Button>
-          </Space>
-        </Col>
-      </Row>
-    </Form>
-  );
-
   return (
     <div className="mcp-server-manager">
       <DataManager
         data={tableData}
-        loading={tableLoading}
+        loading={loading}
         pagination={pagination}
-        onPaginationChange={handlePaginationChange}
+        onPaginationChange={(p) => fetchData({}, p.current, p.pageSize)}
         actions={{
-          onAdd: handleAdd,
+          onAdd: () => {
+            setIsEdit(false);
+            setCurrentRecord(null);
+            setAddEditVisible(true);
+          },
         }}
         config={{
-          showModeToggle: false,
           displayMode: 'table',
-          filterContent,
-          tableColumns: columns,
+          tableColumns: customTableColumns,
+          filterContent: (
+            <FilterForm
+              formFields={searchFormFields}
+              onSearch={(values) => fetchData(values, 1)}
+              onReset={() => fetchData({}, 1)}
+            />
+          ),
+          showModeToggle: false,
+          tableProps: {
+            scroll: { x: true },
+          },
         }}
-        tableScrollHeight={tableScrollHeight}
       />
 
-      <Modal
-        title="新增 MCP 服务器"
-        visible={addModalVisible}
-        onOk={handleAddConfirm}
-        onCancel={() => setAddModalVisible(false)}
-      >
-        <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: 10 }}>
-          <Form ref={addFormRef} layout="vertical" className="modal-form">
-            <Form.Item
-              label="名称"
-              field="name"
-              rules={[{ required: true, message: '请输入服务器名称' }]}
-            >
-              <Input placeholder="请输入服务器名称" />
-            </Form.Item>
-            <Form.Item
-              label="标识"
-              field="identifier"
-              rules={[{ required: true, message: '请输入服务器标识' }]}
-            >
-              <Input placeholder="用于唯一标识服务器的英文标识" />
-            </Form.Item>
-            <Form.Item label="描述" field="description">
-              <Input.TextArea
-                placeholder="请输入描述"
-                autoSize={{ minRows: 2, maxRows: 4 }}
-              />
-            </Form.Item>
-            <Form.Item
-              label="环境"
-              field="env"
-              rules={[{ required: true, message: '请选择环境' }]}
-            >
-              <Select placeholder="请选择环境" allowClear>
-                {envOptions.map(opt => (
-                  <Option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-            <Form.Item
-              label="地址"
-              field="address"
-              rules={[{ required: true, message: '请输入服务器地址' }]}
-            >
-              <Input placeholder="如 https://mcp.example.com" />
-            </Form.Item>
-            <Form.Item
-              label="协议"
-              field="protocol"
-              rules={[{ required: true, message: '请输入协议' }]}
-            >
-              <Input placeholder="如 HTTP、WS" />
-            </Form.Item>
-            <Form.Item
-              label="认证类型"
-              field="authType"
-              rules={[{ required: true, message: '请输入认证类型' }]}
-            >
-              <Input placeholder="如 NONE、TOKEN、BASIC" />
-            </Form.Item>
-            <Form.Item label="认证配置(JSON)" field="authConfig">
-              <Input.TextArea
-                placeholder="可选，JSON 字符串或配置内容"
-                autoSize={{ minRows: 2, maxRows: 6 }}
-              />
-            </Form.Item>
-          </Form>
-        </div>
-      </Modal>
+      <AddEditModal
+        visible={addEditVisible}
+        title={isEdit ? '编辑 MCP 服务器' : '新增 MCP 服务器'}
+        onCancel={() => {
+          setAddEditVisible(false);
+          setCurrentRecord(null);
+        }}
+        onOk={handleSubmit}
+        formConfig={getFormConfig(isEdit)}
+        isEdit={isEdit}
+        record={currentRecord}
+        loading={loading}
+        bodyStyle={{
+          maxHeight: '60vh',
+          overflowY: 'auto',
+        }}
+      />
 
-      <Modal
-        title="编辑 MCP 服务器"
-        visible={editModalVisible}
-        onOk={handleEditConfirm}
-        onCancel={() => setEditModalVisible(false)}
+      {/* 工具查看抽屉 */}
+      <Drawer
+        title={`${selectedServer?.name} - 工具列表`}
+        placement="right"
+        onCancel={() => setToolsDrawerVisible(false)}
+        visible={toolsDrawerVisible}
+        width={600}
+        footer={
+          <Space>
+            <Button onClick={() => setToolsDrawerVisible(false)}>关闭</Button>
+            <Button
+              type="primary"
+              loading={loadingAllTools}
+              onClick={handleLoadAllTools}
+            >
+              加载工具
+            </Button>
+          </Space>
+        }
       >
-        <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: 10 }}>
-          <Form ref={editFormRef} layout="vertical" className="modal-form">
-            <Form.Item field="id" hidden>
-              <Input />
-            </Form.Item>
-            <Form.Item
-              label="名称"
-              field="name"
-              rules={[{ required: true, message: '请输入服务器名称' }]}
-            >
-              <Input placeholder="请输入服务器名称" />
-            </Form.Item>
-            <Form.Item
-              label="标识"
-              field="identifier"
-              rules={[{ required: true, message: '请输入服务器标识' }]}
-            >
-              <Input placeholder="用于唯一标识服务器的英文标识" />
-            </Form.Item>
-            <Form.Item label="描述" field="description">
-              <Input.TextArea
-                placeholder="请输入描述"
-                autoSize={{ minRows: 2, maxRows: 4 }}
-              />
-            </Form.Item>
-            <Form.Item
-              label="环境"
-              field="env"
-              rules={[{ required: true, message: '请选择环境' }]}
-            >
-              <Select placeholder="请选择环境" allowClear>
-                {envOptions.map(opt => (
-                  <Option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-            <Form.Item
-              label="地址"
-              field="address"
-              rules={[{ required: true, message: '请输入服务器地址' }]}
-            >
-              <Input placeholder="如 https://mcp.example.com" />
-            </Form.Item>
-            <Form.Item
-              label="协议"
-              field="protocol"
-              rules={[{ required: true, message: '请输入协议' }]}
-            >
-              <Input placeholder="如 HTTP、WS" />
-            </Form.Item>
-            <Form.Item
-              label="认证类型"
-              field="authType"
-              rules={[{ required: true, message: '请输入认证类型' }]}
-            >
-              <Input placeholder="如 NONE、TOKEN、BASIC" />
-            </Form.Item>
-          </Form>
-        </div>
-      </Modal>
-
-      <Modal
-        title="确认删除"
-        visible={deleteModalVisible}
-        onOk={handleDeleteConfirm}
-        onCancel={() => setDeleteModalVisible(false)}
-      >
-        <div>确定要删除该 MCP 服务器吗？此操作不可恢复。</div>
-      </Modal>
+        <Spin loading={toolsLoading}>
+          {toolsList.length > 0 ? (
+            <div className="tools-list">
+              {toolsList.map((tool, index) => (
+                <div key={index} className="tool-item">
+                  <div className="tool-name">{tool.name}</div>
+                  <div className="tool-description">{tool.description || '暂无描述'}</div>
+                  {tool.inputSchema && (
+                    <div className="tool-schema">
+                      <div className="schema-label">参数定义:</div>
+                      <pre>{JSON.stringify(tool.inputSchema, null, 2)}</pre>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty description="暂无工具" />
+          )}
+        </Spin>
+      </Drawer>
     </div>
   );
 }

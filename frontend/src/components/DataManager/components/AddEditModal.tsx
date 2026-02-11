@@ -15,6 +15,7 @@ interface AddEditModalProps {
   formConfig?: FormFieldConfig[];
   children?: React.ReactNode;
   width?: number | string;
+  bodyStyle?: React.CSSProperties;
 }
 
 /**
@@ -32,6 +33,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
   formConfig = [],
   children,
   width,
+  bodyStyle,
 }) => {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -90,7 +92,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
       maskClosable={false}
       style={{ width }}
     >
-      <Spin loading={loading} style={{ width: "100%" }}>
+      <Spin loading={loading} style={{ width: "100%", ...bodyStyle }}>
         <Form
           form={form}
           layout="vertical"

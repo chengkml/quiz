@@ -16,18 +16,14 @@ public class McpServerDto extends Dto {
 
     private String description;
 
-    private String env;
-
     private String address;
 
-    private String protocol;
+    private String authConfig;
 
-    private String authType;
+    private Boolean hasAuthConfig;
 
     private String status;
 
     private LocalDateTime lastHeartbeatAt;
-
-    private Boolean hasAuthConfig;
 }
 

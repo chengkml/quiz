@@ -8,8 +8,6 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class McpServerQueryDto extends QueryDto {
 
-    private String env;
-
     private String status;
 }
 

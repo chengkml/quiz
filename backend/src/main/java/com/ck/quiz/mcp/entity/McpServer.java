@@ -29,21 +29,9 @@ public class McpServer extends Model {
     @Comment("服务器描述")
     private String description;
 
-    @Column(length = 32, nullable = false)
-    @Comment("环境")
-    private String env;
-
     @Column(length = 512, nullable = false)
     @Comment("服务器地址")
     private String address;
-
-    @Column(length = 32, nullable = false)
-    @Comment("协议")
-    private String protocol;
-
-    @Column(length = 32, nullable = false)
-    @Comment("认证类型")
-    private String authType;
 
     @Column(length = 4000)
     @Comment("认证配置")

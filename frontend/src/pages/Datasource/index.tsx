@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Button, Form, Grid, Input, Message, Modal, Select, Space, Tag, Table, Popconfirm, Tooltip} from '@arco-design/web-react';
-import {IconEdit, IconDelete, IconRefresh, IconDatabase} from '@arco-design/web-react/icon';
+import {IconEdit, IconDelete, IconRefresh, IconStorage} from '@arco-design/web-react/icon';
 import './style/index.less';
 import {
     collectSchema,
@@ -370,7 +370,7 @@ const handleTestConnection = async (record: any) => {
                         <Button
                             type="text"
                             size="small"
-                            icon={<IconDatabase />}
+                            icon={<IconStorage />}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleCollectSchema(record);

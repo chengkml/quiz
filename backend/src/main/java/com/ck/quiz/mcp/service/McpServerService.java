@@ -14,10 +14,8 @@ import java.util.List;
 public interface McpServerService
         extends BaseService<McpServerCreateDto, McpServerUpdateDto, McpServerQueryDto, McpServerDto, McpServer> {
 
-    void healthCheck(String userId, String serverId);
+    McpServerDto healthCheck(String userId, String serverId);
 
     List<McpDiscoveredToolDto> listDiscoveredTools(String serverId);
 
-    List<String> importTools(String userId, String serverId, List<McpToolImportItemDto> tools);
 }
-

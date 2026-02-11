@@ -10,6 +10,7 @@ import com.xfvape.uid.worker.entity.WorkerNodeEntity;
 import org.springframework.beans.BeanUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 
 @Configuration
 public class QuizConfig {
@@ -76,5 +77,13 @@ public class QuizConfig {
 
         generator.afterPropertiesSet();
         return generator;
+    }
+
+    /**
+     * RestTemplate Bean 配置
+     */
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }
