@@ -289,12 +289,6 @@ function WxAppManager() {
   // 列配置 - 与后端WxAppDto保持一致
   const columns = [
     {
-      title: "ID",
-      dataIndex: "appId",
-      ellipsis: true,
-      width: 200,
-    },
-    {
       title: "名称",
       dataIndex: "appName",
       ellipsis: true,
@@ -312,14 +306,8 @@ function WxAppManager() {
       render: (value: string) => formatDateTime(value),
     },
     {
-      title: "更新时间",
-      dataIndex: "updateDate",
-      width: 180,
-      render: (value: string) => formatDateTime(value),
-    },
-    {
       title: "操作",
-      width: 100,
+      width: 220,
       align: "center" as const,
       fixed: "right" as const,
       render: (_: any, record: WxAppResponse) => (

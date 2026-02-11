@@ -108,6 +108,22 @@ function KnowledgeManager() {
             title: '知识点',
             dataIndex: 'name',
             ellipsis: true,
+            render: (value, record) => (
+                <Button
+                    type="text"
+                    style={{
+                        color: '#4080FF',
+                        padding: 0,
+                        textDecoration: 'underline',
+                    }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleDetail(record);
+                    }}
+                >
+                    {value}
+                </Button>
+            ),
         },
         {
             title: '所属分类',
@@ -1003,22 +1019,24 @@ label="知识点内容"
                 <p>确定要删除知识点 "{currentRecord?.name}" 吗？此操作不可撤销。</p>
             </Modal>
 
-            {/* 详情对话框 */}
-            <Modal
+            {/* 详情抽屉 */}
+            <Drawer
                 title="知识点详情"
                 visible={detailModalVisible}
                 onCancel={() => setDetailModalVisible(false)}
                 footer={null}
-                style={{ width: '800px' }}
+                width={800}
             >
                 {detailRecord && (
                     <div>
-                        <h3>{detailRecord.name}</h3>
-                        <div style={{ marginBottom: 16 }}>
-                            <Space>
-                                <span>学科: {detailRecord.subjectName || '--'}</span>
-                                <span>分类: {detailRecord.categoryName || '--'}</span>
-                                <span>创建时间: {detailRecord.createDate}</span>
+                        <h3 style={{ marginBottom: 16, fontSize: '18px', fontWeight: 'bold' }}>
+                            {detailRecord.name}
+                        </h3>
+                        <div style={{ marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid #e5e6eb' }}>
+                            <Space size="large">
+                                <span>学科: <strong>{detailRecord.subjectName || '--'}</strong></span>
+                                <span>分类: <strong>{detailRecord.categoryName || '--'}</strong></span>
+                                <span>创建时间: <strong>{renderDate(detailRecord.createDate)}</strong></span>
                             </Space>
                         </div>
                         <div
@@ -1027,14 +1045,15 @@ label="知识点内容"
                                 border: '1px solid #e5e6eb',
                                 padding: '16px',
                                 borderRadius: '4px',
-                                minHeight: '200px',
-                                background: '#f7f8fa'
+                                minHeight: '400px',
+                                background: '#f7f8fa',
+                                lineHeight: '1.6'
                             }}
                             dangerouslySetInnerHTML={{ __html: detailRecord.content || '暂无内容' }}
                         />
                     </div>
                 )}
-            </Modal>
+            </Drawer>
         </div>
     );
 }
