@@ -89,14 +89,14 @@ function SubjectManager() {
     {
       field: 'name',
       label: '英文名称',
-      type: 'text',
+      type: 'input',
       placeholder: '请输入英文名称',
       span: 10,
     },
     {
       field: 'label',
       label: '中文名称',
-      type: 'text',
+      type: 'input',
       placeholder: '请输入中文名称',
       span: 10,
     }
@@ -107,21 +107,30 @@ function SubjectManager() {
     {
       field: 'name',
       label: '英文名称',
-      type: 'text',
+      type: 'input',
       placeholder: '请输入英文名称 (例如: math)',
       rules: [
         { required: true, message: '请输入英文名称' },
         { maxLength: 64, message: '长度不能超过64个字符' },
         {
+          pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/,
+          message: '英文名称必须以字母开头，只能包含字母、数字和下划线'
+        },
+        {
           validator: async (value, callback) => {
-            if (!value) return;
+            if (!value || value.length > 64) return;
+            // 如果是编辑模式且名称未改变，跳过验证
+            if (isEditMode && record?.name === value) {
+              return;
+            }
             try {
               const res = await checkSubjectName(value, isEditMode ? record?.id : null);
               if (!res.data) {
                 callback('该英文名称已存在');
               }
             } catch (error) {
-              // 验证失败不阻断提交，由后端兜底，或者 callback(error)
+              console.error('名称验证失败:', error);
+              // 验证失败不阻断提交，由后端兜底
             }
           }
         }
@@ -131,7 +140,7 @@ function SubjectManager() {
     {
       field: 'label',
       label: '中文名称',
-      type: 'text',
+      type: 'input',
       placeholder: '请输入中文名称 (例如: 数学)',
       rules: [
         { required: true, message: '请输入中文名称' },
@@ -160,10 +169,13 @@ function SubjectManager() {
         Message.success('创建学科成功');
       }
       setAddEditVisible(false);
+      setCurrentRecord(null);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error(isEdit ? '更新失败:' : '创建失败:', error);
-      Message.error(isEdit ? '更新学科失败' : '创建学科失败');
+      const errorMsg = error?.response?.data?.message || error?.message || (isEdit ? '更新学科失败' : '创建学科失败');
+      Message.error(errorMsg);
+      throw error; // 抛出错误，防止modal关闭
     }
   };
 
@@ -270,10 +282,14 @@ function SubjectManager() {
       <AddEditModal
         visible={addEditVisible}
         title={isEdit ? '编辑学科' : '新增学科'}
-        onCancel={() => setAddEditVisible(false)}
-        onSubmit={handleSubmit}
-        formFields={getFormConfig(isEdit, currentRecord)}
-        initialValues={currentRecord}
+        onCancel={() => {
+          setAddEditVisible(false);
+          setCurrentRecord(null);
+        }}
+        onOk={handleSubmit}
+        formConfig={getFormConfig(isEdit, currentRecord)}
+        isEdit={isEdit}
+        record={currentRecord}
         loading={loading}
       />
     </Layout>
