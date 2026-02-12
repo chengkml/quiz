@@ -10,6 +10,8 @@ import {
   Space,
   Spin,
   Typography,
+  Drawer,
+  Grid,
 } from '@arco-design/web-react';
 import {
   IconPlus,
@@ -17,6 +19,7 @@ import {
   IconSend,
   IconUser,
   IconRobot,
+  IconMenu,
 } from '@arco-design/web-react/icon';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -32,6 +35,7 @@ import {
 const { Sider, Content } = Layout;
 const { TextArea } = Input;
 const { Title } = Typography;
+const { useBreakpoint } = Grid;
 
 interface ChatSession {
   sessionId: string;
@@ -54,6 +58,9 @@ interface LLMModel {
 }
 
 const ChatPage: React.FC = () => {
+  const screens = useBreakpoint();
+  const isMobile = !screens.md; // md is 768px
+
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsPage, setSessionsPage] = useState(0);
@@ -69,6 +76,7 @@ const ChatPage: React.FC = () => {
 
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
+  const [mobileDrawerVisible, setMobileDrawerVisible] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -142,6 +150,9 @@ const ChatPage: React.FC = () => {
     if (session.modelName) {
       setCurrentModel(session.modelName);
     }
+    if (isMobile) {
+        setMobileDrawerVisible(false);
+    }
   };
 
   const handleNewSession = () => {
@@ -151,6 +162,9 @@ const ChatPage: React.FC = () => {
     const defaultModel = models.find((m) => m.isDefault === '1');
     if (defaultModel) setCurrentModel(defaultModel.name);
     else if (models.length > 0) setCurrentModel(models[0].name);
+    if (isMobile) {
+        setMobileDrawerVisible(false);
+    }
   };
 
   const handleSend = async () => {
@@ -290,9 +304,8 @@ const ChatPage: React.FC = () => {
     sessions.find((s) => s.sessionId === currentSessionId)?.title ||
     (currentSessionId ? currentSessionId : '新会话');
 
-  return (
-    <Layout className="chat-layout">
-      <Sider width={280} className="chat-sidebar">
+  const SidebarContent = (
+    <>
         <div className="sidebar-header">
           <Space>
             <Button
@@ -338,15 +351,46 @@ const ChatPage: React.FC = () => {
             共 {sessionsTotal} 条会话
           </div>
         )}
-      </Sider>
+    </>
+  );
+
+  return (
+    <Layout className="chat-layout">
+        {!isMobile && (
+            <Sider width={280} className="chat-sidebar">
+                {SidebarContent}
+            </Sider>
+        )}
+
+        {isMobile && (
+            <Drawer
+                width="80%"
+                title="会话列表"
+                visible={mobileDrawerVisible}
+                onCancel={() => setMobileDrawerVisible(false)}
+                footer={null}
+                placement="left"
+            >
+                {SidebarContent}
+            </Drawer>
+        )}
+
       <Layout>
         <Content className="chat-main-content">
           <div className="chat-header">
+            {isMobile && (
+                 <Button
+                    icon={<IconMenu />}
+                    type="text"
+                    style={{ marginRight: 8 }}
+                    onClick={() => setMobileDrawerVisible(true)}
+                 />
+            )}
             <Title heading={6} style={{ margin: 0, fontSize: 16 }}>
               {currentSessionTitle}
             </Title>
           </div>
-          
+
           <div className="chat-messages-container">
             <Spin loading={messagesLoading} style={{ display: 'block', minHeight: 100 }}>
               {messages.length === 0 ? (

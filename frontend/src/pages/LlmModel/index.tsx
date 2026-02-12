@@ -85,14 +85,14 @@ function LlmModelManager() {
             label: '名称',
             type: 'input',
             placeholder: '请输入名称关键字',
-            span: 7,
+            span: { xs: 24, sm: 12, md: 8, lg: 7 },
         },
         {
             field: 'provider',
             label: '提供者',
             type: 'input',
             placeholder: '请输入提供者',
-            span: 7,
+            span: { xs: 24, sm: 12, md: 8, lg: 7 },
         },
         {
             field: 'type',
@@ -100,7 +100,7 @@ function LlmModelManager() {
             type: 'select',
             placeholder: '请选择类型',
             options: typeOptions,
-            span: 7,
+            span: { xs: 24, sm: 12, md: 8, lg: 7 },
             allowClear: true,
         },
     ];

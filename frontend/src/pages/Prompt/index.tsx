@@ -148,7 +148,7 @@ function PromptTemplateManagement() {
       label: "名称",
       type: "input",
       placeholder: "请输入模板名称",
-      span: 6,
+      span: { xs: 24, sm: 12, md: 8, lg: 6 },
     },
   ];
 

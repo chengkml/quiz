@@ -76,14 +76,14 @@ function Requirement() {
       label: "标题",
       type: "input",
       placeholder: "请输入标题",
-      span: 6,
+      span: { xs: 24, sm: 12, md: 8, lg: 6 },
     },
     {
       field: "projectName",
       label: "项目名称",
       type: "input",
       placeholder: "请输入项目名称",
-      span: 6,
+      span: { xs: 24, sm: 12, md: 8, lg: 6 },
     },
     {
       field: "status",
@@ -91,7 +91,7 @@ function Requirement() {
       type: "select",
       placeholder: "请选择状态",
       options: statusOptions,
-      span: 6,
+      span: { xs: 24, sm: 12, md: 8, lg: 6 },
       allowClear: true,
     },
   ];
@@ -312,6 +312,66 @@ function Requirement() {
     />
   );
 
+  // 渲染移动端卡片视图
+  const renderShortCard = (item: any) => {
+    const map: Record<string, any> = {
+      OPEN: { color: "blue", text: "待处理" },
+      IN_PROGRESS: { color: "orange", text: "处理中" },
+      COMPLETED: { color: "green", text: "已完成" },
+      CLOSED: { color: "gray", text: "已关闭" },
+    };
+    const statusConfig = map[item.status] || { color: "gray", text: item.status };
+
+    return (
+      <div
+        className="requirement-card"
+        style={{
+          border: '1px solid var(--color-border-2)',
+          borderRadius: 4,
+          padding: 12,
+          marginBottom: 12,
+          background: 'var(--color-bg-2)',
+        }}
+        onClick={() => handleEdit(item)}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.title}</span>
+          <Tag color={statusConfig.color} size="small" bordered>{statusConfig.text}</Tag>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
+          项目: {item.projectName || '--'} | 分支: {item.branch || '--'}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
+          创建: {renderDate(item.createDate)}
+        </div>
+        <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button
+            type="text"
+            size="small"
+            icon={<IconEdit />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEdit(item);
+            }}
+          >编辑</Button>
+          <Popconfirm
+            title="确认删除该需求吗？"
+            onOk={() => handleDelete(item)}
+            onCancel={(e) => e.stopPropagation()}
+          >
+            <Button
+              type="text"
+              size="small"
+              status="danger"
+              icon={<IconDelete />}
+              onClick={(e) => e.stopPropagation()}
+            >删除</Button>
+          </Popconfirm>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="requirement-page">
       <DataManager
@@ -323,12 +383,17 @@ function Requirement() {
           onAdd: handleAdd,
         }}
         config={{
-          showModeToggle: false,
+          showModeToggle: true,
           displayMode: "table",
+          renderShortCard,
           filterContent,
           tableColumns: columns,
           tableProps: {
-              scroll: { x: 1200, y: tableScrollHeight }
+              scroll: { x: 1200, y: tableScrollHeight },
+              onRow: (record) => ({
+                  onClick: () => handleEdit(record),
+                  style: { cursor: 'pointer' }
+              })
           }
         }}
         tableScrollHeight={tableScrollHeight}

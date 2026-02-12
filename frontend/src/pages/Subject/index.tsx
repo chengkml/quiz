@@ -266,7 +266,7 @@ function SubjectManager() {
           onDelete: handleDelete,
         }}
         config={{
-          displayMode: 'shortCard',
+          displayMode: 'table',
           renderShortCard: renderCustomCard,
           filterContent: (
             <FilterForm
@@ -275,7 +275,7 @@ function SubjectManager() {
               onReset={() => fetchData({}, 1)}
             />
           ),
-          showModeToggle: false, // 暂时只支持卡片视图
+          showModeToggle: true,
         }}
       />
 

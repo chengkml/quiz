@@ -16,6 +16,7 @@ import {
     Switch,
     InputNumber,
     AutoComplete,
+    Grid,
 } from '@arco-design/web-react';
 import {
     IconCopy,
@@ -487,31 +488,48 @@ const ApiTesterPage: React.FC = () => {
         );
     };
 
+    const screens = Grid.useBreakpoint();
+    const isMobile = !screens.md;
+
     return (
         <div className="api-tester-container">
-            <div className="api-tester-layout">
+            <div className="api-tester-layout" style={{ flexDirection: isMobile ? 'column' : 'row' }}>
                 {/* 请求区域 */}
-                <Card className="request-card" title={
+                <Card
+                    className="request-card"
+                    style={{ width: isMobile ? '100%' : '50%', marginBottom: isMobile ? 16 : 0 }}
+                    title={
                     <span className="card-title">
                         <IconCode style={{ marginRight: 8 }} />
                         API 测试工具
                     </span>
                 }>
                     {/* URL 输入区 */}
-                    <div className="url-bar">
-                        <Select
-                            value={method}
-                            onChange={setMethod}
-                            style={{ width: 120 }}
-                            className="method-select"
-                        >
-                            {HTTP_METHODS.map(m => (
-                                <Option key={m} value={m}>
-                                    <Tag color={METHOD_COLORS[m]} size="small">{m}</Tag>
-                                </Option>
-                            ))}
-                        </Select>
-                        
+                    <div className="url-bar" style={{ flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <Select
+                                value={method}
+                                onChange={setMethod}
+                                style={{ width: 120 }}
+                                className="method-select"
+                            >
+                                {HTTP_METHODS.map(m => (
+                                    <Option key={m} value={m}>
+                                        <Tag color={METHOD_COLORS[m]} size="small">{m}</Tag>
+                                    </Option>
+                                ))}
+                            </Select>
+                             {isMobile && (
+                                <Button
+                                    type="text"
+                                    size="mini"
+                                    loading={endpointsLoading}
+                                    icon={<IconRefresh />}
+                                    onClick={fetchSwaggerEndpoints}
+                                />
+                             )}
+                        </div>
+
                         <div style={{ flex: 1, position: 'relative' }}>
                             <AutoComplete
                                 placeholder="输入或选择 API 端点"
@@ -547,27 +565,29 @@ const ApiTesterPage: React.FC = () => {
                                 style={{ width: '100%' }}
                                 allowClear
                             />
-                            {endpoints.length === 0 && (
-                                <Button 
-                                    type="text" 
+                            {endpoints.length === 0 && !isMobile && (
+                                <Button
+                                    type="text"
                                     size="mini"
                                     loading={endpointsLoading}
-                                    icon={<IconRefresh />} 
+                                    icon={<IconRefresh />}
                                     onClick={fetchSwaggerEndpoints}
                                     style={{ position: 'absolute', right: 30, top: 4, zIndex: 2 }}
                                 />
                             )}
                         </div>
 
-                        <Space>
-                            <Tooltip content="刷新 API 列表">
-                                <Button
-                                    type="secondary"
-                                    icon={<IconRefresh />}
-                                    loading={endpointsLoading}
-                                    onClick={fetchSwaggerEndpoints}
-                                />
-                            </Tooltip>
+                        <Space style={{ justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
+                            {!isMobile && (
+                                <Tooltip content="刷新 API 列表">
+                                    <Button
+                                        type="secondary"
+                                        icon={<IconRefresh />}
+                                        loading={endpointsLoading}
+                                        onClick={fetchSwaggerEndpoints}
+                                    />
+                                </Tooltip>
+                            )}
                             <Tooltip content="复制 cURL 命令">
                                 <Button
                                     type="outline"
@@ -588,7 +608,7 @@ const ApiTesterPage: React.FC = () => {
 
                     {/* 设置区 */}
                     <div className="settings-bar">
-                        <Space size="large">
+                        <Space size="large" direction={isMobile ? 'vertical' : 'horizontal'}>
                             <span className="setting-item">
                                 <span className="setting-label">超时时间 (ms):</span>
                                 <InputNumber
@@ -622,6 +642,7 @@ const ApiTesterPage: React.FC = () => {
                                     data={params}
                                     pagination={false}
                                     noDataElement={<Empty description="无查询参数" />}
+                                    scroll={{ x: true }}
                                 />
                                 <Button
                                     type="text"
@@ -644,6 +665,7 @@ const ApiTesterPage: React.FC = () => {
                                     data={headers}
                                     pagination={false}
                                     noDataElement={<Empty description="无请求头" />}
+                                    scroll={{ x: true }}
                                 />
                                 <Button
                                     type="text"
@@ -697,11 +719,14 @@ const ApiTesterPage: React.FC = () => {
                 </Card>
 
                 {/* 响应区域 */}
-                <Card className="response-card" title={
-                    <div className="response-header">
+                <Card
+                    className="response-card"
+                    style={{ width: isMobile ? '100%' : '50%' }}
+                    title={
+                    <div className="response-header" style={{ flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 8 : 0, alignItems: isMobile ? 'flex-start' : 'center' }}>
                         <span>响应</span>
                         {response && (
-                            <Space size="medium">
+                            <Space size="medium" wrap>
                                 <Tag color={response.status >= 200 && response.status < 300 ? 'green' : response.status >= 400 ? 'red' : 'orange'}>
                                     {response.status ? `${response.status} ${response.statusText}` : 'Error'}
                                 </Tag>

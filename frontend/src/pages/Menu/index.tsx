@@ -619,6 +619,86 @@ function MenuManager() {
     fetchMenuTree();
   }, []);
 
+  // 渲染移动端卡片视图
+  const renderShortCard = (item) => {
+    const typeMap = {
+      DIRECTORY: { color: "blue", text: "目录" },
+      MENU: { color: "green", text: "菜单" },
+      BUTTON: { color: "orange", text: "按钮" },
+    };
+    const typeConfig = typeMap[item.menuType] || { color: "gray", text: item.menuType };
+
+    const stateMap = {
+      ENABLED: { color: "green", text: "启用" },
+      DISABLED: { color: "red", text: "禁用" },
+    };
+    const stateConfig = stateMap[item.state] || { color: "gray", text: item.state };
+
+    const iconEl = renderIconByName(item.menuIcon);
+
+    return (
+      <div
+        className="menu-card"
+        style={{
+          border: '1px solid var(--color-border-2)',
+          borderRadius: 4,
+          padding: 12,
+          marginBottom: 12,
+          background: 'var(--color-bg-2)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <Space>
+             {iconEl}
+             <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.menuLabel}</span>
+          </Space>
+          <Tag color={typeConfig.color} size="small" bordered>{typeConfig.text}</Tag>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
+          编码: {item.menuName}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4, wordBreak: 'break-all' }}>
+          路由: {item.url || '-'}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
+           <span>排序: {item.seq}</span>
+           <Tag color={stateConfig.color} size="small" bordered>{stateConfig.text}</Tag>
+        </div>
+        <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button
+            type="text"
+            size="small"
+            icon={<IconEdit />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEdit(item);
+            }}
+          >编辑</Button>
+          <Button
+            type="text"
+            size="small"
+            status={item.state === "ENABLED" ? "warning" : "success"}
+            icon={item.state === "ENABLED" ? <IconPoweroff /> : <IconCheckCircle />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleState(item);
+            }}
+          >{item.state === "ENABLED" ? "禁用" : "启用"}</Button>
+          <Button
+            type="text"
+            size="small"
+            status="danger"
+            icon={<IconDelete />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete(item);
+            }}
+          >删除</Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="menu-manager">
       <DataManager
@@ -633,6 +713,7 @@ function MenuManager() {
         }}
         config={{
           displayMode: "table",
+          renderShortCard,
           filterContent: (
             <FilterForm
               ref={filterFormRef}
@@ -644,7 +725,7 @@ function MenuManager() {
                     label: "名称",
                     type: "input",
                     placeholder: "请输入菜单名称",
-                    span: 8,
+                    span: { xs: 24, sm: 12, md: 8, lg: 8 },
                   },
                   {
                     field: "state",
@@ -653,7 +734,7 @@ function MenuManager() {
                     placeholder: "请选择状态",
                     allowClear: true,
                     options: menuStateOptions,
-                    span: 8,
+                    span: { xs: 24, sm: 12, md: 8, lg: 8 },
                   },
                 ] as FormFieldConfig[]
               }
@@ -663,7 +744,7 @@ function MenuManager() {
             />
           ),
           tableColumns: tableColumns,
-          showModeToggle: false,
+          showModeToggle: true,
           showTree: true,
           showTreeFilter: true,
           treeData: menuTree.map((m: any) => ({

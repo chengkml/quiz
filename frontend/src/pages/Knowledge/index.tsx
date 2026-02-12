@@ -619,7 +619,7 @@ function KnowledgeManager() {
             label: '关键字',
             type: 'input',
             placeholder: '请输入关键字',
-            span: 8,
+            span: { xs: 24, sm: 12, md: 8, lg: 8 },
         },
         {
             field: 'subjectId',
@@ -627,7 +627,7 @@ function KnowledgeManager() {
             type: 'select',
             options: subjects,
             allowClear: true,
-            span: 8,
+            span: { xs: 24, sm: 12, md: 8, lg: 8 },
         },
         {
             field: 'categoryId',
@@ -636,7 +636,7 @@ function KnowledgeManager() {
             options: categories,
             allowClear: true,
             disabled: !filterFormRef.current?.getFilterValues?.()?.subjectId,
-            span: 8,
+            span: { xs: 24, sm: 12, md: 8, lg: 8 },
         },
     ];
 
@@ -753,6 +753,59 @@ function KnowledgeManager() {
         </div>
     );
 
+    // 渲染移动端卡片视图
+    const renderShortCard = (item) => {
+        return (
+            <div
+                className="knowledge-card"
+                style={{
+                    border: '1px solid var(--color-border-2)',
+                    borderRadius: 4,
+                    padding: 12,
+                    marginBottom: 12,
+                    background: 'var(--color-bg-2)',
+                }}
+                onClick={() => handleDetail(item)}
+            >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.name}</span>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
+                    学科: {item.subjectName || '--'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
+                    分类: {item.categoryName || '--'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
+                    创建时间: {renderDate(item.createDate)}
+                </div>
+                <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                    <Button
+                        type="text"
+                        size="small"
+                        icon={<IconEdit />}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(item);
+                        }}
+                    >编辑</Button>
+                    <Popconfirm
+                        title="确认删除该知识点吗？"
+                        onOk={() => handleDelete(item)}
+                    >
+                        <Button
+                            type="text"
+                            size="small"
+                            status="danger"
+                            icon={<IconDelete />}
+                            onClick={(e) => e.stopPropagation()}
+                        >删除</Button>
+                    </Popconfirm>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="knowledge-manager">
             <DataManager
@@ -767,7 +820,8 @@ function KnowledgeManager() {
                 actions={{ onAdd: handleAdd }}
                 config={{
                     displayMode: 'table',
-                    showModeToggle: false,
+                    showModeToggle: true,
+                    renderShortCard,
                     tableColumns: columns,
                     filterContent,
                     showTree: true,

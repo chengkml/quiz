@@ -400,12 +400,12 @@ function McpToolManager() {
       }}
     >
       <Row gutter={16}>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={8} lg={6}>
           <Form.Item field="keyWord" label="关键字">
             <Input placeholder="名称或原始名称模糊搜索" />
           </Form.Item>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={8} lg={6}>
           <Form.Item field="env" label="环境">
             <Select placeholder="请选择环境" allowClear>
               {envOptions.map(opt => (
@@ -416,7 +416,7 @@ function McpToolManager() {
             </Select>
           </Form.Item>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={8} lg={6}>
           <Form.Item field="status" label="状态">
             <Select placeholder="请选择状态" allowClear>
               {statusOptions.map(opt => (
@@ -427,18 +427,18 @@ function McpToolManager() {
             </Select>
           </Form.Item>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={8} lg={6}>
           <Form.Item field="serverId" label="服务器ID">
             <Input placeholder="按服务器ID过滤" />
           </Form.Item>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={8} lg={6}>
           <Form.Item field="category" label="分类">
             <Input placeholder="按分类过滤" />
           </Form.Item>
         </Col>
         <Col
-          span={6}
+          xs={24} sm={12} md={8} lg={6}
           style={{
             display: 'flex',
             justifyContent: 'flex-start',
@@ -473,6 +473,88 @@ function McpToolManager() {
     </Form>
   );
 
+  // 渲染移动端卡片视图
+  const renderShortCard = (item: any) => {
+    const info = statusTagMap[item.status] || { label: item.status || '-', color: 'gray' };
+    return (
+      <div
+        className="mcp-tool-card"
+        style={{
+          border: '1px solid var(--color-border-2)',
+          borderRadius: 4,
+          padding: 12,
+          marginBottom: 12,
+          background: 'var(--color-bg-2)',
+        }}
+        onClick={() => handleEdit(item)}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.displayName || item.originName}</span>
+          <Tag color={info.color} size="small" bordered>{info.label}</Tag>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
+          分类: {item.category || '--'} | 环境: {item.env}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
+          服务器ID: {item.serverId}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
+          创建: {formatDateTime(item.createDate)}
+        </div>
+        <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+          <Button
+            size="small"
+            type="text"
+            icon={<IconEdit />}
+            onClick={e => {
+              e.stopPropagation();
+              handleEdit(item);
+            }}
+          >
+            编辑
+          </Button>
+          {item.status === 'ENABLED' ? (
+            <Button
+              size="small"
+              type="text"
+              icon={<IconStop />}
+              onClick={e => {
+                e.stopPropagation();
+                handleDisable(item);
+              }}
+            >
+              禁用
+            </Button>
+          ) : (
+            <Button
+              size="small"
+              type="text"
+              icon={<IconCheck />}
+              onClick={e => {
+                e.stopPropagation();
+                handleEnable(item);
+              }}
+            >
+              启用
+            </Button>
+          )}
+          <Button
+            size="small"
+            type="text"
+            status="danger"
+            icon={<IconDelete />}
+            onClick={e => {
+              e.stopPropagation();
+              handleDelete(item);
+            }}
+          >
+            删除
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="mcp-tool-manager">
       <DataManager
@@ -484,8 +566,9 @@ function McpToolManager() {
           onAdd: handleAdd,
         }}
         config={{
-          showModeToggle: false,
+          showModeToggle: true,
           displayMode: 'table',
+          renderShortCard,
           filterContent,
           tableColumns: columns,
         }}

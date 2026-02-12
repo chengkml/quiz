@@ -13,7 +13,9 @@ import {
   Typography,
   Empty,
   Select,
-  Checkbox
+  Checkbox,
+  Drawer,
+  Grid
 } from '@arco-design/web-react';
 import {
   IconFolder,
@@ -26,12 +28,15 @@ import {
   IconHome,
   IconEye,
   IconEdit,
+  IconMenu,
 } from '@arco-design/web-react/icon';
 import { ColumnProps } from '@arco-design/web-react/es/Table';
 import { listFiles, createFolder, deleteFile, renameFile, batchDelete, moveFiles, FileInfo, UPLOAD_URL, getDownloadUrl } from './api';
 import DirectoryTree from './components/DirectoryTree';
 import dayjs from 'dayjs';
 import './style.less';
+
+const { useBreakpoint } = Grid;
 
 const getFileIcon = (name: string, isDirectory: boolean) => {
   if (isDirectory) return <IconFolder style={{ color: '#ffb400', fontSize: 20 }} />;
@@ -54,6 +59,9 @@ const getFileIcon = (name: string, isDirectory: boolean) => {
 };
 
 const FileManager: React.FC = () => {
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
+
   const [currentPath, setCurrentPath] = useState('');
   const [fileList, setFileList] = useState<FileInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,11 +80,19 @@ const FileManager: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [moveModalVisible, setMoveModalVisible] = useState(false);
   const [moveTargetPath, setMoveTargetPath] = useState('');
-  
+  const [mobileTreeVisible, setMobileTreeVisible] = useState(false);
+
   // To trigger tree refresh
   const [treeKey, setTreeKey] = useState(0);
 
   const token = localStorage.getItem('token');
+
+  // Force grid view on mobile
+  useEffect(() => {
+      if (isMobile) {
+          setViewMode('grid');
+      }
+  }, [isMobile]);
 
   const fetchFiles = async () => {
     setLoading(true);
@@ -108,6 +124,7 @@ const FileManager: React.FC = () => {
 
   const handleEnterFolder = (path: string) => {
     setCurrentPath(path);
+    if(isMobile) setMobileTreeVisible(false);
   };
 
   const handleNavigateBreadcrumb = (index: number, parts: string[]) => {
@@ -268,8 +285,8 @@ const FileManager: React.FC = () => {
               {item.name}
             </a>
           ) : (
-            <span 
-              onClick={() => isImage(item.name) && handlePreview(item)} 
+            <span
+              onClick={() => isImage(item.name) && handlePreview(item)}
               style={{ cursor: isImage(item.name) ? 'pointer' : 'default', color: isImage(item.name) ? 'var(--color-primary-light-4)' : 'inherit' }}
             >
               {item.name}
@@ -324,7 +341,7 @@ const FileManager: React.FC = () => {
               title="Rename"
             />
           )}
-          {item.id && ( 
+          {item.id && (
              <Popconfirm
                 title="Are you sure you want to delete this?"
                 onOk={() => handleDelete(item.id, item.isDirectory)}
@@ -339,74 +356,94 @@ const FileManager: React.FC = () => {
 
   const pathParts = currentPath.split('/').filter(p => p);
 
+  const DirectoryTreeContent = (
+    <DirectoryTree
+        key={treeKey}
+        currentPath={currentPath}
+        onSelect={(path) => {
+            setCurrentPath(path);
+            if(isMobile) setMobileTreeVisible(false);
+        }}
+    />
+  );
+
   return (
     <Card bodyStyle={{ padding: 0, height: '85vh', overflow: 'hidden' }} style={{ height: '85vh' }} className="file-manager">
        <div className="file-manager__layout">
-            <div className="file-manager__sidebar">
-                <DirectoryTree 
-                    key={treeKey}
-                    currentPath={currentPath}
-                    onSelect={(path) => setCurrentPath(path)}
-                />
-            </div>
-            
+            {!isMobile && (
+                <div className="file-manager__sidebar">
+                    {DirectoryTreeContent}
+                </div>
+            )}
+
             <div className="file-manager__content">
                   <div className="file-manager__header">
-                    <Breadcrumb>
-                      <Breadcrumb.Item onClick={() => handleNavigateBreadcrumb(-1, [])} style={{ cursor: 'pointer' }}>
-                        <IconHome /> Home
-                      </Breadcrumb.Item>
-                      {pathParts.map((part, index) => (
-                        <Breadcrumb.Item key={index} onClick={() => handleNavigateBreadcrumb(index, pathParts)} style={{ cursor: 'pointer' }}>
-                          {part}
+                    <Space>
+                        {isMobile && (
+                            <Button icon={<IconMenu />} onClick={() => setMobileTreeVisible(true)} />
+                        )}
+                        <Breadcrumb>
+                        <Breadcrumb.Item onClick={() => handleNavigateBreadcrumb(-1, [])} style={{ cursor: 'pointer' }}>
+                            <IconHome /> Home
                         </Breadcrumb.Item>
-                      ))}
-                    </Breadcrumb>
+                        {pathParts.map((part, index) => (
+                            <Breadcrumb.Item key={index} onClick={() => handleNavigateBreadcrumb(index, pathParts)} style={{ cursor: 'pointer' }}>
+                            {part}
+                            </Breadcrumb.Item>
+                        ))}
+                        </Breadcrumb>
+                    </Space>
                   </div>
 
-                  <div className="file-manager__toolbar">
-                    <Space size={12}>
+                  <div className="file-manager__toolbar" style={{ flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', height: 'auto', gap: 8 }}>
+                    <Space size={12} wrap>
                       <Input.Search
-                        placeholder="Search in folder"
-                        style={{ width: 200 }}
+                        placeholder="Search"
+                        style={{ width: isMobile ? '100%' : 200 }}
                         value={searchText}
                         onChange={setSearchText}
                         allowClear
                       />
                       <Select
-                        style={{ width: 140 }}
+                        style={{ width: 120 }}
                         value={filterType}
                         onChange={setFilterType}
                         options={[
                           { label: 'All', value: 'all' },
                           { label: 'Folders', value: 'folder' },
                           { label: 'Images', value: 'image' },
-                          { label: 'Documents', value: 'doc' },
+                          { label: 'Docs', value: 'doc' },
                           { label: 'Archives', value: 'archive' }
                         ]}
                       />
-                      <Select
-                        style={{ width: 140 }}
-                        value={sortKey}
-                        onChange={setSortKey}
-                        options={[
-                          { label: 'Name', value: 'name' },
-                          { label: 'Size', value: 'size' },
-                          { label: 'Date', value: 'time' }
-                        ]}
-                      />
+                      {!isMobile && (
+                          <Select
+                            style={{ width: 120 }}
+                            value={sortKey}
+                            onChange={setSortKey}
+                            options={[
+                              { label: 'Name', value: 'name' },
+                              { label: 'Size', value: 'size' },
+                              { label: 'Date', value: 'time' }
+                            ]}
+                          />
+                      )}
                       <Button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
                         {sortOrder === 'asc' ? 'Asc' : 'Desc'}
                       </Button>
-                      <Button onClick={() => setViewMode('list')} type={viewMode === 'list' ? 'primary' : 'default'}>
-                        List
-                      </Button>
-                      <Button onClick={() => setViewMode('grid')} type={viewMode === 'grid' ? 'primary' : 'default'}>
-                        Grid
-                      </Button>
+                      {!isMobile && (
+                          <>
+                            <Button onClick={() => setViewMode('list')} type={viewMode === 'list' ? 'primary' : 'default'}>
+                                List
+                            </Button>
+                            <Button onClick={() => setViewMode('grid')} type={viewMode === 'grid' ? 'primary' : 'default'}>
+                                Grid
+                            </Button>
+                          </>
+                      )}
                     </Space>
 
-                    <Space>
+                    <Space wrap>
                       <Button icon={<IconRefresh />} onClick={fetchFiles} />
                       <Button icon={<IconPlus />} onClick={() => setIsCreateFolderModalVisible(true)}>Folder</Button>
                       <Upload
@@ -431,8 +468,8 @@ const FileManager: React.FC = () => {
 
                   {selectedItems.length > 0 && (
                     <div className="file-manager__actionbar">
-                      <Typography.Text>Selected {selectedItems.length} item(s)</Typography.Text>
-                      <Space>
+                      <Typography.Text>Selected {selectedItems.length}</Typography.Text>
+                      <Space wrap>
                         {singleSelected && !singleSelected.isDirectory && (
                           <Button
                             icon={<IconDownload />}
@@ -460,7 +497,7 @@ const FileManager: React.FC = () => {
                           </Button>
                         )}
                         <Popconfirm
-                          title="Are you sure you want to delete selected items?"
+                          title="Delete selected?"
                           onOk={handleBatchDelete}
                         >
                           <Button icon={<IconDelete />} status="danger">
@@ -496,7 +533,13 @@ const FileManager: React.FC = () => {
                           <div
                             key={item.path}
                             className={`file-card${isSelected ? ' file-card--selected' : ''}`}
+                            style={{ width: isMobile ? 'calc(50% - 10px)' : undefined }}
                             onDoubleClick={() => item.isDirectory && handleEnterFolder(item.path)}
+                            onClick={(e) => {
+                                if (isMobile && item.isDirectory) {
+                                    handleEnterFolder(item.path);
+                                }
+                            }}
                           >
                             <div className="file-card__select">
                               <Checkbox
@@ -525,9 +568,11 @@ const FileManager: React.FC = () => {
                             <div className="file-card__meta">
                               {item.isDirectory ? 'Folder' : formatSize(item.size)}
                             </div>
-                            <div className="file-card__meta">
-                              {item.lastModified ? dayjs(item.lastModified).format('YYYY-MM-DD HH:mm') : '--'}
-                            </div>
+                            {!isMobile && (
+                                <div className="file-card__meta">
+                                {item.lastModified ? dayjs(item.lastModified).format('YYYY-MM-DD HH:mm') : '--'}
+                                </div>
+                            )}
                             <div className="file-card__actions">
                               {isImage(item.name) && !item.isDirectory && (
                                 <Button
@@ -564,12 +609,23 @@ const FileManager: React.FC = () => {
             </div>
        </div>
 
+        <Drawer
+            visible={mobileTreeVisible}
+            onCancel={() => setMobileTreeVisible(false)}
+            title="Folders"
+            width="80%"
+            placement="left"
+            footer={null}
+        >
+            {DirectoryTreeContent}
+        </Drawer>
+
       <Modal
         title="Image Preview"
         visible={previewVisible}
         footer={null}
         onCancel={() => setPreviewVisible(false)}
-        style={{ width: '80%', maxWidth: 800 }}
+        style={{ width: '95%', maxWidth: 800 }}
       >
         <img src={previewImageUrl} alt="Preview" style={{ width: '100%' }} />
       </Modal>

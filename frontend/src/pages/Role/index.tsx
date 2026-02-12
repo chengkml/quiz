@@ -244,7 +244,7 @@ function RoleManager() {
       label: "名称",
       type: "input",
       placeholder: "请输入角色名称",
-      span: 6,
+      span: { xs: 24, sm: 12, md: 8, lg: 6 },
     },
     {
       field: "state",
@@ -255,7 +255,7 @@ function RoleManager() {
         { label: "启用", value: "ENABLED" },
         { label: "禁用", value: "DISABLED" },
       ],
-      span: 6,
+      span: { xs: 24, sm: 12, md: 8, lg: 6 },
     },
   ];
 
@@ -554,6 +554,76 @@ function RoleManager() {
     fetchRoles();
   }, [pagination.current, pagination.pageSize]);
 
+  // 渲染移动端卡片视图
+  const renderShortCard = (item) => {
+    return (
+      <Card
+        className="role-card"
+        hoverable
+        style={{ marginBottom: 16 }}
+        title={
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontWeight: "bold" }}>{item.name}</span>
+            <Tag color={item.state === "ENABLED" ? "green" : "red"} size="small">
+              {item.state === "ENABLED" ? "启用" : "禁用"}
+            </Tag>
+          </div>
+        }
+        actions={[
+          <Button
+            key="edit"
+            type="text"
+            size="small"
+            icon={<IconEdit />}
+            onClick={() => handleEdit(item)}
+          />,
+          <Button
+            key="assign"
+            type="text"
+            size="small"
+            icon={<IconMenu />}
+            onClick={() => handleAssignMenus(item)}
+          />,
+          <Button
+            key="toggle"
+            type="text"
+            size="small"
+            status={item.state === "ENABLED" ? "warning" : "success"}
+            icon={<IconUser />}
+            onClick={() => handleToggleState(item)}
+          />,
+          <Button
+            key="delete"
+            type="text"
+            size="small"
+            status="danger"
+            icon={<IconDelete />}
+            onClick={() => handleDelete(item)}
+          />,
+        ]}
+      >
+        <div style={{ marginBottom: 8 }}>
+          <span style={{ color: "var(--color-text-3)", marginRight: 8 }}>
+            ID:
+          </span>
+          <span>{item.id}</span>
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <span style={{ color: "var(--color-text-3)", marginRight: 8 }}>
+            描述:
+          </span>
+          <span>{item.descr || "-"}</span>
+        </div>
+        <div>
+          <span style={{ color: "var(--color-text-3)", marginRight: 8 }}>
+            创建时间:
+          </span>
+          <span>{renderDate(item.createDate)}</span>
+        </div>
+      </Card>
+    );
+  };
+
   return (
     <div className="role-manager">
       <DataManager
@@ -565,8 +635,9 @@ function RoleManager() {
           onAdd: handleAdd,
         }}
         config={{
-          showModeToggle: false,
+          showModeToggle: true,
           displayMode: "table",
+          renderShortCard,
           filterContent,
           tableColumns: columns,
         }}

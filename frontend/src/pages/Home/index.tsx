@@ -381,8 +381,8 @@ function Home() {
     <Layout className="home-container">
       <Content className="content">
         {/* 统计指标卡片 */}
-        <Row gutter={16} className="stats-row">
-          <Col span={6}>
+        <Row gutter={[16, 16]} className="stats-row">
+          <Col xs={12} sm={12} md={12} lg={6} xl={6}>
             <Card className="stat-card">
               <Statistic
                 title="待办数"
@@ -392,7 +392,7 @@ function Home() {
               />
             </Card>
           </Col>
-          <Col span={6}>
+          <Col xs={12} sm={12} md={12} lg={6} xl={6}>
             <Card className="stat-card">
               <Statistic
                 title="题目总数"
@@ -402,7 +402,7 @@ function Home() {
               />
             </Card>
           </Col>
-          <Col span={6}>
+          <Col xs={12} sm={12} md={12} lg={6} xl={6}>
             <Card className="stat-card">
               <Statistic
                 title="昨日新增题目数"
@@ -412,7 +412,7 @@ function Home() {
               />
             </Card>
           </Col>
-          <Col span={6}>
+          <Col xs={12} sm={12} md={12} lg={6} xl={6}>
             <Card className="stat-card">
               <Statistic
                 title="学科总数"
@@ -425,25 +425,25 @@ function Home() {
         </Row>
 
         {/* 图表展示区域 */}
-        <Row gutter={16} className="charts-row">
-          <Col span={12}>
+        <Row gutter={[16, 16]} className="charts-row">
+          <Col xs={24} sm={24} md={24} lg={12} xl={12}>
             <Card className="chart-card">
               <div ref={knowledgeChartRef} className="chart-container"></div>
             </Card>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={24} md={24} lg={12} xl={12}>
             <Card className="chart-card">
               <div ref={sevenDaysChartRef} className="chart-container"></div>
             </Card>
           </Col>
         </Row>
-        <Row gutter={16} className="charts-row">
-          <Col span={12}>
+        <Row gutter={[16, 16]} className="charts-row">
+          <Col xs={24} sm={24} md={24} lg={12} xl={12}>
             <Card className="chart-card">
               <div ref={questionChartRef} className="chart-container"></div>
             </Card>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={24} md={24} lg={12} xl={12}>
             <Card className="chart-card">
               <div ref={lastMonthChartRef} className="chart-container"></div>
             </Card>

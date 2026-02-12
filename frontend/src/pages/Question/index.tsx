@@ -968,7 +968,7 @@ function QuestionManager() {
             label: '关键字',
             type: 'input',
             placeholder: '请输入题干内容关键词',
-            span: 8,
+            span: { xs: 24, sm: 12, md: 8, lg: 8 },
         },
     ];
 
@@ -991,6 +991,52 @@ function QuestionManager() {
         />
     );
 
+    // 渲染移动端卡片视图
+    const renderShortCard = (item) => {
+        const typeMap = {
+            'SINGLE': '单选题',
+            'MULTIPLE': '多选题'
+        };
+        return (
+            <Card
+                className="question-card"
+                hoverable
+                style={{ marginBottom: 16 }}
+                onClick={() => handleDetail(item)}
+                title={
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <Tag color="blue" size="small" bordered style={{ marginRight: 8, flexShrink: 0 }}>
+                            {typeMap[item.type] || item.type}
+                        </Tag>
+                        <span style={{ fontSize: 14, fontWeight: "bold", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {item.content}
+                        </span>
+                    </div>
+                }
+                actions={[
+                    <Button type="text" size="small" icon={<IconEdit />} onClick={(e) => { e.stopPropagation(); handleEdit(item); }} />,
+                    <Button type="text" size="small" icon={<IconDelete />} status="danger" onClick={(e) => { e.stopPropagation(); handleDelete(item); }} />
+                ]}
+            >
+                <div style={{ marginBottom: 8, color: "var(--color-text-3)", fontSize: "12px" }}>
+                    <IconList style={{ marginRight: 4 }} />
+                    {renderDate(item.createDate)}
+                </div>
+                <div style={{
+                    color: "var(--color-text-2)",
+                    fontSize: 14,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    minHeight: 60
+                }}>
+                    {item.content}
+                </div>
+            </Card>
+        );
+    };
+
     return (
         <div className="question-manager">
             <DataManager
@@ -1005,7 +1051,8 @@ function QuestionManager() {
                 }}
                 config={{
                     displayMode: 'table',
-                    showModeToggle: false,
+                    showModeToggle: true,
+                    renderShortCard,
                     filterContent,
                     showTree: true,
                     treeContent: (

@@ -384,6 +384,64 @@ function WxAppManager() {
       />
   );
 
+  // 渲染移动端卡片视图
+  const renderShortCard = (item: WxAppResponse) => {
+    return (
+      <div
+        className="wxapp-card"
+        style={{
+          border: '1px solid var(--color-border-2)',
+          borderRadius: 4,
+          padding: 12,
+          marginBottom: 12,
+          background: 'var(--color-bg-2)',
+        }}
+        onClick={() => handleEdit(item)}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.appName}</span>
+          <span style={{ fontSize: 12, color: 'var(--color-text-3)' }}>{item.appId}</span>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
+           {item.appDescr || '暂无描述'}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
+          创建: {formatDateTime(item.createDate)}
+        </div>
+        <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button
+            type="text"
+            size="small"
+            icon={<IconUser />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewUsers(item);
+            }}
+          >用户</Button>
+          <Button
+            type="text"
+            size="small"
+            icon={<IconEdit />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEdit(item);
+            }}
+          >编辑</Button>
+          <Button
+            type="text"
+            size="small"
+            status="danger"
+            icon={<IconDelete />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete(item);
+            }}
+          >删除</Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="wxapp-manager">
       <DataManager
@@ -395,8 +453,9 @@ function WxAppManager() {
           onAdd: handleAdd,
         }}
         config={{
-          showModeToggle: false,
+          showModeToggle: true,
           displayMode: "table",
+          renderShortCard,
           filterContent,
           tableColumns: columns,
         }}

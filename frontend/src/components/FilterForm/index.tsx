@@ -254,7 +254,7 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
                     ? fieldsToRender.slice(0, min)
                     : fieldsToRender
                   ).map(field => (
-                    <Col key={field.field} span={field.span || 8} style={{ width: 'auto' }}>
+                    <Col key={field.field} xs={24} sm={12} md={8} lg={6} xl={6} xxl={4}>
                       {renderFormField(field, formRef.current || undefined, labelWidth, handleSearch)}
                     </Col>
                   ))}

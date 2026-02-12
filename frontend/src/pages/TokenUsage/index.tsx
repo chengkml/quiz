@@ -259,8 +259,8 @@ const TokenUsagePage: React.FC = () => {
       </Title>
 
       {/* 统计卡片 */}
-      <Row gutter={16} style={{ marginBottom: 20 }}>
-        <Col span={6}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+        <Col xs={12} sm={6} md={6}>
           <Card>
             <Statistic
               title="总Token数"
@@ -270,7 +270,7 @@ const TokenUsagePage: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={12} sm={6} md={6}>
           <Card>
             <Statistic
               title="输入Token"
@@ -280,7 +280,7 @@ const TokenUsagePage: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={12} sm={6} md={6}>
           <Card>
             <Statistic
               title="输出Token"
@@ -290,7 +290,7 @@ const TokenUsagePage: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={12} sm={6} md={6}>
           <Card>
             <Statistic
               title="总成本"
@@ -311,6 +311,7 @@ const TokenUsagePage: React.FC = () => {
                 data={modelStats}
                 pagination={false}
                 rowKey="dimension"
+                scroll={{ x: 'max-content' }}
               />
             </TabPane>
             <TabPane key="business" title="按业务类型统计">
@@ -319,10 +320,11 @@ const TokenUsagePage: React.FC = () => {
                 data={businessStats}
                 pagination={false}
                 rowKey="dimension"
+                scroll={{ x: 'max-content' }}
               />
             </TabPane>
             <TabPane key="date" title="按日期统计">
-              <Space style={{ marginBottom: 16 }}>
+              <Space style={{ marginBottom: 16, flexWrap: 'wrap' }} size={16}>
                 <RangePicker
                   onChange={(_, dateStrings) => {
                     if (dateStrings && dateStrings[0] && dateStrings[1]) {
@@ -332,6 +334,7 @@ const TokenUsagePage: React.FC = () => {
                     }
                   }}
                   placeholder={['开始日期', '结束日期']}
+                  style={{ width: 250 }}
                 />
                 <Select
                   placeholder="选择模型（可选）"
@@ -351,6 +354,7 @@ const TokenUsagePage: React.FC = () => {
                 data={dateStats}
                 pagination={false}
                 rowKey="dimension"
+                scroll={{ x: 'max-content' }}
               />
             </TabPane>
           </Tabs>
