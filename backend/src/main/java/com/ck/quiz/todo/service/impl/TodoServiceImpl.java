@@ -40,6 +40,7 @@ import java.util.Optional;
 /**
  * 待办管理服务实现类
  */
+@Slf4j
 @Service
 @Transactional
 public class TodoServiceImpl
