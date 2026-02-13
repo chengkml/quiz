@@ -10,11 +10,11 @@ import {
     Menu,
     Message,
     Modal,
+    Pagination,
     Space,
     Table,
     Tree
 } from '@arco-design/web-react';
-import { DataManager } from '@/components/DataManager';
 import {IconDelete, IconEdit, IconFile, IconList, IconPlus, IconSearch} from '@arco-design/web-react/icon';
 import AddDocInfoModal from './components/AddDocInfoModal';
 import EditDocInfoModal from './components/EditDocInfoModal';
@@ -389,93 +389,6 @@ function DocInfoManager() {
         };
     }, []);
 
-    // 渲染移动端卡片视图
-    const renderShortCard = (item: any) => {
-        return (
-            <div
-                className="doc-info-card"
-                style={{
-                    border: '1px solid var(--color-border-2)',
-                    borderRadius: 4,
-                    padding: 12,
-                    marginBottom: 12,
-                    background: 'var(--color-bg-2)',
-                }}
-            >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.fileName}</span>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4, wordBreak: 'break-all' }}>
-                    MD5: {item.fileMd5}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    上传用户: {item.uploadUserName || '--'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-                    上传时间: {
-                        (() => {
-                            if (!item.uploadTime) return '--';
-                            const now = new Date();
-                            const date = new Date(item.uploadTime);
-                            const diffMs = now.getTime() - date.getTime();
-                            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                            return diffDays === 0 ? '今天' : diffDays === 1 ? '昨天' : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                        })()
-                    }
-                </div>
-                <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<IconFile />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/frame/funcDoc/detail/${item.id}`);
-                        }}
-                    >详情</Button>
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<IconSearch />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/frame/funcDoc/features/${item.id}`);
-                        }}
-                    >功能点</Button>
-                    <Dropdown
-                        droplist={
-                            <Menu>
-                                <Menu.Item key="headingTree" onClick={() => handleViewHeadingTree(item)}>
-                                    <IconList style={{ marginRight: 8 }} />
-                                    标题树
-                                </Menu.Item>
-                                <Menu.Item key="exportHeadings" onClick={() => handleExportHeadings(item)}>
-                                    <IconFile style={{ marginRight: 8 }} />
-                                    导出标题
-                                </Menu.Item>
-                                <Menu.Item key="exportInf" onClick={() => handleExportInf(item)}>
-                                    <IconFile style={{ marginRight: 8 }} />
-                                    导出接口
-                                </Menu.Item>
-                                <Menu.Item key="edit" onClick={() => handleEdit(item)}>
-                                    <IconEdit style={{ marginRight: 8 }} />
-                                    编辑
-                                </Menu.Item>
-                                <Menu.Item key="delete" onClick={() => handleDelete(item)}>
-                                    <IconDelete style={{ marginRight: 8 }} />
-                                    删除
-                                </Menu.Item>
-                            </Menu>
-                        }
-                        position="bl"
-                    >
-                        <Button type="text" size="small" icon={<IconList />}>更多</Button>
-                    </Dropdown>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <Layout className="docinfo-manager">
             <Content>
@@ -491,13 +404,13 @@ function DocInfoManager() {
                     }}
                 >
                     <Row gutter={16}>
-                        <Col xs={24} sm={12} md={8} lg={6}>
+                        <Col span={6}>
                             <Form.Item field="fileName" label="文件名">
                                 <Input placeholder="请输入文件名"/>
                             </Form.Item>
                         </Col>
                         <Col
-                            xs={24} sm={12} md={8} lg={6}
+                            span={6}
                             style={{
                                 display: 'flex',
                                 justifyContent: 'flex-start',
@@ -530,35 +443,22 @@ function DocInfoManager() {
                 </Form>
 
                 {/* 表格 */}
-                {/*
-                   使用 DataManager 替代原生 Table + Pagination 以支持移动端适配
-                   注意：这里原代码使用的是原生 Table，为了最小化改动且保持一致性，
-                   我们可以检查 DataManager 是否在本项目中通用。
-                   前文的文件都用了 DataManager。
-                   但是 FuncDoc 这里并没有引入 DataManager。
-                   引入 DataManager 需要较大的重构（替换 Table 和 Pagination）。
-
-                   为了快速适配，我们可以手动根据屏幕宽度切换 Table 和 Card List。
-                   或者引入 DataManager。
-                   考虑到一致性，建议引入 DataManager。
-                */}
-                <DataManager
+                <Table
+                    columns={columns}
                     data={tableData}
                     loading={loading}
-                    pagination={pagination}
-                    onPaginationChange={handlePaginationChange}
-                    actions={{
-                        onAdd: handleAdd,
-                    }}
-                    config={{
-                        displayMode: 'table',
-                        renderShortCard,
-                        filterContent: null, // Form is outside
-                        tableColumns: columns,
-                        showModeToggle: true,
-                    }}
-                    tableScrollHeight={tableScrollHeight}
+                    pagination={false}
+                    rowKey="id"
+                    scroll={{y: tableScrollHeight}}
                 />
+
+                {/* 分页 */}
+                <div className="pagination-wrapper">
+                    <Pagination
+                        {...pagination}
+                        onChange={handlePaginationChange}
+                    />
+                </div>
 
                 {/* 添加文档模态框 */}
                 <AddDocInfoModal

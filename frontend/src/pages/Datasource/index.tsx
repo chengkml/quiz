@@ -442,80 +442,6 @@ const handleTestConnection = async (record: any) => {
         </Form>
     );
 
-    // 渲染移动端卡片视图
-    const renderShortCard = (item: any) => {
-        const typeCfg = DATASOURCE_TYPES.find(t => t.value === item.type);
-        const typeLabel = typeCfg ? typeCfg.label : (item.type || '--');
-        const isActive = item.active;
-
-        return (
-            <div
-                className="datasource-card"
-                style={{
-                    border: '1px solid var(--color-border-2)',
-                    borderRadius: 4,
-                    padding: 12,
-                    marginBottom: 12,
-                    background: 'var(--color-bg-2)',
-                }}
-                onClick={() => openEditModal(item)}
-            >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.name}</span>
-                    <Tag color={isActive ? 'green' : 'red'} size="small" bordered>{isActive ? '启用' : '禁用'}</Tag>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    类型: {typeLabel} | 用户: {item.username || '--'}
-                </div>
-                 <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4, wordBreak: 'break-all' }}>
-                    URL: {item.jdbcUrl}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-                    描述: {item.description || '--'}
-                </div>
-                <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-                     <Button
-                        type="text"
-                        size="small"
-                        icon={<IconEdit />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            openEditModal(item);
-                        }}
-                    >编辑</Button>
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<IconRefresh />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleTestConnection(item);
-                        }}
-                    >测试</Button>
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<IconStorage />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleCollectSchema(item);
-                        }}
-                    >采集</Button>
-                    <Button
-                        type="text"
-                        size="small"
-                        status="danger"
-                        icon={<IconDelete />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            openDeleteModal(item);
-                        }}
-                    >删除</Button>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <div className="datasource-page" ref={containerRef}>
             <DataManager
@@ -539,16 +465,9 @@ const handleTestConnection = async (record: any) => {
                 }}
                 config={{
                     displayMode: 'table',
-                    showModeToggle: true,
-                    renderShortCard,
+                    showModeToggle: false,
                     tableColumns: columns,
                     filterContent,
-                    tableProps: {
-                        onRow: (record) => ({
-                            onClick: () => openEditModal(record),
-                            style: { cursor: 'pointer' }
-                        })
-                    }
                 }}
             />
 

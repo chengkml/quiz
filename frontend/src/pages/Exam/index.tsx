@@ -575,79 +575,6 @@ const {Row, Col} = Grid;
         />
     );
 
-    // 渲染移动端卡片视图
-    const renderShortCard = (item: ExamDto) => {
-        const statusMap = {
-            [ExamStatus.DRAFT]: { color: 'orange', text: '草稿' },
-            [ExamStatus.PUBLISHED]: { color: 'green', text: '已发布' },
-            [ExamStatus.ARCHIVED]: { color: 'gray', text: '已归档' },
-        };
-        const statusConfig = statusMap[item.status] || { color: 'gray', text: item.status };
-
-        return (
-            <div
-                className="exam-card"
-                style={{
-                    border: '1px solid var(--color-border-2)',
-                    borderRadius: 4,
-                    padding: 12,
-                    marginBottom: 12,
-                    background: 'var(--color-bg-2)',
-                }}
-                onClick={() => navigate(`/frame/exam/detail/${item.id}`)}
-            >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.name}</span>
-                    <Tag color={statusConfig.color} size="small" bordered>{statusConfig.text}</Tag>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    学科: {item.subjectName || '--'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    总分: {item.totalScore} | 时长: {item.durationMinutes ? `${item.durationMinutes}分` : '--'} | 题目: {item.questionNum || 0}题
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-                    创建时间: {renderDate(item.createDate)}
-                </div>
-                <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-                     {item.status === 'PUBLISHED' && (
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconEye />}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleMenuClick('start', e, item);
-                            }}
-                        >开始</Button>
-                    )}
-                    {item.status === 'DRAFT' && (
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconPublic />}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleMenuClick('publish', e, item);
-                            }}
-                        >发布</Button>
-                    )}
-                    <Button
-                        type="text"
-                        size="small"
-                        status="danger"
-                        icon={<IconDelete />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteModalVisible(true);
-                            setCurrentRecord(item);
-                        }}
-                    >删除</Button>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <div className="exam-manager">
             <DataManager
@@ -658,8 +585,7 @@ const {Row, Col} = Grid;
                 actions={{ onAdd: openSmartGenerateModal }}
                 config={{
                     displayMode: 'table',
-                    showModeToggle: true,
-                    renderShortCard,
+                    showModeToggle: false,
                     tableColumns: columns,
                     filterContent,
                     showTree: true,

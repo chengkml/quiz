@@ -62,23 +62,6 @@ const DataManager: React.FC<DataManagerProps> = ({
     tableProps,
   } = config;
 
-  // 移动端适配：检测屏幕宽度
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (mobile && defaultDisplayMode === 'table') {
-        setDisplayMode('shortCard');
-      }
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, [defaultDisplayMode]);
-
   const [displayMode, setDisplayMode] =
     useState<DisplayMode>(defaultDisplayMode);
 
@@ -229,8 +212,8 @@ const DataManager: React.FC<DataManagerProps> = ({
   return (
     <div className="data-manager">
       <Layout style={{ height: "100%" }}>
-        {showTree && !isMobile && (
-          <Sider className="data-manager-tree-sider" width={240}>
+        {showTree && (
+          <Sider className="data-manager-tree-sider">
             {showTreeFilter && (
               <div style={{ marginBottom: 12 }}>
                 <Input.Search
@@ -254,13 +237,6 @@ const DataManager: React.FC<DataManagerProps> = ({
           </Sider>
         )}
         <Layout>
-            {/* 移动端树状结构展示 (Drawer) */}
-            {showTree && isMobile && (
-                 <div style={{ marginBottom: 10 }}>
-                     {/* 这里可以放一个按钮触发 Drawer 显示树，或者简化为顶部下拉筛选 */}
-                     {/* 暂时简单处理：如果需要在移动端筛选树，建议在 filterContent 中实现 */}
-                 </div>
-            )}
           {(filterContent || actionBar) && (
             <Header className="data-manager-header" style={{ flexShrink: 0 }}>
               {filterContent && (

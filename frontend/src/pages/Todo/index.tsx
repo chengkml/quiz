@@ -94,7 +94,7 @@ function TodoManager() {
       label: "标题",
       type: "input",
       placeholder: "请输入标题关键字",
-      span: { xs: 24, sm: 12, md: 8, lg: 6 },
+      span: 6,
     },
     {
       field: "status",
@@ -103,7 +103,7 @@ function TodoManager() {
       placeholder: "请选择状态",
       options: statusOptions,
       initialValue: "SCHEDULED",
-      span: { xs: 24, sm: 12, md: 8, lg: 6 },
+      span: 6,
       allowClear: true,
     },
     {
@@ -112,7 +112,7 @@ function TodoManager() {
       type: "select",
       placeholder: "请选择优先级",
       options: priorityOptions,
-      span: { xs: 24, sm: 12, md: 8, lg: 6 },
+      span: 8,
       allowClear: true,
     },
   ];
@@ -476,97 +476,6 @@ function TodoManager() {
     />
   );
 
-  // 渲染移动端卡片视图
-  const renderShortCard = (item: any) => {
-    const statusMap: Record<string, any> = {
-      SCHEDULED: { color: "gray", text: "已计划" },
-      IN_PROGRESS: { color: "blue", text: "处理中" },
-      COMPLETED: { color: "green", text: "已完成" },
-      CANCELLED: { color: "red", text: "已取消" },
-    };
-    const priorityMap: Record<string, any> = {
-      LOW: { color: "green", text: "低" },
-      MEDIUM: { color: "orange", text: "中" },
-      HIGH: { color: "red", text: "高" },
-    };
-    const statusConfig = statusMap[item.status] || { color: "arcoblue", text: item.status };
-    const priorityConfig = priorityMap[item.priority] || { color: "arcoblue", text: item.priority };
-
-    return (
-      <div
-        className="todo-card"
-        style={{
-          border: '1px solid var(--color-border-2)',
-          borderRadius: 4,
-          padding: 12,
-          marginBottom: 12,
-          background: 'var(--color-bg-2)',
-        }}
-        onClick={() => {
-            if (item.status === 'COMPLETED') {
-              handleDetail(item);
-            } else {
-              handleEdit(item);
-            }
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.title}</span>
-          <Space size={4}>
-             <Tag color={priorityConfig.color} size="small" bordered>{priorityConfig.text}</Tag>
-             <Tag color={statusConfig.color} size="small" bordered>{statusConfig.text}</Tag>
-          </Space>
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-          创建: {renderDate(item.createDate)}
-        </div>
-        <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconMindMapping />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleAnalyze(item);
-            }}
-          >分析</Button>
-          {item.status !== "COMPLETED" && (
-             <Popconfirm
-                title="确认完成该待办吗？"
-                onOk={() => {
-                  handleComplete(item);
-                }}
-                onCancel={(e) => {
-                  e.stopPropagation();
-                }}
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  status="success"
-                  icon={<IconCheck />}
-                  onClick={(e) => e.stopPropagation()}
-                >完成</Button>
-              </Popconfirm>
-          )}
-          <Popconfirm
-              title="确认删除该待办吗？"
-              onOk={() => handleDelete(item)}
-              onCancel={(e) => e.stopPropagation()}
-            >
-              <Button
-                type="text"
-                size="small"
-                status="danger"
-                icon={<IconDelete />}
-                onClick={(e) => e.stopPropagation()}
-              >删除</Button>
-            </Popconfirm>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="todo-manager">
       <DataManager
@@ -578,23 +487,11 @@ function TodoManager() {
           onAdd: handleAdd,
         }}
         config={{
-          showModeToggle: true,
+          showModeToggle: false,
           displayMode: "table",
-          renderShortCard,
           filterContent,
           tableColumns: columns,
-          tableProps: {
-             onRow: (record) => ({
-                onClick: () => {
-                    if (record.status === 'COMPLETED') {
-                        handleDetail(record);
-                    } else {
-                        handleEdit(record);
-                    }
-                },
-                style: { cursor: 'pointer' }
-            })
-          }
+          tableProps: {}
         }}
         tableScrollHeight={tableScrollHeight}
       />

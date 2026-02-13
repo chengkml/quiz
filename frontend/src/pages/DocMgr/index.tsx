@@ -433,126 +433,69 @@ function DocManager() {
         fetchTableData();
     }, []);
 
-    // 渲染移动端卡片视图
-    const renderShortCard = (item: any) => {
-        const option = docStatusOptions.find(opt => opt.value === item.status);
-        let tagClass = '';
-        switch (item.status) {
-            case 'DRAFT': tagClass = 'doc-status-tag status-draft'; break;
-            case 'PUBLISHED': tagClass = 'doc-status-tag status-published'; break;
-            case 'ARCHIVED': tagClass = 'doc-status-tag status-archived'; break;
-        }
-
-        return (
-            <div
-                className="doc-card"
-                style={{
-                    border: '1px solid var(--color-border-2)',
-                    borderRadius: 4,
-                    padding: 12,
-                    marginBottom: 12,
-                    background: 'var(--color-bg-2)',
-                }}
-                onClick={() => handleEdit(item)}
-            >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.title}</span>
-                    {getDocTypeTag(item.type)}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    状态: {option ? <Tag className={tagClass} size="small">{option.label}</Tag> : item.status}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    描述: {item.description || '--'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-                    更新时间: {formatDateTime(item.updateDate)}
-                </div>
-                <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<IconEdit />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(item);
-                        }}
-                    >编辑</Button>
-                    <Button
-                        type="text"
-                        size="small"
-                        status="danger"
-                        icon={<IconDelete />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(item);
-                        }}
-                    >删除</Button>
-                </div>
-            </div>
-        );
-    };
-
-    const filterContent = (
-        <Form
-            ref={filterFormRef}
-            layout="inline"
-            style={{ width: '100%' }}
-            onValuesChange={(changedValues) => {
-                if (changedValues.title || changedValues.type || changedValues.status) {
-                    searchTableData(filterFormRef.current?.getFieldsValue?.() || {});
-                }
-            }}
-        >
-            <Form.Item name="title" label="文档名称">
-                <Input placeholder="请输入文档名称" allowClear style={{ width: 200 }} />
-            </Form.Item>
-            <Form.Item name="type" label="文档类型">
-                <Select placeholder="请选择文档类型" allowClear style={{ width: 120 }}>
-                    {docTypeOptions.map(option => (
-                        <Option key={option.value} value={option.value}>{option.label}</Option>
-                    ))}
-                </Select>
-            </Form.Item>
-            <Space>
-                <Form.Item>
-                    <Button type="primary" icon={<IconSearch />} onClick={() => searchTableData(filterFormRef.current?.getFieldsValue?.() || {})}>
-                        搜索
-                    </Button>
-                </Form.Item>
-                <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>
-                    新增文档
-                </Button>
-            </Space>
-        </Form>
-    );
-
     return (
         <div className="doc-manager">
-            <DataManager
-                data={tableData}
-                loading={tableLoading}
-                pagination={pagination}
-                onPaginationChange={(p) => handlePageChange(p.current, p.pageSize)}
-                actions={{
-                    onAdd: handleAdd,
-                    onEdit: handleEdit,
-                    onDelete: handleDelete,
-                }}
-                config={{
-                    displayMode: 'table',
-                    showModeToggle: true,
-                    renderShortCard,
-                    tableColumns: columns,
-                    filterContent,
-                    tableProps: {
-                         onRow: (record) => ({
-                            onClick: () => handleEdit(record),
-                            style: { cursor: 'pointer' }
-                        })
-                    }
-                }}
-            />
+            <Layout>
+                <Content style={{padding: 0}}>
+                    {/* 搜索和操作栏 */}
+                    <Row gutter={16} className="action-buttons">
+                        <Col span={24}>
+                            <Form
+                                ref={filterFormRef}
+                                layout="inline"
+                                style={{width: '100%'}}
+                                onValuesChange={(changedValues) => {
+                                    if (changedValues.title || changedValues.type || changedValues.status) {
+                                        searchTableData(filterFormRef.current?.getFieldsValue?.() || {});
+                                    }
+                                }}
+                            >
+                                <Form.Item name="title" label="文档名称">
+                                    <Input placeholder="请输入文档名称" allowClear style={{width: 200}}/>
+                                </Form.Item>
+                                <Form.Item name="type" label="文档类型">
+                                    <Select placeholder="请选择文档类型" allowClear style={{width: 120}}>
+                                        {docTypeOptions.map(option => (
+                                            <Option key={option.value} value={option.value}>{option.label}</Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                                <Space>
+                                    <Form.Item>
+                                        <Button type="primary" icon={<IconSearch/>}>
+                                            搜索
+                                        </Button>
+                                    </Form.Item>
+                                    <Button type="primary" icon={<IconPlus/>} onClick={handleAdd}>
+                                        新增文档
+                                    </Button>
+                                </Space>
+                            </Form>
+                        </Col>
+                    </Row>
+
+                    {/* 文档列表 */}
+                    <div style={{position: 'relative', height: 'calc(100% - 120px)'}}>
+                        <Table
+                            columns={columns}
+                            data={tableData}
+                            loading={tableLoading}
+                            pagination={false}
+                            rowKey="id"
+                            scroll={{y: 'calc(100% - 40px)'}}
+                        />
+                        {pagination.total > 0 && (
+                            <div className="pagination-wrapper">
+                                <Pagination
+                                    {...pagination}
+                                    onChange={handlePageChange}
+                                    onPageSizeChange={handlePageChange}
+                                />
+                            </div>
+                        )}
+                    </div>
+                </Content>
+            </Layout>
 
             {/* 新增文档弹窗 */}
             <Modal

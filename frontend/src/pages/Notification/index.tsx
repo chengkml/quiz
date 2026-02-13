@@ -110,7 +110,7 @@ const NotificationPage = () => {
                       >
                         <Typography.Text className="section-title">接收人</Typography.Text>
                         <Row gutter={16}>
-                          <Col xs={24} sm={12}>
+                          <Col span={12}>
                             <Form.Item
                               label={channel === 'SMS' ? '手机号列表' : channel === 'EMAIL' ? '收件人邮箱' : '接收用户（ID/账号）'}
                               field="recipients"
@@ -129,10 +129,10 @@ const NotificationPage = () => {
                             </Form.Item>
                           </Col>
 
-                          <Col xs={24} sm={12}>
+                          <Col span={12}>
                             {channel === 'EMAIL' && (
                               <Row gutter={16}>
-                                <Col xs={24} sm={12}>
+                                <Col span={12}>
                                   <Form.Item label="抄送" field="cc">
                                     <TextArea
                                       placeholder="可选，多个邮箱以逗号/分号/空格/换行分隔"
@@ -140,7 +140,7 @@ const NotificationPage = () => {
                                     />
                                   </Form.Item>
                                 </Col>
-                                <Col xs={24} sm={12}>
+                                <Col span={12}>
                                   <Form.Item label="密送" field="bcc">
                                     <TextArea
                                       placeholder="可选，多个邮箱以逗号/分号/空格/换行分隔"

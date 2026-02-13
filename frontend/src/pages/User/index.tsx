@@ -205,7 +205,7 @@ function UserManager() {
       label: "用户名",
       type: "input",
       placeholder: "请输入用户名关键词",
-      span: { xs: 24, sm: 12, md: 8, lg: 8 },
+      span: 8,
     },
     {
       field: "state",
@@ -216,7 +216,7 @@ function UserManager() {
         { label: "启用", value: "ENABLED" },
         { label: "禁用", value: "DISABLED" },
       ],
-      span: { xs: 24, sm: 12, md: 8, lg: 8 },
+      span: 8,
       allowClear: true,
       onChange: (value, allValues) => {
         // 状态改变时自动触发查询
@@ -540,49 +540,6 @@ function UserManager() {
     }));
   }, []);
 
-  // 渲染移动端卡片视图
-  const renderShortCard = (item) => {
-    return (
-      <Card
-        className="user-card"
-        title={
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <UserAvatar name={item.userName} size={24} style={{ marginRight: 8 }} />
-            <span style={{ fontWeight: "bold" }}>{item.userName}</span>
-          </div>
-        }
-        extra={
-          <Tag color={item.state === "ENABLED" ? "green" : "red"} size="small">
-            {item.state === "ENABLED" ? "启用" : "禁用"}
-          </Tag>
-        }
-        actions={[
-          <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEdit(item)} />,
-          <Button type="text" size="small" icon={<IconRefresh />} onClick={() => handleResetPassword(item)} />,
-          <Button type="text" size="small" icon={<IconMenu />} onClick={() => openAssignRoles(item)} />,
-          <Button type="text" size="small" status="danger" icon={<IconDelete />} onClick={() => handleDelete(item)} />
-        ]}
-      >
-        <div style={{ marginBottom: 8 }}>
-          <span style={{ color: "var(--color-text-3)", marginRight: 8 }}>ID:</span>
-          <span>{item.userId}</span>
-        </div>
-        <div style={{ marginBottom: 8 }}>
-          <span style={{ color: "var(--color-text-3)", marginRight: 8 }}>手机:</span>
-          <span>{item.phone || "-"}</span>
-        </div>
-        <div style={{ marginBottom: 8 }}>
-          <span style={{ color: "var(--color-text-3)", marginRight: 8 }}>邮箱:</span>
-          <span style={{ wordBreak: "break-all" }}>{item.email || "-"}</span>
-        </div>
-        <div>
-           <span style={{ color: "var(--color-text-3)", marginRight: 8 }}>创建时间:</span>
-           <span>{renderDate(item.createDate)}</span>
-        </div>
-      </Card>
-    );
-  };
-
   return (
     <div className="user-manager">
       <DataManager
@@ -594,9 +551,8 @@ function UserManager() {
           onAdd: handleAdd,
         }}
         config={{
-          showModeToggle: true, // 允许切换模式，以便在移动端自动切换
+          showModeToggle: false, // 暂时只支持表格模式
           displayMode: "table",
-          renderShortCard: renderShortCard, // 提供卡片渲染函数
           filterContent,
           tableColumns: columns, // 使用自定义列配置（包含操作列）
         }}

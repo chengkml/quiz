@@ -242,59 +242,6 @@ function CategoryManager() {
         setCurrentRecord(null);
     };
 
-    // 渲染移动端卡片视图
-    const renderShortCard = (item) => {
-        return (
-            <div
-                className="category-card"
-                style={{
-                    border: '1px solid var(--color-border-2)',
-                    borderRadius: 4,
-                    padding: 12,
-                    marginBottom: 12,
-                    background: 'var(--color-bg-2)',
-                }}
-            >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.name}</span>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    所属学科: {item.subjectName || '--'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    父分类: {item.parentName || '--'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    描述: {item.description || '--'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-                    创建时间: {renderDate(item.createDate)}
-                </div>
-                <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<IconEdit />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(item);
-                        }}
-                    >编辑</Button>
-                    <Button
-                        type="text"
-                        size="small"
-                        status="danger"
-                        icon={<IconDelete />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(item);
-                        }}
-                    >删除</Button>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <Layout className="category-manager">
             <Content>
@@ -310,10 +257,9 @@ function CategoryManager() {
                     }}
                     config={{
                         displayMode: 'table',
-                        renderShortCard,
                         filterContent,
                         tableColumns: tableColumns,
-                        showModeToggle: true,
+                        showModeToggle: false,
                     }}
                     tableScrollHeight={tableScrollHeight}
                 />

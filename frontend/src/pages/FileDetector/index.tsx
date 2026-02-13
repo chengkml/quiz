@@ -117,8 +117,8 @@ const FileCheck: React.FC = () => {
         <div className="file-check-container">
             <Layout>
                 <Content>
-                    <Row style={{height: '100%', flexWrap: 'wrap'}}>
-                        <Col xs={24} md={10} style={{padding: '20px', height: '100%'}}>
+                    <Row style={{height: '100%'}}>
+                        <Col span={10} style={{padding: '20px', height: '100%'}}>
                             <Form layout="vertical" autoComplete='off' style={{height: '100%'}}>
                                 <FormItem label="检测方式" rules={[{required: true}]} style={{height: '62px'}}>
                                     <Select
@@ -142,7 +142,7 @@ const FileCheck: React.FC = () => {
                                 </FormItem>
                             </Form>
                         </Col>
-                        <Col xs={24} md={14}
+                        <Col span={14}
                              style={{padding: '20px', height: '100%', borderLeft: '1px solid var(--color-neutral-3)'}}>
                             <Form layout="vertical" autoComplete='off' style={{height: '100%'}}>
                                 <FormItem label="识别结果">

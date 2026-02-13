@@ -367,82 +367,6 @@ function JobQueueManager() {
     ],
   };
 
-  // 渲染移动端卡片视图
-  const renderShortCard = (item: any) => {
-    const stateConfig = stateMap[item.state] || { color: "gray", text: item.state };
-    return (
-      <div
-        className="queue-card"
-        style={{
-          border: '1px solid var(--color-border-2)',
-          borderRadius: 4,
-          padding: 12,
-          marginBottom: 12,
-          background: 'var(--color-bg-2)',
-        }}
-        onClick={() => handleEdit(item)}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.queueName}</span>
-          <Tag color={stateConfig.color} size="small" bordered>
-            {stateConfig.text}
-          </Tag>
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-          中文名: {item.queueLabel || '--'}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-          大小: {item.queueSize} | 创建: {renderDate(item.createTime)}
-        </div>
-        <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-           <Button
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(item);
-            }}
-          >编辑</Button>
-          {item.state !== "ENABLED" && (
-            <Button
-              type="text"
-              size="small"
-              status="success"
-              icon={<IconCheckCircle />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStateChange(item, "ENABLED");
-              }}
-            >启用</Button>
-          )}
-          {item.state !== "DISABLED" && (
-            <Button
-              type="text"
-              size="small"
-              status="warning"
-              icon={<IconUndo />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStateChange(item, "DISABLED");
-              }}
-            >禁用</Button>
-          )}
-          <Button
-            type="text"
-            size="small"
-            status="danger"
-            icon={<IconDelete />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete(item);
-            }}
-          >删除</Button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="job-queue-manager">
       <DataManager
@@ -458,8 +382,7 @@ function JobQueueManager() {
         }}
         config={{
           displayMode: "table",
-          showModeToggle: true,
-          renderShortCard,
+          showModeToggle: false,
           filterContent: (
             <FilterForm
               ref={filterFormRef}
@@ -477,12 +400,6 @@ function JobQueueManager() {
             />
           ),
           tableColumns: columns,
-          tableProps: {
-            onRow: (record) => ({
-              onClick: () => handleEdit(record),
-              style: { cursor: 'pointer' }
-            })
-          }
         }}
         tableScrollHeight={tableScrollHeight}
       />

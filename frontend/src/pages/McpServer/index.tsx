@@ -358,85 +358,6 @@ function McpServerManager() {
     },
   ];
 
-  // 渲染移动端卡片视图
-  const renderShortCard = (item: any) => {
-    const info = statusTagMap[item.status] || { label: item.status || '-', color: 'gray' };
-    return (
-      <div
-        className="mcp-server-card"
-        style={{
-          border: '1px solid var(--color-border-2)',
-          borderRadius: 4,
-          padding: 12,
-          marginBottom: 12,
-          background: 'var(--color-bg-2)',
-        }}
-        onClick={() => {
-            setIsEdit(true);
-            setCurrentRecord(item);
-            setAddEditVisible(true);
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <Button
-            type="text"
-            size="small"
-            style={{ fontWeight: 'bold', fontSize: 14, padding: 0, height: 'auto', textDecoration: 'underline' }}
-            onClick={(e) => {
-                e.stopPropagation();
-                handleViewTools(item);
-            }}
-          >
-            {item.name}
-          </Button>
-          <Tag color={info.color} size="small" bordered>{info.label}</Tag>
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4, wordBreak: 'break-all' }}>
-          地址: {item.address}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-          创建: {renderDate(item.createDate)}
-        </div>
-        <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconRefresh />}
-            onClick={(e) => {
-                e.stopPropagation();
-                handleHealthCheck(item);
-            }}
-          >检查</Button>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsEdit(true);
-              setCurrentRecord(item);
-              setAddEditVisible(true);
-            }}
-          >编辑</Button>
-          <Popconfirm
-            title="确定删除？"
-            onOk={async () => {
-                await handleDelete(item);
-            }}
-          >
-            <Button
-                type="text"
-                size="small"
-                status="danger"
-                icon={<IconDelete />}
-                onClick={(e) => e.stopPropagation()}
-            >删除</Button>
-          </Popconfirm>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="mcp-server-manager">
       <DataManager
@@ -453,7 +374,6 @@ function McpServerManager() {
         }}
         config={{
           displayMode: 'table',
-          renderShortCard,
           tableColumns: customTableColumns,
           filterContent: (
             <FilterForm
@@ -462,7 +382,7 @@ function McpServerManager() {
               onReset={() => fetchData({}, 1)}
             />
           ),
-          showModeToggle: true,
+          showModeToggle: false,
           tableProps: {
             scroll: { x: true },
           },

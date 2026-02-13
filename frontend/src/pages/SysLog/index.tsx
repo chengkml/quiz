@@ -99,9 +99,9 @@ function SysLogPage() {
   ];
 
   const filterFields: FormFieldConfig[] = [
-    { field: 'module', label: '模块', type: 'input', placeholder: '请输入模块名', span: { xs: 24, sm: 12, md: 8, lg: 6 } },
-    { field: 'action', label: '操作', type: 'input', placeholder: '请输入操作类型', span: { xs: 24, sm: 12, md: 8, lg: 6 } },
-    { field: 'requestUri', label: '请求URI', type: 'input', placeholder: '支持模糊匹配', span: { xs: 24, sm: 12, md: 8, lg: 6 } },
+    { field: 'module', label: '模块', type: 'input', placeholder: '请输入模块名', span: 8 },
+    { field: 'action', label: '操作', type: 'input', placeholder: '请输入操作类型', span: 6 },
+    { field: 'requestUri', label: '请求URI', type: 'input', placeholder: '支持模糊匹配', span: 9 },
     {
       field: 'success',
       label: '是否成功',
@@ -111,7 +111,7 @@ function SysLogPage() {
         { label: '成功', value: '1' },
         { label: '失败', value: '0' },
       ],
-      span: { xs: 24, sm: 12, md: 8, lg: 6 },
+      span: 8,
     },
   ];
 
@@ -201,50 +201,6 @@ function SysLogPage() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // 渲染移动端卡片视图
-  const renderShortCard = (item: SysLogDto) => {
-    const success = item.success === '1';
-    return (
-      <div
-        className="syslog-card"
-        style={{
-          border: '1px solid var(--color-border-2)',
-          borderRadius: 4,
-          padding: 12,
-          marginBottom: 12,
-          background: 'var(--color-bg-2)',
-        }}
-        onClick={() => handleView(item)}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.module} - {item.action}</span>
-          <Tag color={success ? 'green' : 'red'} size="small" bordered>{success ? '成功' : '失败'}</Tag>
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4, wordBreak: 'break-all' }}>
-          URI: {item.requestUri}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-          方法: {item.requestMethod} | 耗时: {item.costTime}ms
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-          时间: {renderDate(item.createDate)}
-        </div>
-        <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <Button
-            type="text"
-            size="small"
-            status="danger"
-            icon={<IconDelete />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete(item);
-            }}
-          >删除</Button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="syslog-page" style={{ height: '100%' }}>
       <Layout style={{ height: '100%' }}>
@@ -259,8 +215,7 @@ function SysLogPage() {
             }}
             config={{
               displayMode: 'table',
-              showModeToggle: true,
-              renderShortCard,
+              showModeToggle: false,
               tableColumns,
               showFilterForm: true,
               filterContent: (

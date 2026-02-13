@@ -301,99 +301,6 @@ function CrawlerManager() {
     loadTableData();
   };
 
-  // 渲染移动端卡片视图
-  const renderShortCard = (item: CrawlerConfigDto) => {
-    const map: any = {
-      '0': { color: 'gray', text: '停止' },
-      '1': { color: 'green', text: '启用' },
-    };
-    const stateConfig = map[item.state] || { color: 'gray', text: item.state };
-
-    return (
-      <div
-        className="crawler-card"
-        style={{
-          border: '1px solid var(--color-border-2)',
-          borderRadius: 4,
-          padding: 12,
-          marginBottom: 12,
-          background: 'var(--color-bg-2)',
-        }}
-        onClick={() => {
-            setCurrentRecord(item);
-            setAddModalVisible(true);
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.name}</span>
-          <Tag color={stateConfig.color} size="small" bordered>{stateConfig.text}</Tag>
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-          标签: {item.label || '--'}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4, wordBreak: 'break-all' }}>
-          URL: {item.startUrl}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-          线程: {item.threadCount} | 创建: {renderDate(item.createTime)}
-        </div>
-        <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentRecord(item);
-              setAddModalVisible(true);
-            }}
-          >编辑</Button>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconRefresh />}
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentRecord(item);
-              setTriggerModalVisible(true);
-            }}
-          >触发</Button>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconEye />}
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentRecord(item);
-              setResultModalVisible(true);
-              loadResultData(item.id!);
-            }}
-          >结果</Button>
-          <Popconfirm
-            title="确认删除该爬虫配置吗？"
-            onOk={async () => {
-              try {
-                await deleteCrawlerConfig([item.id!]);
-                Message.success('删除成功');
-                loadTableData();
-              } catch (error: any) {
-                Message.error(error.message || '删除失败');
-              }
-            }}
-          >
-            <Button
-              type="text"
-              size="small"
-              status="danger"
-              icon={<IconDelete />}
-              onClick={(e) => e.stopPropagation()}
-            >删除</Button>
-          </Popconfirm>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="crawler-manager">
       {/* 筛选表单 */}
@@ -412,9 +319,6 @@ function CrawlerManager() {
         pagination={pagination}
         onPageChange={handlePageChange}
         scroll={{ y: tableScrollHeight }}
-        renderShortCard={renderShortCard}
-        showModeToggle={true}
-        displayMode="table"
         toolbarButtons={[
           <Button key="add" type="primary" icon={<IconPlus />} onClick={handleAdd}>
             新增爬虫

@@ -338,81 +338,6 @@ function CronTaskManager() {
     />
   );
 
-  // 渲染移动端卡片视图
-  const renderShortCard = (item) => {
-    const stateMap = {
-      ENABLED: { color: 'green', text: '启用' },
-      DISABLED: { color: 'gray', text: '禁用' },
-    };
-    const stateConfig = stateMap[item.state] || { color: 'gray', text: item.state };
-
-    return (
-      <div
-        className="cron-task-card"
-        style={{
-          border: '1px solid var(--color-border-2)',
-          borderRadius: 4,
-          padding: 12,
-          marginBottom: 12,
-          background: 'var(--color-bg-2)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.label || item.name}</span>
-          <Tag color={stateConfig.color} size="small" bordered>{stateConfig.text}</Tag>
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4, wordBreak: 'break-all' }}>
-          类名: {item.taskClass}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-          队列: {item.queueName}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-          Cron: {item.cronExpression}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-          下次运行: {renderDate(item.nextFireTime)}
-        </div>
-        <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(item);
-            }}
-          >编辑</Button>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconRefresh />}
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentRecord(item);
-              setTriggerModalVisible(true);
-            }}
-          >触发</Button>
-          <Popconfirm
-            title="确认删除该定时任务吗？"
-            onOk={() => {
-              setCurrentRecord(item);
-              setDeleteModalVisible(true);
-            }}
-          >
-            <Button
-              type="text"
-              size="small"
-              status="danger"
-              icon={<IconDelete />}
-              onClick={(e) => e.stopPropagation()}
-            >删除</Button>
-          </Popconfirm>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="cron-task-manager">
       <DataManager
@@ -424,9 +349,8 @@ function CronTaskManager() {
           onAdd: handleAdd,
         }}
         config={{
-          showModeToggle: true,
+          showModeToggle: false,
           displayMode: 'table',
-          renderShortCard,
           filterContent,
           tableColumns: columns,
         }}

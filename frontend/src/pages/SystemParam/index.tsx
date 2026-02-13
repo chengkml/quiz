@@ -145,8 +145,8 @@ function SystemParamManager() {
   ];
 
   const searchFormFields: FormFieldConfig[] = [
-    { field: 'paramName', label: '名称', type: 'input', placeholder: '输入名称', span: { xs: 24, sm: 12, md: 8, lg: 8 } },
-    { field: 'category', label: '分类', type: 'input', placeholder: '输入分类', span: { xs: 24, sm: 12, md: 8, lg: 8 } },
+    { field: 'paramName', label: '名称', type: 'input', placeholder: '输入名称', span: 8 },
+    { field: 'category', label: '分类', type: 'input', placeholder: '输入分类', span: 8 },
     {
       field: 'status',
       label: '状态',
@@ -156,7 +156,7 @@ function SystemParamManager() {
         { label: '启用', value: ParamStatus.ACTIVE },
         { label: '禁用', value: ParamStatus.INACTIVE },
       ],
-      span: { xs: 24, sm: 12, md: 8, lg: 8 },
+      span: 8,
     },
   ];
 
@@ -231,61 +231,6 @@ function SystemParamManager() {
     }
   };
 
-  // 渲染移动端卡片视图
-  const renderShortCard = (item: SystemParamDto) => {
-    const map: any = { ACTIVE: '启用', INACTIVE: '禁用' };
-    const color: any = { ACTIVE: 'green', INACTIVE: 'gray' };
-    const statusConfig = { color: color[item.status] || 'gray', text: map[item.status] || item.status };
-
-    return (
-      <div
-        className="param-card"
-        style={{
-          border: '1px solid var(--color-border-2)',
-          borderRadius: 4,
-          padding: 12,
-          marginBottom: 12,
-          background: 'var(--color-bg-2)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.paramName}</span>
-          <Tag color={statusConfig.color} size="small" bordered>{statusConfig.text}</Tag>
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-          分类: {item.category || '-'}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4, wordBreak: 'break-all' }}>
-          值: {item.isEncrypted ? '******' : (item.paramValue || '-')}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-          描述: {item.description || '-'}
-        </div>
-        <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <Button
-            type="text"
-            size="small"
-            disabled={item.isReadonly}
-            onClick={(e) => {
-                e.stopPropagation();
-                handleEdit(item);
-            }}
-          >编辑</Button>
-          <Button
-            type="text"
-            size="small"
-            status="danger"
-            disabled={item.isReadonly}
-            onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(item);
-            }}
-          >删除</Button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="system-param-manager">
       <DataManager
@@ -299,9 +244,8 @@ function SystemParamManager() {
             }}
             actions={{ onAdd: handleAdd, onEdit: handleEdit, onDelete: handleDelete }}
             config={{
-              showModeToggle: true,
+              showModeToggle: false,
               displayMode: 'table',
-              renderShortCard,
               filterContent,
               showTree: true,
               showTreeFilter: true,

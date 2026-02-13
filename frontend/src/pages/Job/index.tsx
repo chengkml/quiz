@@ -426,7 +426,7 @@ function JobManager() {
                 label: '任务',
                 type: 'select',
                 placeholder: '请选择任务类名',
-                span: { xs: 24, sm: 12, md: 8, lg: 6 },
+                span: 6,
                 allowClear: true,
                 options: jobs.map(opt => ({
                     label: opt.label,
@@ -438,7 +438,7 @@ function JobManager() {
                 label: '队列',
                 type: 'select',
                 placeholder: '请选择队列名称',
-                span: { xs: 24, sm: 12, md: 8, lg: 6 },
+                span: 6,
                 allowClear: true,
                 options: queues.map(opt => ({
                     label: opt.queueLabel || opt.queueName,
@@ -450,7 +450,7 @@ function JobManager() {
                 label: '状态',
                 type: 'select',
                 placeholder: '请选择状态',
-                span: { xs: 24, sm: 12, md: 8, lg: 6 },
+                span: 6,
                 allowClear: true,
                 options: status,
             },
@@ -468,101 +468,6 @@ function JobManager() {
         />
     );
 
-    // 渲染移动端卡片视图
-    const renderShortCard = (item) => {
-        const stateMap = {
-            RUNNING: { color: 'blue', text: '运行中' },
-            SUCCESS: { color: 'green', text: '成功' },
-            FAILED: { color: 'red', text: '失败' },
-            STOPPED: { color: 'gold', text: '已终止' },
-            PENDING: { color: 'gray', text: '待执行' },
-        };
-        const stateConfig = stateMap[item.state] || { color: 'arcoblue', text: item.state };
-
-        const triggerTypeMap = {
-            HAND: '手工触发',
-            CRON: '定时触发',
-            QUEUE_CRON: '定时队列触发',
-        };
-
-        return (
-            <div
-                className="job-card"
-                style={{
-                    border: '1px solid var(--color-border-2)',
-                    borderRadius: 4,
-                    padding: 12,
-                    marginBottom: 12,
-                    background: 'var(--color-bg-2)',
-                }}
-            >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontWeight: 'bold', fontSize: 14 }}>{item.taskClass}</span>
-                    <Tag color={stateConfig.color} size="small" bordered>{stateConfig.text}</Tag>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    ID: {item.id}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    队列: {item.queueLabel || item.queueName}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    触发类型: {triggerTypeMap[item.triggerType] || item.triggerType}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-                    开始时间: {renderDate(item.startTime)}
-                </div>
-                <div style={{ borderTop: '1px solid var(--color-border-2)', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                    {item.state === 'RUNNING' && (
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconStop />}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setCurrentRecord(item);
-                                setStopModalVisible(true);
-                            }}
-                        >停止</Button>
-                    )}
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<IconInfo />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentJobId(item.id);
-                            setLogModalVisible(true);
-                        }}
-                    >日志</Button>
-                    {['RUNNING'].indexOf(item.state) === -1 && (
-                        <Popconfirm
-                            title="确认删除该作业吗？"
-                            onOk={async () => {
-                                try {
-                                    await deleteJob(item.id);
-                                    Message.success('删除作业成功');
-                                    const filterValues = filterFormRef.current?.getFilterValues?.() || {};
-                                    searchTableData(filterValues);
-                                } catch (error) {
-                                    Message.error('删除作业失败');
-                                }
-                            }}
-                        >
-                            <Button
-                                type="text"
-                                size="small"
-                                status="danger"
-                                icon={<IconDelete />}
-                                onClick={(e) => e.stopPropagation()}
-                            >删除</Button>
-                        </Popconfirm>
-                    )}
-                </div>
-            </div>
-        );
-    };
-
     return (
         <div className="job-manager">
             <DataManager
@@ -575,8 +480,7 @@ function JobManager() {
                 }}
                 config={{
                     displayMode: 'table',
-                    showModeToggle: true,
-                    renderShortCard,
+                    showModeToggle: false,
                     tableColumns: columns,
                     filterContent: filterContent,
                 }}
