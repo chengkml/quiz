@@ -26,4 +26,6 @@ public class CalendarEventDto extends Dto {
     private Boolean allDay;
 
     private LocalDateTime completedAt;
+
+    private String todoId;
 }

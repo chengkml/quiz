@@ -66,6 +66,7 @@ import DataQuery from "@/pages/DataQuery";
 import JwtGenerator from "@/pages/JwtGenerator";
 import ApiTester from "@/pages/ApiTester";
 import TagManager from "@/pages/Tag";
+import RequirementManager from "@/pages/Requirement";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -336,6 +337,11 @@ const protectedPages = [
     path: "tag",
     element: <TagManager />,
     requiredPath: "tag",
+  },
+  {
+    path: "requirement",
+    element: <RequirementManager />,
+    requiredPath: "requirement",
   },
 ];
 

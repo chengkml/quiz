@@ -3,7 +3,7 @@ import {Button, DatePicker, Form, Input, Layout, Message, Modal, Select, Space, 
 import {IconLeft, IconRight, IconPlus, IconClockCircle, IconCheckCircle, IconCloseCircle} from '@arco-design/web-react/icon';
 import dayjs from 'dayjs';
 import './style/index.less';
-import {createSchedule, getSchedulesByDateRange, updateSchedule, streamGenerateEventUrl, completeSchedule} from './api';
+import {createSchedule, getSchedulesByDateRange, updateSchedule, streamGenerateEventUrl, completeSchedule, deleteSchedule} from './api';
 import {formatLunarDate, getHolidays} from './utils/lunar';
 import { getLLMModelsByType } from '@/services/llmModelService';
 
@@ -449,6 +449,30 @@ function ScheduleManager() {
         setGeneratedEventData(null);
         setStreamingContent('');
         setShowEditForm(true);
+    };
+
+    // 删除日程
+    const handleDelete = () => {
+        if (!currentSchedule) return;
+
+        Modal.confirm({
+            title: '确认删除',
+            content: `确定要删除日程 "${currentSchedule.title}" 吗？`,
+            okText: '确认删除',
+            cancelText: '取消',
+            okButtonProps: { status: 'danger' },
+            onOk: async () => {
+                try {
+                    await deleteSchedule(currentSchedule.id);
+                    Message.success('日程删除成功');
+                    setModalVisible(false);
+                    loadSchedules();
+                } catch (error) {
+                    console.error('删除日程失败:', error);
+                    Message.error('删除失败');
+                }
+            },
+        });
     };
 
     // 保存日程
@@ -954,8 +978,41 @@ function ScheduleManager() {
                     setModalVisible(false);
                     handleCancelGenerate();
                 }}
-                okText="保存"
-                cancelText="取消"
+                footer={(originNode: any) => {
+                    if (isEditMode) {
+                        return (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Button status="danger" onClick={handleDelete}>
+                                    删除
+                                </Button>
+                                <Space>
+                                    <Button onClick={() => {
+                                        setModalVisible(false);
+                                        handleCancelGenerate();
+                                    }}>
+                                        取消
+                                    </Button>
+                                    <Button type="primary" onClick={handleSave}>
+                                        保存
+                                    </Button>
+                                </Space>
+                            </div>
+                        );
+                    }
+                    return (
+                        <Space>
+                            <Button onClick={() => {
+                                setModalVisible(false);
+                                handleCancelGenerate();
+                            }}>
+                                取消
+                            </Button>
+                            <Button type="primary" onClick={handleSave}>
+                                保存
+                            </Button>
+                        </Space>
+                    );
+                }}
                 wrapClassName={isEditMode || generatedEventData ? 'schedule-modal-normal' : 'schedule-modal-wide'}
                 maskClosable={false}
                 className="schedule-modal"

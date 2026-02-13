@@ -37,4 +37,9 @@ public class CalendarEventCreateDto extends CreateDto {
      * 是否为同步创建（防止循环调用）
      */
     private Boolean isSync = false;
+
+    /**
+     * 关联的待办ID（同步创建时传入）
+     */
+    private String todoId;
 }

@@ -52,6 +52,10 @@ public class CalendarEvent extends Model {
     @Comment("完成时间")
     private LocalDateTime completedAt;
 
+    @Comment("关联的待办ID")
+    @Column(length = 32)
+    private String todoId;
+
     public enum Status {
         SCHEDULED,
         IN_PROGRESS,

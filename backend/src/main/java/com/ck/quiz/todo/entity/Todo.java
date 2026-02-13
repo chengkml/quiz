@@ -42,6 +42,10 @@ public class Todo extends Model {
     @Comment("截止时间")
     private LocalDateTime dueDate;
 
+    @Comment("关联的日程ID")
+    @Column(length = 32)
+    private String calendarEventId;
+
     public enum Status {
         SCHEDULED,
         IN_PROGRESS,

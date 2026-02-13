@@ -15,6 +15,7 @@ import com.ck.quiz.todo.service.TodoService;
 import com.ck.quiz.utils.JdbcQueryHelper;
 
 import com.ck.quiz.calendar.dto.CalendarEventCreateDto;
+import com.ck.quiz.calendar.dto.CalendarEventDto;
 import com.ck.quiz.calendar.entity.CalendarEvent;
 import com.ck.quiz.calendar.service.CalendarEventService;
 import lombok.extern.slf4j.Slf4j;
@@ -68,6 +69,15 @@ public class TodoServiceImpl
 
         // 如果是同步创建的，不再触发反向同步
         if (Boolean.TRUE.equals(createDto.getIsSync())) {
+            // 如果传入了 calendarEventId，更新当前的 calendarEventId
+            if (createDto.getCalendarEventId() != null) {
+                Todo todo = todoRepository.findById(dto.getId()).orElse(null);
+                if (todo != null) {
+                    todo.setCalendarEventId(createDto.getCalendarEventId());
+                    todoRepository.save(todo);
+                    dto.setCalendarEventId(createDto.getCalendarEventId());
+                }
+            }
             return dto;
         }
 
@@ -77,6 +87,7 @@ public class TodoServiceImpl
             eventDto.setTitle(createDto.getTitle());
             eventDto.setDescr(createDto.getDescr());
             eventDto.setIsSync(true); // 标记为同步
+            eventDto.setTodoId(dto.getId()); // 设置关联的待办ID
 
             // 时间处理：优先使用startTime，其次dueDate，默认当前时间
             LocalDateTime start = createDto.getStartTime();
@@ -92,13 +103,43 @@ public class TodoServiceImpl
             eventDto.setAllDay(false);
             eventDto.setStatus(CalendarEvent.Status.SCHEDULED);
 
-            calendarEventService.create(eventDto);
+            CalendarEventDto createdEvent = calendarEventService.create(eventDto);
+
+            // 回填 calendarEventId
+            Todo todo = todoRepository.findById(dto.getId()).orElse(null);
+            if (todo != null && createdEvent != null) {
+                todo.setCalendarEventId(createdEvent.getId());
+                todoRepository.save(todo);
+                dto.setCalendarEventId(createdEvent.getId());
+            }
         } catch (Exception e) {
             // 同步失败不影响主流程，仅记录日志
             log.error("Failed to sync todo to schedule: {}", e.getMessage());
         }
 
         return dto;
+    }
+
+    @Override
+    @Transactional
+    public void delete(String userId, String id) {
+        Optional<Todo> op = todoRepository.findById(id);
+        if (op.isEmpty()) {
+            return;
+        }
+        Todo todo = op.get();
+        String calendarEventId = todo.getCalendarEventId();
+
+        super.delete(userId, id);
+        todoRepository.flush();
+
+        if (calendarEventId != null && !calendarEventId.isEmpty()) {
+            try {
+                calendarEventService.delete(userId, calendarEventId);
+            } catch (Exception e) {
+                log.warn("Failed to delete linked calendar event: {}", e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -146,6 +187,7 @@ public class TodoServiceImpl
             todo.setStatus(rs.getString("status") != null ? Todo.Status.valueOf(rs.getString("status")) : null);
             todo.setPriority(rs.getString("priority") != null ? Todo.Priority.valueOf(rs.getString("priority")) : null);
             todo.setDueDate(rs.getTimestamp("due_date") != null ? rs.getTimestamp("due_date").toLocalDateTime() : null);
+            todo.setCalendarEventId(rs.getString("calendar_event_id"));
             todo.setCreateDate(
                     rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             todo.setCreateUser(rs.getString("create_user"));

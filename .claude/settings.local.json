@@ -21,7 +21,8 @@
       "Bash(./gradlew compileJava)",
       "Bash(git revert:*)",
       "Bash(mvn clean compile)",
-      "Bash(gradlew.bat compileJava)"
+      "Bash(gradlew.bat compileJava)",
+      "Bash(chmod:*)"
     ]
   }
 }

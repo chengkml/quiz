@@ -10,6 +10,7 @@ import com.ck.quiz.calendar.repository.CalendarEventRepository;
 import com.ck.quiz.calendar.service.CalendarEventService;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.todo.dto.TodoCreateDto;
+import com.ck.quiz.todo.dto.TodoDto;
 import com.ck.quiz.todo.entity.Todo;
 import com.ck.quiz.todo.service.TodoService;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
@@ -63,6 +64,15 @@ public class CalendarEventServiceImpl
 
         // 如果是同步创建的，不再触发反向同步
         if (Boolean.TRUE.equals(createDto.getIsSync())) {
+            // 如果传入了 todoId，更新当前的 todoId
+            if (createDto.getTodoId() != null) {
+                CalendarEvent event = calendarEventRepository.findById(dto.getId()).orElse(null);
+                if (event != null) {
+                    event.setTodoId(createDto.getTodoId());
+                    calendarEventRepository.save(event);
+                    dto.setTodoId(createDto.getTodoId());
+                }
+            }
             return dto;
         }
 
@@ -76,13 +86,44 @@ public class CalendarEventServiceImpl
             todoDto.setDueDate(createDto.getEndTime());
             todoDto.setStatus(Todo.Status.SCHEDULED);
             todoDto.setPriority(Todo.Priority.MEDIUM);
+            todoDto.setCalendarEventId(dto.getId()); // 设置关联的日程ID
 
-            todoService.create(todoDto);
+            TodoDto createdTodo = todoService.create(todoDto);
+            
+            // 回填 todoId
+            CalendarEvent event = calendarEventRepository.findById(dto.getId()).orElse(null);
+            if (event != null && createdTodo != null) {
+                event.setTodoId(createdTodo.getId());
+                calendarEventRepository.save(event);
+                dto.setTodoId(createdTodo.getId());
+            }
         } catch (Exception e) {
             log.error("Failed to sync schedule to todo: {}", e.getMessage());
         }
 
         return dto;
+    }
+
+    @Override
+    @Transactional
+    public void delete(String userId, String id) {
+        Optional<CalendarEvent> op = calendarEventRepository.findById(id);
+        if (op.isEmpty()) {
+            return;
+        }
+        CalendarEvent event = op.get();
+        String todoId = event.getTodoId();
+
+        super.delete(userId, id);
+        calendarEventRepository.flush();
+
+        if (todoId != null && !todoId.isEmpty()) {
+            try {
+                todoService.delete(userId, todoId);
+            } catch (Exception e) {
+                log.warn("Failed to delete linked todo: {}", e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -143,6 +184,7 @@ public class CalendarEventServiceImpl
             event.setAllDay(rs.getObject("all_day") != null ? rs.getBoolean("all_day") : null);
             event.setCompletedAt(
                     rs.getTimestamp("completed_at") != null ? rs.getTimestamp("completed_at").toLocalDateTime() : null);
+            event.setTodoId(rs.getString("todo_id"));
             event.setCreateDate(
                     rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);
             event.setCreateUser(rs.getString("create_user"));

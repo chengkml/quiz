@@ -361,13 +361,23 @@ function QuestionManager() {
             setTreeLoading(true);
             const response = await getSubjectCategoryTree();
             if (response.data) {
-                // 只保留第一层subject节点
+                const convertCategoriesToTreeNodes = (categories) => {
+                    if (!categories || !Array.isArray(categories)) return [];
+                    return categories.map(category => ({
+                        key: category.id,
+                        title: category.name,
+                        subjectId: category.subjectId,
+                        categoryId: category.id,
+                        children: convertCategoriesToTreeNodes(category.children)
+                    }));
+                };
+
                 const treeData = response.data.map(subject => ({
                     key: subject.id,
                     title: subject.name,
                     subjectId: subject.id,
                     categoryId: null,
-                    children: []
+                    children: convertCategoriesToTreeNodes(subject.categories)
                 }));
                 setTreeData(treeData);
                 setFilteredTreeData(treeData);
