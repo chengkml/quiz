@@ -189,6 +189,9 @@ const formConfig: FormFieldConfig[] = [
 
 ## UI 规范
 
+- **移动端适配 (Mobile Adaptation)**：
+  - 尽量兼容移动端显示，但不作为强制要求。
+  - **表格**：在移动端可允许横向滚动。
 - 使用 Arco Design 组件库
 - 样式使用 Less，类名采用 kebab-case
 - 颜色使用 CSS 变量 (如 `var(--color-primary-6)`)
