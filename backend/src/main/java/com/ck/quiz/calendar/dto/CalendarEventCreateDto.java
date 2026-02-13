@@ -32,4 +32,9 @@ public class CalendarEventCreateDto extends CreateDto {
     private LocalDateTime endTime;
 
     private Boolean allDay = Boolean.FALSE;
+
+    /**
+     * 是否为同步创建（防止循环调用）
+     */
+    private Boolean isSync = false;
 }

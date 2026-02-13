@@ -14,7 +14,14 @@
       "Bash(git commit:*)",
       "Bash(git push)",
       "Bash(./gradlew.bat compileJava)",
-      "Bash(./gradlew.bat:*)"
+      "Bash(./gradlew.bat:*)",
+      "Bash(.gradlew.bat:*)",
+      "Bash(./gradlew clean:*)",
+      "Bash(./gradlew classes)",
+      "Bash(./gradlew compileJava)",
+      "Bash(git revert:*)",
+      "Bash(mvn clean compile)",
+      "Bash(gradlew.bat compileJava)"
     ]
   }
 }

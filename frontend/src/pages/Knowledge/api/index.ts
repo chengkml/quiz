@@ -36,6 +36,24 @@ const getCategoriesBySubjectId = (subjectId) => axios.post('/category/search', {
 // 获取知识点关联的问题列表
 const getKnowledgeQuestions = knowledgeId => axios.get(`/knowledge/${knowledgeId}/questions`);
 
+// 创建学科
+const createSubject = params => axios.post('/subject/create', params);
+
+// 更新学科
+const updateSubject = params => axios.put('/subject/update', params);
+
+// 删除学科
+const deleteSubject = id => axios.delete(`/subject/delete/${id}`);
+
+// 创建分类
+const createCategory = params => axios.post('/category/create', params);
+
+// 更新分类
+const updateCategory = params => axios.put('/category/update', params);
+
+// 删除分类
+const deleteCategory = id => axios.delete(`/category/delete/${id}`);
+
 // 流式润色知识点URL
 const streamPolishKnowledgeUrl = (content, modelName?: string) => {
   const qs = [`content=${encodeURIComponent(content)}`];
@@ -56,5 +74,11 @@ export {
   getCategoriesBySubjectId,
   getKnowledgeQuestions,
   getSubjectCategoryTree,
-  streamPolishKnowledgeUrl
+  streamPolishKnowledgeUrl,
+  createSubject,
+  updateSubject,
+  deleteSubject,
+  createCategory,
+  updateCategory,
+  deleteCategory
 };

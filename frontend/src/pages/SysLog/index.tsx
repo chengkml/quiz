@@ -1,15 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Dropdown, Grid, Layout, Menu, Message, Modal, Space, Tag } from '@arco-design/web-react';
-import { IconDelete, IconEye, IconList, IconSearch } from '@arco-design/web-react/icon';
+import { Button, Message, Popconfirm, Space, Tag, Tooltip } from '@arco-design/web-react';
+import { IconDelete } from '@arco-design/web-react/icon';
 import { DataManager, DetailModal } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { DetailFieldConfig, FormFieldConfig } from '@/components/types/types';
 import UserAvatar from '@/components/UserAvatar';
 import { deleteSysLog, getSysLogById, searchSysLog, SysLogDto } from './api';
 import renderDate from '@/utils/timeUtil';
-
-const { Content } = Layout;
-const { Row, Col } = Grid;
+import './style/index.less';
 
 function SysLogPage() {
   const [items, setItems] = useState<SysLogDto[]>([]);
@@ -27,93 +25,8 @@ function SysLogPage() {
 
   const [currentRecord, setCurrentRecord] = useState<SysLogDto | null>(null);
   const [detailVisible, setDetailVisible] = useState(false);
-  const [deleteVisible, setDeleteVisible] = useState(false);
 
   const filterFormRef = useRef<any>(null);
-
-  const tableColumns = [
-    { title: '模块', dataIndex: 'module', width: 140, ellipsis: true },
-    { title: '操作', dataIndex: 'action', width: 180, ellipsis: true },
-    { title: '请求URI', dataIndex: 'requestUri', width: 260, ellipsis: true },
-    { title: '方法', dataIndex: 'requestMethod', width: 90 },
-    {
-      title: '成功',
-      dataIndex: 'success',
-      width: 90,
-      render: (val: string) => {
-        const success = val === '1';
-        return (
-          <Tag color={success ? 'green' : 'red'} bordered>
-            {success ? '成功' : '失败'}
-          </Tag>
-        );
-      },
-    },
-    { title: '耗时(ms)', dataIndex: 'costTime', width: 100 },
-    {
-      title: '创建人',
-      dataIndex: 'createUserName',
-      width: 140,
-      render: (name: string, record: SysLogDto) => (
-        <UserAvatar name={name || record?.createUser || ''} showName />
-      ),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createDate',
-      width: 180,
-      render: (v: string) => renderDate(v),
-    },
-  ];
-
-  const detailFields: DetailFieldConfig[] = [
-    { key: 'module', label: '模块', dataIndex: 'module' },
-    { key: 'action', label: '操作', dataIndex: 'action' },
-    { key: 'requestUri', label: '请求URI', dataIndex: 'requestUri' },
-    { key: 'requestMethod', label: '方法', dataIndex: 'requestMethod' },
-    {
-      key: 'success',
-      label: '是否成功',
-      dataIndex: 'success',
-      render: (val: string) => {
-        const success = val === '1';
-        return (
-          <Tag color={success ? 'green' : 'red'} bordered>
-            {success ? '成功' : '失败'}
-          </Tag>
-        );
-      },
-    },
-    { key: 'costTime', label: '耗时(毫秒)', dataIndex: 'costTime' },
-    { key: 'ipAddress', label: 'IP地址', dataIndex: 'ipAddress' },
-    { key: 'userAgent', label: 'User-Agent', dataIndex: 'userAgent' },
-    { key: 'createUserName', label: '创建人', dataIndex: 'createUserName', render: (name, rec) => (
-      <UserAvatar name={name || rec?.createUser || ''} showName />
-    ) },
-    { key: 'createDate', label: '创建时间', dataIndex: 'createDate', render: (v) => renderDate(v) },
-    { key: 'updateUserName', label: '更新人', dataIndex: 'updateUserName' },
-    { key: 'updateDate', label: '更新时间', dataIndex: 'updateDate', render: (v) => renderDate(v) },
-    { key: 'requestParams', label: '请求参数', dataIndex: 'requestParams' },
-    { key: 'responseData', label: '响应数据', dataIndex: 'responseData' },
-    { key: 'errorMessage', label: '错误信息', dataIndex: 'errorMessage' },
-  ];
-
-  const filterFields: FormFieldConfig[] = [
-    { field: 'module', label: '模块', type: 'input', placeholder: '请输入模块名', span: 8 },
-    { field: 'action', label: '操作', type: 'input', placeholder: '请输入操作类型', span: 6 },
-    { field: 'requestUri', label: '请求URI', type: 'input', placeholder: '支持模糊匹配', span: 9 },
-    {
-      field: 'success',
-      label: '是否成功',
-      type: 'select',
-      options: [
-        { label: '全部', value: '' },
-        { label: '成功', value: '1' },
-        { label: '失败', value: '0' },
-      ],
-      span: 8,
-    },
-  ];
 
   const loadData = async (params?: any) => {
     setSearchLoading(true);
@@ -172,22 +85,121 @@ function SysLogPage() {
     }
   };
 
-  const handleDelete = (record: SysLogDto) => {
-    setCurrentRecord(record);
-    setDeleteVisible(true);
-  };
-
-  const doDelete = async () => {
-    if (!currentRecord) return;
+  const handleDelete = async (record: SysLogDto) => {
     try {
-      await deleteSysLog(currentRecord.id);
+      await deleteSysLog(record.id);
       Message.success('删除成功');
-      setDeleteVisible(false);
-      await handleSearch();
+      loadData();
     } catch (e) {
       Message.error('删除失败');
     }
   };
+
+  const tableColumns = [
+    { title: '模块', dataIndex: 'module', width: 140, ellipsis: true },
+    { title: '操作', dataIndex: 'action', width: 180, ellipsis: true },
+    { title: '请求URI', dataIndex: 'requestUri', width: 260, ellipsis: true },
+    { title: '方法', dataIndex: 'requestMethod', width: 90 },
+    {
+      title: '成功',
+      dataIndex: 'success',
+      width: 90,
+      render: (val: string) => {
+        const success = val === '1';
+        return (
+          <Tag color={success ? 'green' : 'red'} bordered>
+            {success ? '成功' : '失败'}
+          </Tag>
+        );
+      },
+    },
+    { title: '耗时(ms)', dataIndex: 'costTime', width: 100 },
+    {
+      title: '创建人',
+      dataIndex: 'createUserName',
+      width: 140,
+      render: (name: string, record: SysLogDto) => (
+        <UserAvatar name={name || record?.createUser || ''} showName />
+      ),
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createDate',
+      width: 180,
+      render: (v: string) => renderDate(v),
+    },
+    {
+      title: '操作',
+      width: 80,
+      fixed: 'right' as const,
+      align: 'center' as const,
+      render: (_, record) => (
+        <Popconfirm
+          title="确认删除该日志记录？"
+          onOk={() => handleDelete(record)}
+        >
+          <Tooltip title="删除">
+            <Button
+              type="text"
+              status="danger"
+              size="small"
+              icon={<IconDelete />}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Tooltip>
+        </Popconfirm>
+      ),
+    },
+  ];
+
+  const detailFields: DetailFieldConfig[] = [
+    { key: 'module', label: '模块', dataIndex: 'module' },
+    { key: 'action', label: '操作', dataIndex: 'action' },
+    { key: 'requestUri', label: '请求URI', dataIndex: 'requestUri' },
+    { key: 'requestMethod', label: '方法', dataIndex: 'requestMethod' },
+    {
+      key: 'success',
+      label: '是否成功',
+      dataIndex: 'success',
+      render: (val: string) => {
+        const success = val === '1';
+        return (
+          <Tag color={success ? 'green' : 'red'} bordered>
+            {success ? '成功' : '失败'}
+          </Tag>
+        );
+      },
+    },
+    { key: 'costTime', label: '耗时(毫秒)', dataIndex: 'costTime' },
+    { key: 'ipAddress', label: 'IP地址', dataIndex: 'ipAddress' },
+    { key: 'userAgent', label: 'User-Agent', dataIndex: 'userAgent' },
+    { key: 'createUserName', label: '创建人', dataIndex: 'createUserName', render: (name, rec) => (
+      <UserAvatar name={name || rec?.createUser || ''} showName />
+    ) },
+    { key: 'createDate', label: '创建时间', dataIndex: 'createDate', render: (v) => renderDate(v) },
+    { key: 'updateUserName', label: '更新人', dataIndex: 'updateUserName' },
+    { key: 'updateDate', label: '更新时间', dataIndex: 'updateDate', render: (v) => renderDate(v) },
+    { key: 'requestParams', label: '请求参数', dataIndex: 'requestParams' },
+    { key: 'responseData', label: '响应数据', dataIndex: 'responseData' },
+    { key: 'errorMessage', label: '错误信息', dataIndex: 'errorMessage' },
+  ];
+
+  const filterFields: FormFieldConfig[] = [
+    { field: 'module', label: '模块', type: 'input', placeholder: '请输入模块名', span: 8 },
+    { field: 'action', label: '操作', type: 'input', placeholder: '请输入操作类型', span: 6 },
+    { field: 'requestUri', label: '请求URI', type: 'input', placeholder: '支持模糊匹配', span: 9 },
+    {
+      field: 'success',
+      label: '是否成功',
+      type: 'select',
+      options: [
+        { label: '全部', value: '' },
+        { label: '成功', value: '1' },
+        { label: '失败', value: '0' },
+      ],
+      span: 8,
+    },
+  ];
 
   useEffect(() => {
     const onResize = () => {
@@ -202,43 +214,39 @@ function SysLogPage() {
   }, []);
 
   return (
-    <div className="syslog-page" style={{ height: '100%' }}>
-      <Layout style={{ height: '100%' }}>
-        <Content style={{ padding: 16 }}>
-          <DataManager
-            data={items}
-            loading={searchLoading || loading}
-            pagination={pagination}
-            onPaginationChange={(p) => handlePageChange(p.current, p.pageSize)}
-            actions={{
-              onDelete: handleDelete,
-            }}
-            config={{
-              displayMode: 'table',
-              showModeToggle: false,
-              tableColumns,
-              showFilterForm: true,
-              filterContent: (
-                <div>
-                  <FilterForm
-                    ref={filterFormRef}
-                    formFields={filterFields}
-                    onSearch={handleSearch}
-                    onReset={handleReset}
-                  />
-                </div>
-              ),
-              tableProps: {
-                onRow: (record) => ({
-                    onClick: () => handleView(record),
-                    style: { cursor: 'pointer' }
-                })
-              }
-            }}
-            tableScrollHeight={tableScrollHeight}
-          />
-        </Content>
-      </Layout>
+    <div className="syslog-manager">
+      <DataManager
+        data={items}
+        loading={searchLoading || loading}
+        pagination={pagination}
+        onPaginationChange={(p) => handlePageChange(p.current, p.pageSize)}
+        config={{
+          displayMode: 'table',
+          showModeToggle: false,
+          tableColumns,
+          showFilterForm: true,
+          filterContent: (
+            <FilterForm
+              ref={filterFormRef}
+              formFields={filterFields}
+              onSearch={handleSearch}
+              onReset={handleReset}
+              onValuesChange={(changedValues) => {
+                if ('success' in changedValues) {
+                  handleSearch();
+                }
+              }}
+            />
+          ),
+          tableProps: {
+            onRow: (record) => ({
+              onClick: () => handleView(record),
+              style: { cursor: 'pointer' }
+            })
+          }
+        }}
+        tableScrollHeight={tableScrollHeight}
+      />
 
       <DetailModal
         visible={detailVisible}
@@ -247,18 +255,8 @@ function SysLogPage() {
         title="日志详情"
         detailFields={detailFields}
       />
-
-      <Modal
-        visible={deleteVisible}
-        title="确认删除"
-        onCancel={() => setDeleteVisible(false)}
-        onOk={doDelete}
-      >
-        确认删除该日志记录？该操作不可撤销。
-      </Modal>
     </div>
   );
 }
 
 export default SysLogPage;
-

@@ -61,8 +61,10 @@ const TokenUsagePage: React.FC = () => {
     setLoading(true);
     try {
       const res = await getMyStatisticsByModel();
-      if (res.data) {
-        setModelStats(res.data);
+      // 兼容可能存在的 Response Wrapper
+      const data = Array.isArray(res.data) ? res.data : (res.data as any)?.data;
+      if (data) {
+        setModelStats(data);
       }
     } catch (error) {
       console.error(error);
@@ -77,8 +79,9 @@ const TokenUsagePage: React.FC = () => {
     setLoading(true);
     try {
       const res = await getMyStatisticsByBusiness();
-      if (res.data) {
-        setBusinessStats(res.data);
+      const data = Array.isArray(res.data) ? res.data : (res.data as any)?.data;
+      if (data) {
+        setBusinessStats(data);
       }
     } catch (error) {
       console.error(error);
@@ -101,8 +104,9 @@ const TokenUsagePage: React.FC = () => {
         params.modelName = selectedModel;
       }
       const res = await getMyStatisticsByDate(params);
-      if (res.data) {
-        setDateStats(res.data);
+      const data = Array.isArray(res.data) ? res.data : (res.data as any)?.data;
+      if (data) {
+        setDateStats(data);
       }
     } catch (error) {
       console.error(error);

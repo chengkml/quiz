@@ -14,6 +14,10 @@ import com.ck.quiz.todo.repository.TodoRepository;
 import com.ck.quiz.todo.service.TodoService;
 import com.ck.quiz.utils.JdbcQueryHelper;
 
+import com.ck.quiz.calendar.dto.CalendarEventCreateDto;
+import com.ck.quiz.calendar.entity.CalendarEvent;
+import com.ck.quiz.calendar.service.CalendarEventService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
@@ -47,11 +51,54 @@ public class TodoServiceImpl
 
     @Lazy
     @Autowired
+    private CalendarEventService calendarEventService;
+
+    @Lazy
+    @Autowired
     private MindMapService mindMapService;
 
     @Lazy
     @Autowired
     private MindMapRepository mindMapRepository;
+
+    @Override
+    public TodoDto create(TodoCreateDto createDto) {
+        TodoDto dto = super.create(createDto);
+
+        // 如果是同步创建的，不再触发反向同步
+        if (Boolean.TRUE.equals(createDto.getIsSync())) {
+            return dto;
+        }
+
+        try {
+            // 同步创建日程
+            CalendarEventCreateDto eventDto = new CalendarEventCreateDto();
+            eventDto.setTitle(createDto.getTitle());
+            eventDto.setDescr(createDto.getDescr());
+            eventDto.setIsSync(true); // 标记为同步
+
+            // 时间处理：优先使用startTime，其次dueDate，默认当前时间
+            LocalDateTime start = createDto.getStartTime();
+            if (start == null) {
+                start = createDto.getDueDate();
+            }
+            if (start == null) {
+                start = LocalDateTime.now();
+            }
+
+            eventDto.setStartTime(start);
+            eventDto.setEndTime(start.plusHours(1)); // 默认持续1小时
+            eventDto.setAllDay(false);
+            eventDto.setStatus(CalendarEvent.Status.SCHEDULED);
+
+            calendarEventService.create(eventDto);
+        } catch (Exception e) {
+            // 同步失败不影响主流程，仅记录日志
+            log.error("Failed to sync todo to schedule: {}", e.getMessage());
+        }
+
+        return dto;
+    }
 
     @Override
     public Page<TodoDto> search(String userId, TodoQueryDto queryDto) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Layout,
     Tree,
@@ -14,18 +14,39 @@ import {
     Empty,
     Spin,
     Tag,
+    Modal,
+    Form,
+    Tooltip
 } from '@arco-design/web-react';
 import {
     IconPlayArrow,
     IconStorage,
     IconApps,
     IconThunderbolt,
-    IconSearch,
+    IconPlus,
 } from '@arco-design/web-react/icon';
-import { getDatasourceList, getSchemas, executeSqlQuery } from '../Datasource/api';
+import {
+    getDatasourceList,
+    getSchemas,
+    executeSqlQuery,
+    createDatasource,
+    validateConnection
+} from '../Datasource/api';
 import './style/index.less';
 
 const { Sider, Content } = Layout;
+const Option = Select.Option;
+
+const DATASOURCE_TYPES = [
+    { label: 'MySQL', value: 'MYSQL', driver: 'com.mysql.cj.jdbc.Driver', urlTemplate: 'jdbc:mysql://localhost:3306/db?useSSL=false&serverTimezone=UTC' },
+    { label: 'PostgreSQL', value: 'POSTGRESQL', driver: 'org.postgresql.Driver', urlTemplate: 'jdbc:postgresql://localhost:5432/db' },
+    { label: 'Oracle', value: 'ORACLE', driver: 'oracle.jdbc.OracleDriver', urlTemplate: 'jdbc:oracle:thin:@localhost:1521:xe' },
+    { label: 'SQL Server', value: 'SQLSERVER', driver: 'com.microsoft.sqlserver.jdbc.SQLServerDriver', urlTemplate: 'jdbc:sqlserver://localhost:1433;databaseName=db' },
+    { label: 'ClickHouse', value: 'CLICKHOUSE', driver: 'com.clickhouse.jdbc.ClickHouseDriver', urlTemplate: 'jdbc:clickhouse://localhost:8123/default' },
+    { label: 'MariaDB', value: 'MARIADB', driver: 'org.mariadb.jdbc.Driver', urlTemplate: 'jdbc:mariadb://localhost:3306/db' },
+    { label: 'SQLite', value: 'SQLITE', driver: 'org.sqlite.JDBC', urlTemplate: 'jdbc:sqlite:data.db' },
+    { label: 'DM (达梦)', value: 'DM', driver: 'dm.jdbc.driver.DmDriver', urlTemplate: 'jdbc:dm://localhost:5236' },
+];
 
 const DataQuery: React.FC = () => {
     const [datasources, setDatasources] = useState<any[]>([]);
@@ -35,7 +56,10 @@ const DataQuery: React.FC = () => {
     const [sql, setSql] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState('result');
+
+    // Add Datasource Modal State
+    const [addModalVisible, setAddModalVisible] = useState(false);
+    const [addForm] = Form.useForm();
 
     useEffect(() => {
         fetchDatasources();
@@ -43,12 +67,9 @@ const DataQuery: React.FC = () => {
 
     const fetchDatasources = async () => {
         try {
-            const res = await getDatasourceList({ pageNum: 0, pageSize: 100 });
+            const res = await getDatasourceList({ pageNum: 0, pageSize: 100, active: true });
             const list = res?.data?.content || [];
             setDatasources(list);
-            if (list.length > 0) {
-                // Not selecting by default to avoid heavy loading
-            }
         } catch (e: any) {
             Message.error('加载并获取数据源失败');
         }
@@ -108,6 +129,19 @@ const DataQuery: React.FC = () => {
         }
     };
 
+    const handleAddSubmit = async () => {
+        try {
+            const values = await addForm.validate();
+            await createDatasource(values);
+            Message.success('创建成功');
+            setAddModalVisible(false);
+            fetchDatasources(); // Refresh list
+        } catch (e: any) {
+            if (e?.errorFields) return;
+            Message.error(e?.message || '创建失败');
+        }
+    };
+
     const renderResults = () => {
         if (!results) {
             return (
@@ -161,18 +195,30 @@ const DataQuery: React.FC = () => {
             <Layout style={{ height: 'calc(100vh - 64px)' }}>
                 <Sider width={280} className="query-sider">
                     <div className="sider-header">
-                        <Select
-                            placeholder="选择数据源"
-                            value={selectedDs}
-                            onChange={handleDsChange}
-                            style={{ width: '100%' }}
-                        >
-                            {datasources.map(ds => (
-                                <Select.Option key={ds.id} value={ds.id}>
-                                    {ds.name} ({ds.type})
-                                </Select.Option>
-                            ))}
-                        </Select>
+                        <Space style={{ width: '100%' }}>
+                            <Select
+                                placeholder="选择数据源"
+                                value={selectedDs}
+                                onChange={handleDsChange}
+                                style={{ flex: 1 }}
+                            >
+                                {datasources.map(ds => (
+                                    <Select.Option key={ds.id} value={ds.id}>
+                                        {ds.name} ({ds.type})
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                            <Tooltip title="新增数据源">
+                                <Button
+                                    icon={<IconPlus />}
+                                    onClick={() => {
+                                        addForm.resetFields();
+                                        addForm.setFieldsValue({ active: true });
+                                        setAddModalVisible(true);
+                                    }}
+                                />
+                            </Tooltip>
+                        </Space>
                     </div>
                     <div className="sider-content">
                         <Spin loading={schemaLoading}>
@@ -189,7 +235,7 @@ const DataQuery: React.FC = () => {
                             ) : (
                                 <div className="tree-empty">
                                     <IconStorage style={{ fontSize: 32, color: 'var(--color-text-4)' }} />
-                                    <p>未加载表结构</p>
+                                    <p>{selectedDs ? '暂无表结构数据' : '请选择数据源'}</p>
                                 </div>
                             )}
                         </Spin>
@@ -245,6 +291,106 @@ const DataQuery: React.FC = () => {
                     />
                 </Content>
             </Layout>
+
+            {/* 新增数据源弹窗 */}
+            <Modal
+                title="新增数据源"
+                visible={addModalVisible}
+                onCancel={() => setAddModalVisible(false)}
+                footer={
+                    <Space>
+                        <Button onClick={() => setAddModalVisible(false)}>取消</Button>
+                        <Button
+                            onClick={async () => {
+                                try {
+                                    const values = await addForm.validate();
+                                    const res = await validateConnection(values);
+                                    const ok = res?.data?.success ?? true;
+                                    Message[ok ? 'success' : 'error'](
+                                        res?.data?.message || (ok ? '连接成功' : '连接失败')
+                                    );
+                                } catch (e: any) {
+                                    if (e?.errorFields) return;
+                                    Message.error(e?.message || '配置校验失败');
+                                }
+                            }}
+                        >
+                            测试连接
+                        </Button>
+                        <Button type="primary" onClick={handleAddSubmit}>
+                            保存
+                        </Button>
+                    </Space>
+                }
+            >
+                <Form
+                    form={addForm}
+                    layout="vertical"
+                    onValuesChange={(changedValues) => {
+                        if (changedValues.type) {
+                            const typeCfg = DATASOURCE_TYPES.find(
+                                (t) => t.value === changedValues.type
+                            );
+                            if (typeCfg) {
+                                addForm.setFieldsValue({
+                                    driver: typeCfg.driver,
+                                    jdbcUrl: typeCfg.urlTemplate,
+                                });
+                            }
+                        }
+                    }}
+                >
+                    <Form.Item
+                        label="名称"
+                        field="name"
+                        rules={[{ required: true, message: '请输入名称' }]}
+                    >
+                        <Input placeholder="数据源名称" />
+                    </Form.Item>
+                    <Form.Item
+                        label="数据源类型"
+                        field="type"
+                        rules={[{ required: true, message: '请选择数据源类型' }]}
+                    >
+                        <Select placeholder="请选择数据库类型">
+                            {DATASOURCE_TYPES.map((t) => (
+                                <Option key={t.value} value={t.value}>
+                                    {t.label}
+                                </Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                    <Form.Item label="驱动类名" field="driver">
+                        <Input placeholder="可选，例：com.mysql.cj.jdbc.Driver" />
+                    </Form.Item>
+                    <Form.Item
+                        label="JDBC URL"
+                        field="jdbcUrl"
+                        rules={[{ required: true, message: '请输入JDBC URL' }]}
+                    >
+                        <Input placeholder="例：jdbc:mysql://host:3306/db" />
+                    </Form.Item>
+                    <Form.Item label="用户名" field="username">
+                        <Input placeholder="数据库用户名" />
+                    </Form.Item>
+                    <Form.Item label="密码" field="password">
+                        <Input placeholder="数据库密码" type="password" />
+                    </Form.Item>
+                    <Form.Item label="描述" field="description">
+                        <Input.TextArea
+                            placeholder="备注信息"
+                            maxLength={500}
+                            showWordLimit
+                        />
+                    </Form.Item>
+                    <Form.Item label="是否启用" field="active" initialValue={true} hidden>
+                        <Select>
+                            <Option value={true}>启用</Option>
+                            <Option value={false}>禁用</Option>
+                        </Select>
+                    </Form.Item>
+                </Form>
+            </Modal>
         </div>
     );
 };

@@ -26,4 +26,9 @@ public class TodoCreateDto extends CreateDto {
     private LocalDateTime startTime;
 
     private LocalDateTime dueDate;
+
+    /**
+     * 是否为同步创建（防止循环调用）
+     */
+    private Boolean isSync = false;
 }

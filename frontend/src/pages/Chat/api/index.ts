@@ -23,7 +23,7 @@ export const fetchStream = async (
     const token = localStorage.getItem('token');
     // @ts-ignore
     const baseURL = typeof __API_BASE_PATH__ !== 'undefined' ? __API_BASE_PATH__ : '/api';
-    
+
     const response = await fetch(`${baseURL}${url}`, {
       method: 'POST',
       headers: {
@@ -36,26 +36,17 @@ export const fetchStream = async (
     if (!response.ok) {
       throw new Error(response.statusText);
     }
-    
+
     if (!response.body) return;
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        onDone();
-        break;
-      }
-      
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      
-      for (const line of lines) {
+
+    const processLine = (line: string) => {
+        if (!line.trim()) return;
         if (line.trim().startsWith('data:')) {
             const jsonStr = line.trim().substring(5).trim();
+            if (jsonStr === '[DONE]') return;
             if (jsonStr) {
                 try {
                     const resData = JSON.parse(jsonStr);
@@ -68,6 +59,25 @@ export const fetchStream = async (
                 }
             }
         }
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        if (buffer.trim()) {
+            const lines = buffer.split('\n');
+            lines.forEach(processLine);
+        }
+        onDone();
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        processLine(line);
       }
     }
   } catch (err) {

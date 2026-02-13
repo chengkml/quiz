@@ -46,7 +46,21 @@ import { DataManager, AddEditModal } from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
 ```
 
-### 3. 表单处理
+### 3. 响应式布局 (Mobile First)
+*   **Grid 系统**: 必须使用 `Row` 和 `Col` 的响应式属性 (`xs`, `sm`, `md`, `lg`, `xl`, `xxl`)。
+    ```tsx
+    <Row gutter={[16, 16]}>
+      <Col xs={24} sm={12} md={8} lg={6}>
+        {/* 内容 */}
+      </Col>
+    </Row>
+    ```
+*   **移动端适配**:
+    *   **表格**: 在小屏幕 (`xs`) 下，建议隐藏非关键列，或切换为列表/卡片视图。
+    *   **弹窗**: `Modal` 在移动端可能体验不佳，优先考虑 `Drawer` (placement="bottom" 或 "right")，或设置 Modal `width="100%"`。
+    *   **操作区**: 顶部筛选栏在移动端应折叠或简化。
+
+### 4. 表单处理
 *   **简单表单**: 使用 `AddEditModal` 配合 `formConfig` 自动生成。
 *   **复杂表单**: 使用 `<Form layout="vertical">` 手动构建，配合 `useForm` hook 管理状态。
 

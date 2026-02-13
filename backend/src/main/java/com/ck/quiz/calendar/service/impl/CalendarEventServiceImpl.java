@@ -9,6 +9,9 @@ import com.ck.quiz.calendar.entity.CalendarEvent;
 import com.ck.quiz.calendar.repository.CalendarEventRepository;
 import com.ck.quiz.calendar.service.CalendarEventService;
 import com.ck.quiz.llmmodel.service.LLMModelService;
+import com.ck.quiz.todo.dto.TodoCreateDto;
+import com.ck.quiz.todo.entity.Todo;
+import com.ck.quiz.todo.service.TodoService;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.utils.JdbcQueryHelper;
@@ -19,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -48,6 +52,38 @@ public class CalendarEventServiceImpl
 
     @Autowired
     private LLMModelService llmModelService;
+
+    @Lazy
+    @Autowired
+    private TodoService todoService;
+
+    @Override
+    public CalendarEventDto create(CalendarEventCreateDto createDto) {
+        CalendarEventDto dto = super.create(createDto);
+
+        // 如果是同步创建的，不再触发反向同步
+        if (Boolean.TRUE.equals(createDto.getIsSync())) {
+            return dto;
+        }
+
+        try {
+            // 同步创建待办
+            TodoCreateDto todoDto = new TodoCreateDto();
+            todoDto.setTitle(createDto.getTitle());
+            todoDto.setDescr(createDto.getDescr());
+            todoDto.setIsSync(true); // 标记为同步
+            todoDto.setStartTime(createDto.getStartTime());
+            todoDto.setDueDate(createDto.getEndTime());
+            todoDto.setStatus(Todo.Status.SCHEDULED);
+            todoDto.setPriority(Todo.Priority.MEDIUM);
+
+            todoService.create(todoDto);
+        } catch (Exception e) {
+            log.error("Failed to sync schedule to todo: {}", e.getMessage());
+        }
+
+        return dto;
+    }
 
     @Override
     public Page<CalendarEventDto> search(String userId, CalendarEventQueryDto queryDto) {
