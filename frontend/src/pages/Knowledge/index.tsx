@@ -14,9 +14,6 @@ import {
     Spin,
     Tooltip,
     Tree,
-    Dropdown,
-    Menu,
-    Tag,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
@@ -30,16 +27,10 @@ import {
     streamPolishKnowledgeUrl,
     getSubjectCategoryTree,
     getCategoriesBySubjectId,
-    createSubject,
-    updateSubject,
-    deleteSubject,
-    createCategory,
-    updateCategory,
-    deleteCategory,
 } from './api';
 import { DataManager } from '../../components/DataManager';
 import renderDate from '@/utils/timeUtil';
-import { IconDelete, IconEdit, IconList, IconPlus, IconMore } from '@arco-design/web-react/icon';
+import { IconDelete, IconEdit, IconList, IconPlus } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import { CKEditor } from 'ckeditor4-react';
 import { getLLMModelsByType } from '@/services/llmModelService';
@@ -61,15 +52,6 @@ function KnowledgeManager() {
     const [selectedTreeNode, setSelectedTreeNode] = useState(null);
     const [expandedKeys, setExpandedKeys] = useState([]);
     const [searchKeyword, setSearchKeyword] = useState('');
-
-    // 学科/分类管理状态
-    const [subjectModalVisible, setSubjectModalVisible] = useState(false);
-    const [categoryModalVisible, setCategoryModalVisible] = useState(false);
-    const [operateType, setOperateType] = useState<'add' | 'edit'>('add');
-    const [operateData, setOperateData] = useState<any>(null); // 当前操作的数据
-
-    const subjectFormRef = useRef<any>();
-    const categoryFormRef = useRef<any>();
 
     // 当前选中的过滤条件
     const [currentSubjectId, setCurrentSubjectId] = useState(null);
@@ -148,14 +130,14 @@ function KnowledgeManager() {
             dataIndex: 'categoryName',
             width: 150,
             ellipsis: true,
-            render: (value) => value ? <Tag color="arcoblue">{value}</Tag> : '--',
+            render: (value) => value || '--',
         },
         {
             title: '所属学科',
             dataIndex: 'subjectName',
             width: 150,
             ellipsis: true,
-            render: (value) => value ? <Tag color="green">{value}</Tag> : '--',
+            render: (value) => value || '--',
         },
         {
             title: '创建时间',
@@ -518,7 +500,6 @@ function KnowledgeManager() {
                         key: item.id,
                         title: item.name,
                         subjectId, // ✅ 关键：记录所属学科ID
-                        isSubject: false,
                         children: item.children
                             ? buildCategoryTreeWithSubjectId(item.children, subjectId)
                             : [],
@@ -529,7 +510,6 @@ function KnowledgeManager() {
                     key: subject.id,
                     title: subject.name,
                     subjectId: subject.id, // 学科节点自身也带 subjectId
-                    isSubject: true,
                     children: buildCategoryTreeWithSubjectId(subject.categories || [], subject.id),
                 }));
 
@@ -686,100 +666,18 @@ function KnowledgeManager() {
         />
     );
 
-    // 确认学科操作
-    const confirmSubject = async () => {
-        try {
-            const values = await subjectFormRef.current.validate();
-            setLoading(true);
-            if (operateType === 'add') {
-                await createSubject(values);
-                Message.success('学科创建成功');
-            } else {
-                await updateSubject({ ...values, id: operateData.key });
-                Message.success('学科更新成功');
-            }
-            setSubjectModalVisible(false);
-            subjectFormRef.current.resetFields();
-            fetchSubjectCategoryTree();
-            fetchSubjects(); // 刷新学科下拉列表
-        } catch (error) {
-            // Message.error('操作失败');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // 确认分类操作
-    const confirmCategory = async () => {
-        try {
-            const values = await categoryFormRef.current.validate();
-            setLoading(true);
-            if (operateType === 'add') {
-                await createCategory({
-                    ...values,
-                    subjectId: operateData.subjectId,
-                    parentId: operateData.parentId
-                });
-                Message.success('分类创建成功');
-            } else {
-                await updateCategory({ ...values, id: operateData.key });
-                Message.success('分类更新成功');
-            }
-            setCategoryModalVisible(false);
-            categoryFormRef.current.resetFields();
-            fetchSubjectCategoryTree();
-        } catch (error) {
-            // Message.error('操作失败');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // 监听弹窗显示，重置或设置表单
-    useEffect(() => {
-        if (subjectModalVisible) {
-            if (operateType === 'edit' && operateData) {
-                setTimeout(() => subjectFormRef.current?.setFieldsValue({ name: operateData.title }), 0);
-            } else {
-                subjectFormRef.current?.resetFields();
-            }
-        }
-    }, [subjectModalVisible]);
-
-    useEffect(() => {
-        if (categoryModalVisible) {
-            if (operateType === 'edit' && operateData) {
-                setTimeout(() => categoryFormRef.current?.setFieldsValue({ name: operateData.title }), 0);
-            } else {
-                categoryFormRef.current?.resetFields();
-            }
-        }
-    }, [categoryModalVisible]);
-
     const treeContent = (
         <div style={{ height: '100%' }}>
-            <div style={{ paddingBottom: '12px', display: 'flex', alignItems: 'center' }}>
+            <div style={{ paddingBottom: '12px' }}>
                 <Input.Search
                     placeholder="搜索学科分类"
                     allowClear
-                    style={{ flex: 1, marginRight: 8 }}
+                    style={{ width: '100%' }}
                     value={searchKeyword}
                     onChange={(value) => {
                         handleSearchChange(value);
                     }}
                 />
-                <Tooltip title="新增学科">
-                    <Button
-                        type="primary"
-                        icon={<IconPlus />}
-                        size="small"
-                        onClick={() => {
-                            setOperateType('add');
-                            setOperateData(null);
-                            setSubjectModalVisible(true);
-                        }}
-                    />
-                </Tooltip>
             </div>
             <div style={{ height: 'calc(100% - 50px)' }}>
                 <Spin loading={treeLoading}>
@@ -837,62 +735,6 @@ function KnowledgeManager() {
                             blockNode
                             showLine
                             style={{ backgroundColor: 'transparent' }}
-                            renderTitle={(props) => {
-                                const isSubject = props.isSubject;
-                                return (
-                                    <div className="tree-node-title">
-                                        <span className="node-title-text">{props.title}</span>
-                                        <div className="node-actions" onClick={(e) => e.stopPropagation()}>
-                                            <Dropdown
-                                                trigger="click"
-                                                position="br"
-                                                droplist={
-                                                    <Menu onClickMenuItem={(key) => {
-                                                        if (key === 'addCategory') {
-                                                            setOperateType('add');
-                                                            setOperateData({ subjectId: props.subjectId, parentId: isSubject ? null : props.key });
-                                                            setCategoryModalVisible(true);
-                                                        } else if (key === 'edit') {
-                                                            setOperateType('edit');
-                                                            setOperateData(props);
-                                                            if (isSubject) {
-                                                                setSubjectModalVisible(true);
-                                                            } else {
-                                                                setCategoryModalVisible(true);
-                                                            }
-                                                        } else if (key === 'delete') {
-                                                            Modal.confirm({
-                                                                title: `确定要删除该${isSubject ? '学科' : '分类'}吗？`,
-                                                                content: `删除后该${isSubject ? '学科' : '分类'}下的所有数据也将被删除且不可恢复。`,
-                                                                onOk: async () => {
-                                                                    try {
-                                                                        if (isSubject) {
-                                                                            await deleteSubject(props.key);
-                                                                        } else {
-                                                                            await deleteCategory(props.key);
-                                                                        }
-                                                                        Message.success('删除成功');
-                                                                        fetchSubjectCategoryTree();
-                                                                        fetchSubjects();
-                                                                    } catch (error) {
-                                                                        Message.error('删除失败');
-                                                                    }
-                                                                }
-                                                            });
-                                                        }
-                                                    }}>
-                                                        <Menu.Item key="addCategory">新增下级分类</Menu.Item>
-                                                        <Menu.Item key="edit">编辑</Menu.Item>
-                                                        <Menu.Item key="delete">删除</Menu.Item>
-                                                    </Menu>
-                                                }
-                                            >
-                                                <Button type="text" size="mini" icon={<IconMore />} />
-                                            </Dropdown>
-                                        </div>
-                                    </div>
-                                );
-                            }}
                         />
                     ) : (
                         <div
@@ -1212,44 +1054,6 @@ label="知识点内容"
                     </div>
                 )}
             </Drawer>
-
-            {/* 学科编辑/新增对话框 */}
-            <Modal
-                title={operateType === 'add' ? '新增学科' : '编辑学科'}
-                visible={subjectModalVisible}
-                onOk={confirmSubject}
-                onCancel={() => setSubjectModalVisible(false)}
-                confirmLoading={loading}
-            >
-                <Form ref={subjectFormRef}>
-                    <Form.Item
-                        label="学科名称"
-                        field="name"
-                        rules={[{ required: true, message: '请输入学科名称' }]}
-                    >
-                        <Input placeholder="请输入学科名称" maxLength={50} />
-                    </Form.Item>
-                </Form>
-            </Modal>
-
-            {/* 分类编辑/新增对话框 */}
-            <Modal
-                title={operateType === 'add' ? '新增分类' : '编辑分类'}
-                visible={categoryModalVisible}
-                onOk={confirmCategory}
-                onCancel={() => setCategoryModalVisible(false)}
-                confirmLoading={loading}
-            >
-                <Form ref={categoryFormRef}>
-                    <Form.Item
-                        label="分类名称"
-                        field="name"
-                        rules={[{ required: true, message: '请输入分类名称' }]}
-                    >
-                        <Input placeholder="请输入分类名称" maxLength={50} />
-                    </Form.Item>
-                </Form>
-            </Modal>
         </div>
     );
 }

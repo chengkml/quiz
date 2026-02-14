@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,5 +40,12 @@ public class RoleMenuController {
     public ResponseEntity getMenuTreeByUserId(
             @Parameter(description = "用户ID", required = true) @PathVariable("userId") String userId) {
         return ResponseEntity.ok(roleMenuService.getMenuTreeByUserId(userId));
+    }
+
+    @Operation(summary = "获取当前用户菜单权限树", description = "从Session获取当前登录用户并返回菜单权限树")
+    @GetMapping("/session/tree")
+    public ResponseEntity getMenuTreeBySession() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(roleMenuService.getMenuTreeByUserId(authentication.getName()));
     }
 }
