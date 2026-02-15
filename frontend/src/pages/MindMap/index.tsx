@@ -8,6 +8,7 @@ import {
   Grid,
   Input,
   Layout,
+  Link,
   Menu,
   Message,
   Modal,
@@ -268,7 +269,7 @@ const MindMapListPage: React.FC = () => {
       dataIndex: "mapName",
       key: "mapName",
       render: (text: string, record: MindMapDto) => (
-          <Button type="text" style={{padding: 0}} onClick={() => handleView(record)}>{text}</Button>
+          <Link onClick={() => handleView(record)} style={{ textDecoration: 'underline' }}>{text}</Link>
       )
     },
     {

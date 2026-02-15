@@ -1,5 +1,4 @@
 import React, {useEffect, useRef, useState} from 'react';
-import UserAvatar from '@/components/UserAvatar';
 import {useNavigate} from 'react-router-dom';
 import {
     Button,
@@ -45,7 +44,7 @@ import {
 
 import ExamQuestionManager from './components/ExamQuestionManager';
 import {getAllSubjects} from '../Subject/api';
-import {getCategoriesBySubjectId, getSubjectCategoryTree} from '../Category/api';
+import {getCategoriesBySubjectId} from '../Category/api';
 import {ExamDto, ExamQueryDto, ExamStatus, FormRef, PaginationConfig, StatusOption} from './types';
 import { DataManager } from '../../components/DataManager';
 import FilterForm from '@/components/FilterForm';
@@ -166,15 +165,6 @@ const {Row, Col} = Grid;
             ),
         },
         {
-            title: '创建人',
-            dataIndex: 'createUserName',
-            width: 120,
-            ellipsis: true,
-            render: (name, record) => (
-                <UserAvatar name={name || (record?.createUser ?? '')} showName />
-            ),
-        },
-        {
             title: '创建时间',
             dataIndex: 'createDate',
             width: 170,
@@ -182,7 +172,7 @@ const {Row, Col} = Grid;
         },
         {
             title: '操作',
-            width: 200,
+            width: 120,
             align: 'center',
             fixed: 'right',
             render: (_, record) => (
@@ -251,7 +241,7 @@ const {Row, Col} = Grid;
                 status: params?.status,
                 pageNum: current - 1,
                 pageSize: pageSize,
-                subjectId: subjectId || currentTreeNode?.subjectId,
+                subjectId: subjectId !== undefined ? subjectId : currentTreeNode?.subjectId,
             };
             const response = await getExamList(targetParams);
             if (response.data) {
@@ -277,44 +267,34 @@ const {Row, Col} = Grid;
         );
         setSearchParams((prev) => ({ ...prev, ...filterValues }));
         setPagination((prev) => ({ ...prev, current: 1 }));
-        fetchTableData(filterValues, pagination.pageSize, 1);
+        // 保留当前选中的学科过滤
+        fetchTableData(filterValues, pagination.pageSize, 1, currentTreeNode?.subjectId);
     };
 
     // 分页变化
     const handlePaginationChange = (nextPagination: any) => {
-        fetchTableData(searchParams, nextPagination.pageSize, nextPagination.current);
+        fetchTableData(searchParams, nextPagination.pageSize, nextPagination.current, currentTreeNode?.subjectId);
     };
 
-    // 获取学科分类树
+    // 获取学科树（只加载subject节点）
     const fetchSubjectCategoryTree = async () => {
         try {
             setTreeLoading(true);
-            const response = await getSubjectCategoryTree();
+            const response = await getAllSubjects();
             if (response.data) {
-                const convertCategoriesToTreeNodes = (categories: any[]) => {
-                    if (!categories || !Array.isArray(categories)) return [];
-                    return categories.map(category => ({
-                        key: category.id,
-                        title: category.name,
-                        subjectId: category.subjectId,
-                        categoryId: category.id,
-                        children: convertCategoriesToTreeNodes(category.children)
-                    }));
-                };
                 const treeData = response.data.map((subject: any) => ({
                     key: `subject-${subject.id}`,
                     title: subject.name,
                     subjectId: subject.id,
                     categoryId: null,
-                    children: convertCategoriesToTreeNodes(subject.categories)
                 }));
                 setTreeData(treeData);
                 setFilteredTreeData(treeData);
                 setExpandedKeys(treeData.map((item: any) => item.key));
             }
         } catch (error) {
-            console.error('获取学科分类树失败:', error);
-            Message.error('获取学科分类树失败');
+            console.error('获取学科树失败:', error);
+            Message.error('获取学科树失败');
         } finally {
             setTreeLoading(false);
         }
@@ -551,7 +531,7 @@ const {Row, Col} = Grid;
     const searchFormFields: FormFieldConfig[] = [
         {
             field: 'name',
-            label: '试卷名称',
+            label: '名称',
             type: 'input',
             placeholder: '请输入试卷名称',
             span: 6,
@@ -593,7 +573,7 @@ const {Row, Col} = Grid;
                         <div style={{height: '100%'}} className="tree-container">
                             <div style={{paddingBottom: '12px'}}>
                                 <Input.Search
-                                    placeholder="搜索学科分类"
+                                    placeholder="搜索学科"
                                     allowClear
                                     style={{width: '100%'}}
                                     value={searchKeyword}
@@ -616,15 +596,23 @@ const {Row, Col} = Grid;
                                                     const selectedKey = selectedKeys[0];
                                                     const nodeInfo = findNodeInTree(treeData, selectedKey);
                                                     setCurrentTreeNode(nodeInfo);
+                                                    // 重置搜索条件和分页，按学科过滤
+                                                    const emptyParams = { name: '', status: '' };
+                                                    setSearchParams(emptyParams);
+                                                    setPagination(prev => ({ ...prev, current: 1 }));
                                                     if (nodeInfo) {
-                                                        fetchTableData(null, null, 1, nodeInfo.subjectId);
+                                                        fetchTableData(emptyParams, pagination.pageSize, 1, nodeInfo.subjectId);
                                                     } else {
-                                                        fetchTableData();
+                                                        fetchTableData(emptyParams, pagination.pageSize, 1);
                                                     }
                                                 } else {
                                                     setSelectedTreeNode(null);
                                                     setCurrentTreeNode(null);
-                                                    fetchTableData();
+                                                    // 清空树选择时，也重置搜索条件
+                                                    const emptyParams = { name: '', status: '' };
+                                                    setSearchParams(emptyParams);
+                                                    setPagination(prev => ({ ...prev, current: 1 }));
+                                                    fetchTableData(emptyParams, pagination.pageSize, 1);
                                                 }
                                             }}
                                             blockNode
@@ -653,7 +641,8 @@ const {Row, Col} = Grid;
                         onRow: (record) => ({
                             onClick: () => navigate(`/frame/exam/detail/${record.id}`),
                             style: { cursor: 'pointer' }
-                        })
+                        }),
+                        scroll: { x: '100%' }
                     }
                 }}
                 tableScrollHeight={tableScrollHeight}

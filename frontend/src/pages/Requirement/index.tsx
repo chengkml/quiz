@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
   Form,
@@ -13,11 +13,7 @@ import {
 import DataManager from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
 import { FormFieldConfig } from "@/components/types/types";
-import {
-  IconCheck,
-  IconDelete,
-  IconEdit,
-} from "@arco-design/web-react/icon";
+import { IconDelete, IconEdit } from "@arco-design/web-react/icon";
 import renderDate from "@/utils/timeUtil";
 import "./style/index.less";
 import {
@@ -135,6 +131,7 @@ function Requirement() {
     );
     setSearchParams(filterValues as any);
     setPagination((prev) => ({ ...prev, current: 1 }));
+    fetchTableData(filterValues, pagination.pageSize, 1);
   };
 
   // 重置处理
@@ -259,15 +256,18 @@ function Requirement() {
       },
     },
     {
-        title: "处理结果",
-        dataIndex: "resultMsg",
-        ellipsis: true,
-        width: 150,
-        render: (text: string) => (
-            <Tooltip content={text}>
-                <span>{text}</span>
-            </Tooltip>
-        )
+      title: "处理结果",
+      dataIndex: "resultMsg",
+      ellipsis: true,
+      width: 150,
+      render: (text: string) =>
+        text ? (
+          <Tooltip content={text}>
+            <span>{text}</span>
+          </Tooltip>
+        ) : (
+          "-"
+        ),
     },
     {
       title: "创建时间",
@@ -281,22 +281,26 @@ function Requirement() {
       fixed: "right",
       render: (_: any, record: any) => (
         <div style={{ display: "flex", gap: 10 }}>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={() => handleEdit(record)}
-          />
+          <Tooltip content="编辑">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconEdit />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
           <Popconfirm
             title="确认删除该需求吗？"
             onOk={() => handleDelete(record)}
           >
-            <Button
-              type="text"
-              size="small"
-              status="danger"
-              icon={<IconDelete />}
-            />
+            <Tooltip content="删除">
+              <Button
+                type="text"
+                size="small"
+                status="danger"
+                icon={<IconDelete />}
+              />
+            </Tooltip>
           </Popconfirm>
         </div>
       ),
@@ -312,67 +316,87 @@ function Requirement() {
     />
   );
 
+  useEffect(() => {
+    fetchTableData(searchParams, pagination.pageSize, pagination.current);
+  }, []);
+
   return (
     <div className="requirement-page">
-      <DataManager
-        data={tableData}
-        loading={tableLoading}
-        pagination={pagination}
-        onPaginationChange={handlePaginationChange}
-        actions={{
-          onAdd: handleAdd,
-        }}
-        config={{
-          showModeToggle: false,
-          displayMode: "table",
-          filterContent,
-          tableColumns: columns,
-          tableProps: {
-              scroll: { x: 1200, y: tableScrollHeight }
-          }
-        }}
-        tableScrollHeight={tableScrollHeight}
-      />
+      <div className="requirement-content">
+        <DataManager
+          data={tableData}
+          loading={tableLoading}
+          pagination={pagination}
+          onPaginationChange={handlePaginationChange}
+          actions={{
+            onAdd: handleAdd,
+          }}
+          config={{
+            showModeToggle: false,
+            displayMode: "table",
+            filterContent,
+            tableColumns: columns,
+            tableProps: {
+              scroll: { x: 1200, y: tableScrollHeight },
+            },
+          }}
+          tableScrollHeight={tableScrollHeight}
+        />
+      </div>
 
       {/* 新增/编辑 表单配置 */}
       {[
-        { visible: addModalVisible, title: "新增需求", onOk: handleAddConfirm, onCancel: () => setAddModalVisible(false), ref: addFormRef },
-        { visible: editModalVisible, title: "编辑需求", onOk: handleEditConfirm, onCancel: () => setEditModalVisible(false), ref: editFormRef },
+        {
+          visible: addModalVisible,
+          title: "新增需求",
+          onOk: handleAddConfirm,
+          onCancel: () => setAddModalVisible(false),
+          ref: addFormRef,
+        },
+        {
+          visible: editModalVisible,
+          title: "编辑需求",
+          onOk: handleEditConfirm,
+          onCancel: () => setEditModalVisible(false),
+          ref: editFormRef,
+        },
       ].map((modal, index) => (
         <Modal
-            key={index}
-            title={modal.title}
-            visible={modal.visible}
-            onOk={modal.onOk}
-            onCancel={modal.onCancel}
-            mountOnEnter
+          key={index}
+          title={modal.title}
+          visible={modal.visible}
+          onOk={modal.onOk}
+          onCancel={modal.onCancel}
+          mountOnEnter
         >
-             <Form ref={modal.ref} layout="vertical">
-                <Form.Item label="标题" field="title" rules={[{ required: true }]}>
-                    <Input placeholder="请输入标题" />
-                </Form.Item>
-                <Form.Item label="项目名称" field="projectName">
-                    <Input placeholder="请输入项目名称" />
-                </Form.Item>
-                <Form.Item label="Git 仓库地址" field="gitUrl">
-                    <Input placeholder="请输入 Git 仓库地址" />
-                </Form.Item>
-                <Form.Item label="分支名称" field="branch" initialValue="main">
-                    <Input placeholder="请输入分支名称" />
-                </Form.Item>
-                <Form.Item label="描述" field="descr">
-                    <TextArea placeholder="请输入详细描述" autoSize={{ minRows: 3 }} />
-                </Form.Item>
-                {index === 1 && ( // 编辑模式显示状态
-                    <Form.Item label="状态" field="status">
-                        <Select placeholder="请选择状态">
-                            {statusOptions.map(opt => (
-                                <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                )}
-             </Form>
+          <Form ref={modal.ref} layout="vertical">
+            <Form.Item label="标题" field="title" rules={[{ required: true }]}>
+              <Input placeholder="请输入标题" />
+            </Form.Item>
+            <Form.Item label="项目名称" field="projectName">
+              <Input placeholder="请输入项目名称" />
+            </Form.Item>
+            <Form.Item label="Git 仓库地址" field="gitUrl">
+              <Input placeholder="请输入 Git 仓库地址" />
+            </Form.Item>
+            <Form.Item label="分支名称" field="branch" initialValue="main">
+              <Input placeholder="请输入分支名称" />
+            </Form.Item>
+            <Form.Item label="描述" field="descr">
+              <TextArea placeholder="请输入详细描述" autoSize={{ minRows: 3 }} />
+            </Form.Item>
+            {index === 1 && (
+              <Form.Item label="状态" field="status">
+                <Select placeholder="请选择状态">
+                  {statusOptions.map((opt) => (
+                    <Option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            )}
+          </Form>
         </Modal>
       ))}
     </div>

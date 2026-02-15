@@ -21,7 +21,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "Requirement", description = "需求管理")
 @RestController
-@RequestMapping("/project/requirement")
+@RequestMapping("/api/project/requirement")
 public class RequirementController extends BaseController<RequirementCreateDto, RequirementUpdateDto, RequirementQueryDto, RequirementDto> {
 
     @Autowired

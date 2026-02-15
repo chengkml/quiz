@@ -1103,7 +1103,8 @@ function QuestionManager() {
                         onRow: (record) => ({
                             onClick: () => handleDetail(record),
                             style: { cursor: 'pointer' }
-                        })
+                        }),
+                        scroll: { x: '100%' }
                     }
                 }}
                 tableScrollHeight={tableScrollHeight}

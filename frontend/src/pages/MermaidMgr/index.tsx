@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Button,
   Dropdown,
+  Link,
   Menu,
   Message,
   Modal,
@@ -237,7 +238,7 @@ const MermaidMgrPage: React.FC = () => {
       dataIndex: "diagramName",
       key: "diagramName",
       render: (text: string, record: any) => (
-          <Button type="text" style={{padding: 0}} onClick={() => handleDetail(record)}>{text}</Button>
+          <Link onClick={() => handleDetail(record)} style={{ textDecoration: 'underline' }}>{text}</Link>
       )
     },
     {

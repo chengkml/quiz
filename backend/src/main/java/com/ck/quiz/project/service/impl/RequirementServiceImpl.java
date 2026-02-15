@@ -45,7 +45,7 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
         // 假设 OPEN 为待处理状态
         List<Requirement> pendingList = repository.findAll((root, query, cb) ->
             cb.equal(root.get("status"), Status.OPEN),
-            PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "createTime"))
+            PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "createDate"))
         ).getContent();
 
         if (pendingList.isEmpty()) {
@@ -98,6 +98,9 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
             if (StringUtils.hasText(queryDto.getTitle())) {
                 predicates.add(cb.like(root.get("title"), "%" + queryDto.getTitle() + "%"));
             }
+            if (StringUtils.hasText(queryDto.getProjectName())) {
+                predicates.add(cb.like(root.get("projectName"), "%" + queryDto.getProjectName() + "%"));
+            }
             if (queryDto.getStatus() != null) {
                 predicates.add(cb.equal(root.get("status"), queryDto.getStatus()));
             }
@@ -111,8 +114,8 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
         int page = (queryDto.getPageNum() == null || queryDto.getPageNum() < 1) ? 0 : queryDto.getPageNum() - 1;
         int size = (queryDto.getPageSize() == null || queryDto.getPageSize() < 1) ? 10 : queryDto.getPageSize();
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createTime"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createDate"));
         Page<Requirement> resultPage = repository.findAll(spec, pageable);
-        return resultPage.map(model -> convertToDto(model, false));
+        return resultPage.map(model -> convertToDto(model, true));
     }
 }
