@@ -13,7 +13,14 @@ import {
 import DataManager from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
 import { FormFieldConfig } from "@/components/types/types";
-import { IconDelete, IconEdit } from "@arco-design/web-react/icon";
+import {
+  IconCheckCircle,
+  IconCloseCircle,
+  IconClockCircle,
+  IconDelete,
+  IconEdit,
+  IconLoading,
+} from "@arco-design/web-react/icon";
 import renderDate from "@/utils/timeUtil";
 import "./style/index.less";
 import {
@@ -76,10 +83,10 @@ function Requirement() {
     },
     {
       field: "projectName",
-      label: "项目名称",
+      label: "项目名",
       type: "input",
-      placeholder: "请输入项目名称",
-      span: 6,
+      placeholder: "请输入项目名",
+      span: 7,
     },
     {
       field: "status",
@@ -219,12 +226,6 @@ function Requirement() {
   // 列配置
   const columns = [
     {
-      title: "ID",
-      dataIndex: "id",
-      width: 180,
-      ellipsis: true,
-    },
-    {
       title: "标题",
       dataIndex: "title",
       ellipsis: true,
@@ -246,13 +247,34 @@ function Requirement() {
       width: 100,
       render: (status: string) => {
         const map: Record<string, any> = {
-          OPEN: { color: "blue", text: "待处理" },
-          IN_PROGRESS: { color: "orange", text: "处理中" },
-          COMPLETED: { color: "green", text: "已完成" },
-          CLOSED: { color: "gray", text: "已关闭" },
+          OPEN: {
+            color: "blue",
+            text: "待处理",
+            icon: <IconClockCircle />,
+          },
+          IN_PROGRESS: {
+            color: "orange",
+            text: "处理中",
+            icon: <IconLoading />,
+          },
+          COMPLETED: {
+            color: "green",
+            text: "已完成",
+            icon: <IconCheckCircle />,
+          },
+          CLOSED: {
+            color: "gray",
+            text: "已关闭",
+            icon: <IconCloseCircle />,
+          },
         };
         const it = map[status] || { color: "gray", text: status };
-        return <Tag color={it.color}>{it.text}</Tag>;
+        return (
+          <Tag color={it.color} className="requirement-status-tag">
+            {it.icon}
+            <span>{it.text}</span>
+          </Tag>
+        );
       },
     },
     {
@@ -322,27 +344,25 @@ function Requirement() {
 
   return (
     <div className="requirement-page">
-      <div className="requirement-content">
-        <DataManager
-          data={tableData}
-          loading={tableLoading}
-          pagination={pagination}
-          onPaginationChange={handlePaginationChange}
-          actions={{
-            onAdd: handleAdd,
-          }}
-          config={{
-            showModeToggle: false,
-            displayMode: "table",
-            filterContent,
-            tableColumns: columns,
-            tableProps: {
-              scroll: { x: 1200, y: tableScrollHeight },
-            },
-          }}
-          tableScrollHeight={tableScrollHeight}
-        />
-      </div>
+      <DataManager
+        data={tableData}
+        loading={tableLoading}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        actions={{
+          onAdd: handleAdd,
+        }}
+        config={{
+          showModeToggle: false,
+          displayMode: "table",
+          filterContent,
+          tableColumns: columns,
+          tableProps: {
+            scroll: { x: 1200, y: tableScrollHeight },
+          },
+        }}
+        tableScrollHeight={tableScrollHeight}
+      />
 
       {/* 新增/编辑 表单配置 */}
       {[
@@ -385,16 +405,45 @@ function Requirement() {
             <Form.Item label="描述" field="descr">
               <TextArea placeholder="请输入详细描述" autoSize={{ minRows: 3 }} />
             </Form.Item>
+            {index === 0 && (
+              <>
+                <Form.Item label="状态" field="status" initialValue="OPEN">
+                  <Select placeholder="请选择状态">
+                    {statusOptions.map((opt) => (
+                      <Option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+                <Form.Item label="优先级" field="priority" initialValue="MEDIUM">
+                  <Select placeholder="请选择优先级">
+                    <Option value="LOW">低</Option>
+                    <Option value="MEDIUM">中</Option>
+                    <Option value="HIGH">高</Option>
+                  </Select>
+                </Form.Item>
+              </>
+            )}
             {index === 1 && (
-              <Form.Item label="状态" field="status">
-                <Select placeholder="请选择状态">
-                  {statusOptions.map((opt) => (
-                    <Option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
+              <>
+                <Form.Item label="状态" field="status">
+                  <Select placeholder="请选择状态">
+                    {statusOptions.map((opt) => (
+                      <Option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+                <Form.Item label="优先级" field="priority">
+                  <Select placeholder="请选择优先级">
+                    <Option value="LOW">低</Option>
+                    <Option value="MEDIUM">中</Option>
+                    <Option value="HIGH">高</Option>
+                  </Select>
+                </Form.Item>
+              </>
             )}
           </Form>
         </Modal>
