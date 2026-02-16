@@ -1,28 +1,22 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
     Button,
-    Dropdown,
-    Form,
-    Grid,
     Input,
-    Layout,
-    Menu,
     Message,
-    Modal,
-    Pagination,
     Spin,
-    Table,
     Tag,
     Tree,
+    Tooltip,
+    Popconfirm,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {deleteExamHistory, getExamHistoryList, getSubjectCategoryTree} from './api';
-import {IconDelete, IconEye, IconList, IconSearch} from '@arco-design/web-react/icon';
+import {IconDelete} from '@arco-design/web-react/icon';
 import {useNavigate} from 'react-router-dom';
-
-const {Row, Col} = Grid;
-
-const {Content, Sider} = Layout;
+import DataManager from '@/components/DataManager';
+import FilterForm from '@/components/FilterForm';
+import { FormFieldConfig } from '@/components/types/types';
+import renderDate from '@/utils/timeUtil';
 
 function ExamHistoryManager() {
     // 导航
@@ -30,7 +24,6 @@ function ExamHistoryManager() {
 
     // 状态管理
     const [tableData, setTableData] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [tableLoading, setTableLoading] = useState(false);
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
 
@@ -41,11 +34,9 @@ function ExamHistoryManager() {
     const [expandedKeys, setExpandedKeys] = useState([]);
     const [searchKeyword, setSearchKeyword] = useState('');
     const [filteredTreeData, setFilteredTreeData] = useState([]);
+    const [currentTreeNode, setCurrentTreeNode] = useState(null);
 
     // 对话框状态
-    const [showDetailPage, setShowDetailPage] = useState(false);
-    const [currentResultId, setCurrentResultId] = useState<string | null>(null);
-    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [hasCheckedLastResult, setHasCheckedLastResult] = useState(false);
 
     // 分页配置
@@ -58,11 +49,23 @@ function ExamHistoryManager() {
         showPageSize: true,
     });
 
-    // 当前操作的记录
-    const [currentRecord, setCurrentRecord] = useState(null);
-
     // 表单引用
     const filterFormRef = useRef();
+
+    // 搜索条件
+    const [searchParams, setSearchParams] = useState({
+        examName: null,
+    });
+
+    const searchFormFields: FormFieldConfig[] = [
+        {
+            field: 'examName',
+            label: '名称',
+            type: 'input',
+            placeholder: '请输入试卷名称',
+            span: 6,
+        },
+    ];
 
     // 表格列配置
     const columns = [
@@ -117,87 +120,38 @@ function ExamHistoryManager() {
             dataIndex: 'submitTime',
             key: 'submitTime',
             width: 170,
-            render: (value) => {
-                if (!value) return '--';
-
-                const now = new Date();
-                const date = new Date(value);
-                const diffMs = now.getTime() - date.getTime();
-                const diffSeconds = Math.floor(diffMs / 1000);
-                const diffMinutes = Math.floor(diffSeconds / 60);
-                const diffHours = Math.floor(diffMinutes / 60);
-                const diffDays = Math.floor(diffHours / 24);
-
-                // 今天
-                if (diffDays === 0) {
-                    if (diffSeconds < 60) {
-                        return `${diffSeconds}秒前`;
-                    } else if (diffMinutes < 60) {
-                        return `${diffMinutes}分钟前`;
-                    } else {
-                        return `${diffHours}小时前`;
-                    }
-                }
-                // 昨天
-                else if (diffDays === 1) {
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    return `昨天 ${hours}:${minutes}`;
-                }
-                // 昨天之前
-                else {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const seconds = String(date.getSeconds()).padStart(2, '0');
-                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-                }
-            },
+            render: (value) => renderDate(value),
         },
         {
             title: '操作',
-            width: 180,
-            align: 'center',
+            width: 120,
             fixed: 'right',
             render: (_, record) => (
-                <Dropdown
-                    position="bl"
-                    droplist={
-                        <Menu
-                            onClickMenuItem={(key, e) => {
-                                handleMenuClick(key, e, record);
-                            }}
-                            className="handle-dropdown-menu"
-                        >
-                            <Menu.Item key="detail">
-                                <IconEye style={{marginRight: '5px'}}/>
-                                查看详情
-                            </Menu.Item>
-                            <Menu.Item key="delete">
-                                <IconDelete style={{marginRight: '5px'}}/>
-                                删除
-                            </Menu.Item>
-                        </Menu>
-                    }
+                <Popconfirm
+                    title="确认删除该答卷吗？"
+                    onOk={() => handleDelete(record)}
                 >
-                    <Button
-                        type="text"
-                        className="more-btn"
-                        onClick={e => {
-                            e.stopPropagation();
-                        }}
-                    >
-                        <IconList/>
-                    </Button>
-                </Dropdown>
+                    <Tooltip content="删除">
+                        <Button
+                            type="text"
+                            size="small"
+                            status="danger"
+                            icon={<IconDelete />}
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </Tooltip>
+                </Popconfirm>
             ),
         },
     ];
 
     // 获取表格数据
-    const fetchTableData = async (params = {}, pageSize = pagination.pageSize, current = pagination.current, subjectId = selectedTreeNode) => {
+    const fetchTableData = async (
+        params = searchParams,
+        pageSize = pagination.pageSize,
+        current = pagination.current,
+        subjectId = currentTreeNode?.subjectId
+    ) => {
         setTableLoading(true);
         try {
             const targetParams = {
@@ -223,53 +177,34 @@ function ExamHistoryManager() {
         }
     };
 
-    // 搜索表格数据
-    const searchTableData = (params) => {
-        fetchTableData(params, pagination.pageSize, 1, selectedTreeNode);
+    // 搜索处理
+    const handleSearch = (values) => {
+        const filterValues = Object.fromEntries(
+            Object.entries(values).filter(([_, v]) => v !== '' && v !== undefined && v !== null)
+        );
+        setSearchParams(filterValues);
+        setPagination(prev => ({ ...prev, current: 1 }));
+        fetchTableData(filterValues, pagination.pageSize, 1);
     };
 
-    // 处理下拉菜单点击
-    const handleMenuClick = (key, e, record) => {
-        e.stopPropagation();
-        switch (key) {
-            case 'detail':
-                navigate(`/frame/history/result/${record.resultId}`);
-                break;
-            case 'delete':
-                handleDelete(record);
-                break;
-            default:
-                break;
-        }
-    };
-
-
-    // 返回历史列表
-    const handleBackToList = () => {
-        setShowDetailPage(false);
-        setCurrentResultId(null);
+    // 重置处理
+    const handleReset = () => {
+        const defaultParams = {};
+        setSearchParams(defaultParams);
+        setPagination(prev => ({ ...prev, current: 1 }));
+        fetchTableData(defaultParams, pagination.pageSize, 1);
     };
 
     // 处理删除
-    const handleDelete = (record) => {
-        setCurrentRecord(record);
-        setDeleteModalVisible(true);
-    };
-
-    // 处理删除确认
-    const handleDeleteConfirm = async () => {
+    const handleDelete = async (record) => {
         try {
-            setLoading(true);
-            const response = await deleteExamHistory(currentRecord.resultId);
+            const response = await deleteExamHistory(record.resultId);
             if (response.data) {
                 Message.success('删除历史答卷成功');
-                setDeleteModalVisible(false);
-                fetchTableData({}, pagination.pageSize, pagination.current, selectedTreeNode);
+                fetchTableData();
             }
         } catch (error) {
             Message.error('删除历史答卷失败');
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -294,12 +229,23 @@ function ExamHistoryManager() {
             setTreeLoading(true);
             const response = await getSubjectCategoryTree();
             if (response.data) {
-                // 只保留第一层subject节点，类似试题管理页面的逻辑
+                const convertCategoriesToTreeNodes = (categories) => {
+                    if (!categories || !Array.isArray(categories)) return [];
+                    return categories.map(category => ({
+                        key: category.id,
+                        title: category.name,
+                        subjectId: category.subjectId,
+                        categoryId: category.id,
+                        children: convertCategoriesToTreeNodes(category.children)
+                    }));
+                };
+
                 const treeData = response.data.map(subject => ({
                     key: subject.id,
                     title: subject.name,
                     subjectId: subject.id,
-                    children: []
+                    categoryId: null,
+                    children: convertCategoriesToTreeNodes(subject.categories)
                 }));
                 setTreeData(treeData);
                 setFilteredTreeData(treeData);
@@ -316,7 +262,21 @@ function ExamHistoryManager() {
     // 搜索过滤树数据
     const filterTreeData = (data, keyword) => {
         if (!keyword) return data;
-        return data.filter(node => node.title.toLowerCase().includes(keyword.toLowerCase()));
+
+        const filterNode = (node) => {
+            const titleMatch = node.title.toLowerCase().includes(keyword.toLowerCase());
+            const filteredChildren = node.children ? node.children.map(filterNode).filter(Boolean) : [];
+
+            if (titleMatch || filteredChildren.length > 0) {
+                return {
+                    ...node,
+                    children: filteredChildren
+                };
+            }
+            return null;
+        };
+
+        return data.map(filterNode).filter(Boolean);
     };
 
     // 处理搜索输入变化
@@ -324,6 +284,35 @@ function ExamHistoryManager() {
         setSearchKeyword(value);
         const filtered = filterTreeData(treeData, value);
         setFilteredTreeData(filtered);
+
+        if (value) {
+            const getAllKeys = (nodes) => {
+                let keys = [];
+                nodes.forEach(node => {
+                    keys.push(node.key);
+                    if (node.children && node.children.length > 0) {
+                        keys = keys.concat(getAllKeys(node.children));
+                    }
+                });
+                return keys;
+            };
+            setExpandedKeys(getAllKeys(filtered));
+        } else {
+            setExpandedKeys(treeData.map(item => item.key));
+        }
+    };
+
+    const findNodeInTree = (data, key) => {
+        for (const item of data) {
+            if (item.key === key) {
+                return item;
+            }
+            if (item.children && item.children.length > 0) {
+                const result = findNodeInTree(item.children, key);
+                if (result) return result;
+            }
+        }
+        return null;
     };
 
     useEffect(() => {
@@ -341,120 +330,96 @@ function ExamHistoryManager() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const filterContent = (
+        <FilterForm
+            ref={filterFormRef}
+            formFields={searchFormFields}
+            onSearch={handleSearch}
+            onReset={handleReset}
+        />
+    );
+
     return (
-        <Layout className="exam-history-manager" style={{ height: '100%' }}>
-            <Content style={{ height: '100%' }}>
-                {showDetailPage && currentResultId ? (
-                    <></>
-                ) : (
-                    <Layout style={{ height: '100%', flexDirection: 'row' }}>
-                        {/* 左侧侧边栏 */}
-                        <Sider
-                            width={280}
-                            style={{
-                                marginRight: 16,
-                                background: 'var(--color-bg-2)',
-                                height: '100%',
-                                overflow: 'hidden',
-                                borderRadius: '4px'
-                            }}
-                        >
-                            <div style={{ padding: '12px', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                                <div style={{ paddingBottom: '12px' }}>
-                                    <Input.Search
-                                        placeholder="搜索学科"
-                                        allowClear
-                                        value={searchKeyword}
-                                        onChange={handleSearchChange}
-                                    />
-                                </div>
-                                <div style={{ flex: 1, overflow: 'auto' }}>
-                                    <Spin loading={treeLoading} block>
-                                        {filteredTreeData.length > 0 ? (
-                                            <Tree
-                                                treeData={filteredTreeData}
-                                                expandedKeys={expandedKeys}
-                                                selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
-                                                onExpand={setExpandedKeys}
-                                                onSelect={(keys) => {
-                                                    const key = keys.length > 0 ? keys[0] : null;
-                                                    setSelectedTreeNode(key);
-                                                    fetchTableData(undefined, 1, undefined, key);
-                                                }}
-                                                blockNode
-                                                showLine
-                                            />
-                                        ) : (
-                                            <div style={{ textAlign: 'center', color: 'var(--color-text-2)', padding: '20px' }}>
-                                                暂无数据
-                                            </div>
-                                        )}
-                                    </Spin>
-                                </div>
-                            </div>
-                        </Sider>
-
-                        {/* 右侧内容 */}
-                        <Content style={{ background: 'var(--color-bg-2)', padding: '16px', overflow: 'auto', borderRadius: '4px' }}>
-                            <Form ref={filterFormRef} layout="horizontal" className="filter-form">
-                                <Row gutter={16}>
-                                    <Col span={6}>
-                                        <Form.Item field="examName" label="名称">
-                                            <Input placeholder="请输入试卷名称"/>
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={6} style={{
-                                        display: 'flex',
-                                        justifyContent: 'flex-start',
-                                        alignItems: 'flex-end',
-                                        paddingBottom: '16px'
-                                    }}>
-                                        <Button type="primary" icon={<IconSearch/>} onClick={() => {
-                                            const values = filterFormRef.current?.getFieldsValue?.() || {};
-                                            searchTableData(values);
-                                        }}>
-                                            搜索
-                                        </Button>
-                                    </Col>
-                                </Row>
-                            </Form>
-                            <Table
-                                columns={columns}
-                                data={tableData}
-                                loading={tableLoading}
-                                pagination={false}
-                                scroll={{
-                                    y: tableScrollHeight,
-                                }}
-                                rowKey="resultId"
-                            />
-
-                            {/* 分页 */}
-                            <div className="pagination-wrapper">
-                                <Pagination
-                                    {...pagination}
-                                    onChange={(current, pageSize) => {
-                                        fetchTableData({}, pageSize, current, selectedTreeNode);
-                                    }}
+        <div className="exam-history-manager">
+            <DataManager
+                data={tableData}
+                loading={tableLoading}
+                pagination={pagination}
+                onPaginationChange={(nextPagination) => {
+                    fetchTableData(searchParams, nextPagination.pageSize, nextPagination.current);
+                }}
+                config={{
+                    displayMode: 'table',
+                    showModeToggle: false,
+                    filterContent,
+                    showTree: true,
+                    treeContent: (
+                        <div style={{height: '100%'}} className="tree-container">
+                            <div style={{paddingBottom: '12px'}}>
+                                <Input.Search
+                                    placeholder="搜索学科分类"
+                                    allowClear
+                                    style={{width: '100%'}}
+                                    value={searchKeyword}
+                                    onChange={handleSearchChange}
                                 />
                             </div>
-                        </Content>
-                    </Layout>
-                )}
-
-                {/* 删除确认对话框 */}
-                <Modal
-                    title="删除历史答卷"
-                    visible={deleteModalVisible}
-                    onOk={handleDeleteConfirm}
-                    onCancel={() => setDeleteModalVisible(false)}
-                    confirmLoading={loading}
-                >
-                    <p>确定要删除试卷 <strong>{currentRecord?.examName}</strong> 的历史答卷吗？</p>
-                    <p style={{color: '#f53f3f'}}>删除后不可恢复，请谨慎操作！</p>
-                </Modal>
-            </Content>
-        </Layout>
+                            <div style={{height: 'calc(100% - 50px)'}}>
+                                <Spin loading={treeLoading}>
+                                    {filteredTreeData.length > 0 ? (
+                                        <Tree
+                                            treeData={filteredTreeData}
+                                            expandedKeys={expandedKeys}
+                                            selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
+                                            onExpand={(keys) => {
+                                                setExpandedKeys(keys);
+                                            }}
+                                            onSelect={(keys) => {
+                                                if (keys.length > 0) {
+                                                    const selectedKey = keys[0];
+                                                    setSelectedTreeNode(selectedKey);
+                                                    const nodeInfo = findNodeInTree(treeData, selectedKey);
+                                                    setCurrentTreeNode(nodeInfo);
+                                                    fetchTableData(undefined, undefined, undefined, nodeInfo?.subjectId);
+                                                } else {
+                                                    setSelectedTreeNode(null);
+                                                    setCurrentTreeNode(null);
+                                                    fetchTableData();
+                                                }
+                                            }}
+                                            blockNode
+                                            showLine
+                                            style={{
+                                                backgroundColor: 'transparent',
+                                            }}
+                                        />
+                                    ) : (
+                                        <div
+                                            style={{
+                                                textAlign: 'center',
+                                                color: 'var(--color-text-2)',
+                                                padding: '20px 0',
+                                                fontSize: '14px',
+                                            }}
+                                        >
+                                            暂无数据
+                                        </div>
+                                    )}
+                                </Spin>
+                            </div>
+                        </div>
+                    ),
+                    tableColumns: columns,
+                    tableProps: {
+                        onRow: (record) => ({
+                            onClick: () => navigate(`/frame/history/result/${record.resultId}`),
+                            style: { cursor: 'pointer' },
+                        }),
+                    },
+                }}
+                tableScrollHeight={tableScrollHeight}
+            />
+        </div>
     );
 }
 
