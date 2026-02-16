@@ -232,7 +232,7 @@ const {Row, Col} = Grid;
         params: any = searchParams,
         pageSize: number = pagination.pageSize,
         current: number = pagination.current,
-        subjectId?: number
+        subjectId?: number | null
     ): Promise<void> => {
         setTableLoading(true);
         try {
@@ -276,21 +276,41 @@ const {Row, Col} = Grid;
         fetchTableData(searchParams, nextPagination.pageSize, nextPagination.current, currentTreeNode?.subjectId);
     };
 
+    const getAllKeys = (nodes: any[]) => {
+        let keys: string[] = [];
+        nodes.forEach(node => {
+            keys.push(node.key);
+            if (node.children && node.children.length > 0) {
+                keys = keys.concat(getAllKeys(node.children));
+            }
+        });
+        return keys;
+    };
+
     // 获取学科树（只加载subject节点）
     const fetchSubjectCategoryTree = async () => {
         try {
             setTreeLoading(true);
             const response = await getAllSubjects();
             if (response.data) {
-                const treeData = response.data.map((subject: any) => ({
+                const subjectNodes = response.data.map((subject: any) => ({
                     key: `subject-${subject.id}`,
                     title: subject.name,
                     subjectId: subject.id,
                     categoryId: null,
                 }));
+                const treeData = [
+                    {
+                        key: 'all',
+                        title: '全部',
+                        subjectId: null,
+                        categoryId: null,
+                        children: subjectNodes,
+                    },
+                ];
                 setTreeData(treeData);
                 setFilteredTreeData(treeData);
-                setExpandedKeys(treeData.map((item: any) => item.key));
+                setExpandedKeys(getAllKeys(treeData));
             }
         } catch (error) {
             console.error('获取学科树失败:', error);
@@ -353,19 +373,9 @@ const {Row, Col} = Grid;
         setFilteredTreeData(filtered);
 
         if (value) {
-            const getAllKeys = (nodes: any[]) => {
-                let keys: string[] = [];
-                nodes.forEach(node => {
-                    keys.push(node.key);
-                    if (node.children && node.children.length > 0) {
-                        keys = keys.concat(getAllKeys(node.children));
-                    }
-                });
-                return keys;
-            };
             setExpandedKeys(getAllKeys(filtered));
         } else {
-            setExpandedKeys(treeData.map((item: any) => item.key));
+            setExpandedKeys(getAllKeys(treeData));
         }
     };
 
@@ -594,6 +604,14 @@ const {Row, Col} = Grid;
                                                 if (selectedKeys.length > 0) {
                                                     setSelectedTreeNode(selectedKeys[0]);
                                                     const selectedKey = selectedKeys[0];
+                                                    if (selectedKey === 'all') {
+                                                        setCurrentTreeNode(null);
+                                                        const emptyParams = { name: '', status: '' };
+                                                        setSearchParams(emptyParams);
+                                                        setPagination(prev => ({ ...prev, current: 1 }));
+                                                        fetchTableData(emptyParams, pagination.pageSize, 1, null);
+                                                        return;
+                                                    }
                                                     const nodeInfo = findNodeInTree(treeData, selectedKey);
                                                     setCurrentTreeNode(nodeInfo);
                                                     // 重置搜索条件和分页，按学科过滤

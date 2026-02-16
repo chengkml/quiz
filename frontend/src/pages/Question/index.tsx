@@ -263,12 +263,12 @@ function QuestionManager() {
     ];
 
     // 获取表格数据
-    const fetchTableData = async (inParams, inPageSize, inPageNum , inSubjectId , inCategoryIds) => {
+    const fetchTableData = async (inParams, inPageSize, inPageNum, inSubjectId, inCategoryIds) => {
         const params = inParams || filterFormRef.current?.getFilterValues?.() || {};
         const pageSize = inPageSize || pagination.pageSize;
         const pageNum = inPageNum || pagination.current;
-        const subjectId = inSubjectId || currentTreeNode?.subjectId;
-        const categoryIds = inCategoryIds || currentTreeNode?.categoryIds;
+        const subjectId = inSubjectId !== undefined ? inSubjectId : currentTreeNode?.subjectId;
+        const categoryIds = inCategoryIds !== undefined ? inCategoryIds : currentTreeNode?.categoryIds;
         setTableLoading(true);
         try {
             const targetParams = {
@@ -379,9 +379,17 @@ function QuestionManager() {
                     categoryId: null,
                     children: convertCategoriesToTreeNodes(subject.categories)
                 }));
-                setTreeData(treeData);
-                setFilteredTreeData(treeData);
-                setExpandedKeys(treeData.map(item => item.key));
+                const rootNode = {
+                    key: 'all',
+                    title: '全部',
+                    subjectId: null,
+                    categoryId: null,
+                    children: treeData,
+                };
+                const treeWithRoot = [rootNode];
+                setTreeData(treeWithRoot);
+                setFilteredTreeData(treeWithRoot);
+                setExpandedKeys(['all', ...treeData.map(item => item.key)]);
             }
         } catch (error) {
             console.error('获取学科分类树失败:', error);
@@ -432,7 +440,11 @@ function QuestionManager() {
             setExpandedKeys(getAllKeys(filtered));
         } else {
             // 没有搜索关键字时，只展开第一级
-            setExpandedKeys(treeData.map(item => item.key));
+            const rootNode = treeData[0];
+            const firstLevelKeys = rootNode?.children
+                ? rootNode.children.map(item => item.key)
+                : [];
+            setExpandedKeys(['all', ...firstLevelKeys]);
         }
     };
 
@@ -1043,8 +1055,14 @@ function QuestionManager() {
                                             }}
                                             onSelect={(selectedKeys) => {
                                                 if (selectedKeys.length > 0) {
-                                                    setSelectedTreeNode(selectedKeys[0]);
                                                     const selectedKey = selectedKeys[0];
+                                                    setSelectedTreeNode(selectedKey);
+                                                    if (selectedKey === 'all') {
+                                                        setCurrentTreeNode(null);
+                                                        setPagination(prev => ({ ...prev, current: 1 }));
+                                                        fetchTableData(null, null, 1, null, null);
+                                                        return;
+                                                    }
                                                     const nodeInfo = findNodeInTree(treeData, selectedKey);
                                                     const collectChildCategoryIds = (treeNode) => {
                                                         let categoryIds = [];

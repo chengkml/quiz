@@ -247,9 +247,17 @@ function ExamHistoryManager() {
                     categoryId: null,
                     children: convertCategoriesToTreeNodes(subject.categories)
                 }));
-                setTreeData(treeData);
-                setFilteredTreeData(treeData);
-                setExpandedKeys(treeData.map(item => item.key));
+                const rootNode = {
+                    key: 'all',
+                    title: '全部',
+                    subjectId: null,
+                    categoryId: null,
+                    children: treeData,
+                };
+                const treeWithRoot = [rootNode];
+                setTreeData(treeWithRoot);
+                setFilteredTreeData(treeWithRoot);
+                setExpandedKeys(['all', ...treeData.map(item => item.key)]);
             }
         } catch (error) {
             console.error('获取学科数据失败:', error);
@@ -298,7 +306,11 @@ function ExamHistoryManager() {
             };
             setExpandedKeys(getAllKeys(filtered));
         } else {
-            setExpandedKeys(treeData.map(item => item.key));
+            const rootNode = treeData[0];
+            const firstLevelKeys = rootNode?.children
+                ? rootNode.children.map(item => item.key)
+                : [];
+            setExpandedKeys(['all', ...firstLevelKeys]);
         }
     };
 
@@ -378,6 +390,11 @@ function ExamHistoryManager() {
                                                 if (keys.length > 0) {
                                                     const selectedKey = keys[0];
                                                     setSelectedTreeNode(selectedKey);
+                                                    if (selectedKey === 'all') {
+                                                        setCurrentTreeNode(null);
+                                                        fetchTableData();
+                                                        return;
+                                                    }
                                                     const nodeInfo = findNodeInTree(treeData, selectedKey);
                                                     setCurrentTreeNode(nodeInfo);
                                                     fetchTableData(undefined, undefined, undefined, nodeInfo?.subjectId);
