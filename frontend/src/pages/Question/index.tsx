@@ -229,7 +229,7 @@ function QuestionManager() {
         },
         {
             title: '操作',
-            width: 70,
+            width: 90,
             align: 'center',
             fixed: 'right',
             render: (_, record) => (
