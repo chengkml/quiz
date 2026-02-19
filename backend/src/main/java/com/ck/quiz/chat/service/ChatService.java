@@ -13,7 +13,7 @@ public interface ChatService {
 
     ChatCompletionResponse chat(String userId, ChatCompletionRequest request);
 
-    Flux<ChatCompletionResponse> streamChat(String userId, ChatCompletionRequest request);
+    Flux<String> streamChat(String userId, ChatCompletionRequest request);
 
     Page<ChatSessionDto> listSessions(String userId, int page, int size);
 

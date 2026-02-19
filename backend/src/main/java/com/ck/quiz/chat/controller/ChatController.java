@@ -5,7 +5,6 @@ import com.ck.quiz.chat.dto.ChatCompletionResponse;
 import com.ck.quiz.chat.dto.ChatMessageDto;
 import com.ck.quiz.chat.dto.ChatSessionDto;
 import com.ck.quiz.chat.service.ChatService;
-import com.ck.quiz.chat.dto.ChatCompletionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,7 +39,7 @@ public class ChatController {
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "发送消息并获取流式回复")
-    public Flux<ChatCompletionResponse> streamCompletions(
+    public Flux<String> streamCompletions(
             @Valid @RequestBody ChatCompletionRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userId = authentication != null ? authentication.getName() : null;

@@ -44,14 +44,17 @@ export const fetchStream = async (
 
     const processLine = (line: string) => {
         if (!line.trim()) return;
+        console.log('[SSE] Processing line:', line);
         if (line.trim().startsWith('data:')) {
             const jsonStr = line.trim().substring(5).trim();
             if (jsonStr === '[DONE]') return;
             if (jsonStr) {
                 try {
                     const resData = JSON.parse(jsonStr);
+                    console.log('[SSE] Parsed data:', resData);
                     // data 是 ChatCompletionResponse
                     if (resData.messages && resData.messages.length > 0) {
+                        console.log('[SSE] Calling onMessage with content:', resData.messages[0].content);
                         onMessage(resData.messages[0].content, resData);
                     }
                 } catch (e) {
@@ -63,6 +66,7 @@ export const fetchStream = async (
 
     while (true) {
       const { value, done } = await reader.read();
+      console.log('[SSE] reader.read() done:', done, 'value length:', value?.length);
       if (done) {
         if (buffer.trim()) {
             const lines = buffer.split('\n');

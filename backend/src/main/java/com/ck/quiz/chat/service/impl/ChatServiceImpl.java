@@ -109,7 +109,7 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public Flux<ChatCompletionResponse> streamChat(String userId, ChatCompletionRequest request) {
+    public Flux<String> streamChat(String userId, ChatCompletionRequest request) {
         if (request == null || request.getMessage() == null
                 || !StringUtils.hasText(request.getMessage().getContent())) {
             throw new IllegalArgumentException("message content cannot be empty");
@@ -135,6 +135,9 @@ public class ChatServiceImpl implements ChatService {
 
         OpenAiChatModel chatModel = llmModelService.getChatModel(session.getModelName());
         ChatClient client = ChatClient.builder(chatModel).build();
+        
+        // 使用 ObjectMapper 手动序列化，确保流式输出
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
         return client.prompt(prompt).stream().content()
                 .map(content -> {
@@ -146,8 +149,14 @@ public class ChatServiceImpl implements ChatService {
                     msgDto.setRole("ASSISTANT");
                     msgDto.setContent(content);
                     response.setMessages(Collections.singletonList(msgDto));
-                    return response;
+                    try {
+                        return objectMapper.writeValueAsString(response);
+                    } catch (Exception e) {
+                        log.error("JSON serialize error", e);
+                        return "";
+                    }
                 })
+                .filter(s -> !s.isEmpty())
                 .doOnComplete(() -> {
                     String fullContent = contentBuilder.toString();
                     saveAssistantMessageWithId(session, fullContent, assistantSeq, assistantMessageId);

@@ -204,6 +204,7 @@ const ChatPage: React.FC = () => {
         '/chat/stream',
         payload,
         (delta, response) => {
+          console.log('[Chat] onMessage called, delta:', delta);
           // 如果是新会话，后端会在响应中返回 sessionId
           if (response.sessionId) {
              // 这里不能直接依赖 currentSessionId 闭包变量判断，因为它是旧的
@@ -212,6 +213,7 @@ const ChatPage: React.FC = () => {
           }
 
           setMessages((prev) => {
+            console.log('[Chat] setMessages called, prev length:', prev.length);
             const newMessages = [...prev];
             const messageIdFromServer = response.messages?.[0]?.id;
             const targetMsgIndex = newMessages.findIndex(

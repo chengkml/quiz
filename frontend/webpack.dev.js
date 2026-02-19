@@ -9,12 +9,19 @@ module.exports = merge(common, {
     port: process.env.PORT || 3004,
     historyApiFallback: true,
     hot: true,
+    compress: false, // 禁用压缩，支持 SSE 流式响应
     proxy: {
       // 1. 处理 API 请求
       '/api': {
         target: 'http://localhost:8089/quiz', // 建议不要在 target 末尾加斜杠
         changeOrigin: true,
         secure: false,
+        // 对 SSE 流式接口禁用压缩
+        onProxyReq: (proxyReq, req) => {
+          if (req.url.includes('/chat/stream') || req.url.includes('/generate/stream')) {
+            proxyReq.removeHeader('Accept-Encoding');
+          }
+        },
       },
       // 2. 处理 WebSocket 请求
       '/quiz-ws': {
