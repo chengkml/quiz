@@ -12,8 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
@@ -59,8 +57,9 @@ public class LoggingFilter extends OncePerRequestFilter {
 
         // 1. 核心修复点：如果是流式请求或静态资源，直接放行，不使用 Wrapper
         // 如果不排除，ContentCachingResponseWrapper 会缓存所有数据，导致流式输出失效
-        boolean isStreamRequest = requestUri.contains("/generate/stream") || 
-                                 "text/event-stream".equals(acceptHeader);
+        boolean isStreamRequest = requestUri.contains("/generate/stream")
+            || requestUri.contains("/chat/stream")
+            || "text/event-stream".equals(acceptHeader);
 
         if (shouldIgnore(requestUri) || isStreamRequest) {
             log.debug("Skipping logging wrapper for: {}", requestUri);

@@ -12,7 +12,6 @@ import {
 import DataManager from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
 import { FormFieldConfig } from "@/components/types/types";
-import UserAvatar from "@/components/UserAvatar";
 import {
   IconDelete,
   IconEdit,
@@ -246,17 +245,6 @@ function GroupManager() {
       title: "描述",
       dataIndex: "descr",
       ellipsis: true,
-    },
-    {
-      title: "创建人",
-      dataIndex: "createUserName",
-      width: 140,
-      render: (_: any, record: any) => (
-        <UserAvatar
-          name={record.createUserName || record.createUser || ""}
-          showName
-        />
-      ),
     },
     {
       title: "创建时间",

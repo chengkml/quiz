@@ -6,6 +6,7 @@ import EditTagModal from './components/EditTagModal';
 import DataManager from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
+import GroupTree from '../MindMap/components/GroupTree';
 
 import { deleteTag, getTagById, getTagList, TagDto } from './api';
 import renderDate from '@/utils/timeUtil';
@@ -18,6 +19,9 @@ function TagManager() {
     const [tableData, setTableData] = useState<TagDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
+
+    // 分组选择
+    const [selectedGroupKeys, setSelectedGroupKeys] = useState<string[]>([]);
 
     // 模态框状态
     const [addModalVisible, setAddModalVisible] = useState(false);
@@ -142,6 +146,10 @@ function TagManager() {
                 ...params,
             };
 
+            if (selectedGroupKeys.length > 0) {
+                queryParams.type = selectedGroupKeys[0];
+            }
+
             const response = await getTagList(queryParams);
             const { content = [], totalElements = 0 } = response.data || {};
 
@@ -164,6 +172,11 @@ function TagManager() {
     useEffect(() => {
         fetchTableData();
     }, []);
+
+    useEffect(() => {
+        const values = filterFormRef.current?.getFilterValues?.() || {};
+        fetchTableData(values, 1);
+    }, [selectedGroupKeys]);
 
     // 监听窗口大小
     useEffect(() => {
@@ -268,6 +281,17 @@ function TagManager() {
                         filterContent,
                         tableColumns: tableColumns,
                         showModeToggle: false,
+                        showTree: true,
+                        treeContent: (
+                            <GroupTree
+                                type="tag"
+                                selectedKeys={selectedGroupKeys}
+                                onSelect={(keys) => {
+                                    if (keys.includes('all')) setSelectedGroupKeys([]);
+                                    else setSelectedGroupKeys(keys);
+                                }}
+                            />
+                        ),
                     }}
                     tableScrollHeight={tableScrollHeight}
                 />
