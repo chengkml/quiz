@@ -67,6 +67,7 @@ import JwtGenerator from "@/pages/JwtGenerator";
 import ApiTester from "@/pages/ApiTester";
 import TagManager from "@/pages/Tag";
 import RequirementManager from "@/pages/Requirement";
+import AgentManager from "@/pages/Agent";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -342,6 +343,11 @@ const protectedPages = [
     path: "requirement",
     element: <RequirementManager />,
     requiredPath: "requirement",
+  },
+  {
+    path: "agent",
+    element: <AgentManager />,
+    requiredPath: "agent",
   },
 ];
 
