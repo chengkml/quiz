@@ -8,6 +8,8 @@ import com.ck.quiz.mcp.dto.McpServerDto;
 import com.ck.quiz.mcp.dto.McpServerQueryDto;
 import com.ck.quiz.mcp.dto.McpServerUpdateDto;
 import com.ck.quiz.mcp.dto.McpToolImportItemDto;
+import com.ck.quiz.mcp.dto.McpToolCallRequestDto;
+import com.ck.quiz.mcp.dto.McpToolCallResultDto;
 import com.ck.quiz.mcp.service.McpServerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -56,6 +58,13 @@ public class McpServerController
     public ResponseEntity<List<McpDiscoveredToolDto>> listDiscoveredTools(
             @Parameter(description = "服务器ID", required = true) @PathVariable("id") String id) {
         return ResponseEntity.ok(mcpServerService.listDiscoveredTools(id));
+    }
+
+    @Operation(summary = "执行MCP工具")
+    @PostMapping("/call-tool")
+    public ResponseEntity<McpToolCallResultDto> callTool(
+            @Valid @RequestBody McpToolCallRequestDto request) {
+        return ResponseEntity.ok(mcpServerService.callTool(request));
     }
 
 }

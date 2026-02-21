@@ -7,18 +7,19 @@ import {
   Input,
   Message,
   Modal,
+  Popconfirm,
   Radio,
   Select,
   Space,
   Tag,
   Tabs,
+  Tooltip,
 } from '@arco-design/web-react';
 import {
   IconCheck,
   IconCopy,
   IconDelete,
   IconEdit,
-  IconPlus,
   IconRefresh,
   IconSearch,
   IconStop,
@@ -38,6 +39,7 @@ import {
   updateAgent,
 } from './api';
 import ToolSelector from './components/ToolSelector';
+import renderDate from '@/utils/timeUtil';
 
 const { Row, Col } = Grid;
 const { Option } = Select;
@@ -60,7 +62,6 @@ function AgentManager() {
   const [currentRecord, setCurrentRecord] = useState<any | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
   const [promptMode, setPromptMode] = useState<'direct' | 'template'>('direct');
   const [promptTemplates, setPromptTemplates] = useState<any[]>([]);
@@ -80,19 +81,6 @@ function AgentManager() {
     DRAFT: { label: '草稿', color: 'gray' },
     ENABLED: { label: '启用', color: 'green' },
     DISABLED: { label: '禁用', color: 'red' },
-  };
-
-  const formatDateTime = (value?: string) => {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return '-';
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
   const fetchTableData = async (
@@ -229,17 +217,10 @@ function AgentManager() {
     }
   };
 
-  const handleDelete = (record: any) => {
-    setCurrentRecord(record);
-    setDeleteModalVisible(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!currentRecord) return;
+  const handleDeleteConfirm = async (record: any) => {
     try {
-      await deleteAgent(currentRecord.id);
+      await deleteAgent(record.id);
       Message.success('删除智能体成功');
-      setDeleteModalVisible(false);
       fetchTableData();
     } catch (error) {
       Message.error('删除智能体失败');
@@ -340,69 +321,76 @@ function AgentManager() {
       title: '更新时间',
       dataIndex: 'updateDate',
       width: 180,
-      render: (v: string) => formatDateTime(v),
+      render: (v: string) => renderDate(v),
     },
     {
       title: '操作',
-      width: 300,
+      width: 170,
       fixed: 'right' as any,
       align: 'center' as any,
       render: (_: any, record: any) => (
         <Space>
-          <Button
-            size="small"
-            icon={<IconEdit />}
-            onClick={e => {
-              e.stopPropagation();
-              handleEdit(record);
-            }}
-          >
-            编辑
-          </Button>
+          <Tooltip content="编辑">
+            <Button
+              type="text"
+              size="small"
+              icon={<IconEdit />}
+              onClick={e => {
+                e.stopPropagation();
+                handleEdit(record);
+              }}
+            />
+          </Tooltip>
           {record.status === 'ENABLED' ? (
-            <Button
-              size="small"
-              icon={<IconStop />}
-              onClick={e => {
-                e.stopPropagation();
-                handleDisable(record);
-              }}
-            >
-              禁用
-            </Button>
+            <Tooltip content="禁用">
+              <Button
+                type="text"
+                size="small"
+                icon={<IconStop />}
+                onClick={e => {
+                  e.stopPropagation();
+                  handleDisable(record);
+                }}
+              />
+            </Tooltip>
           ) : (
+            <Tooltip content="启用">
+              <Button
+                type="text"
+                size="small"
+                icon={<IconCheck />}
+                onClick={e => {
+                  e.stopPropagation();
+                  handleEnable(record);
+                }}
+              />
+            </Tooltip>
+          )}
+          <Tooltip content="复制">
             <Button
+              type="text"
               size="small"
-              icon={<IconCheck />}
+              icon={<IconCopy />}
               onClick={e => {
                 e.stopPropagation();
-                handleEnable(record);
+                handleDuplicate(record);
               }}
-            >
-              启用
-            </Button>
-          )}
-          <Button
-            size="small"
-            icon={<IconCopy />}
-            onClick={e => {
-              e.stopPropagation();
-              handleDuplicate(record);
-            }}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="确认删除该记录吗？"
+            onOk={() => handleDeleteConfirm(record)}
           >
-            复制
-          </Button>
-          <Button
-            size="small"
-            status="danger"
-            icon={<IconDelete />}
-            onClick={e => {
-              e.stopPropagation();
-              handleDelete(record);
-            }}
-          >
-            删除
-          </Button>
+            <Tooltip content="删除">
+              <Button
+                type="text"
+                status="danger"
+                size="small"
+                icon={<IconDelete />}
+                onClick={e => e.stopPropagation()}
+              />
+            </Tooltip>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -424,26 +412,34 @@ function AgentManager() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const handleSearch = () => {
+    const values = filterFormRef.current?.getFieldsValue?.() || {};
+    searchTableData(values);
+  };
+
   const filterContent = (
     <Form
       ref={filterFormRef}
       layout="horizontal"
       className="filter-form"
       style={{ marginTop: '10px' }}
-      onValuesChange={() => {
-        const values = filterFormRef.current?.getFieldsValue?.() || {};
-        searchTableData(values);
-      }}
     >
       <Row gutter={16}>
         <Col span={6}>
           <Form.Item field="keyWord" label="关键字">
-            <Input placeholder="名称或标识符模糊搜索" />
+            <Input
+              placeholder="名称或标识符模糊搜索"
+              onPressEnter={handleSearch}
+            />
           </Form.Item>
         </Col>
         <Col span={6}>
           <Form.Item field="status" label="状态">
-            <Select placeholder="请选择状态" allowClear>
+            <Select
+              placeholder="请选择状态"
+              allowClear
+              onChange={handleSearch}
+            >
               {statusOptions.map(opt => (
                 <Option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -454,7 +450,7 @@ function AgentManager() {
         </Col>
         <Col span={6}>
           <Form.Item field="category" label="分类">
-            <Input placeholder="按分类过滤" />
+            <Input placeholder="按分类过滤" onPressEnter={handleSearch} />
           </Form.Item>
         </Col>
         <Col
@@ -471,9 +467,7 @@ function AgentManager() {
               type="primary"
               icon={<IconSearch />}
               onClick={() => {
-                const values =
-                  filterFormRef.current?.getFieldsValue?.() || {};
-                searchTableData(values);
+                handleSearch();
               }}
             >
               搜索
@@ -643,22 +637,24 @@ function AgentManager() {
 
   return (
     <div className="agent-manager">
-      <DataManager
-        data={tableData}
-        loading={tableLoading}
-        pagination={pagination}
-        onPaginationChange={handlePaginationChange}
-        actions={{
-          onAdd: handleAdd,
-        }}
-        config={{
-          showModeToggle: false,
-          displayMode: 'table',
-          filterContent,
-          tableColumns: columns,
-        }}
-        tableScrollHeight={tableScrollHeight}
-      />
+      <div className="agent-content">
+        <DataManager
+          data={tableData}
+          loading={tableLoading}
+          pagination={pagination}
+          onPaginationChange={handlePaginationChange}
+          actions={{
+            onAdd: handleAdd,
+          }}
+          config={{
+            showModeToggle: false,
+            displayMode: 'table',
+            filterContent,
+            tableColumns: columns,
+          }}
+          tableScrollHeight={tableScrollHeight}
+        />
+      </div>
 
       {/* 新增智能体 Modal */}
       <Modal
@@ -684,21 +680,6 @@ function AgentManager() {
         {renderAgentForm(editFormRef, true)}
       </Modal>
 
-      {/* 删除确认 Modal */}
-      <Modal
-        title="确认删除"
-        visible={deleteModalVisible}
-        onOk={handleDeleteConfirm}
-        onCancel={() => setDeleteModalVisible(false)}
-        okButtonProps={{ status: 'danger' }}
-      >
-        <p>
-          确定要删除智能体 <strong>{currentRecord?.name}</strong> 吗？
-        </p>
-        <p style={{ color: 'var(--color-text-3)', fontSize: 12 }}>
-          删除后将无法恢复，关联的工具配置也将一并删除。
-        </p>
-      </Modal>
     </div>
   );
 }
