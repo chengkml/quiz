@@ -213,6 +213,7 @@ public class McpServerServiceImpl extends
         final String[] endpoint = {null};
         final RuntimeException[] error = {null};
         final StringBuilder[] sseBuffer = {new StringBuilder()};
+        final int[] eventCount = {0};
 
         String baseAddress = server.getAddress();
         String handshakeUrl = baseAddress.endsWith("/sse") ? baseAddress : baseAddress + "/sse";
@@ -226,39 +227,75 @@ public class McpServerServiceImpl extends
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of("jsonrpc", "2.0"))
                     .retrieve()
-                    .bodyToFlux(org.springframework.http.codec.ServerSentEvent.class)
-                    .doOnNext(event -> {
-                        sseBuffer[0].append(event).append("\n");
-                        String eventType = event.event();
-                        Object dataObj = event.data();
+                    .bodyToFlux(String.class)
+                    .filter(StringUtils::hasText)
+                    .doOnNext(line -> {
+                        sseBuffer[0].append(line).append("\n");
+                        logger.debug("Handshake SSE raw line: {}", line);
 
-                        logger.debug("Handshake SSE event: {}, data: {}", eventType, dataObj);
+                        try {
+                            // 处理 SSE 格式: event: endpoint\ndata: {...}
+                            if (line.startsWith("event:")) {
+                                String eventType = line.substring(6).trim();
+                                logger.debug("Received SSE event type: {}", eventType);
+                            } else if (line.startsWith("data:")) {
+                                eventCount[0]++;
+                                String jsonData = line.substring(5).trim();
+                                logger.debug("Received SSE data (event #{}): {}", eventCount[0], jsonData);
 
-                        if ("endpoint".equals(eventType) && dataObj != null) {
-                            try {
-                                Map<String, Object> data;
-                                if (dataObj instanceof String) {
-                                    String jsonData = ((String) dataObj).trim();
-                                    data = objectMapper.readValue(jsonData, Map.class);
-                                } else if (dataObj instanceof Map) {
-                                    data = (Map<String, Object>) dataObj;
-                                } else {
-                                    return;
+                                if (StringUtils.hasText(jsonData)) {
+                                    try {
+                                        Map<String, Object> data = objectMapper.readValue(jsonData, Map.class);
+                                        logger.debug("Parsed data object: {}", data);
+
+                                        // 多种方式尝试获取 session_id
+                                        String sessionId = null;
+                                        
+                                        // 方式1: 直接从 data 中获取
+                                        if (data.containsKey("session_id")) {
+                                            sessionId = (String) data.get("session_id");
+                                            logger.info("Found session_id directly in data");
+                                        }
+                                        
+                                        // 方式2: 从嵌套的 endpoint 对象中获取
+                                        if (!StringUtils.hasText(sessionId) && data.containsKey("endpoint")) {
+                                            Object endpointObj = data.get("endpoint");
+                                            if (endpointObj instanceof Map) {
+                                                Map<String, Object> endpointMap = (Map<String, Object>) endpointObj;
+                                                sessionId = (String) endpointMap.get("session_id");
+                                                logger.info("Found session_id in nested endpoint object");
+                                            } else if (endpointObj instanceof String) {
+                                                sessionId = (String) endpointObj;
+                                                logger.info("Found session_id as string in endpoint");
+                                            }
+                                        }
+
+                                        if (StringUtils.hasText(sessionId)) {
+                                            endpoint[0] = baseAddress + "/sse?session_id=" + sessionId;
+                                            logger.info("Handshake successful - Received session_id: {}", sessionId);
+                                        }
+                                    } catch (Exception e) {
+                                        logger.warn("Failed to parse data as JSON, treating as plain text: {}", jsonData);
+                                        // 可能是纯文本响应，尝试直接使用为 session_id
+                                        if (StringUtils.hasText(jsonData) && !jsonData.startsWith("{")) {
+                                            endpoint[0] = baseAddress + "/sse?session_id=" + jsonData.trim();
+                                            logger.info("Using plain text response as session_id");
+                                        }
+                                    }
                                 }
-
-                                String sessionId = (String) data.get("session_id");
-                                if (StringUtils.hasText(sessionId)) {
-                                    endpoint[0] = baseAddress + "/sse?session_id=" + sessionId;
-                                    logger.info("Received session_id from handshake: {}", sessionId);
-                                }
-                            } catch (Exception e) {
-                                error[0] = new RuntimeException("Failed to parse endpoint data", e);
+                            } else if (line.startsWith(":")) {
+                                // SSE 注释，忽略
+                                logger.debug("Ignoring SSE comment: {}", line);
+                            } else if (!line.isEmpty()) {
+                                logger.debug("Received unknown SSE line format: {}", line);
                             }
+                        } catch (Exception e) {
+                            logger.warn("Exception processing SSE line: {}", line, e);
                         }
                     })
-                    .timeout(java.time.Duration.ofSeconds(15))
+                    .timeout(java.time.Duration.ofSeconds(20))
                     .doOnError(e -> {
-                        logger.error("Handshake SSE stream error: {}", e.getMessage());
+                        logger.error("Handshake SSE stream error ({}): {}", e.getClass().getSimpleName(), e.getMessage());
                         error[0] = new RuntimeException("Handshake SSE connection failed: " + e.getMessage(), e);
                     })
                     .onErrorResume(e -> {
@@ -267,10 +304,10 @@ public class McpServerServiceImpl extends
                     })
                     .blockLast();
 
-            logger.debug("Handshake SSE stream ended. Buffer content:\n{}", sseBuffer[0].toString());
+            logger.debug("Handshake SSE stream ended after {} events. Buffer content:\n{}", eventCount[0], sseBuffer[0].toString());
 
         } catch (Exception e) {
-            logger.error("Handshake blockLast failed", e);
+            logger.error("Handshake blockLast failed: {}", e.getMessage(), e);
             if (error[0] == null) {
                 error[0] = new RuntimeException("Handshake connection error: " + e.getMessage(), e);
             }
@@ -281,8 +318,8 @@ public class McpServerServiceImpl extends
         }
 
         if (!StringUtils.hasText(endpoint[0])) {
-            logger.error("Failed to obtain endpoint from handshake. SSE buffer:\n{}", sseBuffer[0].toString());
-            throw new RuntimeException("Failed to obtain endpoint from handshake - no valid session_id received");
+            logger.error("Failed to obtain endpoint from handshake (received {} events). SSE buffer:\n{}", eventCount[0], sseBuffer[0].toString());
+            throw new RuntimeException("Failed to obtain endpoint from handshake - no valid session_id received after " + eventCount[0] + " events");
         }
 
         logger.info("Handshake successful, endpoint: {}", endpoint[0]);
@@ -312,6 +349,7 @@ public class McpServerServiceImpl extends
 
         final RuntimeException[] error = {null};
         final StringBuilder[] sseBuffer = {new StringBuilder()};
+        final boolean[] initialized = {false};
 
         logger.info("Sending initialize request to endpoint: {}", endpoint);
 
@@ -322,36 +360,39 @@ public class McpServerServiceImpl extends
                     .bodyValue(initRequest)
                     .retrieve()
                     .bodyToFlux(String.class)
+                    .filter(StringUtils::hasText)
                     .doOnNext(line -> {
                         sseBuffer[0].append(line).append("\n");
                         logger.debug("Initialize SSE raw line: {}", line);
 
-                        if (!StringUtils.hasText(line)) {
-                            return;
-                        }
+                        if (line.startsWith("data:")) {
+                            String jsonData = line.substring(5).trim();
+                            logger.debug("Parsing initialize data: {}", jsonData);
 
-                        try {
-                            if (line.startsWith("data:")) {
-                                String jsonData = line.substring(5).trim();
-                                logger.debug("Parsing initialize data: {}", jsonData);
-
-                                if (StringUtils.hasText(jsonData)) {
+                            if (StringUtils.hasText(jsonData)) {
+                                try {
                                     Map<String, Object> response = objectMapper.readValue(jsonData, Map.class);
                                     logger.debug("Initialize response: {}", response);
 
                                     if (response.containsKey("error")) {
                                         Map<String, Object> errObj = (Map<String, Object>) response.get("error");
-                                        error[0] = new RuntimeException("Initialize failed: " + errObj.get("message"));
+                                        String errMsg = (String) errObj.getOrDefault("message", "Unknown error");
+                                        error[0] = new RuntimeException("Initialize failed: " + errMsg);
+                                        logger.error("Initialize error response: {}", errMsg);
                                     } else if (response.containsKey("result")) {
                                         logger.info("Initialize successful, result: {}", response.get("result"));
+                                        initialized[0] = true;
                                     }
+                                } catch (Exception e) {
+                                    logger.warn("Failed to parse initialize response: {}", jsonData, e);
                                 }
                             }
-                        } catch (Exception e) {
-                            logger.warn("Failed to parse initialize response line, continuing...", e);
+                        } else if (line.startsWith("event:")) {
+                            String eventType = line.substring(6).trim();
+                            logger.debug("Initialize event type: {}", eventType);
                         }
                     })
-                    .timeout(java.time.Duration.ofSeconds(15))
+                    .timeout(java.time.Duration.ofSeconds(20))
                     .doOnError(e -> {
                         logger.error("Initialize SSE stream error: {}", e.getMessage());
                         error[0] = new RuntimeException("Initialize request failed: " + e.getMessage(), e);
@@ -365,7 +406,7 @@ public class McpServerServiceImpl extends
             logger.debug("Initialize SSE stream ended. Buffer:\n{}", sseBuffer[0].toString());
 
         } catch (Exception e) {
-            logger.error("Initialize blockLast failed", e);
+            logger.error("Initialize blockLast failed: {}", e.getMessage(), e);
             if (error[0] == null) {
                 error[0] = new RuntimeException("Initialize connection error: " + e.getMessage(), e);
             }
@@ -395,6 +436,7 @@ public class McpServerServiceImpl extends
 
         final RuntimeException[] error = {null};
         final StringBuilder[] sseBuffer = {new StringBuilder()};
+        final int[] toolCount = {0};
 
         logger.info("Sending tools/list request to endpoint: {}", endpoint);
 
@@ -423,8 +465,9 @@ public class McpServerServiceImpl extends
                                     // 检查是否有错误
                                     if (body.containsKey("error")) {
                                         Map<String, Object> errObj = (Map<String, Object>) body.get("error");
-                                        error[0] = new RuntimeException("Tool discovery failed: " + errObj.get("message"));
-                                        logger.error("Tool discovery error: {}", errObj.get("message"));
+                                        String errMsg = (String) errObj.getOrDefault("message", "Unknown error");
+                                        error[0] = new RuntimeException("Tool discovery failed: " + errMsg);
+                                        logger.error("Tool discovery error: {}", errMsg);
                                         return;
                                     }
 
@@ -447,6 +490,7 @@ public class McpServerServiceImpl extends
                                                 dto.setInputSchema(schema);
 
                                                 resultList.add(dto);
+                                                toolCount[0]++;
 
                                                 logger.debug("Discovered tool: {} - {}", name, desc);
                                                 saveMcpTool(serverId, server.getIdentifier(), name, desc, schema);
@@ -456,9 +500,12 @@ public class McpServerServiceImpl extends
                                         }
                                     }
                                 }
+                            } else if (line.startsWith("event:")) {
+                                String eventType = line.substring(6).trim();
+                                logger.debug("Tool discovery event type: {}", eventType);
                             }
                         } catch (Exception e) {
-                            logger.warn("Failed to parse tools/list response line, continuing...", e);
+                            logger.warn("Failed to parse tools/list response line: {}", line, e);
                         }
                     })
                     .timeout(java.time.Duration.ofSeconds(30))
@@ -475,7 +522,7 @@ public class McpServerServiceImpl extends
             logger.debug("Tool discovery SSE stream ended. Buffer:\n{}", sseBuffer[0].toString());
 
         } catch (Exception e) {
-            logger.error("Tool discovery blockLast failed", e);
+            logger.error("Tool discovery blockLast failed: {}", e.getMessage(), e);
             if (error[0] == null) {
                 error[0] = new RuntimeException("Tool discovery connection error: " + e.getMessage(), e);
             }
@@ -486,7 +533,7 @@ public class McpServerServiceImpl extends
             throw error[0];
         }
 
-        logger.info("Tool discovery completed, found {} tools", resultList.size());
+        logger.info("Tool discovery completed, found {} tools total", toolCount[0]);
         return resultList;
     }
 
@@ -607,6 +654,7 @@ public class McpServerServiceImpl extends
         final McpToolCallResultDto[] result = {null};
         final RuntimeException[] error = {null};
         final StringBuilder[] sseBuffer = {new StringBuilder()};
+        final int[] eventCount = {0};
 
         Map<String, Object> callRequest = Map.of(
                 "jsonrpc", "2.0",
@@ -635,8 +683,9 @@ public class McpServerServiceImpl extends
 
                         try {
                             if (line.startsWith("data:")) {
+                                eventCount[0]++;
                                 String jsonData = line.substring(5).trim();
-                                logger.debug("Parsing tools/call data: {}", jsonData);
+                                logger.debug("Parsing tools/call data (event #{}): {}", eventCount[0], jsonData);
 
                                 if (StringUtils.hasText(jsonData)) {
                                     Map<String, Object> body = objectMapper.readValue(jsonData, Map.class);
@@ -668,9 +717,12 @@ public class McpServerServiceImpl extends
                                                 toolName, content != null ? content.size() : 0);
                                     }
                                 }
+                            } else if (line.startsWith("event:")) {
+                                String eventType = line.substring(6).trim();
+                                logger.debug("Tool call event type: {}", eventType);
                             }
                         } catch (Exception e) {
-                            logger.warn("Failed to parse tool call response line, continuing...", e);
+                            logger.warn("Failed to parse tool call response line: {}", line, e);
                         }
                     })
                     .timeout(java.time.Duration.ofSeconds(30))
@@ -684,10 +736,10 @@ public class McpServerServiceImpl extends
                     })
                     .blockLast();
 
-            logger.debug("Tool call SSE stream ended. Buffer:\n{}", sseBuffer[0].toString());
+            logger.debug("Tool call SSE stream ended after {} events. Buffer:\n{}", eventCount[0], sseBuffer[0].toString());
 
         } catch (Exception e) {
-            logger.error("Tool call blockLast failed", e);
+            logger.error("Tool call blockLast failed: {}", e.getMessage(), e);
             if (error[0] == null) {
                 error[0] = new RuntimeException("Tool call connection error: " + e.getMessage(), e);
             }
@@ -698,7 +750,7 @@ public class McpServerServiceImpl extends
         }
 
         if (result[0] == null) {
-            result[0] = new McpToolCallResultDto(toolName, false, "No response from server");
+            result[0] = new McpToolCallResultDto(toolName, false, "No response from server after " + eventCount[0] + " events");
         }
 
         logger.info("Tool call completed - Tool: {}, Success: {}", toolName, result[0].getSuccess());

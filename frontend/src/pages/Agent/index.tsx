@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { DataManager } from '@/components/DataManager';
+import DataManager from '@/components/DataManager';
+import FilterForm from '@/components/FilterForm';
 import {
   Button,
   Form,
@@ -20,11 +21,10 @@ import {
   IconCopy,
   IconDelete,
   IconEdit,
-  IconRefresh,
-  IconSearch,
   IconStop,
   IconTool,
 } from '@arco-design/web-react/icon';
+import { FormFieldConfig } from '@/components/types/types';
 import './style/index.less';
 import {
   createAgent,
@@ -57,7 +57,6 @@ function AgentManager() {
     showJumper: true,
     showPageSize: true,
   });
-  const [tableScrollHeight, setTableScrollHeight] = useState(420);
 
   const [currentRecord, setCurrentRecord] = useState<any | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -83,10 +82,45 @@ function AgentManager() {
     DISABLED: { label: '禁用', color: 'red' },
   };
 
+  // 搜索条件
+  const [searchParams, setSearchParams] = useState({
+    keyWord: '',
+    status: '',
+    category: '',
+  });
+
+  // 搜索表单配置
+  const searchFormFields: FormFieldConfig[] = [
+    {
+      field: 'keyWord',
+      label: '关键字',
+      type: 'input',
+      placeholder: '名称或标识符模糊搜索',
+      span: 6,
+    },
+    {
+      field: 'status',
+      label: '状态',
+      type: 'select',
+      placeholder: '请选择状态',
+      options: statusOptions,
+      span: 6,
+      allowClear: true,
+    },
+    {
+      field: 'category',
+      label: '分类',
+      type: 'input',
+      placeholder: '按分类过滤',
+      span: 6,
+    },
+  ];
+
+  // 获取表格数据
   const fetchTableData = async (
-    params: any = {},
+    params: any = searchParams,
     pageSize: number = pagination.pageSize,
-    current: number = pagination.current,
+    current: number = pagination.current
   ) => {
     setTableLoading(true);
     try {
@@ -100,7 +134,7 @@ function AgentManager() {
       const response = await searchAgents(query);
       if (response.data) {
         setTableData(response.data.content || []);
-        setPagination(prev => ({
+        setPagination((prev) => ({
           ...prev,
           current,
           pageSize,
@@ -112,6 +146,24 @@ function AgentManager() {
     } finally {
       setTableLoading(false);
     }
+  };
+
+  // 搜索处理
+  const handleSearch = (values: any) => {
+    const filterValues = Object.fromEntries(
+      Object.entries(values).filter(([_, v]) => v !== '' && v !== undefined && v !== null)
+    );
+    setSearchParams(filterValues as any);
+    setPagination((prev) => ({ ...prev, current: 1 }));
+  };
+
+  // 重置处理
+  const handleReset = () => {
+    const defaultParams = { keyWord: '', status: '', category: '' };
+    setSearchParams(defaultParams as any);
+    setPagination((prev) => ({ ...prev, current: 1 }));
+    fetchTableData(defaultParams, pagination.pageSize, 1);
+    filterFormRef.current?.setFieldsValue?.(defaultParams);
   };
 
   const fetchPromptTemplates = async () => {
@@ -136,13 +188,12 @@ function AgentManager() {
     }
   };
 
-  const searchTableData = (params: any) => {
-    fetchTableData(params, pagination.pageSize, 1);
-  };
-
   const handlePaginationChange = (nextPagination: any) => {
-    const values = filterFormRef.current?.getFieldsValue?.() || {};
-    fetchTableData(values, nextPagination.pageSize, nextPagination.current);
+    fetchTableData(
+      searchParams,
+      nextPagination.pageSize,
+      nextPagination.current
+    );
   };
 
   const handleAdd = () => {
@@ -162,7 +213,7 @@ function AgentManager() {
         Message.success('创建智能体成功');
         setAddModalVisible(false);
         addFormRef.current?.resetFields?.();
-        fetchTableData();
+        fetchTableData(searchParams);
       }
     } catch (error) {
       if ((error as any)?.fields) return;
@@ -209,7 +260,7 @@ function AgentManager() {
         Message.success('更新智能体成功');
         setEditModalVisible(false);
         editFormRef.current?.resetFields?.();
-        fetchTableData();
+        fetchTableData(searchParams);
       }
     } catch (error) {
       if ((error as any)?.fields) return;
@@ -221,7 +272,7 @@ function AgentManager() {
     try {
       await deleteAgent(record.id);
       Message.success('删除智能体成功');
-      fetchTableData();
+      fetchTableData(searchParams);
     } catch (error) {
       Message.error('删除智能体失败');
     }
@@ -231,7 +282,7 @@ function AgentManager() {
     try {
       await enableAgent(record.id);
       Message.success('已启用智能体');
-      fetchTableData();
+      fetchTableData(searchParams);
     } catch (error) {
       Message.error('启用智能体失败');
     }
@@ -241,7 +292,7 @@ function AgentManager() {
     try {
       await disableAgent(record.id);
       Message.success('已禁用智能体');
-      fetchTableData();
+      fetchTableData(searchParams);
     } catch (error) {
       Message.error('禁用智能体失败');
     }
@@ -251,7 +302,7 @@ function AgentManager() {
     try {
       await duplicateAgent(record.id);
       Message.success('复制智能体成功');
-      fetchTableData();
+      fetchTableData(searchParams);
     } catch (error) {
       Message.error('复制智能体失败');
     }
@@ -397,94 +448,18 @@ function AgentManager() {
   ];
 
   useEffect(() => {
-    const calcHeight = () => {
-      const windowHeight = window.innerHeight;
-      const otherHeight = 250;
-      const newHeight = Math.max(100, windowHeight - otherHeight);
-      setTableScrollHeight(newHeight);
-    };
-    calcHeight();
-    fetchTableData({});
+    fetchTableData(searchParams);
     fetchPromptTemplates();
     fetchLlmModels();
-    const handleResize = () => calcHeight();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleSearch = () => {
-    const values = filterFormRef.current?.getFieldsValue?.() || {};
-    searchTableData(values);
-  };
-
   const filterContent = (
-    <Form
+    <FilterForm
       ref={filterFormRef}
-      layout="horizontal"
-      className="filter-form"
-      style={{ marginTop: '10px' }}
-    >
-      <Row gutter={16}>
-        <Col span={6}>
-          <Form.Item field="keyWord" label="关键字">
-            <Input
-              placeholder="名称或标识符模糊搜索"
-              onPressEnter={handleSearch}
-            />
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item field="status" label="状态">
-            <Select
-              placeholder="请选择状态"
-              allowClear
-              onChange={handleSearch}
-            >
-              {statusOptions.map(opt => (
-                <Option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item field="category" label="分类">
-            <Input placeholder="按分类过滤" onPressEnter={handleSearch} />
-          </Form.Item>
-        </Col>
-        <Col
-          span={6}
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-start',
-            alignItems: 'flex-end',
-            paddingBottom: '16px',
-          }}
-        >
-          <Space>
-            <Button
-              type="primary"
-              icon={<IconSearch />}
-              onClick={() => {
-                handleSearch();
-              }}
-            >
-              搜索
-            </Button>
-            <Button
-              icon={<IconRefresh />}
-              onClick={() => {
-                filterFormRef.current?.resetFields?.();
-                searchTableData({});
-              }}
-            >
-              重置
-            </Button>
-          </Space>
-        </Col>
-      </Row>
-    </Form>
+      fields={searchFormFields}
+      onSearch={handleSearch}
+      onReset={handleReset}
+    />
   );
 
   const renderAgentForm = (formRef: any, isEdit: boolean = false) => (
@@ -637,24 +612,21 @@ function AgentManager() {
 
   return (
     <div className="agent-manager">
-      <div className="agent-content">
-        <DataManager
-          data={tableData}
-          loading={tableLoading}
-          pagination={pagination}
-          onPaginationChange={handlePaginationChange}
-          actions={{
-            onAdd: handleAdd,
-          }}
-          config={{
-            showModeToggle: false,
-            displayMode: 'table',
-            filterContent,
-            tableColumns: columns,
-          }}
-          tableScrollHeight={tableScrollHeight}
-        />
-      </div>
+      <DataManager
+        data={tableData}
+        loading={tableLoading}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        actions={{
+          onAdd: handleAdd,
+        }}
+        config={{
+          showModeToggle: false,
+          displayMode: 'table',
+          filterContent,
+          tableColumns: columns,
+        }}
+      />
 
       {/* 新增智能体 Modal */}
       <Modal
