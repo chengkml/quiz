@@ -68,6 +68,8 @@ import ApiTester from "@/pages/ApiTester";
 import TagManager from "@/pages/Tag";
 import RequirementManager from "@/pages/Requirement";
 import AgentManager from "@/pages/Agent";
+import VocabularyPage from "@/pages/Vocabulary";
+import VocabularyReviewPage from "@/pages/Vocabulary/Review";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -348,6 +350,16 @@ const protectedPages = [
     path: "agent",
     element: <AgentManager />,
     requiredPath: "agent",
+  },
+  {
+    path: "vocabulary",
+    element: <VocabularyPage />,
+    requiredPath: "vocabulary",
+  },
+  {
+    path: "vocabulary/review",
+    element: <VocabularyReviewPage />,
+    requiredPath: "vocabulary",
   },
 ];
 
