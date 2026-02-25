@@ -1,6 +1,8 @@
 package com.ck.quiz.vocabulary.dto;
 
+import com.ck.quiz.base.dto.QueryDto;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 
@@ -8,9 +10,9 @@ import java.time.LocalDate;
  * 单词卡片查询 DTO
  */
 @Data
-public class VocabularyCardQueryDto {
+@EqualsAndHashCode(callSuper = true)
+public class VocabularyCardQueryDto extends QueryDto {
     private String keyword; // 模糊搜索单词
-    private String tags; // 按标签筛选
     private Boolean archived; // 是否归档
     private Integer minRepetition; // 最小复习次数（熟练度筛选）
     private Integer maxRepetition;

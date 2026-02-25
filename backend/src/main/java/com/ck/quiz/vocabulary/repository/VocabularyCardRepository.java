@@ -1,7 +1,7 @@
 package com.ck.quiz.vocabulary.repository;
 
+import com.ck.quiz.base.repository.BaseRepository;
 import com.ck.quiz.vocabulary.entity.VocabularyCard;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -9,13 +9,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-
 /**
  * 单词卡片仓库接口
  */
-public interface VocabularyCardRepository
-        extends JpaRepository<VocabularyCard, String>, JpaSpecificationExecutor<VocabularyCard> {
+public interface VocabularyCardRepository extends BaseRepository<VocabularyCard> {
 
     /**
      * 查找今日待复习的单词

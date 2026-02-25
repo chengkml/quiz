@@ -1,20 +1,22 @@
 package com.ck.quiz.vocabulary.service.impl;
 
+import com.ck.quiz.base.service.impl.BaseServiceImpl;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
 import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.vocabulary.dto.*;
+import com.ck.quiz.vocabulary.repository.VocabularyCardRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ck.quiz.vocabulary.entity.ReviewLog;
 import com.ck.quiz.vocabulary.entity.VocabularyCard;
 import com.ck.quiz.vocabulary.repository.ReviewLogRepository;
-import com.ck.quiz.vocabulary.repository.VocabularyCardRepository;
 import com.ck.quiz.vocabulary.service.VocabularyCardService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,30 +38,59 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class VocabularyCardServiceImpl implements VocabularyCardService {
+@Transactional
+public class VocabularyCardServiceImpl 
+        extends BaseServiceImpl<VocabularyCardCreateDto, VocabularyCardUpdateDto, VocabularyCardQueryDto, VocabularyCardDto, VocabularyCard, VocabularyCardRepository>
+        implements VocabularyCardService {
 
-    private final VocabularyCardRepository vocabularyCardRepository;
-    private final ReviewLogRepository reviewLogRepository;
-    private final EntityManager entityManager;
-    private final LLMModelService llmModelService;
-    private final PromptTemplateService promptTemplateService;
+    @Autowired
+    private VocabularyCardRepository vocabularyCardRepository;
+
+    @Autowired
+    private ReviewLogRepository reviewLogRepository;
+
+    @Autowired
+    private EntityManager entityManager;
+
+    @Autowired
+    private LLMModelService llmModelService;
+
+    @Autowired
+    private PromptTemplateService promptTemplateService;
+
+    @Override
+    protected VocabularyCardDto newDto() {
+        return new VocabularyCardDto();
+    }
+
+    @Override
+    protected VocabularyCard newModel() {
+        return new VocabularyCard();
+    }
 
     @Override
     @Transactional
-    public VocabularyCardDto create(String userId, VocabularyCardCreateDto dto) {
+    public VocabularyCardDto create(VocabularyCardCreateDto createDto) {
+        // 获取当前用户ID
+        String userId = getCurrentUserId();
+        
         // 检查单词是否已存在
-        Optional<VocabularyCard> existing = vocabularyCardRepository.findByWordAndUser(dto.getWord(), userId);
+        Optional<VocabularyCard> existing = vocabularyCardRepository.findByWordAndUser(createDto.getWord(), userId);
         if (existing.isPresent()) {
-            throw new RuntimeException("单词已存在: " + dto.getWord());
+            throw new RuntimeException("单词已存在: " + createDto.getWord());
         }
 
-        VocabularyCard card = new VocabularyCard();
+        VocabularyCard card = newModel();
         card.setId(IdHelper.genUuid());
-        card.setWord(dto.getWord());
-        card.setMdDefinition(dto.getMdDefinition());
-        card.setTags(dto.getTags());
-        card.setStudiedDate(dto.getStudiedDate() != null ? dto.getStudiedDate() : LocalDate.now());
+        BeanUtils.copyProperties(createDto, card);
+        
+        // 将 List<String> tags 转换为逗号分隔的字符串
+        if (createDto.getTags() != null && !createDto.getTags().isEmpty()) {
+            card.setTags(String.join(",", createDto.getTags()));
+        }
+        
+        // 设置学习时间
+        card.setStudiedDate(createDto.getStudiedDate() != null ? createDto.getStudiedDate() : LocalDate.now());
 
         // 初始化 SM-2 参数
         card.setEasinessFactor(2.5);
@@ -70,54 +101,40 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         card.setTotalReviewCount(0);
 
         VocabularyCard saved = vocabularyCardRepository.save(card);
-        return convertToDto(saved);
+        return convertToDto(saved, true);
     }
 
     @Override
     @Transactional
-    public VocabularyCardDto update(String userId, VocabularyCardUpdateDto dto) {
-        VocabularyCard card = vocabularyCardRepository.findById(dto.getId())
+    public VocabularyCardDto update(String userId, VocabularyCardUpdateDto updateDto) {
+        VocabularyCard card = vocabularyCardRepository.findById(updateDto.getId())
                 .orElseThrow(() -> new RuntimeException("单词不存在"));
 
         if (!card.getCreateUser().equals(userId)) {
             throw new RuntimeException("无权限操作此单词");
         }
 
-        card.setWord(dto.getWord());
-        card.setMdDefinition(dto.getMdDefinition());
-        card.setTags(dto.getTags());
-        if (dto.getStudiedDate() != null) {
-            card.setStudiedDate(dto.getStudiedDate());
+        BeanUtils.copyProperties(updateDto, card);
+        
+        // 将 List<String> tags 转换为逗号分隔的字符串
+        if (updateDto.getTags() != null) {
+            if (updateDto.getTags().isEmpty()) {
+                card.setTags(null);
+            } else {
+                card.setTags(String.join(",", updateDto.getTags()));
+            }
+        }
+        
+        // 更新学习时间
+        if (updateDto.getStudiedDate() != null) {
+            card.setStudiedDate(updateDto.getStudiedDate());
         }
 
         VocabularyCard saved = vocabularyCardRepository.save(card);
-        return convertToDto(saved);
+        return convertToDto(saved, true);
     }
 
-    @Override
-    @Transactional
-    public void delete(String userId, String id) {
-        VocabularyCard card = vocabularyCardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("单词不存在"));
-
-        if (!card.getCreateUser().equals(userId)) {
-            throw new RuntimeException("无权限操作此单词");
-        }
-
-        vocabularyCardRepository.delete(card);
-    }
-
-    @Override
-    public VocabularyCardDto getById(String userId, String id) {
-        VocabularyCard card = vocabularyCardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("单词不存在"));
-
-        if (!card.getCreateUser().equals(userId)) {
-            throw new RuntimeException("无权限访问此单词");
-        }
-
-        return convertToDto(card);
-    }
+    // ========== 特有业务方法 ==========
 
     @Override
     public Page<VocabularyCardDto> search(String userId, VocabularyCardQueryDto queryDto) {
@@ -142,9 +159,13 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
                         "%" + queryDto.getKeyword().toLowerCase() + "%"));
             }
 
-            // 标签筛选
-            if (queryDto.getTags() != null && !queryDto.getTags().trim().isEmpty()) {
-                predicates.add(cb.like(root.get("tags"), "%" + queryDto.getTags() + "%"));
+            // 标签筛选（基类的 tags 是 List<String>，我们需要对多个标签进行查询）
+            if (queryDto.getTags() != null && !queryDto.getTags().isEmpty()) {
+                // 对每个标签创建 LIKE 条件
+                Predicate[] tagPredicates = queryDto.getTags().stream()
+                        .map(tag -> cb.like(root.get("tags"), "%" + tag + "%"))
+                        .toArray(Predicate[]::new);
+                predicates.add(cb.or(tagPredicates));
             }
 
             // 归档状态
@@ -174,7 +195,7 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         }, pageable);
 
         List<VocabularyCardDto> dtos = pageResult.getContent().stream()
-                .map(this::convertToDto)
+                .map(card -> convertToDto(card, true))
                 .collect(Collectors.toList());
 
         return new org.springframework.data.domain.PageImpl<>(dtos, pageable, pageResult.getTotalElements());
@@ -220,7 +241,7 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         LocalDate today = LocalDate.now();
         List<VocabularyCard> dueCards = vocabularyCardRepository.findDueToday(today, userId);
         return dueCards.stream()
-                .map(this::convertToDto)
+                .map(card -> convertToDto(card, true))
                 .collect(Collectors.toList());
     }
 
@@ -398,9 +419,25 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
 
     // ========== 辅助方法 ==========
 
-    private VocabularyCardDto convertToDto(VocabularyCard card) {
-        VocabularyCardDto dto = new VocabularyCardDto();
-        dto.setId(card.getId());
+    /**
+     * 获取当前用户ID
+     */
+    private String getCurrentUserId() {
+        org.springframework.security.core.Authentication authentication = 
+            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "anonymous";
+        }
+        return authentication.getName();
+    }
+
+    /**
+     * 重写convertToDto，增强单词本特有字段的映射
+     */
+    @Override
+    public VocabularyCardDto convertToDto(VocabularyCard card, Boolean loadProps) {
+        VocabularyCardDto dto = super.convertToDto(card, loadProps);
+        // 额外的单词本特有字段映射（如果基类未处理）
         dto.setWord(card.getWord());
         dto.setMdDefinition(card.getMdDefinition());
         dto.setEasinessFactor(card.getEasinessFactor());
@@ -408,13 +445,17 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         dto.setRepetition(card.getRepetition());
         dto.setNextReviewDate(card.getNextReviewDate());
         dto.setArchived(card.getArchived());
-        dto.setTags(card.getTags());
         dto.setTotalReviewCount(card.getTotalReviewCount());
         dto.setLastScore(card.getLastScore());
         dto.setStudiedDate(card.getStudiedDate());
-        dto.setCreateDate(card.getCreateDate());
-        dto.setUpdateDate(card.getUpdateDate());
-        dto.setCreateUser(card.getCreateUser());
+        
+        // 将实体的逗号分隔字符串 tags 转换为 List<String>
+        if (card.getTags() != null && !card.getTags().trim().isEmpty()) {
+            dto.setTags(Arrays.asList(card.getTags().split(",")));
+        } else {
+            dto.setTags(new ArrayList<>());
+        }
+        
         return dto;
     }
 

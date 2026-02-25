@@ -123,7 +123,7 @@ export const createVocabulary = (data: VocabularyCardCreateDto) =>
  * 更新单词卡片
  */
 export const updateVocabulary = (data: VocabularyCardUpdateDto) =>
-    axios.post('/vocabulary/update', data);
+    axios.put('/vocabulary/update', data);
 
 // 流式生成单词释义 - 前端通过 EventSource 连接该地址
 export const streamGenerateDefinitionUrl = (params: any) => {

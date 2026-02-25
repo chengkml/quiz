@@ -1,6 +1,8 @@
 package com.ck.quiz.vocabulary.dto;
 
+import com.ck.quiz.base.dto.UpdateDto;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 
@@ -8,10 +10,9 @@ import java.time.LocalDate;
  * 更新单词卡片 DTO
  */
 @Data
-public class VocabularyCardUpdateDto {
-    private String id;
+@EqualsAndHashCode(callSuper = true)
+public class VocabularyCardUpdateDto extends UpdateDto {
     private String word;
     private String mdDefinition;
-    private String tags;
     private LocalDate studiedDate;
 }

@@ -1,12 +1,13 @@
 package com.ck.quiz.vocabulary.controller;
 
+import com.ck.quiz.base.controller.BaseController;
+import com.ck.quiz.base.service.BaseService;
 import com.ck.quiz.vocabulary.dto.*;
 import com.ck.quiz.vocabulary.service.VocabularyCardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -21,11 +22,16 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/api/vocabulary")
-@RequiredArgsConstructor
 @Tag(name = "单词卡片管理", description = "艾宾浩斯单词记忆系统 API")
-public class VocabularyCardController {
+public class VocabularyCardController extends BaseController<VocabularyCardCreateDto, VocabularyCardUpdateDto, VocabularyCardQueryDto, VocabularyCardDto> {
 
-    private final VocabularyCardService vocabularyCardService;
+    @Autowired
+    private VocabularyCardService vocabularyCardService;
+
+    @Override
+    protected BaseService<VocabularyCardCreateDto, VocabularyCardUpdateDto, VocabularyCardQueryDto, VocabularyCardDto, ?> getService() {
+        return vocabularyCardService;
+    }
 
     /**
      * 获取当前登录用户ID
@@ -36,44 +42,6 @@ public class VocabularyCardController {
             return "anonymous";
         }
         return authentication.getName();
-    }
-
-    @PostMapping("/create")
-    @Operation(summary = "创建单词卡片")
-    public VocabularyCardDto create(@RequestBody VocabularyCardCreateDto dto) {
-        String userId = getCurrentUserId();
-        log.info("用户 {} 创建单词: {}", userId, dto.getWord());
-        return vocabularyCardService.create(userId, dto);
-    }
-
-    @PostMapping("/update")
-    @Operation(summary = "更新单词卡片")
-    public VocabularyCardDto update(@RequestBody VocabularyCardUpdateDto dto) {
-        String userId = getCurrentUserId();
-        log.info("用户 {} 更新单词: {}", userId, dto.getId());
-        return vocabularyCardService.update(userId, dto);
-    }
-
-    @DeleteMapping("/delete/{id}")
-    @Operation(summary = "删除单词卡片")
-    public void delete(@PathVariable String id) {
-        String userId = getCurrentUserId();
-        log.info("用户 {} 删除单词: {}", userId, id);
-        vocabularyCardService.delete(userId, id);
-    }
-
-    @GetMapping("/{id}")
-    @Operation(summary = "获取单词详情")
-    public VocabularyCardDto getById(@PathVariable String id) {
-        String userId = getCurrentUserId();
-        return vocabularyCardService.getById(userId, id);
-    }
-
-    @PostMapping("/search")
-    @Operation(summary = "搜索/筛选单词")
-    public Page<VocabularyCardDto> search(@RequestBody VocabularyCardQueryDto queryDto) {
-        String userId = getCurrentUserId();
-        return vocabularyCardService.search(userId, queryDto);
     }
 
     @GetMapping(path = "/generate/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)

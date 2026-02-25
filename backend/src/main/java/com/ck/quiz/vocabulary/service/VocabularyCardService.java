@@ -1,8 +1,8 @@
 package com.ck.quiz.vocabulary.service;
 
+import com.ck.quiz.base.service.BaseService;
 import com.ck.quiz.vocabulary.dto.*;
 import com.ck.quiz.vocabulary.entity.VocabularyCard;
-import org.springframework.data.domain.Page;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -10,32 +10,7 @@ import java.util.List;
 /**
  * 单词卡片服务接口
  */
-public interface VocabularyCardService {
-
-    /**
-     * 创建单词卡片
-     */
-    VocabularyCardDto create(String userId, VocabularyCardCreateDto dto);
-
-    /**
-     * 更新单词卡片
-     */
-    VocabularyCardDto update(String userId, VocabularyCardUpdateDto dto);
-
-    /**
-     * 删除单词卡片
-     */
-    void delete(String userId, String id);
-
-    /**
-     * 根据ID获取单词卡片
-     */
-    VocabularyCardDto getById(String userId, String id);
-
-    /**
-     * 搜索/筛选单词卡片
-     */
-    Page<VocabularyCardDto> search(String userId, VocabularyCardQueryDto queryDto);
+public interface VocabularyCardService extends BaseService<VocabularyCardCreateDto, VocabularyCardUpdateDto, VocabularyCardQueryDto, VocabularyCardDto, VocabularyCard> {
 
     /**
      * 归档/取消归档单词
