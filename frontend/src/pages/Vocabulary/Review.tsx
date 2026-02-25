@@ -9,7 +9,12 @@ import './style/index.less';
 /**
  * 复习页面
  */
-const ReviewPage: React.FC = () => {
+interface ReviewPageProps {
+    embedded?: boolean;
+    onExit?: () => void;
+}
+
+const ReviewPage: React.FC<ReviewPageProps> = ({ embedded = false, onExit }) => {
     const navigate = useNavigate();
     const [cards, setCards] = useState<VocabularyCardDto[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -66,6 +71,24 @@ const ReviewPage: React.FC = () => {
         }
     };
 
+    const handleExit = () => {
+        if (onExit) {
+            onExit();
+            return;
+        }
+        navigate('/vocabulary');
+    };
+
+    const handleRestart = () => {
+        if (embedded) {
+            setCurrentIndex(0);
+            setIsFlipped(false);
+            loadDueCards();
+            return;
+        }
+        window.location.reload();
+    };
+
     if (loading) {
         return <div style={{ textAlign: 'center', padding: 60 }}>加载中...</div>;
     }
@@ -78,7 +101,7 @@ const ReviewPage: React.FC = () => {
                     title="太棒了！"
                     subTitle="今天没有需要复习的单词"
                     extra={[
-                        <Button key="back" type="primary" onClick={() => navigate('/vocabulary')}>
+                        <Button key="back" type="primary" onClick={handleExit}>
                             返回单词列表
                         </Button>
                     ]}
@@ -97,10 +120,10 @@ const ReviewPage: React.FC = () => {
                     <h2>恭喜完成今日复习！</h2>
                     <p>共复习了 {cards.length} 个单词</p>
                     <Space>
-                        <Button type="primary" onClick={() => navigate('/vocabulary')}>
+                        <Button type="primary" onClick={handleExit}>
                             返回单词列表
                         </Button>
-                        <Button onClick={() => window.location.reload()}>
+                        <Button onClick={handleRestart}>
                             再次复习
                         </Button>
                     </Space>
@@ -171,7 +194,7 @@ const ReviewPage: React.FC = () => {
 
             <div style={{ textAlign: 'center', marginTop: 30 }}>
                 <Space>
-                    <Button onClick={() => navigate('/vocabulary')}>
+                    <Button onClick={handleExit}>
                         退出复习
                     </Button>
                     {currentIndex > 0 && (

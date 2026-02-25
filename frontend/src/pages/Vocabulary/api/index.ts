@@ -15,6 +15,7 @@ export interface VocabularyCardDto {
     tags: string;
     totalReviewCount: number;
     lastScore: number | null;
+    studiedDate: string;
     createDate: string;
     updateDate: string;
     createUser: string;
@@ -27,6 +28,7 @@ export interface VocabularyCardCreateDto {
     word: string;
     mdDefinition: string;
     tags?: string;
+    studiedDate?: string;
 }
 
 /**
@@ -37,6 +39,7 @@ export interface VocabularyCardUpdateDto {
     word: string;
     mdDefinition: string;
     tags?: string;
+    studiedDate?: string;
 }
 
 /**
@@ -121,6 +124,14 @@ export const createVocabulary = (data: VocabularyCardCreateDto) =>
  */
 export const updateVocabulary = (data: VocabularyCardUpdateDto) =>
     axios.post('/vocabulary/update', data);
+
+// 流式生成单词释义 - 前端通过 EventSource 连接该地址
+export const streamGenerateDefinitionUrl = (params: any) => {
+    const qs = [];
+    if (params.word !== undefined) qs.push(`word=${encodeURIComponent(params.word)}`);
+    if (params.modelName !== undefined) qs.push(`modelName=${encodeURIComponent(params.modelName)}`);
+    return `/api/vocabulary/generate/stream?${qs.join('&')}`;
+};
 
 /**
  * 删除单词卡片

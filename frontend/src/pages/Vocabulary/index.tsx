@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
-import { Button, Link, Message, Modal, Tag, Space, Tooltip, Popconfirm } from '@arco-design/web-react';
-import { IconDelete, IconArchive, IconRefresh } from '@arco-design/web-react/icon';
+import { Button, Drawer, Link, Message, Tag, Tooltip, Popconfirm } from '@arco-design/web-react';
+import { IconDelete, IconArchive, IconRefresh, IconEdit, IconPlayArrow } from '@arco-design/web-react/icon';
 import DataManager from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import AddEditModal from './components/AddEditModal';
+import ReviewPage from './Review';
 import { FormFieldConfig } from '@/components/types/types';
 import { 
     VocabularyCardDto, 
@@ -24,13 +25,19 @@ const VocabularyPage: React.FC = () => {
     
     const [visible, setVisible] = useState(false);
     const [currentRecord, setCurrentRecord] = useState<VocabularyCardDto | null>(null);
+    const [detailVisible, setDetailVisible] = useState(false);
+    const [reviewVisible, setReviewVisible] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const [tableData, setTableData] = useState<VocabularyCardDto[]>([]);
     const [tableLoading, setTableLoading] = useState(false);
+    const [tableScrollHeight, setTableScrollHeight] = useState(420);
     const [pagination, setPagination] = useState({
         current: 1,
         pageSize: 20,
         total: 0,
+        showTotal: true,
+        showJumper: true,
+        showPageSize: true,
     });
     
     // 搜索参数
@@ -60,12 +67,29 @@ const VocabularyPage: React.FC = () => {
             ],
             span: 6,
             allowClear: true,
+            onChange: (value: any, allValues: any) => {
+                // Select 变化时立即触发搜索
+                handleSearch({ ...searchParams, archived: value });
+            },
         },
     ];
 
     React.useEffect(() => {
         loadTableData();
     }, [refreshKey, pagination.current, pagination.pageSize, JSON.stringify(searchParams)]);
+
+    // 计算表格高度自适应
+    React.useEffect(() => {
+        const calculateTableHeight = () => {
+            const windowHeight = window.innerHeight;
+            const otherElementsHeight = 330;
+            const newHeight = Math.max(100, windowHeight - otherElementsHeight);
+
+            setTableScrollHeight((prev) => (prev === newHeight ? prev : newHeight));
+        };
+
+        calculateTableHeight();
+    }, []);
 
     const loadTableData = async (params = searchParams) => {
         try {
@@ -87,6 +111,8 @@ const VocabularyPage: React.FC = () => {
             setTableData(res.data.content || []);
             setPagination(prev => ({
                 ...prev,
+                current: typeof res.data.number === 'number' ? res.data.number + 1 : prev.current,
+                pageSize: typeof res.data.size === 'number' ? res.data.size : prev.pageSize,
                 total: res.data.totalElements || 0,
             }));
         } catch (error) {
@@ -128,20 +154,28 @@ const VocabularyPage: React.FC = () => {
         setVisible(true);
     };
 
-    const handleDelete = (record: VocabularyCardDto) => {
-        Modal.confirm({
-            title: '确认删除',
-            content: `确定要删除单词 "${record.word}" 吗？`,
-            onOk: async () => {
-                try {
-                    await deleteVocabulary(record.id);
-                    Message.success('删除成功');
-                    setRefreshKey(prev => prev + 1);
-                } catch (error: any) {
-                    Message.error(error.response?.data?.message || '删除失败');
-                }
-            }
-        });
+    const handleDetail = (record: VocabularyCardDto) => {
+        setCurrentRecord(record);
+        setDetailVisible(true);
+    };
+
+    const handleReviewOpen = () => {
+        setReviewVisible(true);
+    };
+
+    const handleReviewClose = () => {
+        setReviewVisible(false);
+        setRefreshKey(prev => prev + 1);
+    };
+
+    const handleDelete = async (record: VocabularyCardDto) => {
+        try {
+            await deleteVocabulary(record.id);
+            Message.success('删除成功');
+            setRefreshKey(prev => prev + 1);
+        } catch (error: any) {
+            Message.error(error.response?.data?.message || '删除失败');
+        }
     };
 
     const handleArchive = async (record: VocabularyCardDto) => {
@@ -171,32 +205,38 @@ const VocabularyPage: React.FC = () => {
         return 'green';
     };
 
+    // FilterForm组件配置
+    const filterContent = (
+        <FilterForm
+            ref={filterFormRef}
+            formFields={searchFormFields}
+            onSearch={handleSearch}
+            onReset={handleReset}
+        />
+    );
+
     const columns = [
         {
             title: '单词',
             dataIndex: 'word',
             width: 150,
             render: (word: string, record: VocabularyCardDto) => (
-                <Space>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Link 
-                        onClick={() => handleEdit(record)}
+                        onClick={() => handleDetail(record)}
                         style={{ textDecoration: 'underline' }}
                     >
                         <strong>{word}</strong>
                     </Link>
                     {record.archived && <Tag color="gray">已归档</Tag>}
-                </Space>
+                </div>
             )
         },
         {
-            title: 'Markdown释义',
-            dataIndex: 'mdDefinition',
-            ellipsis: true,
-            render: (text: string) => (
-                <div className="md-preview" style={{ maxHeight: 100, overflow: 'auto' }}>
-                    <ReactMarkdown>{text || '无释义'}</ReactMarkdown>
-                </div>
-            )
+            title: '学习时间',
+            dataIndex: 'studiedDate',
+            width: 140,
+            render: (date: string) => date ? renderDate(date) : '-'
         },
         {
             title: '熟练度',
@@ -210,7 +250,8 @@ const VocabularyPage: React.FC = () => {
         {
             title: '下次复习',
             dataIndex: 'nextReviewDate',
-            width: 130,
+            width: 180,
+            ellipsis: true,
             render: (date: string) => date ? renderDate(date) : '-'
         },
         {
@@ -233,73 +274,93 @@ const VocabularyPage: React.FC = () => {
             align: 'center' as const
         },
         {
-            title: '标签',
-            dataIndex: 'tags',
-            width: 150,
-            render: (tags: string) => {
-                if (!tags) return '-';
-                return tags.split(',').map((tag, idx) => (
-                    <Tag key={idx} style={{ marginRight: 4 }}>{tag}</Tag>
-                ));
-            }
-        },
-        {
-            title: '扩展操作',
-            width: 150,
+            title: '操作',
+            width: 180,
             fixed: 'right' as const,
             align: 'center' as const,
             render: (_: any, record: VocabularyCardDto) => (
-                <Space size="small">
-                    <Popconfirm
-                        title="确认重置"
-                        content="确定要重置学习状态吗？"
-                        onOk={() => handleResetCard(record)}
-                    >
-                        <Tooltip title="重置">
+                <div style={{ display: 'flex', gap: 24, justifyContent: 'center' }}>
+                    <Tooltip content="编辑">
+                        <Button 
+                            type="text" 
+                            size="small"
+                            icon={<IconEdit />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(record);
+                            }}
+                        />
+                    </Tooltip>
+                    <Tooltip content="重置">
+                        <Popconfirm
+                            title="确认重置学习状态吗？"
+                            onOk={() => handleResetCard(record)}
+                            onCancel={(e) => e?.stopPropagation?.()}
+                        >
                             <Button 
                                 type="text" 
                                 size="small" 
                                 status="warning"
                                 icon={<IconRefresh />}
+                                onClick={(e) => e.stopPropagation()}
                             />
-                        </Tooltip>
-                    </Popconfirm>
-                    <Tooltip title={record.archived ? '取消归档' : '归档'}>
-                        <Button 
-                            type="text" 
-                            size="small"
-                            icon={<IconArchive />}
-                            onClick={() => handleArchive(record)}
-                        />
+                        </Popconfirm>
                     </Tooltip>
-                </Space>
+                    <Tooltip content={record.archived ? '取消归档' : '归档'}>
+                        <Popconfirm
+                            title={record.archived ? '确认取消归档吗？' : '确认归档该单词吗？'}
+                            onOk={() => handleArchive(record)}
+                            onCancel={(e) => e?.stopPropagation?.()}
+                        >
+                            <Button 
+                                type="text" 
+                                size="small"
+                                icon={<IconArchive />}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </Popconfirm>
+                    </Tooltip>
+                    <Tooltip content="删除">
+                        <Popconfirm
+                            title={`确认删除单词 "${record.word}" 吗？`}
+                            onOk={() => handleDelete(record)}
+                            onCancel={(e) => e?.stopPropagation?.()}
+                        >
+                            <Button 
+                                type="text" 
+                                size="small" 
+                                status="danger"
+                                icon={<IconDelete />}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </Popconfirm>
+                    </Tooltip>
+                </div>
             )
         }
     ];
 
     return (
         <div className="vocabulary-manager">
-            <FilterForm
-                ref={filterFormRef}
-                fields={searchFormFields}
-                onSearch={handleSearch}
-                onReset={handleReset}
-            />
-
             <DataManager
                 key={refreshKey}
                 data={tableData}
                 loading={tableLoading}
                 pagination={pagination}
                 onPaginationChange={handlePaginationChange}
+                tableScrollHeight={tableScrollHeight}
                 actions={{
                     onAdd: handleAdd,
-                    onEdit: handleEdit,
-                    onDelete: handleDelete,
                 }}
+                actionButtons={(
+                    <Button type="primary" icon={<IconPlayArrow />} onClick={handleReviewOpen}>
+                        复习
+                    </Button>
+                )}
                 config={{
                     showModeToggle: false,
                     displayMode: "table",
+                    filterContent,
                     tableColumns: columns,
                 }}
             />
@@ -313,6 +374,29 @@ const VocabularyPage: React.FC = () => {
                 }}
                 onCancel={() => setVisible(false)}
             />
+
+            <Drawer
+                title={currentRecord?.word ? `释义 - ${currentRecord.word}` : '释义'}
+                visible={detailVisible}
+                width={560}
+                onCancel={() => setDetailVisible(false)}
+                footer={null}
+                bodyStyle={{ padding: '12px 16px 0', overflow: 'auto' }}
+            >
+                <div className="md-preview" style={{ marginBottom: 0 }}>
+                    <ReactMarkdown>{currentRecord?.mdDefinition || '无释义'}</ReactMarkdown>
+                </div>
+            </Drawer>
+
+            <Drawer
+                title="单词复习"
+                visible={reviewVisible}
+                width={980}
+                onCancel={handleReviewClose}
+                footer={null}
+            >
+                <ReviewPage embedded onExit={handleReviewClose} />
+            </Drawer>
         </div>
     );
 };

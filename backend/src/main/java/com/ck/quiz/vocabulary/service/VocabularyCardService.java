@@ -3,6 +3,7 @@ package com.ck.quiz.vocabulary.service;
 import com.ck.quiz.vocabulary.dto.*;
 import com.ck.quiz.vocabulary.entity.VocabularyCard;
 import org.springframework.data.domain.Page;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -50,6 +51,11 @@ public interface VocabularyCardService {
      * 获取今日待复习单词列表
      */
     List<VocabularyCardDto> getDueToday(String userId);
+
+    /**
+     * 流式生成单词释义
+     */
+    Flux<String> streamGenerateDefinition(String word, String modelName);
 
     /**
      * 提交复习评分，更新学习状态（SM-2 算法核心）

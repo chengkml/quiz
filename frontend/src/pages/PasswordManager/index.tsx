@@ -9,7 +9,8 @@ import {
   Tag,
   Typography,
   Tooltip,
-  Statistic
+  Statistic,
+  Popconfirm
 } from "@arco-design/web-react";
 import {
   IconCopy,
@@ -46,7 +47,21 @@ const PasswordManager: React.FC = () => {
     pageSize: 20,
     total: 0,
   });
-  
+  const [tableScrollHeight, setTableScrollHeight] = useState(420);
+
+  useEffect(() => {
+    const calculateTableHeight = () => {
+      const windowHeight = window.innerHeight;
+      const otherElementsHeight = 330;
+      const newHeight = Math.max(100, windowHeight - otherElementsHeight);
+      setTableScrollHeight((prev) => (prev === newHeight ? prev : newHeight));
+    };
+
+    calculateTableHeight();
+    window.addEventListener('resize', calculateTableHeight);
+    return () => window.removeEventListener('resize', calculateTableHeight);
+  }, []);
+
   // Search params
   const [searchParams, setSearchParams] = useState({
     keyWord: "",
@@ -130,93 +145,92 @@ const PasswordManager: React.FC = () => {
     setEditModalVisible(true);
   };
 
-  const handleDelete = (record: PasswordDto) => {
-    Modal.confirm({
-        title: "确认删除",
-        content: `确认删除密码条目 "${record.title}" 吗？`,
-        onOk: async () => {
-            try {
-                await deletePassword(record.id);
-                Message.success("删除成功");
-                fetchData();
-            } catch (e) {
-                Message.error("删除失败");
-            }
-        }
-    });
+  const handleDelete = async (record: PasswordDto) => {
+    try {
+      await deletePassword(record.id);
+      Message.success("删除成功");
+      fetchData();
+    } catch (e) {
+      Message.error("删除失败");
+    }
+  };
+
+  const handleReset = () => {
+    setSearchParams({ keyWord: "", category: "" });
+    setPagination((prev) => ({ ...prev, current: 1 }));
   };
 
   // Verification Logic
   const handleShowPasswordClick = (record: PasswordDto) => {
-      setVerifyPendingRecord(record);
-      setVerifyCode("");
-      setVerifyModalVisible(true);
+    setVerifyPendingRecord(record);
+    setVerifyCode("");
+    setVerifyModalVisible(true);
   };
 
   const handleSendCode = async () => {
-      try {
-          await sendSalt();
-          Message.success("验证码已发送至您的邮箱");
-          setCountdown(Date.now() + 60 * 1000);
-      } catch (e) {
-          Message.error("验证码发送失败，请检查邮箱配置");
-      }
+    try {
+      await sendSalt();
+      Message.success("验证码已发送至您的邮箱");
+      setCountdown(Date.now() + 60 * 1000);
+    } catch (e) {
+      Message.error("验证码发送失败，请检查邮箱配置");
+    }
   };
 
   const handleVerifyConfirm = async () => {
-      if (!verifyPendingRecord) return;
-      if (!verifyCode) {
-          Message.warning("请输入验证码");
-          return;
-      }
-      try {
-          const res = await getDecryptedPassword(verifyPendingRecord.id, verifyCode);
-          const pwd = res.data;
-          setVerifyModalVisible(false);
-          Modal.info({
-              title: "查看密码",
-              content: (
-                  <div style={{ marginTop: 10 }}>
-                      <Typography.Text>明文密码：</Typography.Text>
-                      <div style={{ display: 'flex', marginTop: 8 }}>
-                          <Input value={pwd} readOnly />
-                          <Button 
-                            icon={<IconCopy/>} 
-                            style={{ marginLeft: 8 }}
-                            onClick={() => {
-                                copy(pwd);
-                                Message.success("已复制");
-                            }}
-                          >
-                            复制
-                          </Button>
-                      </div>
-                  </div>
-              )
-          });
-      } catch (e) {
-          Message.error("验证失败或验证码已过期");
-      }
+    if (!verifyPendingRecord) return;
+    if (!verifyCode) {
+      Message.warning("请输入验证码");
+      return;
+    }
+    try {
+      const res = await getDecryptedPassword(verifyPendingRecord.id, verifyCode);
+      const pwd = res.data;
+      setVerifyModalVisible(false);
+      Modal.info({
+        title: "查看密码",
+        content: (
+          <div style={{ marginTop: 10 }}>
+            <Typography.Text>明文密码：</Typography.Text>
+            <div style={{ display: 'flex', marginTop: 8 }}>
+              <Input value={pwd} readOnly />
+              <Button
+                icon={<IconCopy />}
+                style={{ marginLeft: 8 }}
+                onClick={() => {
+                  copy(pwd);
+                  Message.success("已复制");
+                }}
+              >
+                复制
+              </Button>
+            </div>
+          </div>
+        )
+      });
+    } catch (e) {
+      Message.error("验证失败或验证码已过期");
+    }
   };
 
 
   const handleSave = async (values: any) => {
-      try {
-          const payload = { ...values };
+    try {
+      const payload = { ...values };
 
-          if (currentRecord) {
-              await updatePassword({ ...payload, id: currentRecord.id });
-              Message.success("更新成功");
-              setEditModalVisible(false);
-          } else {
-              await createPassword(payload);
-              Message.success("创建成功");
-              setAddModalVisible(false);
-          }
-          fetchData();
-      } catch (e) {
-          Message.error("保存失败");
+      if (currentRecord) {
+        await updatePassword({ ...payload, id: currentRecord.id });
+        Message.success("更新成功");
+        setEditModalVisible(false);
+      } else {
+        await createPassword(payload);
+        Message.success("创建成功");
+        setAddModalVisible(false);
       }
+      fetchData();
+    } catch (e) {
+      Message.error("保存失败");
+    }
   };
 
   // Configs
@@ -232,10 +246,10 @@ const PasswordManager: React.FC = () => {
       dataIndex: "username",
       width: 150,
       render: (col: any) => (
-          <Space>
-             <span>{col}</span>
-             <IconCopy style={{ cursor: 'pointer', color: '#888' }} onClick={() => { copy(col); Message.success("用户名已复制"); }} />
-          </Space>
+        <Space>
+          <span>{col}</span>
+          <IconCopy style={{ cursor: 'pointer', color: '#888' }} onClick={() => { copy(col); Message.success("用户名已复制"); }} />
+        </Space>
       )
     },
     {
@@ -243,107 +257,112 @@ const PasswordManager: React.FC = () => {
       dataIndex: "password",
       width: 120,
       render: (_: any, record: PasswordDto) => (
-          <Space>
-              <span className="password-hidden">******</span>
-              <Tooltip content="验证查看">
-                <Button size="mini" type="text" icon={<IconEye />} onClick={() => handleShowPasswordClick(record)} />
-              </Tooltip>
-          </Space>
+        <Space>
+          <span className="password-hidden">******</span>
+          <Tooltip content="验证查看">
+            <Button size="mini" type="text" icon={<IconEye />} onClick={() => handleShowPasswordClick(record)} />
+          </Tooltip>
+        </Space>
       )
     },
     {
-       title: "网址",
-       dataIndex: "url",
-       ellipsis: true,
-       render: (url: string) => url ? <a href={url.startsWith('http') ? url : `http://${url}`} target="_blank" rel="noreferrer">{url}</a> : '-'
+      title: "网址",
+      dataIndex: "url",
+      ellipsis: true,
+      render: (url: string) => url ? <a href={url.startsWith('http') ? url : `http://${url}`} target="_blank" rel="noreferrer">{url}</a> : '-'
     },
     {
-        title: "分组",
-        dataIndex: "category",
-        width: 120,
-        render: (cat: string) => cat ? <Tag color="arcoblue">{cat}</Tag> : '-'
+      title: "分组",
+      dataIndex: "category",
+      width: 120,
+      render: (cat: string) => cat ? <Tag color="arcoblue">{cat}</Tag> : '-'
     },
     {
-        title: "备注",
-        dataIndex: "remark",
-        ellipsis: true
+      title: "备注",
+      dataIndex: "remark",
+      ellipsis: true
     },
     {
-        title: "更新时间",
-        dataIndex: "updateDate",
-        width: 180,
-        render: renderDate
+      title: "更新时间",
+      dataIndex: "updateDate",
+      width: 180,
+      render: renderDate
     },
     {
-        title: "操作",
-        key: "action",
-        width: 150,
-        fixed: "right" as const,
-        render: (_: any, record: PasswordDto) => (
-            <Space>
-                <Tooltip content="编辑">
-                    <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEdit(record)} />
-                </Tooltip>
-                <Tooltip content="删除">
-                    <Button type="text" size="small" status="danger" icon={<IconDelete />} onClick={() => handleDelete(record)} />
-                </Tooltip>
-            </Space>
-        )
+      title: "操作",
+      key: "action",
+      width: 150,
+      fixed: "right" as const,
+      render: (_: any, record: PasswordDto) => (
+        <Space size="small">
+          <Tooltip content="编辑">
+            <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEdit(record)} />
+          </Tooltip>
+          <Popconfirm
+            title="确认删除该记录吗？"
+            onOk={() => handleDelete(record)}
+          >
+            <Tooltip content="删除">
+              <Button type="text" size="small" status="danger" icon={<IconDelete />} />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      )
     }
   ];
 
   const searchFormFields: FormFieldConfig[] = [
     {
-       field: "keyWord",
-       label: "关键字",
-       type: "input",
-       placeholder: "搜标题/用户名/备注"
+      field: "keyWord",
+      label: "关键字",
+      type: "input",
+      placeholder: "搜标题/用户名/备注"
     }
   ];
 
   const formConfig: FormFieldConfig[] = [
-      {
-          field: "title",
-          label: "标题",
-          type: "input",
-          required: true,
-          rules: [{ required: true, message: "请输入标题" }]
-      },
-      {
-          field: "username",
-          label: "用户名",
-          type: "input",
-          placeholder: "登录用户名/手机号/邮箱"
-      },
-      {
-          field: "password",
-          label: "密码",
-          type: "password", 
-          placeholder: currentRecord ? "留空则不修改" : "请输入密码或密钥",
-          required: !currentRecord
-      },
-      {
-          field: "url",
-          label: "网址",
-          type: "input",
-      },
-      {
-          field: "category",
-          label: "分组",
-          type: "select",
-          options: groupOptions,
-          placeholder: "请选择分组",
-          allowClear: true
-      },
-      {
-          field: "remark",
-          label: "备注",
-          type: "textarea"
-      }
+    {
+      field: "title",
+      label: "标题",
+      type: "input",
+      required: true,
+      rules: [{ required: true, message: "请输入标题" }]
+    },
+    {
+      field: "username",
+      label: "用户名",
+      type: "input",
+      placeholder: "登录用户名/手机号/邮箱"
+    },
+    {
+      field: "password",
+      label: "密码",
+      type: "password",
+      placeholder: currentRecord ? "留空则不修改" : "请输入密码或密钥",
+      required: !currentRecord
+    },
+    {
+      field: "url",
+      label: "网址",
+      type: "input",
+    },
+    {
+      field: "category",
+      label: "分组",
+      type: "select",
+      options: groupOptions,
+      placeholder: "请选择分组",
+      allowClear: true
+    },
+    {
+      field: "remark",
+      label: "备注",
+      type: "textarea"
+    }
   ];
 
   // Table Config
-  const filterContent = <FilterForm formFields={searchFormFields} onSearch={handleSearch} />;
+  const filterContent = <FilterForm formFields={searchFormFields} onSearch={handleSearch} onReset={handleReset} />;
 
   return (
     <div className="password-manager-page">
@@ -353,15 +372,16 @@ const PasswordManager: React.FC = () => {
         pagination={pagination}
         onPaginationChange={(p) => setPagination(prev => ({ ...prev, ...p }))}
         actions={{
-            onAdd: handleAdd
+          onAdd: handleAdd
         }}
+        tableScrollHeight={tableScrollHeight}
         config={{
-            displayMode: "table",
-            filterContent,
-            tableColumns: columns
+          displayMode: "table",
+          filterContent,
+          tableColumns: columns
         }}
       />
-      
+
       {/* Verify Modal */}
       <Modal
         title="安全验证"
@@ -369,48 +389,48 @@ const PasswordManager: React.FC = () => {
         onOk={handleVerifyConfirm}
         onCancel={() => setVerifyModalVisible(false)}
       >
-          <div style={{ marginBottom: 16 }}>
-              <Typography.Text>为了确保您的账户安全，查看密码前需要进行邮箱验证。</Typography.Text>
-          </div>
-          <Space direction="vertical" style={{ width: '100%' }}>
-              <Space>
-                  <Button 
-                    type="primary" 
-                    disabled={Date.now() < countdown}
-                    onClick={handleSendCode}
-                  >
-                      {Date.now() < countdown ? <Countdown value={countdown} format="s 秒后重发" onFinish={() => setCountdown(0)} now={Date.now()} /> : "发送验证码"}
-                  </Button>
-              </Space>
-              <Input 
-                placeholder="请输入邮箱收到的验证码" 
-                value={verifyCode} 
-                onChange={v => setVerifyCode(v)} 
-                maxLength={6}
-              />
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>验证码有效期5分钟</Typography.Text>
+        <div style={{ marginBottom: 16 }}>
+          <Typography.Text>为了确保您的账户安全，查看密码前需要进行邮箱验证。</Typography.Text>
+        </div>
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Space>
+            <Button
+              type="primary"
+              disabled={Date.now() < countdown}
+              onClick={handleSendCode}
+            >
+              {Date.now() < countdown ? <Countdown value={countdown} format="s 秒后重发" onFinish={() => setCountdown(0)} now={Date.now()} /> : "发送验证码"}
+            </Button>
           </Space>
+          <Input
+            placeholder="请输入邮箱收到的验证码"
+            value={verifyCode}
+            onChange={v => setVerifyCode(v)}
+            maxLength={6}
+          />
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>验证码有效期5分钟</Typography.Text>
+        </Space>
       </Modal>
 
       {/* Add Modal */}
       <AddEditModal
-         visible={addModalVisible}
-         title="新增密码"
-         isEdit={false}
-         formConfig={formConfig}
-         onOk={handleSave}
-         onCancel={() => setAddModalVisible(false)}
+        visible={addModalVisible}
+        title="新增密码"
+        isEdit={false}
+        formConfig={formConfig}
+        onOk={handleSave}
+        onCancel={() => setAddModalVisible(false)}
       />
 
       {/* Edit Modal */}
       <AddEditModal
-         visible={editModalVisible}
-         title="编辑密码"
-         isEdit={true}
-         record={currentRecord || undefined}
-         formConfig={formConfig}
-         onOk={handleSave}
-         onCancel={() => setEditModalVisible(false)}
+        visible={editModalVisible}
+        title="编辑密码"
+        isEdit={true}
+        record={currentRecord || undefined}
+        formConfig={formConfig}
+        onOk={handleSave}
+        onCancel={() => setEditModalVisible(false)}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -73,6 +74,14 @@ public class VocabularyCardController {
     public Page<VocabularyCardDto> search(@RequestBody VocabularyCardQueryDto queryDto) {
         String userId = getCurrentUserId();
         return vocabularyCardService.search(userId, queryDto);
+    }
+
+    @GetMapping(path = "/generate/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "流式生成释义（SSE）", description = "根据单词调用大模型流式生成Markdown释义")
+    public Flux<String> streamGenerateDefinition(
+            @RequestParam("word") String word,
+            @RequestParam(value = "modelName", required = false) String modelName) {
+        return vocabularyCardService.streamGenerateDefinition(word, modelName);
     }
 
     @PostMapping("/archive/{id}")

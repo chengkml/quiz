@@ -21,6 +21,7 @@ public class VocabularyCardDto {
     private String tags;
     private Integer totalReviewCount;
     private Integer lastScore;
+    private LocalDate studiedDate;
     private LocalDateTime createDate;
     private LocalDateTime updateDate;
     private String createUser;

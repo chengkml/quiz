@@ -9,14 +9,18 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 /**
  * 单词卡片仓库接口
  */
-public interface VocabularyCardRepository extends JpaRepository<VocabularyCard, String> {
+public interface VocabularyCardRepository
+        extends JpaRepository<VocabularyCard, String>, JpaSpecificationExecutor<VocabularyCard> {
 
     /**
      * 查找今日待复习的单词
-     * @param today 今日日期
+     * 
+     * @param today  今日日期
      * @param userId 用户ID
      * @return 待复习单词列表
      */
@@ -25,7 +29,8 @@ public interface VocabularyCardRepository extends JpaRepository<VocabularyCard, 
 
     /**
      * 根据单词查找（用于唯一性验证）
-     * @param word 单词
+     * 
+     * @param word   单词
      * @param userId 用户ID
      * @return 单词卡片
      */
@@ -34,6 +39,7 @@ public interface VocabularyCardRepository extends JpaRepository<VocabularyCard, 
 
     /**
      * 统计总单词数
+     * 
      * @param userId 用户ID
      * @return 总数
      */
@@ -42,7 +48,8 @@ public interface VocabularyCardRepository extends JpaRepository<VocabularyCard, 
 
     /**
      * 统计今日待复习数
-     * @param today 今日日期
+     * 
+     * @param today  今日日期
      * @param userId 用户ID
      * @return 待复习数
      */
@@ -51,6 +58,7 @@ public interface VocabularyCardRepository extends JpaRepository<VocabularyCard, 
 
     /**
      * 统计已归档数
+     * 
      * @param userId 用户ID
      * @return 归档数
      */

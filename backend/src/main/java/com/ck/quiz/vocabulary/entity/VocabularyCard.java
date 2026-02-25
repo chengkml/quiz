@@ -62,4 +62,7 @@ public class VocabularyCard extends Model {
     @Comment("最后一次评分 (0-5)")
     @Column(columnDefinition = "INTEGER")
     private Integer lastScore;
+
+    @Comment("学习时间")
+    private LocalDate studiedDate;
 }

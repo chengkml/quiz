@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Message, Select } from '@arco-design/web-react';
-import { createVocabulary, updateVocabulary, VocabularyCardDto } from '../api';
+import React, { useEffect, useRef, useState } from 'react';
+import { Button, Modal, Form, Input, Message, DatePicker } from '@arco-design/web-react';
+import { createVocabulary, streamGenerateDefinitionUrl, updateVocabulary, VocabularyCardDto } from '../api';
 import MDEditor from '@uiw/react-md-editor';
+import dayjs from 'dayjs';
 
 const FormItem = Form.Item;
-const TextArea = Input.TextArea;
-const Option = Select.Option;
 
 interface AddEditModalProps {
     visible: boolean;
@@ -32,6 +31,8 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ visible, record, onOk, onCa
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [mdContent, setMdContent] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const generateEventSourceRef = useRef<EventSource | null>(null);
 
     useEffect(() => {
         if (visible) {
@@ -40,7 +41,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ visible, record, onOk, onCa
                 form.setFieldsValue({
                     word: record.word,
                     mdDefinition: record.mdDefinition,
-                    tags: record.tags || ''
+                    studiedDate: record.studiedDate ? dayjs(record.studiedDate) : null
                 });
                 setMdContent(record.mdDefinition || '');
             } else {
@@ -48,30 +49,136 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ visible, record, onOk, onCa
                 form.resetFields();
                 setMdContent(MD_TEMPLATE);
                 form.setFieldValue('mdDefinition', MD_TEMPLATE);
+                form.setFieldValue('studiedDate', dayjs());
             }
         }
+        if (!visible && generateEventSourceRef.current) {
+            generateEventSourceRef.current.close();
+            generateEventSourceRef.current = null;
+        }
     }, [visible, record, form]);
+
+    useEffect(() => () => {
+        if (generateEventSourceRef.current) {
+            generateEventSourceRef.current.close();
+            generateEventSourceRef.current = null;
+        }
+    }, []);
+
+    const appendDefinitionChunk = (chunk: string) => {
+        setMdContent(prev => {
+            const next = prev + chunk;
+            form.setFieldValue('mdDefinition', next);
+            return next;
+        });
+    };
+
+    const handleGenerateDefinition = () => {
+        const word = form.getFieldValue('word');
+        if (!word || !word.trim()) {
+            Message.error('请输入单词后再生成释义');
+            return;
+        }
+
+        if (generateEventSourceRef.current) {
+            generateEventSourceRef.current.close();
+            generateEventSourceRef.current = null;
+        }
+
+        setIsGenerating(true);
+        setMdContent('');
+        form.setFieldValue('mdDefinition', '');
+
+        const url = streamGenerateDefinitionUrl({ word: word.trim() });
+        const es = new EventSource(url);
+        generateEventSourceRef.current = es;
+
+        let isParsingResult = false;
+
+        const applyDefinitionResult = (jsonStr: string) => {
+            try {
+                const result = JSON.parse(jsonStr);
+                const mdDefinition = result?.mdDefinition || '';
+                setMdContent(mdDefinition);
+                form.setFieldValue('mdDefinition', mdDefinition);
+                setIsGenerating(false);
+                es.close();
+                generateEventSourceRef.current = null;
+            } catch (error) {
+                Message.error('解析生成结果失败');
+                setIsGenerating(false);
+            }
+        };
+
+        es.onmessage = (event) => {
+            const data = event.data || '';
+            if (data === 'connected') {
+                return;
+            }
+
+            if (!isParsingResult) {
+                if (data.includes('[PARSE_RESULT]')) {
+                    isParsingResult = true;
+                    const parseIndex = data.indexOf('[PARSE_RESULT]');
+                    const afterSeparator = data.substring(parseIndex + '[PARSE_RESULT]'.length).trim();
+                    if (afterSeparator && afterSeparator.startsWith('[DEFINITION]')) {
+                        const jsonStr = afterSeparator.substring('[DEFINITION]'.length);
+                        if (jsonStr) {
+                            applyDefinitionResult(jsonStr);
+                        }
+                    }
+                    return;
+                }
+                appendDefinitionChunk(data);
+                return;
+            }
+
+            const trimmedData = data.trim();
+            if (trimmedData.startsWith('[DEFINITION]')) {
+                const jsonStr = trimmedData.substring('[DEFINITION]'.length);
+                applyDefinitionResult(jsonStr);
+            } else if (trimmedData.startsWith('[ERROR]')) {
+                const errorMsg = trimmedData.substring('[ERROR]'.length);
+                Message.error('生成失败: ' + errorMsg);
+                setIsGenerating(false);
+                es.close();
+                generateEventSourceRef.current = null;
+            }
+        };
+
+        es.onerror = () => {
+            Message.error('生成失败，请稍后重试');
+            setIsGenerating(false);
+            es.close();
+            generateEventSourceRef.current = null;
+        };
+    };
 
     const handleSubmit = async () => {
         try {
             await form.validate();
             const values = form.getFieldsValue();
-            
+
             setLoading(true);
-            
+
+            const payload = {
+                ...values,
+                studiedDate: values.studiedDate ? dayjs(values.studiedDate).format('YYYY-MM-DD') : null
+            };
+
             if (record) {
                 // 更新
                 await updateVocabulary({
                     id: record.id,
-                    ...values
-                });
+                    ...payload
+                } as any);
                 Message.success('更新成功');
             } else {
                 // 新增
-                await createVocabulary(values);
+                await createVocabulary(payload as any);
                 Message.success('创建成功');
             }
-            
+
             onOk();
         } catch (error: any) {
             if (error.response?.data?.message) {
@@ -103,6 +210,19 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ visible, record, onOk, onCa
                     <Input placeholder="输入单词（例如：vocabulary）" />
                 </FormItem>
 
+                <div style={{ marginTop: -8, marginBottom: 16 }}>
+                    <Button type="primary" loading={isGenerating} onClick={handleGenerateDefinition}>
+                        AI生成释义
+                    </Button>
+                </div>
+
+                <FormItem
+                    label="学习时间"
+                    field="studiedDate"
+                >
+                    <DatePicker placeholder="选择学习时间" style={{ width: '100%' }} />
+                </FormItem>
+
                 <FormItem
                     label="Markdown 释义"
                     field="mdDefinition"
@@ -116,17 +236,9 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ visible, record, onOk, onCa
                                 form.setFieldValue('mdDefinition', val || '');
                             }}
                             height={400}
-                            preview="edit"
+                            preview="preview"
                         />
                     </div>
-                </FormItem>
-
-                <FormItem
-                    label="标签"
-                    field="tags"
-                    tooltip="多个标签用逗号分隔"
-                >
-                    <Input placeholder="例如：TOEFL,GRE,技术词汇" />
                 </FormItem>
             </Form>
         </Modal>

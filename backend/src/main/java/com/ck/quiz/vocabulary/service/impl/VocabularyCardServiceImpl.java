@@ -1,12 +1,18 @@
 package com.ck.quiz.vocabulary.service.impl;
 
+import com.ck.quiz.llmmodel.service.LLMModelService;
+import com.ck.quiz.prompt.dto.PromptTemplateDto;
+import com.ck.quiz.prompt.service.PromptTemplateService;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.vocabulary.dto.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ck.quiz.vocabulary.entity.ReviewLog;
 import com.ck.quiz.vocabulary.entity.VocabularyCard;
 import com.ck.quiz.vocabulary.repository.ReviewLogRepository;
 import com.ck.quiz.vocabulary.repository.VocabularyCardRepository;
 import com.ck.quiz.vocabulary.service.VocabularyCardService;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -15,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.*;
@@ -35,6 +42,8 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
     private final VocabularyCardRepository vocabularyCardRepository;
     private final ReviewLogRepository reviewLogRepository;
     private final EntityManager entityManager;
+    private final LLMModelService llmModelService;
+    private final PromptTemplateService promptTemplateService;
 
     @Override
     @Transactional
@@ -50,7 +59,8 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         card.setWord(dto.getWord());
         card.setMdDefinition(dto.getMdDefinition());
         card.setTags(dto.getTags());
-        
+        card.setStudiedDate(dto.getStudiedDate() != null ? dto.getStudiedDate() : LocalDate.now());
+
         // 初始化 SM-2 参数
         card.setEasinessFactor(2.5);
         card.setInterval(0);
@@ -76,6 +86,9 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         card.setWord(dto.getWord());
         card.setMdDefinition(dto.getMdDefinition());
         card.setTags(dto.getTags());
+        if (dto.getStudiedDate() != null) {
+            card.setStudiedDate(dto.getStudiedDate());
+        }
 
         VocabularyCard saved = vocabularyCardRepository.save(card);
         return convertToDto(saved);
@@ -108,72 +121,63 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
 
     @Override
     public Page<VocabularyCardDto> search(String userId, VocabularyCardQueryDto queryDto) {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<VocabularyCard> query = cb.createQuery(VocabularyCard.class);
-        Root<VocabularyCard> root = query.from(VocabularyCard.class);
+        Sort.Direction direction = "asc".equalsIgnoreCase(queryDto.getSortDirection()) ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        String sortBy = queryDto.getSortBy() != null && !queryDto.getSortBy().isEmpty() ? queryDto.getSortBy()
+                : "createDate";
 
-        List<Predicate> predicates = new ArrayList<>();
-        
-        // 用户过滤
-        predicates.add(cb.equal(root.get("createUser"), userId));
+        int page = queryDto.getPage() != null ? queryDto.getPage() : 0;
+        int size = queryDto.getSize() != null ? queryDto.getSize() : 20;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        // 关键词搜索
-        if (queryDto.getKeyword() != null && !queryDto.getKeyword().trim().isEmpty()) {
-            predicates.add(cb.like(cb.lower(root.get("word")), 
-                "%" + queryDto.getKeyword().toLowerCase() + "%"));
-        }
+        Page<VocabularyCard> pageResult = vocabularyCardRepository.findAll((root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
 
-        // 标签筛选
-        if (queryDto.getTags() != null && !queryDto.getTags().trim().isEmpty()) {
-            predicates.add(cb.like(root.get("tags"), "%" + queryDto.getTags() + "%"));
-        }
+            // 用户过滤
+            predicates.add(cb.equal(root.get("createUser"), userId));
 
-        // 归档状态
-        if (queryDto.getArchived() != null) {
-            predicates.add(cb.equal(root.get("archived"), queryDto.getArchived()));
-        }
+            // 关键词搜索
+            if (queryDto.getKeyword() != null && !queryDto.getKeyword().trim().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("word")),
+                        "%" + queryDto.getKeyword().toLowerCase() + "%"));
+            }
 
-        // 熟练度筛选
-        if (queryDto.getMinRepetition() != null) {
-            predicates.add(cb.greaterThanOrEqualTo(root.get("repetition"), queryDto.getMinRepetition()));
-        }
-        if (queryDto.getMaxRepetition() != null) {
-            predicates.add(cb.lessThanOrEqualTo(root.get("repetition"), queryDto.getMaxRepetition()));
-        }
+            // 标签筛选
+            if (queryDto.getTags() != null && !queryDto.getTags().trim().isEmpty()) {
+                predicates.add(cb.like(root.get("tags"), "%" + queryDto.getTags() + "%"));
+            }
 
-        // 创建日期筛选
-        if (queryDto.getCreateDateStart() != null) {
-            predicates.add(cb.greaterThanOrEqualTo(root.get("createDate"), 
-                queryDto.getCreateDateStart().atStartOfDay()));
-        }
-        if (queryDto.getCreateDateEnd() != null) {
-            predicates.add(cb.lessThanOrEqualTo(root.get("createDate"), 
-                queryDto.getCreateDateEnd().atTime(23, 59, 59)));
-        }
+            // 归档状态
+            if (queryDto.getArchived() != null) {
+                predicates.add(cb.equal(root.get("archived"), queryDto.getArchived()));
+            }
 
-        query.where(predicates.toArray(new Predicate[0]));
+            // 熟练度筛选
+            if (queryDto.getMinRepetition() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("repetition"), queryDto.getMinRepetition()));
+            }
+            if (queryDto.getMaxRepetition() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("repetition"), queryDto.getMaxRepetition()));
+            }
 
-        // 排序
-        Sort.Direction direction = "asc".equalsIgnoreCase(queryDto.getSortDirection()) ? 
-            Sort.Direction.ASC : Sort.Direction.DESC;
-        Pageable pageable = PageRequest.of(queryDto.getPage(), queryDto.getSize(), 
-            Sort.by(direction, queryDto.getSortBy()));
+            // 创建日期筛选
+            if (queryDto.getCreateDateStart() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createDate"),
+                        queryDto.getCreateDateStart().atStartOfDay()));
+            }
+            if (queryDto.getCreateDateEnd() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createDate"),
+                        queryDto.getCreateDateEnd().atTime(23, 59, 59)));
+            }
 
-        // 执行查询
-        long total = entityManager.createQuery(cb.createQuery(Long.class)
-            .select(cb.count(query.from(VocabularyCard.class)))
-            .where(predicates.toArray(new Predicate[0]))).getSingleResult();
+            return cb.and(predicates.toArray(new Predicate[0]));
+        }, pageable);
 
-        List<VocabularyCard> results = entityManager.createQuery(query)
-            .setFirstResult((int) pageable.getOffset())
-            .setMaxResults(pageable.getPageSize())
-            .getResultList();
+        List<VocabularyCardDto> dtos = pageResult.getContent().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
 
-        List<VocabularyCardDto> dtos = results.stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
-
-        return new org.springframework.data.domain.PageImpl<>(dtos, pageable, total);
+        return new org.springframework.data.domain.PageImpl<>(dtos, pageable, pageResult.getTotalElements());
     }
 
     @Override
@@ -220,6 +224,41 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
                 .collect(Collectors.toList());
     }
 
+    private String buildDefinitionPrompt(String word) {
+        PromptTemplateDto promptTemplateDto = promptTemplateService.getByName("vocabularyDefinitionGenerate");
+        String targetPrompt = promptTemplateDto.getContent().replace("{{word}}", word);
+        String dateTime = LocalDateTime.now().toString();
+        return targetPrompt.replace("{{currentDateTime}}", dateTime);
+    }
+
+    @Override
+    public Flux<String> streamGenerateDefinition(String word, String modelName) {
+        OpenAiChatModel chatModel = llmModelService.getChatModel(modelName);
+        ChatClient chat = ChatClient.builder(chatModel).build();
+        String prompt = buildDefinitionPrompt(word);
+
+        StringBuilder fullContent = new StringBuilder();
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+
+        return chat.prompt()
+                .user(prompt)
+                .stream()
+                .content()
+                .doOnNext(fullContent::append)
+                .concatWith(Flux.defer(() -> {
+                    String content = fullContent.toString().trim();
+                    try {
+                        VocabularyDefinitionGenerateDto dto = objectMapper.readValue(content, VocabularyDefinitionGenerateDto.class);
+                        String json = objectMapper.writeValueAsString(dto);
+                        return Flux.just("\n\n[PARSE_RESULT]\n", "[DEFINITION]" + json);
+                    } catch (Exception parseEx) {
+                        log.error("[Vocabulary] JSON parse error", parseEx);
+                        return Flux.just("[ERROR]解析JSON失败: " + parseEx.getMessage());
+                    }
+                }))
+                .onErrorResume(e -> Flux.just("[ERROR]服务异常: " + e.getMessage()));
+    }
+
     @Override
     @Transactional
     public ReviewResultDto review(String userId, ReviewRequestDto dto) {
@@ -239,10 +278,10 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         Double efBefore = card.getEasinessFactor();
 
         // ============ SM-2 算法核心实现 ============
-        
+
         // 1. 更新简易度因子 (EF)
-        double newEF = card.getEasinessFactor() + 
-            (0.1 - (5 - dto.getScore()) * (0.08 + (5 - dto.getScore()) * 0.02));
+        double newEF = card.getEasinessFactor() +
+                (0.1 - (5 - dto.getScore()) * (0.08 + (5 - dto.getScore()) * 0.02));
         newEF = Math.max(1.3, newEF); // 确保 EF >= 1.3
         card.setEasinessFactor(newEF);
 
@@ -259,7 +298,7 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         } else {
             // 答对了
             newRepetition = card.getRepetition() + 1;
-            
+
             if (newRepetition == 1) {
                 newInterval = 1;
                 message = "不错！明天再来巩固一次";
@@ -308,8 +347,8 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         result.setNextReviewDate(nextReview);
         result.setMessage(message);
 
-        this.log.info("完成复习: 单词={}, 评分={}, 新EF={}, 新间隔={}天, 下次复习={}", 
-            card.getWord(), dto.getScore(), newEF, newInterval, nextReview);
+        this.log.info("完成复习: 单词={}, 评分={}, 新EF={}, 新间隔={}天, 下次复习={}",
+                card.getWord(), dto.getScore(), newEF, newInterval, nextReview);
 
         return result;
     }
@@ -372,6 +411,7 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         dto.setTags(card.getTags());
         dto.setTotalReviewCount(card.getTotalReviewCount());
         dto.setLastScore(card.getLastScore());
+        dto.setStudiedDate(card.getStudiedDate());
         dto.setCreateDate(card.getCreateDate());
         dto.setUpdateDate(card.getUpdateDate());
         dto.setCreateUser(card.getCreateUser());
@@ -394,13 +434,12 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Long> query = cb.createQuery(Long.class);
         Root<VocabularyCard> root = query.from(VocabularyCard.class);
-        
+
         Predicate userPred = cb.equal(root.get("createUser"), userId);
         Predicate minPred = cb.greaterThanOrEqualTo(root.get("repetition"), min);
-        Predicate maxPred = max == Integer.MAX_VALUE ? 
-            cb.greaterThanOrEqualTo(root.get("repetition"), min) :
-            cb.lessThanOrEqualTo(root.get("repetition"), max);
-        
+        Predicate maxPred = max == Integer.MAX_VALUE ? cb.greaterThanOrEqualTo(root.get("repetition"), min)
+                : cb.lessThanOrEqualTo(root.get("repetition"), max);
+
         query.select(cb.count(root)).where(cb.and(userPred, minPred, maxPred));
         return entityManager.createQuery(query).getSingleResult();
     }
@@ -409,13 +448,12 @@ public class VocabularyCardServiceImpl implements VocabularyCardService {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Long> query = cb.createQuery(Long.class);
         Root<VocabularyCard> root = query.from(VocabularyCard.class);
-        
+
         Predicate userPred = cb.equal(root.get("createUser"), userId);
         Predicate minPred = cb.greaterThanOrEqualTo(root.get("easinessFactor"), min);
-        Predicate maxPred = max >= 10.0 ?
-            cb.greaterThanOrEqualTo(root.get("easinessFactor"), min) :
-            cb.lessThanOrEqualTo(root.get("easinessFactor"), max);
-        
+        Predicate maxPred = max >= 10.0 ? cb.greaterThanOrEqualTo(root.get("easinessFactor"), min)
+                : cb.lessThanOrEqualTo(root.get("easinessFactor"), max);
+
         query.select(cb.count(root)).where(cb.and(userPred, minPred, maxPred));
         return entityManager.createQuery(query).getSingleResult();
     }
