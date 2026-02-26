@@ -2,7 +2,7 @@ package com.ck.quiz.base.dto;
 
 import lombok.Data;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 复习结果 DTO
@@ -14,6 +14,6 @@ public class ReviewResultDto {
     private Double newEasinessFactor;
     private Integer newInterval;
     private Integer newRepetition;
-    private LocalDate nextReviewDate;
+    private LocalDateTime nextReviewDate;
     private String message;
 }

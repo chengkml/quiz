@@ -1,6 +1,6 @@
 package com.ck.quiz.base.entity;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import org.hibernate.annotations.Comment;
 
@@ -26,8 +26,8 @@ public abstract class ReviewModel extends Model {
 	@Comment("连续记对次数")
 	private Integer repetition = 0;
 
-	@Comment("下次复习日期")
-	private LocalDate nextReviewDate;
+	@Comment("下次复习时间")
+	private LocalDateTime nextReviewDate;
 
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	@Comment("是否已归档")

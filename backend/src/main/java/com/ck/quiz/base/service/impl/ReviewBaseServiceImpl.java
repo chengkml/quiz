@@ -19,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -65,7 +64,7 @@ public abstract class ReviewBaseServiceImpl<C extends CreateDto, U extends Updat
         model.setEasinessFactor(2.5);
         model.setInterval(0);
         model.setRepetition(0);
-        model.setNextReviewDate(LocalDate.now().plusDays(1));
+        model.setNextReviewDate(LocalDateTime.now().plusDays(1));
         model.setLastScore(null);
 
         repository.save(model);
@@ -74,8 +73,8 @@ public abstract class ReviewBaseServiceImpl<C extends CreateDto, U extends Updat
 
     @Override
     public List<D> getDueToday(String userId) {
-        LocalDate today = LocalDate.now();
-        List<M> dueModels = repository.findDueToday(today, userId);
+        LocalDateTime now = LocalDateTime.now();
+        List<M> dueModels = repository.findDueToday(now, userId);
         return dueModels.stream()
                 .map(model -> convertToDto(model, true))
                 .collect(Collectors.toList());
@@ -98,6 +97,7 @@ public abstract class ReviewBaseServiceImpl<C extends CreateDto, U extends Updat
 
         // 记录复习前状态
         Double efBefore = model.getEasinessFactor();
+        LocalDateTime reviewTime = LocalDateTime.now(); // 记录当前复习时间
 
         // ============ SM-2 算法核心实现 ============
 
@@ -136,8 +136,8 @@ public abstract class ReviewBaseServiceImpl<C extends CreateDto, U extends Updat
         model.setRepetition(newRepetition);
         model.setInterval(newInterval);
 
-        // 3. 计算下次复习日期
-        LocalDate nextReview = LocalDate.now().plusDays(newInterval);
+        // 3. 计算下次复习时间（基于当前复习时间）
+        LocalDateTime nextReview = reviewTime.plusDays(newInterval);
         model.setNextReviewDate(nextReview);
 
         // 4. 更新统计信息

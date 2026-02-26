@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,7 +93,7 @@ public class KnowledgeServiceImpl extends ReviewBaseServiceImpl<KnowledgeCreateD
         knowledge.setEasinessFactor(2.5);
         knowledge.setInterval(0);
         knowledge.setRepetition(0);
-        knowledge.setNextReviewDate(LocalDate.now().plusDays(1));
+        knowledge.setNextReviewDate(LocalDateTime.now().plusDays(1));
         knowledge.setArchived(false);
         knowledge.setTotalReviewCount(0);
         knowledge.setLastScore(null);
@@ -238,7 +239,7 @@ public class KnowledgeServiceImpl extends ReviewBaseServiceImpl<KnowledgeCreateD
                     
                     k.setInterval((Integer) rs.getObject("interval"));
                     k.setRepetition((Integer) rs.getObject("repetition"));
-                    k.setNextReviewDate(rs.getObject("next_review_date", java.time.LocalDate.class));
+                    k.setNextReviewDate(rs.getObject("next_review_date", java.time.LocalDateTime.class));
                     k.setArchived((Boolean) rs.getObject("archived"));
                     k.setTotalReviewCount((Integer) rs.getObject("total_review_count"));
                     k.setLastScore((Integer) rs.getObject("last_score"));

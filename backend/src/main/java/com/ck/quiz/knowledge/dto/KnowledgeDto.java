@@ -1,12 +1,11 @@
 package com.ck.quiz.knowledge.dto;
 
-import com.ck.quiz.base.dto.Dto;
+import com.ck.quiz.base.dto.ReviewDto;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
 
 /**
  * 知识点信息 DTO（Data Transfer Object）
@@ -16,7 +15,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class KnowledgeDto extends Dto {
+public class KnowledgeDto extends ReviewDto {
 
     /**
      * 知识点名称
@@ -48,38 +47,4 @@ public class KnowledgeDto extends Dto {
      */
     private String content;
 
-    /**
-     * 简易度因子
-     */
-    private Double easinessFactor;
-
-    /**
-     * 复习间隔天数
-     */
-    private Integer interval;
-
-    /**
-     * 连续记对次数
-     */
-    private Integer repetition;
-
-    /**
-     * 下次复习日期
-     */
-    private LocalDate nextReviewDate;
-
-    /**
-     * 是否已归档
-     */
-    private Boolean archived;
-
-    /**
-     * 总复习次数
-     */
-    private Integer totalReviewCount;
-
-    /**
-     * 最后一次评分
-     */
-    private Integer lastScore;
 }

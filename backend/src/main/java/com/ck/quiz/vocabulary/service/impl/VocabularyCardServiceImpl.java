@@ -81,7 +81,7 @@ public class VocabularyCardServiceImpl
         card.setEasinessFactor(2.5);
         card.setInterval(0);
         card.setRepetition(0);
-        card.setNextReviewDate(LocalDate.now().plusDays(1)); // 明天开始复习
+        card.setNextReviewDate(LocalDateTime.now().plusDays(1)); // 明天开始复习
         card.setArchived(false);
         card.setTotalReviewCount(0);
 
