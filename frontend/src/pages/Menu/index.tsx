@@ -565,8 +565,11 @@ function MenuManager() {
     try {
       // 处理级联选择器的值，取最后一个作为父菜单ID
       const submitValues = { ...values };
-      if (values.parentId && Array.isArray(values.parentId)) {
+      if (values.parentId && Array.isArray(values.parentId) && values.parentId.length > 0) {
         submitValues.parentId = values.parentId[values.parentId.length - 1];
+      } else {
+        // 如果父菜单为空数组、undefined 或 null，显式设置为 null
+        submitValues.parentId = null;
       }
 
       await createMenu(submitValues);
@@ -584,8 +587,11 @@ function MenuManager() {
     try {
       // 处理级联选择器的值，取最后一个作为父菜单ID
       const submitValues = { ...values };
-      if (values.parentId && Array.isArray(values.parentId)) {
+      if (values.parentId && Array.isArray(values.parentId) && values.parentId.length > 0) {
         submitValues.parentId = values.parentId[values.parentId.length - 1];
+      } else {
+        // 如果父菜单为空数组、undefined 或 null，显式设置为 null
+        submitValues.parentId = null;
       }
 
       await updateMenu(currentMenu.menuId, submitValues);

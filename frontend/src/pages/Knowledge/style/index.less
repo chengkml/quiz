@@ -2,6 +2,29 @@
   height: 100%;
 }
 
+.knowledge-tree {
+  .arco-tree-node-content {
+    position: relative;
+  }
+
+  .knowledge-tree-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #86909c;
+    padding: 2px 4px;
+    border-radius: 4px;
+    opacity: 1;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .knowledge-tree-actions:hover {
+    background-color: #f2f3f5;
+    color: #4e5969;
+  }
+}
+
 .review-page {
   height: 100vh;
   display: flex;

@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import UserAvatar from '@/components/UserAvatar';
 import {
     Button,
+    Dropdown,
     Drawer,
     Form,
     Input,
     Layout,
+    Menu,
     Message,
     Modal,
     Popconfirm,
@@ -31,10 +33,13 @@ import {
     streamPolishKnowledgeUrl,
     getSubjectCategoryTree,
     getCategoriesBySubjectId,
+    createCategory,
+    updateCategory,
+    deleteCategory,
 } from './api';
 import { DataManager } from '../../components/DataManager';
 import renderDate from '@/utils/timeUtil';
-import { IconArchive, IconDelete, IconEdit, IconList, IconPlus, IconPlayArrow, IconRefresh } from '@arco-design/web-react/icon';
+import { IconArchive, IconDelete, IconEdit, IconList, IconPlus, IconPlayArrow, IconRefresh, IconMoreVertical } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import { CKEditor } from 'ckeditor4-react';
 import { getLLMModelsByType } from '@/services/llmModelService';
@@ -57,6 +62,12 @@ function KnowledgeManager() {
     const [selectedTreeNode, setSelectedTreeNode] = useState(null);
     const [expandedKeys, setExpandedKeys] = useState([]);
     const [searchKeyword, setSearchKeyword] = useState('');
+
+    const [treeCategoryModalVisible, setTreeCategoryModalVisible] = useState(false);
+    const [treeCategoryMode, setTreeCategoryMode] = useState<'create' | 'edit'>('create');
+    const [treeCategoryNode, setTreeCategoryNode] = useState<any>(null);
+    const [treeCategorySubmitting, setTreeCategorySubmitting] = useState(false);
+    const [treeCategoryForm] = Form.useForm();
 
     // 当前选中的过滤条件
     const [currentSubjectId, setCurrentSubjectId] = useState(null);
@@ -571,13 +582,19 @@ function KnowledgeManager() {
             const res = await getSubjectCategoryTree();
             if (res?.data) {
                 // 递归构造 Tree 节点，并为每个节点绑定 subjectId
-                const buildCategoryTreeWithSubjectId = (list = [], subjectId) => {
+                const buildCategoryTreeWithSubjectId = (list = [], subjectId, subjectName, level = 2) => {
                     return list.map((item) => ({
                         key: item.id,
                         title: item.name,
+                        id: item.id,
+                        name: item.name,
+                        description: item.description,
+                        parentId: item.parentId,
                         subjectId, // ✅ 关键：记录所属学科ID
+                        subjectName,
+                        level,
                         children: item.children
-                            ? buildCategoryTreeWithSubjectId(item.children, subjectId)
+                            ? buildCategoryTreeWithSubjectId(item.children, subjectId, subjectName, level + 1)
                             : [],
                     }));
                 };
@@ -585,8 +602,12 @@ function KnowledgeManager() {
                 const transformData = res.data.map((subject) => ({
                     key: subject.id,
                     title: subject.name,
+                    id: subject.id,
+                    name: subject.name,
                     subjectId: subject.id, // 学科节点自身也带 subjectId
-                    children: buildCategoryTreeWithSubjectId(subject.categories || [], subject.id),
+                    subjectName: subject.name,
+                    level: 1,
+                    children: buildCategoryTreeWithSubjectId(subject.categories || [], subject.id, subject.name, 2),
                 }));
 
                 setTreeData(transformData);
@@ -667,6 +688,90 @@ function KnowledgeManager() {
             Message.error('获取学科列表失败');
         } finally {
             setSubjectsLoading(false);
+        }
+    };
+
+    const handleTreeCategoryCreate = (node) => {
+        const nodeData = node?.props || node;
+        setTreeCategoryMode('create');
+        setTreeCategoryNode(nodeData);
+        treeCategoryForm.setFieldsValue({
+            name: '',
+            description: '',
+        });
+        setTreeCategoryModalVisible(true);
+    };
+
+    const handleTreeCategoryEdit = (node) => {
+        const nodeData = node?.props || node;
+        setTreeCategoryMode('edit');
+        setTreeCategoryNode(nodeData);
+        treeCategoryForm.setFieldsValue({
+            name: nodeData.title,
+            description: nodeData.description || '',
+        });
+        setTreeCategoryModalVisible(true);
+    };
+
+    const handleTreeCategoryDelete = (node) => {
+        const nodeData = node?.props || node;
+        Modal.confirm({
+            title: '确认删除',
+            content: `确定要删除分类 "${nodeData.title}" 吗？`,
+            onOk: async () => {
+                try {
+                    await deleteCategory(nodeData.id || nodeData.key);
+                    Message.success('删除成功');
+                    setSelectedTreeNode(null);
+                    setCurrentCategoryIds([]);
+                    fetchSubjectCategoryTree();
+                    if (currentSubjectId) {
+                        fetchCategoriesBySubject(currentSubjectId);
+                    }
+                    fetchTableData();
+                } catch (error: any) {
+                    Message.error(error.response?.data?.message || '删除失败');
+                }
+            },
+        });
+    };
+
+    const handleTreeCategorySubmit = async () => {
+        try {
+            const values = await treeCategoryForm.validate();
+            setTreeCategorySubmitting(true);
+
+            if (treeCategoryMode === 'create') {
+                await createCategory({
+                    name: values.name,
+                    description: values.description,
+                    subjectId: treeCategoryNode?.subjectId,
+                    parentId: treeCategoryNode?.id || treeCategoryNode?.key,
+                });
+                Message.success('分类创建成功');
+            } else {
+                await updateCategory({
+                    id: treeCategoryNode?.id || treeCategoryNode?.key,
+                    name: values.name,
+                    description: values.description,
+                    subjectId: treeCategoryNode?.subjectId,
+                    parentId: treeCategoryNode?.parentId,
+                });
+                Message.success('分类更新成功');
+            }
+
+            setTreeCategoryModalVisible(false);
+            fetchSubjectCategoryTree();
+            if (currentSubjectId) {
+                fetchCategoriesBySubject(currentSubjectId);
+            }
+        } catch (error: any) {
+            if (error?.errorFields) {
+                return;
+            }
+            Message.error(error.response?.data?.message || '操作失败');
+        } finally {
+            setTreeCategorySubmitting(false);
         }
     };
 
@@ -808,8 +913,62 @@ function KnowledgeManager() {
                                     fetchTableData();
                                 }
                             }}
+                            renderExtra={(node) => {
+                                const nodeData = node?.props || node;
+                                console.log('renderExtra called:', nodeData?.title, 'level:', nodeData?.level, 'nodeData:', nodeData);
+                                
+                                // 只有分类节点（level >= 2）才显示操作
+                                if (!nodeData || nodeData.level < 2) {
+                                    return null;
+                                }
+                                
+                                return (
+                                    <Dropdown
+                                        trigger="click"
+                                        droplist={(
+                                            <Menu>
+                                                <Menu.Item
+                                                    key="add"
+                                                    onClick={(event) => {
+                                                        event?.stopPropagation?.();
+                                                        handleTreeCategoryCreate(node);
+                                                    }}
+                                                >
+                                                    <IconPlus style={{ marginRight: 8 }} />新增子分类
+                                                </Menu.Item>
+                                                <Menu.Item
+                                                    key="edit"
+                                                    onClick={(event) => {
+                                                        event?.stopPropagation?.();
+                                                        handleTreeCategoryEdit(node);
+                                                    }}
+                                                >
+                                                    <IconEdit style={{ marginRight: 8 }} />编辑
+                                                </Menu.Item>
+                                                <Menu.Item
+                                                    key="delete"
+                                                    onClick={(event) => {
+                                                        event?.stopPropagation?.();
+                                                        handleTreeCategoryDelete(node);
+                                                    }}
+                                                >
+                                                    <IconDelete style={{ marginRight: 8 }} />删除
+                                                </Menu.Item>
+                                            </Menu>
+                                        )}
+                                    >
+                                        <span
+                                            className="knowledge-tree-actions"
+                                            onClick={(event) => event.stopPropagation()}
+                                        >
+                                            <IconMoreVertical />
+                                        </span>
+                                    </Dropdown>
+                                );
+                            }}
                             blockNode
                             showLine
+                            className="knowledge-tree"
                             style={{ backgroundColor: 'transparent' }}
                         />
                     ) : (
@@ -856,6 +1015,37 @@ function KnowledgeManager() {
                 }}
                 tableScrollHeight={tableScrollHeight}
             />
+
+            <Modal
+                title={treeCategoryMode === 'create' ? '新增子分类' : '编辑分类'}
+                visible={treeCategoryModalVisible}
+                onOk={handleTreeCategorySubmit}
+                onCancel={() => setTreeCategoryModalVisible(false)}
+                confirmLoading={treeCategorySubmitting}
+            >
+                <Form form={treeCategoryForm} layout="vertical">
+                    <Form.Item label="所属学科">
+                        <Input value={treeCategoryNode?.subjectName || ''} disabled />
+                    </Form.Item>
+                    <Form.Item label="父分类">
+                        <Input value={treeCategoryNode?.title || ''} disabled />
+                    </Form.Item>
+                    <Form.Item
+                        label="分类名称"
+                        field="name"
+                        rules={[{ required: true, message: '请输入分类名称' }, { maxLength: 50, message: '分类名称不能超过50个字符' }]}
+                    >
+                        <Input placeholder="请输入分类名称" />
+                    </Form.Item>
+                    <Form.Item
+                        label="分类描述"
+                        field="description"
+                        rules={[{ maxLength: 200, message: '描述不能超过200个字符' }]}
+                    >
+                        <Input.TextArea rows={3} placeholder="请输入分类描述（可选）" />
+                    </Form.Item>
+                </Form>
+            </Modal>
 
             {/* 新增对话框 */}
             <Drawer

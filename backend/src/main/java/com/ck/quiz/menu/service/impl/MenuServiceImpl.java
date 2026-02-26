@@ -105,7 +105,12 @@ public class MenuServiceImpl implements MenuService {
             menu.setMenuType(menuUpdateDto.getMenuType());
         }
         if (menuUpdateDto.getParentId() != null) {
-            menu.setParentId(menuUpdateDto.getParentId());
+            menu.setParentId(StringUtils.hasText(menuUpdateDto.getParentId())
+                    ? menuUpdateDto.getParentId()
+                    : null);
+        } else {
+            // Allow explicit clearing of parentId when client sends null.
+            menu.setParentId(null);
         }
         if (menuUpdateDto.getUrl() != null) {
             menu.setUrl(menuUpdateDto.getUrl());
