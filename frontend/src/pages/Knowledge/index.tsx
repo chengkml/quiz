@@ -12,17 +12,21 @@ import {
     Select,
     Space,
     Spin,
+    Tag,
     Tooltip,
     Tree,
 } from '@arco-design/web-react';
 import './style/index.less';
 import {
+    KnowledgeDto,
     createKnowledge,
     deleteKnowledge,
     getAllCategories,
     getAllSubjects,
     getKnowledgeList,
     getKnowledgeQuestions,
+    archiveKnowledge,
+    resetKnowledge,
     updateKnowledge,
     streamPolishKnowledgeUrl,
     getSubjectCategoryTree,
@@ -30,10 +34,11 @@ import {
 } from './api';
 import { DataManager } from '../../components/DataManager';
 import renderDate from '@/utils/timeUtil';
-import { IconDelete, IconEdit, IconList, IconPlus } from '@arco-design/web-react/icon';
+import { IconArchive, IconDelete, IconEdit, IconList, IconPlus, IconPlayArrow, IconRefresh } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import { CKEditor } from 'ckeditor4-react';
 import { getLLMModelsByType } from '@/services/llmModelService';
+import ReviewPage from './Review';
 
 declare const __APP_BASE_PATH__: string;
 
@@ -41,7 +46,7 @@ function KnowledgeManager() {
     const editorScriptUrl = `${(__APP_BASE_PATH__ || '/').replace(/\/$/, '')}/ckeditor/ckeditor.js`;
     const [tableScrollHeight, setTableScrollHeight] = useState(200);
     // 状态管理
-    const [tableData, setTableData] = useState([]);
+    const [tableData, setTableData] = useState<KnowledgeDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [tableLoading, setTableLoading] = useState(false);
 
@@ -68,6 +73,7 @@ function KnowledgeManager() {
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [detailModalVisible, setDetailModalVisible] = useState(false);
+    const [reviewVisible, setReviewVisible] = useState(false);
     const [currentRecord, setCurrentRecord] = useState(null);
     const [detailRecord, setDetailRecord] = useState(null);
 
@@ -109,20 +115,23 @@ function KnowledgeManager() {
             dataIndex: 'name',
             ellipsis: true,
             render: (value, record) => (
-                <Button
-                    type="text"
-                    style={{
-                        color: '#4080FF',
-                        padding: 0,
-                        textDecoration: 'underline',
-                    }}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleDetail(record);
-                    }}
-                >
-                    {value}
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Button
+                        type="text"
+                        style={{
+                            color: '#4080FF',
+                            padding: 0,
+                            textDecoration: 'underline',
+                        }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleDetail(record);
+                        }}
+                    >
+                        {value}
+                    </Button>
+                    {record.archived && <Tag color="gray">已归档</Tag>}
+                </div>
             ),
         },
         {
@@ -140,6 +149,12 @@ function KnowledgeManager() {
             render: (value) => value || '--',
         },
         {
+            title: '复习次数',
+            dataIndex: 'totalReviewCount',
+            width: 100,
+            align: 'center'
+        },
+        {
             title: '创建时间',
             dataIndex: 'createDate',
             width: 170,
@@ -147,7 +162,7 @@ function KnowledgeManager() {
         },
         {
             title: '操作',
-            width: 150,
+            width: 200,
             align: 'center',
             fixed: 'right',
             render: (_, record) => (
@@ -162,6 +177,35 @@ function KnowledgeManager() {
                                 handleEdit(record);
                             }}
                         />
+                    </Tooltip>
+                    <Tooltip title="重置">
+                        <Popconfirm
+                            title="确认重置学习状态吗？"
+                            onOk={() => handleResetCard(record)}
+                            onCancel={(e) => e?.stopPropagation?.()}
+                        >
+                            <Button
+                                type="text"
+                                size="small"
+                                status="warning"
+                                icon={<IconRefresh />}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </Popconfirm>
+                    </Tooltip>
+                    <Tooltip title={record.archived ? '取消归档' : '归档'}>
+                        <Popconfirm
+                            title={record.archived ? '确认取消归档吗？' : '确认归档该知识点吗？'}
+                            onOk={() => handleArchive(record)}
+                            onCancel={(e) => e?.stopPropagation?.()}
+                        >
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<IconArchive />}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </Popconfirm>
                     </Tooltip>
                     <Popconfirm
                         title="确认删除该知识点吗？"
@@ -239,6 +283,16 @@ function KnowledgeManager() {
         setDetailModalVisible(true);
     };
 
+    const handleReviewOpen = () => {
+        setReviewVisible(true);
+    };
+
+    const handleReviewClose = () => {
+        setReviewVisible(false);
+        const values = filterFormRef.current?.getFieldsValue?.() || {};
+        fetchTableData(values, pagination.pageSize, pagination.current);
+    };
+
     // 处理查看关联问题
     const handleViewQuestions = async (record) => {
         setCurrentRecord(record);
@@ -253,6 +307,28 @@ function KnowledgeManager() {
         } finally {
             setQuestionsLoading(false);
             setQuestionsModalVisible(true);
+        }
+    };
+
+    const handleArchive = async (record) => {
+        try {
+            await archiveKnowledge(record.id, !record.archived);
+            Message.success(record.archived ? '已取消归档' : '已归档');
+            const values = filterFormRef.current?.getFieldsValue?.() || {};
+            fetchTableData(values, pagination.pageSize, pagination.current);
+        } catch (error: any) {
+            Message.error(error.response?.data?.message || '操作失败');
+        }
+    };
+
+    const handleResetCard = async (record) => {
+        try {
+            await resetKnowledge(record.id);
+            Message.success('重置成功');
+            const values = filterFormRef.current?.getFieldsValue?.() || {};
+            fetchTableData(values, pagination.pageSize, pagination.current);
+        } catch (error: any) {
+            Message.error(error.response?.data?.message || '重置失败');
         }
     };
 
@@ -765,6 +841,11 @@ function KnowledgeManager() {
                     fetchTableData(values, p.pageSize, p.current);
                 }}
                 actions={{ onAdd: handleAdd }}
+                actionButtons={(
+                    <Button type="primary" icon={<IconPlayArrow />} onClick={handleReviewOpen}>
+                        复习
+                    </Button>
+                )}
                 config={{
                     displayMode: 'table',
                     showModeToggle: false,
@@ -1053,6 +1134,18 @@ label="知识点内容"
                         />
                     </div>
                 )}
+            </Drawer>
+
+            <Drawer
+                title="知识点复习"
+                visible={reviewVisible}
+                width={980}
+                onCancel={handleReviewClose}
+                footer={null}
+                className="review-drawer"
+                bodyStyle={{ padding: 0, overflow: 'hidden' }}
+            >
+                <ReviewPage embedded onExit={handleReviewClose} />
             </Drawer>
         </div>
     );

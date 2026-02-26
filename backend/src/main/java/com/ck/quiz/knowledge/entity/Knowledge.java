@@ -1,14 +1,12 @@
 package com.ck.quiz.knowledge.entity;
 
+import com.ck.quiz.base.entity.ReviewModel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Comment;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,12 +24,15 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Knowledge {
-
-    @Id
-    @Comment("知识点ID")
-    @Column(name = "knowledge_id", length = 32, nullable = false)
-    private String id;
+@EqualsAndHashCode(callSuper = true)
+@AttributeOverrides({
+    @AttributeOverride(name = "id", column = @Column(name = "knowledge_id", length = 32, nullable = false)),
+    @AttributeOverride(name = "createDate", column = @Column(name = "create_date", updatable = false)),
+    @AttributeOverride(name = "createUser", column = @Column(name = "create_user", length = 64, updatable = false)),
+    @AttributeOverride(name = "updateDate", column = @Column(name = "update_date")),
+    @AttributeOverride(name = "updateUser", column = @Column(name = "update_user", length = 64))
+})
+public class Knowledge extends ReviewModel {
 
     @Comment("知识点名称")
     @Column(name = "name", length = 512, nullable = false)
@@ -49,40 +50,6 @@ public class Knowledge {
     @Column(columnDefinition = "TEXT")
     private String content;
 
-    @Comment("创建时间")
-    @Column(name = "create_date", updatable = false)
-    private LocalDateTime createDate;
-
-    @Comment("创建人")
-    @Column(name = "create_user", length = 64, updatable = false)
-    private String createUser;
-
-    @Comment("更新时间")
-    @Column(name = "update_date")
-    private LocalDateTime updateDate;
-
-    @Comment("更新人")
-    @Column(name = "update_user", length = 64)
-    private String updateUser;
-
     @ManyToMany(mappedBy = "knowledgePoints", fetch = FetchType.LAZY)
     private List<com.ck.quiz.question.entity.Question> questions = new ArrayList<>();
-
-    @PrePersist
-    public void prePersist() {
-        this.createDate = LocalDateTime.now();
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            this.createUser = authentication.getName();
-        }
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        this.updateDate = LocalDateTime.now();
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            this.updateUser = authentication.getName();
-        }
-    }
 }

@@ -1,9 +1,11 @@
 package com.ck.quiz.knowledge.dto;
 
+import com.ck.quiz.base.dto.UpdateDto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
@@ -13,14 +15,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class KnowledgeUpdateDto {
-
-    /**
-     * 知识点唯一标识
-     */
-    @NotBlank(message = "知识点ID不能为空")
-    @Size(max = 32, message = "知识点ID长度不能超过32个字符")
-    private String id;
+@EqualsAndHashCode(callSuper = true)
+public class KnowledgeUpdateDto extends UpdateDto {
 
     /**
      * 知识点名称

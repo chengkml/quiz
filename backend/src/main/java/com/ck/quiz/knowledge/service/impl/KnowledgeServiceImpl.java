@@ -1,5 +1,6 @@
 package com.ck.quiz.knowledge.service.impl;
 
+import com.ck.quiz.base.service.impl.ReviewBaseServiceImpl;
 import com.ck.quiz.knowledge.dto.KnowledgeCreateDto;
 import com.ck.quiz.knowledge.dto.KnowledgeDto;
 import com.ck.quiz.knowledge.dto.KnowledgeQueryDto;
@@ -19,6 +20,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+
+import java.math.BigDecimal;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
@@ -32,6 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +47,8 @@ import java.util.Map;
 @Slf4j
 @Service
 @Transactional
-public class KnowledgeServiceImpl implements KnowledgeService {
+public class KnowledgeServiceImpl extends ReviewBaseServiceImpl<KnowledgeCreateDto, KnowledgeUpdateDto, KnowledgeQueryDto, KnowledgeDto, Knowledge, KnowledgeRepository>
+    implements KnowledgeService {
 
     @Autowired
     private KnowledgeRepository knowledgeRepository;
@@ -57,6 +62,16 @@ public class KnowledgeServiceImpl implements KnowledgeService {
 
     @Autowired
     private LLMModelRepository llmModelRepository;
+
+    @Override
+    protected KnowledgeDto newDto() {
+        return new KnowledgeDto();
+    }
+
+    @Override
+    protected Knowledge newModel() {
+        return new Knowledge();
+    }
 
     @Override
     public KnowledgeDto createKnowledge(KnowledgeCreateDto createDto) {
@@ -74,6 +89,13 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         knowledge.setContent(createDto.getContent());
         knowledge.setCategoryId(createDto.getCategoryId());
         knowledge.setSubjectId(createDto.getSubjectId());
+        knowledge.setEasinessFactor(2.5);
+        knowledge.setInterval(0);
+        knowledge.setRepetition(0);
+        knowledge.setNextReviewDate(LocalDate.now().plusDays(1));
+        knowledge.setArchived(false);
+        knowledge.setTotalReviewCount(0);
+        knowledge.setLastScore(null);
 
         // 保存知识点
         Knowledge savedKnowledge = knowledgeRepository.save(knowledge);
@@ -169,7 +191,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
             JdbcQueryHelper.equals("createUser", authentication.getName(),
-                    " AND k.create_user = :createUser ", params, sql, countSql);
+                " AND k.create_user = :createUser ", params, sql, countSql);
         }
 
         // 排序
@@ -201,6 +223,25 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                     k.setCreateUser(rs.getString("create_user"));
                     k.setCreateUserName(rs.getString("create_user_name"));
                     k.setUpdateUser(rs.getString("update_user"));
+                    
+                    // Handle BigDecimal to Double conversion
+                    Object efObj = rs.getObject("easiness_factor");
+                    if (efObj != null) {
+                        if (efObj instanceof BigDecimal) {
+                            k.setEasinessFactor(((BigDecimal) efObj).doubleValue());
+                        } else if (efObj instanceof Double) {
+                            k.setEasinessFactor((Double) efObj);
+                        } else if (efObj instanceof Number) {
+                            k.setEasinessFactor(((Number) efObj).doubleValue());
+                        }
+                    }
+                    
+                    k.setInterval((Integer) rs.getObject("interval"));
+                    k.setRepetition((Integer) rs.getObject("repetition"));
+                    k.setNextReviewDate(rs.getObject("next_review_date", java.time.LocalDate.class));
+                    k.setArchived((Boolean) rs.getObject("archived"));
+                    k.setTotalReviewCount((Integer) rs.getObject("total_review_count"));
+                    k.setLastScore((Integer) rs.getObject("last_score"));
                     return k;
                 });
 
@@ -242,12 +283,24 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         dto.setCreateUser(knowledge.getCreateUser());
         dto.setUpdateDate(knowledge.getUpdateDate());
         dto.setUpdateUser(knowledge.getUpdateUser());
+        dto.setEasinessFactor(knowledge.getEasinessFactor());
+        dto.setInterval(knowledge.getInterval());
+        dto.setRepetition(knowledge.getRepetition());
+        dto.setNextReviewDate(knowledge.getNextReviewDate());
+        dto.setArchived(knowledge.getArchived());
+        dto.setTotalReviewCount(knowledge.getTotalReviewCount());
+        dto.setLastScore(knowledge.getLastScore());
 
         // TODO: 根据categoryId和subjectId查询对应的名称
         // dto.setCategoryName(categoryService.getCategoryById(knowledge.getCategoryId()).getName());
         // dto.setSubjectName(subjectService.getSubjectById(knowledge.getSubjectId()).getName());
 
         return dto;
+    }
+
+    @Override
+    public Page<KnowledgeDto> search(String userId, KnowledgeQueryDto queryDto) {
+        return searchKnowledge(queryDto);
     }
 
     @Override

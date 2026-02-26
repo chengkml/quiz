@@ -1,3 +1,116 @@
 .knowledge-manager {
   height: 100%;
 }
+
+.review-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px 20px 24px;
+  background: #fafafa;
+  min-height: 0;
+}
+
+.review-page-embedded {
+  height: 100%;
+  min-height: 0;
+}
+
+.review-header {
+  flex: 0 0 auto;
+  background: #fafafa;
+  z-index: 1;
+  padding-bottom: 12px;
+}
+
+.review-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.review-index {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2329;
+}
+
+.review-content {
+  flex: 1 1 auto;
+  overflow: hidden;
+  padding-top: 8px;
+  padding-bottom: 16px;
+  min-height: 0;
+}
+
+.review-card-container {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.review-card {
+  height: min(520px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-card .arco-card-body {
+  height: 100%;
+  overflow: hidden;
+  padding: 0;
+}
+
+.review-card .card-face {
+  overflow: hidden;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.review-card .card-back {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 60px);
+  min-height: 0;
+}
+
+.review-card .card-back .md-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.review-drawer .arco-drawer-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-drawer .arco-drawer-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-footer {
+  position: sticky;
+  bottom: 0;
+  background: #fafafa;
+  padding: 12px 0 8px;
+  border-top: 1px solid #eee;
+}
+
+.score-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}

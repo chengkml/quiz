@@ -7,9 +7,11 @@ import org.hibernate.annotations.Comment;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
 @MappedSuperclass
+@EqualsAndHashCode(callSuper=false)
 public abstract class ReviewModel extends Model {
 
 	@Column(nullable = false, columnDefinition = "DECIMAL(4,2) DEFAULT 2.50")

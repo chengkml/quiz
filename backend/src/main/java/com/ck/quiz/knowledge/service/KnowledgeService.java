@@ -1,5 +1,6 @@
 package com.ck.quiz.knowledge.service;
 
+import com.ck.quiz.base.service.ReviewBaseService;
 import com.ck.quiz.knowledge.dto.KnowledgeCreateDto;
 import com.ck.quiz.knowledge.dto.KnowledgeDto;
 import com.ck.quiz.knowledge.dto.KnowledgeQueryDto;
@@ -14,7 +15,7 @@ import java.util.List;
  * 知识点服务接口
  * 定义知识点管理的核心业务操作
  */
-public interface KnowledgeService {
+public interface KnowledgeService extends ReviewBaseService<KnowledgeCreateDto, KnowledgeUpdateDto, KnowledgeQueryDto, KnowledgeDto, Knowledge> {
 
     /**
      * 创建新知识点

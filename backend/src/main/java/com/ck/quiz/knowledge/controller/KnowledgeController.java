@@ -1,5 +1,8 @@
 package com.ck.quiz.knowledge.controller;
 
+import com.ck.quiz.base.dto.ReviewLogDto;
+import com.ck.quiz.base.dto.ReviewRequestDto;
+import com.ck.quiz.base.dto.ReviewResultDto;
 import com.ck.quiz.knowledge.dto.KnowledgeCreateDto;
 import com.ck.quiz.knowledge.dto.KnowledgeDto;
 import com.ck.quiz.knowledge.dto.KnowledgeQueryDto;
@@ -13,6 +16,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.List;
 
 /**
  * 知识点管理控制器
@@ -25,6 +32,14 @@ import org.springframework.web.bind.annotation.*;
 public class KnowledgeController {
 
     private final KnowledgeService knowledgeService;
+
+    private String getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "anonymous";
+        }
+        return authentication.getName();
+    }
 
     /**
      * 创建新知识点
@@ -150,6 +165,42 @@ public class KnowledgeController {
     public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamPolishKnowledge(
             @Parameter(description = "原始内容") @RequestParam("content") String content) {
         return knowledgeService.streamPolishKnowledge(content);
+    }
+
+    @PostMapping("/archive/{id}")
+    @Operation(summary = "归档/取消归档知识点")
+    public ResponseEntity<Void> archive(
+            @Parameter(description = "知识点ID") @PathVariable String id,
+            @RequestParam(defaultValue = "true") boolean archived) {
+        knowledgeService.archive(getCurrentUserId(), id, archived);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reset/{id}")
+    @Operation(summary = "重置知识点学习状态")
+    public ResponseEntity<Void> reset(
+            @Parameter(description = "知识点ID") @PathVariable String id) {
+        knowledgeService.reset(getCurrentUserId(), id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/due-today")
+    @Operation(summary = "获取今日待复习知识点")
+    public ResponseEntity<List<KnowledgeDto>> getDueToday() {
+        return ResponseEntity.ok(knowledgeService.getDueToday(getCurrentUserId()));
+    }
+
+    @PostMapping("/review")
+    @Operation(summary = "提交知识点复习评分")
+    public ResponseEntity<ReviewResultDto> review(@RequestBody ReviewRequestDto dto) {
+        return ResponseEntity.ok(knowledgeService.review(getCurrentUserId(), dto));
+    }
+
+    @GetMapping("/review-history/{cardId}")
+    @Operation(summary = "获取知识点复习历史")
+    public ResponseEntity<List<ReviewLogDto>> getReviewHistory(
+            @Parameter(description = "知识点ID") @PathVariable String cardId) {
+        return ResponseEntity.ok(knowledgeService.getReviewHistory(getCurrentUserId(), cardId));
     }
 
 }

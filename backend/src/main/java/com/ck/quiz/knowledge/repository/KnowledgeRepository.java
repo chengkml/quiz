@@ -1,7 +1,7 @@
 package com.ck.quiz.knowledge.repository;
 
+import com.ck.quiz.base.repository.ReviewBaseRepository;
 import com.ck.quiz.knowledge.entity.Knowledge;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -11,7 +11,7 @@ import java.util.Optional;
  * 定义知识点相关的数据访问方法
  */
 @Repository
-public interface KnowledgeRepository extends JpaRepository<Knowledge, String> {
+public interface KnowledgeRepository extends ReviewBaseRepository<Knowledge> {
 
     /**
      * 根据名称查找知识点

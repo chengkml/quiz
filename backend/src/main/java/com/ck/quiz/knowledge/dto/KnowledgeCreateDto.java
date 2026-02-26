@@ -1,9 +1,11 @@
 package com.ck.quiz.knowledge.dto;
 
+import com.ck.quiz.base.dto.CreateDto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
@@ -13,7 +15,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class KnowledgeCreateDto {
+@EqualsAndHashCode(callSuper = true)
+public class KnowledgeCreateDto extends CreateDto {
 
     /**
      * 知识点名称

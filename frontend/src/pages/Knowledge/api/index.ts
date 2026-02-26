@@ -1,5 +1,41 @@
 import axios from '@/core/src/http';
 
+export interface KnowledgeDto {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName?: string;
+  subjectId: string;
+  subjectName?: string;
+  content: string;
+  easinessFactor?: number;
+  interval?: number;
+  repetition?: number;
+  nextReviewDate?: string;
+  archived?: boolean;
+  totalReviewCount?: number;
+  lastScore?: number | null;
+  createDate?: string;
+  updateDate?: string;
+  createUser?: string;
+  updateUser?: string;
+}
+
+export interface ReviewRequestDto {
+  id: string;
+  score: number;
+}
+
+export interface ReviewResultDto {
+  id: string;
+  score: number;
+  newEasinessFactor: number;
+  newInterval: number;
+  newRepetition: number;
+  nextReviewDate: string;
+  message: string;
+}
+
 // 获取知识点列表（分页查询）
 const getKnowledgeList = params => axios.post('/knowledge/search', params);
 
@@ -17,6 +53,22 @@ const updateKnowledge = params => axios.put('/knowledge', params);
 
 // 删除知识点
 const deleteKnowledge = id => axios.delete(`/knowledge/${id}`);
+
+// 归档/取消归档知识点
+const archiveKnowledge = (id: string, archived: boolean = true) =>
+  axios.post(`/knowledge/archive/${id}`, null, { params: { archived } });
+
+// 重置知识点学习状态
+const resetKnowledge = (id: string) => axios.post(`/knowledge/reset/${id}`);
+
+// 获取今日待复习知识点
+const getDueToday = () => axios.get('/knowledge/due-today');
+
+// 提交复习评分
+const reviewKnowledge = (data: ReviewRequestDto) => axios.post('/knowledge/review', data);
+
+// 获取知识点复习历史
+const getReviewHistory = (cardId: string) => axios.get(`/knowledge/review-history/${cardId}`);
 
 // 检查知识点名称是否存在
 const checkKnowledgeNameExists = params => axios.get('/knowledge/check-name', {params});
@@ -75,6 +127,11 @@ export {
   getKnowledgeQuestions,
   getSubjectCategoryTree,
   streamPolishKnowledgeUrl,
+  archiveKnowledge,
+  resetKnowledge,
+  getDueToday,
+  reviewKnowledge,
+  getReviewHistory,
   createSubject,
   updateSubject,
   deleteSubject,

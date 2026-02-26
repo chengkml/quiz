@@ -1,7 +1,9 @@
 package com.ck.quiz.knowledge.dto;
 
+import com.ck.quiz.base.dto.QueryDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
@@ -13,7 +15,8 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class KnowledgeQueryDto {
+@EqualsAndHashCode(callSuper = true)
+public class KnowledgeQueryDto extends QueryDto {
 
     /**
      * 知识点名称（模糊查询）
@@ -29,16 +32,6 @@ public class KnowledgeQueryDto {
      * 所属学科ID
      */
     private String subjectId;
-
-    /**
-     * 页码（从1开始）
-     */
-    private Integer pageNum = 1;
-
-    /**
-     * 每页大小
-     */
-    private Integer pageSize = 10;
 
     /**
      * 排序字段
