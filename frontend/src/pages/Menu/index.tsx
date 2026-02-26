@@ -135,6 +135,7 @@ function MenuManager() {
   const [tableLoading, setTableLoading] = useState(false);
   const [tableScrollHeight, setTableScrollHeight] = useState(200);
   const [menuTree, setMenuTree] = useState([]);
+  const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
 
   // 对话框状态
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -348,6 +349,12 @@ function MenuManager() {
       console.error("获取菜单树失败:", error);
     }
   };
+
+  useEffect(() => {
+    if (menuTree.length > 0) {
+      setExpandedKeys(menuTree.map((item: any) => String(item.menuId)));
+    }
+  }, [menuTree]);
 
   // 根据英文编码渲染图标组件（用于列表与详情展示）
   const renderIconByName = (iconName?: string) => {
@@ -675,15 +682,21 @@ function MenuManager() {
           treeData: menuTree.map((m: any) => ({
             title: m.menuLabel,
             key: String(m.menuId),
-            children: (m.children || []).map((c: any) => ({
-              title: c.menuLabel,
-              key: String(c.menuId),
-              children: (c.children || []).map((cc: any) => ({
-                title: cc.menuLabel,
-                key: String(cc.menuId),
-              })),
-            })),
+            children: (m.children || []).length
+              ? (m.children || []).map((c: any) => ({
+                  title: c.menuLabel,
+                  key: String(c.menuId),
+                  children: (c.children || []).length
+                    ? (c.children || []).map((cc: any) => ({
+                        title: cc.menuLabel,
+                        key: String(cc.menuId),
+                      }))
+                    : undefined,
+                }))
+              : undefined,
           })),
+          expandedKeys,
+          onTreeExpand: (keys) => setExpandedKeys(keys as string[]),
           onTreeSelect: (keys: string[]) => {
             const key = keys?.[0];
             const values = filterFormRef.current?.getFilterValues?.() || {};
