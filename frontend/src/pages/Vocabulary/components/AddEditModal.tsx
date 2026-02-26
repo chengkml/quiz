@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Modal, Form, Input, Message, DatePicker } from '@arco-design/web-react';
+import { Button, Modal, Form, Input, Message } from '@arco-design/web-react';
 import { createVocabulary, streamGenerateDefinitionUrl, updateVocabulary, VocabularyCardDto } from '../api';
 import MDEditor from '@uiw/react-md-editor';
-import dayjs from 'dayjs';
 
 const FormItem = Form.Item;
 
@@ -40,8 +39,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ visible, record, onOk, onCa
                 // 编辑模式
                 form.setFieldsValue({
                     word: record.word,
-                    mdDefinition: record.mdDefinition,
-                    studiedDate: record.studiedDate ? dayjs(record.studiedDate) : null
+                    mdDefinition: record.mdDefinition
                 });
                 setMdContent(record.mdDefinition || '');
             } else {
@@ -49,7 +47,6 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ visible, record, onOk, onCa
                 form.resetFields();
                 setMdContent(MD_TEMPLATE);
                 form.setFieldValue('mdDefinition', MD_TEMPLATE);
-                form.setFieldValue('studiedDate', dayjs());
             }
         }
         if (!visible && generateEventSourceRef.current) {
@@ -162,8 +159,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ visible, record, onOk, onCa
             setLoading(true);
 
             const payload = {
-                ...values,
-                studiedDate: values.studiedDate ? dayjs(values.studiedDate).format('YYYY-MM-DD') : null
+                ...values
             };
 
             if (record) {
@@ -215,13 +211,6 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ visible, record, onOk, onCa
                         AI生成释义
                     </Button>
                 </div>
-
-                <FormItem
-                    label="学习时间"
-                    field="studiedDate"
-                >
-                    <DatePicker placeholder="选择学习时间" style={{ width: '100%' }} />
-                </FormItem>
 
                 <FormItem
                     label="Markdown 释义"

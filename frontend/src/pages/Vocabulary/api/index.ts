@@ -15,7 +15,6 @@ export interface VocabularyCardDto {
     tags: string;
     totalReviewCount: number;
     lastScore: number | null;
-    studiedDate: string;
     createDate: string;
     updateDate: string;
     createUser: string;
@@ -28,7 +27,6 @@ export interface VocabularyCardCreateDto {
     word: string;
     mdDefinition: string;
     tags?: string;
-    studiedDate?: string;
 }
 
 /**
@@ -39,7 +37,6 @@ export interface VocabularyCardUpdateDto {
     word: string;
     mdDefinition: string;
     tags?: string;
-    studiedDate?: string;
 }
 
 /**
@@ -63,7 +60,7 @@ export interface VocabularyCardQueryDto {
  * 复习请求 DTO
  */
 export interface ReviewRequestDto {
-    cardId: string;
+    id: string;
     score: number; // 0-5
 }
 
@@ -71,7 +68,7 @@ export interface ReviewRequestDto {
  * 复习结果 DTO
  */
 export interface ReviewResultDto {
-    cardId: string;
+    id: string;
     word: string;
     score: number;
     newEasinessFactor: number;
@@ -97,7 +94,7 @@ export interface StatisticsDto {
  */
 export interface ReviewLogDto {
     id: string;
-    vocabularyCardId: string;
+    objId: string;
     reviewDate: string;
     score: number;
     efBefore: number;

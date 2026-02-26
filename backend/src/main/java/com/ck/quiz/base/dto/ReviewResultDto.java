@@ -1,4 +1,4 @@
-package com.ck.quiz.vocabulary.dto;
+package com.ck.quiz.base.dto;
 
 import lombok.Data;
 
@@ -9,8 +9,7 @@ import java.time.LocalDate;
  */
 @Data
 public class ReviewResultDto {
-    private String cardId;
-    private String word;
+    private String id;
     private Integer score;
     private Double newEasinessFactor;
     private Integer newInterval;

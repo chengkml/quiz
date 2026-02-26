@@ -4,7 +4,6 @@ import com.ck.quiz.base.dto.CreateDto;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.time.LocalDate;
 
 /**
  * 创建单词卡片 DTO
@@ -14,5 +13,4 @@ import java.time.LocalDate;
 public class VocabularyCardCreateDto extends CreateDto {
     private String word;
     private String mdDefinition;
-    private LocalDate studiedDate;
 }

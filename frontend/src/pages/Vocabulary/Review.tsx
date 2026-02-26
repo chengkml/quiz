@@ -50,7 +50,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ embedded = false, onExit }) => 
         try {
             setReviewing(true);
             const res = await reviewVocabulary({
-                cardId: currentCard.id,
+                id: currentCard.id,
                 score
             });
             
@@ -133,7 +133,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ embedded = false, onExit }) => 
     }
 
     const currentCard = cards[currentIndex];
-    const progress = ((currentIndex + 1) / cards.length) * 100;
+    const progress = Math.round(((currentIndex + 1) / cards.length) * 100);
 
     return (
         <div className="review-page">

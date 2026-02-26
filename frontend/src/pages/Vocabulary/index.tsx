@@ -233,12 +233,6 @@ const VocabularyPage: React.FC = () => {
             )
         },
         {
-            title: '学习时间',
-            dataIndex: 'studiedDate',
-            width: 140,
-            render: (date: string) => date ? renderDate(date) : '-'
-        },
-        {
             title: '熟练度',
             dataIndex: 'repetition',
             width: 100,

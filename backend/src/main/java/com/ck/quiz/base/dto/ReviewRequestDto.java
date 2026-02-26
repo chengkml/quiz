@@ -1,4 +1,4 @@
-package com.ck.quiz.vocabulary.dto;
+package com.ck.quiz.base.dto;
 
 import lombok.Data;
 
@@ -7,6 +7,6 @@ import lombok.Data;
  */
 @Data
 public class ReviewRequestDto {
-    private String cardId;
+    private String id;
     private Integer score; // 0-5
 }

@@ -1,6 +1,5 @@
-package com.ck.quiz.vocabulary.entity;
+package com.ck.quiz.base.entity;
 
-import com.ck.quiz.base.entity.Model;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -10,21 +9,21 @@ import java.time.LocalDateTime;
 
 /**
  * 复习记录实体
- * 记录每次复习的详细信息和算法参数变化
+ * 通用的复习记录，用于记录各类型对象的复习详细信息和算法参数变化
  */
 @Data
 @Entity
 @Comment("复习记录表")
 @EqualsAndHashCode(callSuper = true)
 @Table(name = "review_log", indexes = {
-        @Index(name = "idx_review_card_id", columnList = "vocabulary_card_id"),
+        @Index(name = "idx_review_obj_id", columnList = "obj_id"),
         @Index(name = "idx_review_date", columnList = "review_date")
 })
 public class ReviewLog extends Model {
 
-    @Column(name = "vocabulary_card_id", length = 32, nullable = false)
-    @Comment("单词卡片ID")
-    private String vocabularyCardId;
+    @Column(name = "obj_id", length = 32, nullable = false)
+    @Comment("关联对象ID")
+    private String objId;
 
     @Comment("复习时间")
     @Column(nullable = false)

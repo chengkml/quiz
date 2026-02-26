@@ -152,7 +152,7 @@ public class VocabularyCard extends Model {
 ```java
 @Entity
 @Table(name = "review_log", indexes = {
-    @Index(name = "idx_review_card_id", columnList = "vocabulary_card_id"),
+    @Index(name = "idx_review_obj_id", columnList = "vocabulary_obj_id"),
     @Index(name = "idx_review_date", columnList = "review_date")
 })
 @Data
@@ -160,9 +160,9 @@ public class VocabularyCard extends Model {
 @Comment("复习记录表")
 public class ReviewLog extends Model {
 
-    @Column(name = "vocabulary_card_id", length = 32, nullable = false)
-    @Comment("单词卡片ID")
-    private String vocabularyCardId;
+    @Column(name = "obj_id", length = 32, nullable = false)
+    @Comment("记录ID")
+    private String objId;
 
     @Comment("复习时间")
     @Column(nullable = false)
