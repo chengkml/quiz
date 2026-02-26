@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Message, Progress, Card, Space, Result } from '@arco-design/web-react';
+import { Button, Message, Card, Space, Result } from '@arco-design/web-react';
 import { IconCheckCircle } from '@arco-design/web-react/icon';
 import { useNavigate } from 'react-router-dom';
 import { getDueToday, reviewVocabulary, VocabularyCardDto } from './api';
@@ -133,18 +133,46 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ embedded = false, onExit }) => 
     }
 
     const currentCard = cards[currentIndex];
-    const progress = Math.round(((currentIndex + 1) / cards.length) * 100);
 
     return (
-        <div className="review-page">
-            <div className="progress-info">
-                <div style={{ marginBottom: 8 }}>
-                    进度: {currentIndex + 1} / {cards.length}
+        <div className={`review-page ${embedded ? 'review-page-embedded' : ''}`}>
+            <div className="review-header">
+                <div className="review-top-bar">
+                    <div className="review-index">
+                        {currentIndex + 1} / {cards.length}
+                    </div>
+                    <div className="review-top-actions">
+                        <Space>
+                            <Button onClick={handleExit}>
+                                退出复习
+                            </Button>
+                            {currentIndex > 0 && (
+                                <Button 
+                                    onClick={() => {
+                                        setCurrentIndex(prev => prev - 1);
+                                        setIsFlipped(false);
+                                    }}
+                                >
+                                    上一个
+                                </Button>
+                            )}
+                            {currentIndex < cards.length - 1 && (
+                                <Button 
+                                    onClick={() => {
+                                        setCurrentIndex(prev => prev + 1);
+                                        setIsFlipped(false);
+                                    }}
+                                >
+                                    下一个
+                                </Button>
+                            )}
+                        </Space>
+                    </div>
                 </div>
-                <Progress percent={progress} />
             </div>
 
-            <div className="review-card-container">
+            <div className="review-content">
+                <div className="review-card-container">
                 <Card 
                     className={`review-card ${isFlipped ? 'flipped' : ''}`}
                     onClick={handleFlip}
@@ -158,57 +186,36 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ embedded = false, onExit }) => 
                         </div>
                     </div>
                 </Card>
-                <div style={{ textAlign: 'center', marginTop: 16, color: '#999' }}>
-                    {!isFlipped ? '点击卡片查看释义' : ''}
                 </div>
             </div>
-
-            {isFlipped && (
-                <div className="score-buttons">
-                    <Button 
-                        size="large" 
-                        status="danger"
-                        onClick={() => handleScore(0)}
-                        loading={reviewing}
-                    >
-                        😰 忘光了 (0分)
-                    </Button>
-                    <Button 
-                        size="large" 
-                        status="warning"
-                        onClick={() => handleScore(3)}
-                        loading={reviewing}
-                    >
-                        🤔 模糊 (3分)
-                    </Button>
-                    <Button 
-                        size="large" 
-                        type="primary"
-                        onClick={() => handleScore(5)}
-                        loading={reviewing}
-                    >
-                        😄 太简单 (5分)
-                    </Button>
-                </div>
-            )}
-
-            <div style={{ textAlign: 'center', marginTop: 30 }}>
-                <Space>
-                    <Button onClick={handleExit}>
-                        退出复习
-                    </Button>
-                    {currentIndex > 0 && (
-                        <Button 
-                            onClick={() => {
-                                setCurrentIndex(prev => prev - 1);
-                                setIsFlipped(false);
-                            }}
-                        >
-                            上一个
-                        </Button>
-                    )}
-                </Space>
+        <div className="review-footer">
+            <div className="score-buttons">
+                <Button 
+                    size="large" 
+                    status="danger"
+                    onClick={() => handleScore(0)}
+                    loading={reviewing}
+                >
+                    😰 忘光了 (0分)
+                </Button>
+                <Button 
+                    size="large" 
+                    status="warning"
+                    onClick={() => handleScore(3)}
+                    loading={reviewing}
+                >
+                    🤔 模糊 (3分)
+                </Button>
+                <Button 
+                    size="large" 
+                    type="primary"
+                    onClick={() => handleScore(5)}
+                    loading={reviewing}
+                >
+                    😄 太简单 (5分)
+                </Button>
             </div>
+        </div>
         </div>
     );
 };

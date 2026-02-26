@@ -388,6 +388,8 @@ const VocabularyPage: React.FC = () => {
                 width={980}
                 onCancel={handleReviewClose}
                 footer={null}
+                className="review-drawer"
+                bodyStyle={{ padding: 0, overflow: 'hidden' }}
             >
                 <ReviewPage embedded onExit={handleReviewClose} />
             </Drawer>
