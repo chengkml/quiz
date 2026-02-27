@@ -36,6 +36,10 @@ import {
     createCategory,
     updateCategory,
     deleteCategory,
+    createSubject,
+    updateSubject,
+    deleteSubject,
+    checkSubjectName,
 } from './api';
 import { DataManager } from '../../components/DataManager';
 import renderDate from '@/utils/timeUtil';
@@ -68,6 +72,12 @@ function KnowledgeManager() {
     const [treeCategoryNode, setTreeCategoryNode] = useState<any>(null);
     const [treeCategorySubmitting, setTreeCategorySubmitting] = useState(false);
     const [treeCategoryForm] = Form.useForm();
+
+    const [treeSubjectModalVisible, setTreeSubjectModalVisible] = useState(false);
+    const [treeSubjectMode, setTreeSubjectMode] = useState<'create' | 'edit'>('create');
+    const [treeSubjectNode, setTreeSubjectNode] = useState<any>(null);
+    const [treeSubjectSubmitting, setTreeSubjectSubmitting] = useState(false);
+    const [treeSubjectForm] = Form.useForm();
 
     // 当前选中的过滤条件
     const [currentSubjectId, setCurrentSubjectId] = useState(null);
@@ -601,13 +611,15 @@ function KnowledgeManager() {
 
                 const transformData = res.data.map((subject) => ({
                     key: subject.id,
-                    title: subject.name,
+                    title: subject.label || subject.name,
                     id: subject.id,
                     name: subject.name,
+                    label: subject.label,
+                    descr: subject.descr,
                     subjectId: subject.id, // 学科节点自身也带 subjectId
-                    subjectName: subject.name,
+                    subjectName: subject.label || subject.name,
                     level: 1,
-                    children: buildCategoryTreeWithSubjectId(subject.categories || [], subject.id, subject.name, 2),
+                    children: buildCategoryTreeWithSubjectId(subject.categories || [], subject.id, subject.label || subject.name, 2),
                 }));
 
                 setTreeData(transformData);
@@ -679,7 +691,7 @@ function KnowledgeManager() {
             const response = await getAllSubjects();
             if (response.data) {
                 setSubjects(response.data.map((item) => ({
-                    label: item.name,
+                    label: item.label || item.name,
                     value: item.id,
                 })));
             }
@@ -742,11 +754,17 @@ function KnowledgeManager() {
             setTreeCategorySubmitting(true);
 
             if (treeCategoryMode === 'create') {
+                // 如果是在学科节点（level === 1）下新增子分类，parentId 应该是 null
+                // 如果是在分类节点下新增子分类，parentId 应该是该分类的 id
+                const parentId = treeCategoryNode?.level === 1 
+                    ? null 
+                    : (treeCategoryNode?.id || treeCategoryNode?.key);
+                    
                 await createCategory({
                     name: values.name,
                     description: values.description,
                     subjectId: treeCategoryNode?.subjectId,
-                    parentId: treeCategoryNode?.id || treeCategoryNode?.key,
+                    parentId: parentId,
                 });
                 Message.success('分类创建成功');
             } else {
@@ -772,6 +790,87 @@ function KnowledgeManager() {
             Message.error(error.response?.data?.message || '操作失败');
         } finally {
             setTreeCategorySubmitting(false);
+        }
+    };
+
+    const handleTreeSubjectCreate = (node?) => {
+        const nodeData = node?.props || node;
+        setTreeSubjectMode('create');
+        setTreeSubjectNode(nodeData || null);
+        treeSubjectForm.setFieldsValue({
+            name: '',
+            label: '',
+            descr: '',
+        });
+        setTreeSubjectModalVisible(true);
+    };
+
+    const handleTreeSubjectEdit = (node) => {
+        const nodeData = node?.props || node;
+        setTreeSubjectMode('edit');
+        setTreeSubjectNode(nodeData);
+        treeSubjectForm.setFieldsValue({
+            name: nodeData.name || '',
+            label: nodeData.title || nodeData.label || '',
+            descr: nodeData.descr || '',
+        });
+        setTreeSubjectModalVisible(true);
+    };
+
+    const handleTreeSubjectDelete = (node) => {
+        const nodeData = node?.props || node;
+        Modal.confirm({
+            title: '确认删除',
+            content: `确定要删除学科 "${nodeData.title}" 吗？`,
+            onOk: async () => {
+                try {
+                    await deleteSubject(nodeData.id || nodeData.key);
+                    Message.success('删除成功');
+                    setSelectedTreeNode(null);
+                    setCurrentSubjectId(null);
+                    setCurrentCategoryIds([]);
+                    fetchSubjectCategoryTree();
+                    fetchSubjects();
+                    fetchTableData();
+                } catch (error: any) {
+                    Message.error(error.response?.data?.message || '删除失败');
+                }
+            },
+        });
+    };
+
+    const handleTreeSubjectSubmit = async () => {
+        try {
+            const values = await treeSubjectForm.validate();
+            setTreeSubjectSubmitting(true);
+
+            if (treeSubjectMode === 'create') {
+                await createSubject({
+                    name: values.name,
+                    label: values.label,
+                    descr: values.descr,
+                });
+                Message.success('学科创建成功');
+            } else {
+                await updateSubject({
+                    id: treeSubjectNode?.id || treeSubjectNode?.key,
+                    name: values.name,
+                    label: values.label,
+                    descr: values.descr,
+                });
+                Message.success('学科更新成功');
+            }
+
+            setTreeSubjectModalVisible(false);
+            fetchSubjectCategoryTree();
+            fetchSubjects();
+        } catch (error: any) {
+            if (error?.errorFields) {
+                return;
+            }
+            Message.error(error.response?.data?.message || '操作失败');
+        } finally {
+            setTreeSubjectSubmitting(false);
         }
     };
 
@@ -848,8 +947,12 @@ function KnowledgeManager() {
     );
 
     const treeContent = (
-        <div style={{ height: '100%' }}>
-            <div style={{ paddingBottom: '12px' }}>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                <span style={{ fontWeight: 'bold', fontSize: '14px' }}>学科分类</span>
+                <Button size="mini" type="text" icon={<IconPlus />} onClick={handleTreeSubjectCreate} />
+            </div>
+            <div style={{ paddingBottom: '12px', flexShrink: 0 }}>
                 <Input.Search
                     placeholder="搜索学科分类"
                     allowClear
@@ -860,17 +963,18 @@ function KnowledgeManager() {
                     }}
                 />
             </div>
-            <div style={{ height: 'calc(100% - 50px)' }}>
-                <Spin loading={treeLoading}>
+            <div style={{ flex: 1, minHeight: 0 }}>
+                <Spin loading={treeLoading} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
                     {filteredTreeData.length > 0 ? (
-                        <Tree
-                            treeData={filteredTreeData}
-                            expandedKeys={expandedKeys}
-                            selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
-                            onExpand={(expandedKeys) => {
-                                setExpandedKeys(expandedKeys);
-                            }}
-                            onSelect={(selectedKeys, info) => {
+                        <div style={{ height: '100%', overflow: 'auto' }}>
+                            <Tree
+                                treeData={filteredTreeData}
+                                expandedKeys={expandedKeys}
+                                selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
+                                onExpand={(expandedKeys) => {
+                                    setExpandedKeys(expandedKeys);
+                                }}
+                                onSelect={(selectedKeys, info) => {
                                 if (selectedKeys.length > 0) {
                                     const node = info.node;
 
@@ -917,60 +1021,113 @@ function KnowledgeManager() {
                                 const nodeData = node?.props || node;
                                 console.log('renderExtra called:', nodeData?.title, 'level:', nodeData?.level, 'nodeData:', nodeData);
                                 
-                                // 只有分类节点（level >= 2）才显示操作
-                                if (!nodeData || nodeData.level < 2) {
+                                // 不显示操作
+                                if (!nodeData) {
                                     return null;
                                 }
                                 
-                                return (
-                                    <Dropdown
-                                        trigger="click"
-                                        droplist={(
-                                            <Menu>
-                                                <Menu.Item
-                                                    key="add"
-                                                    onClick={(event) => {
-                                                        event?.stopPropagation?.();
-                                                        handleTreeCategoryCreate(node);
-                                                    }}
-                                                >
-                                                    <IconPlus style={{ marginRight: 8 }} />新增子分类
-                                                </Menu.Item>
-                                                <Menu.Item
-                                                    key="edit"
-                                                    onClick={(event) => {
-                                                        event?.stopPropagation?.();
-                                                        handleTreeCategoryEdit(node);
-                                                    }}
-                                                >
-                                                    <IconEdit style={{ marginRight: 8 }} />编辑
-                                                </Menu.Item>
-                                                <Menu.Item
-                                                    key="delete"
-                                                    onClick={(event) => {
-                                                        event?.stopPropagation?.();
-                                                        handleTreeCategoryDelete(node);
-                                                    }}
-                                                >
-                                                    <IconDelete style={{ marginRight: 8 }} />删除
-                                                </Menu.Item>
-                                            </Menu>
-                                        )}
-                                    >
-                                        <span
-                                            className="knowledge-tree-actions"
-                                            onClick={(event) => event.stopPropagation()}
+                                // 学科节点（level === 1）
+                                if (nodeData.level === 1) {
+                                    return (
+                                        <Dropdown
+                                            trigger="click"
+                                            droplist={(
+                                                <Menu>
+                                                    <Menu.Item
+                                                        key="add"
+                                                        onClick={(event) => {
+                                                            event?.stopPropagation?.();
+                                                            handleTreeCategoryCreate(node);
+                                                        }}
+                                                    >
+                                                        <IconPlus style={{ marginRight: 8 }} />新增子分类
+                                                    </Menu.Item>
+                                                    <Menu.Item
+                                                        key="edit"
+                                                        onClick={(event) => {
+                                                            event?.stopPropagation?.();
+                                                            handleTreeSubjectEdit(node);
+                                                        }}
+                                                    >
+                                                        <IconEdit style={{ marginRight: 8 }} />编辑
+                                                    </Menu.Item>
+                                                    <Menu.Item
+                                                        key="delete"
+                                                        onClick={(event) => {
+                                                            event?.stopPropagation?.();
+                                                            handleTreeSubjectDelete(node);
+                                                        }}
+                                                    >
+                                                        <IconDelete style={{ marginRight: 8 }} />删除
+                                                    </Menu.Item>
+                                                </Menu>
+                                            )}
                                         >
-                                            <IconMoreVertical />
-                                        </span>
-                                    </Dropdown>
-                                );
+                                            <span
+                                                className="knowledge-tree-actions"
+                                                onClick={(event) => event.stopPropagation()}
+                                            >
+                                                <IconMoreVertical />
+                                            </span>
+                                        </Dropdown>
+                                    );
+                                }
+                                
+                                // 分类节点（level >= 2）
+                                if (nodeData.level >= 2) {
+                                    return (
+                                        <Dropdown
+                                            trigger="click"
+                                            droplist={(
+                                                <Menu>
+                                                    <Menu.Item
+                                                        key="add"
+                                                        onClick={(event) => {
+                                                            event?.stopPropagation?.();
+                                                            handleTreeCategoryCreate(node);
+                                                        }}
+                                                    >
+                                                        <IconPlus style={{ marginRight: 8 }} />新增子分类
+                                                    </Menu.Item>
+                                                    <Menu.Item
+                                                        key="edit"
+                                                        onClick={(event) => {
+                                                            event?.stopPropagation?.();
+                                                            handleTreeCategoryEdit(node);
+                                                        }}
+                                                    >
+                                                        <IconEdit style={{ marginRight: 8 }} />编辑
+                                                    </Menu.Item>
+                                                    <Menu.Item
+                                                        key="delete"
+                                                        onClick={(event) => {
+                                                            event?.stopPropagation?.();
+                                                            handleTreeCategoryDelete(node);
+                                                        }}
+                                                    >
+                                                        <IconDelete style={{ marginRight: 8 }} />删除
+                                                    </Menu.Item>
+                                                </Menu>
+                                            )}
+                                        >
+                                            <span
+                                                className="knowledge-tree-actions"
+                                                onClick={(event) => event.stopPropagation()}
+                                            >
+                                                <IconMoreVertical />
+                                            </span>
+                                        </Dropdown>
+                                    );
+                                }
+                                
+                                return null;
                             }}
                             blockNode
                             showLine
                             className="knowledge-tree"
                             style={{ backgroundColor: 'transparent' }}
                         />
+                        </div>
                     ) : (
                         <div
                             style={{
@@ -1015,6 +1172,66 @@ function KnowledgeManager() {
                 }}
                 tableScrollHeight={tableScrollHeight}
             />
+
+            <Modal
+                title={treeSubjectMode === 'create' ? '新增学科' : '编辑学科'}
+                visible={treeSubjectModalVisible}
+                onOk={handleTreeSubjectSubmit}
+                onCancel={() => setTreeSubjectModalVisible(false)}
+                confirmLoading={treeSubjectSubmitting}
+            >
+                <Form form={treeSubjectForm} layout="vertical">
+                    <Form.Item
+                        label="英文名称"
+                        field="name"
+                        rules={[
+                            { required: true, message: '请输入英文名称' },
+                            { maxLength: 64, message: '长度不能超过64个字符' },
+                            {
+                                pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/,
+                                message: '英文名称必须以字母开头，只能包含字母、数字和下划线'
+                            },
+                            {
+                                validator: async (value, callback) => {
+                                    if (!value || value.length > 64) return;
+                                    // 如果是编辑模式且名称未改变，跳过验证
+                                    if (treeSubjectMode === 'edit' && treeSubjectNode?.name === value) {
+                                        return;
+                                    }
+                                    try {
+                                        const res = await checkSubjectName(value, treeSubjectMode === 'edit' ? treeSubjectNode?.id : null);
+                                        if (!res.data) {
+                                            callback('该英文名称已存在');
+                                        }
+                                    } catch (error) {
+                                        console.error('名称验证失败:', error);
+                                        // 验证失败不阻断提交，由后端兜底
+                                    }
+                                }
+                            }
+                        ]}
+                    >
+                        <Input placeholder="请输入英文名称 (例如: math)" disabled={treeSubjectMode === 'edit'} />
+                    </Form.Item>
+                    <Form.Item
+                        label="中文名称"
+                        field="label"
+                        rules={[
+                            { required: true, message: '请输入中文名称' },
+                            { maxLength: 128, message: '长度不能超过128个字符' }
+                        ]}
+                    >
+                        <Input placeholder="请输入中文名称 (例如: 数学)" />
+                    </Form.Item>
+                    <Form.Item
+                        label="描述"
+                        field="descr"
+                        rules={[{ maxLength: 512, message: '长度不能超过512个字符' }]}
+                    >
+                        <Input.TextArea rows={3} placeholder="请输入描述" />
+                    </Form.Item>
+                </Form>
+            </Modal>
 
             <Modal
                 title={treeCategoryMode === 'create' ? '新增子分类' : '编辑分类'}
