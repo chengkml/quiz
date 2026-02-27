@@ -4,10 +4,12 @@ import {
     Cascader,
     Checkbox,
     Collapse,
+    Dropdown,
     Form,
     Input,
     InputNumber,
     Link,
+    Menu,
     Message,
     Modal,
     Select,
@@ -29,8 +31,15 @@ import {
     getSubjectCategoryTree,
     getModelsByType,
     updateQuestion,
+    createSubject,
+    updateSubject,
+    deleteSubject,
+    checkSubjectName,
+    createCategory,
+    updateCategory,
+    deleteCategory,
 } from './api';
-import {IconDelete, IconEdit, IconEye, IconList} from '@arco-design/web-react/icon';
+import {IconDelete, IconEdit, IconEye, IconList, IconPlus, IconMoreVertical} from '@arco-design/web-react/icon';
 import DynamicQuestionForm from '@/components/DynamicQuestionForm';
 import { DataManager } from '../../components/DataManager';
 import {createKnowledge} from '../Knowledge/api';
@@ -158,6 +167,20 @@ function QuestionManager() {
     // AI生成时选择的学科和分类信息
     const [selectedSubjectForGenerate, setSelectedSubjectForGenerate] = useState<any>(null);
     const [selectedCategoryForGenerate, setSelectedCategoryForGenerate] = useState<any>(null);
+
+    // 学科管理相关状态
+    const [treeSubjectModalVisible, setTreeSubjectModalVisible] = useState(false);
+    const [treeSubjectMode, setTreeSubjectMode] = useState<'create' | 'edit'>('create');
+    const [treeSubjectNode, setTreeSubjectNode] = useState<any>(null);
+    const [treeSubjectSubmitting, setTreeSubjectSubmitting] = useState(false);
+    const [treeSubjectForm] = Form.useForm();
+
+    // 分类管理相关状态
+    const [treeCategoryModalVisible, setTreeCategoryModalVisible] = useState(false);
+    const [treeCategoryMode, setTreeCategoryMode] = useState<'create' | 'edit'>('create');
+    const [treeCategoryNode, setTreeCategoryNode] = useState<any>(null);
+    const [treeCategorySubmitting, setTreeCategorySubmitting] = useState(false);
+    const [treeCategoryForm] = Form.useForm();
 
     // 表单引用
     const filterFormRef = useRef<any>();
@@ -359,23 +382,31 @@ function QuestionManager() {
             setTreeLoading(true);
             const response = await getSubjectCategoryTree();
             if (response.data) {
-                const convertCategoriesToTreeNodes = (categories) => {
+                const convertCategoriesToTreeNodes = (categories, subjectId) => {
                     if (!categories || !Array.isArray(categories)) return [];
                     return categories.map(category => ({
                         key: category.id,
                         title: category.name,
-                        subjectId: category.subjectId,
+                        id: category.id,
+                        name: category.name,
+                        description: category.description,
+                        parentId: category.parentId,
+                        subjectId: subjectId,
                         categoryId: category.id,
-                        children: convertCategoriesToTreeNodes(category.children)
+                        children: convertCategoriesToTreeNodes(category.children, subjectId)
                     }));
                 };
 
                 const treeData = response.data.map(subject => ({
                     key: subject.id,
-                    title: subject.name,
+                    title: subject.label || subject.name,
+                    id: subject.id,
+                    name: subject.name,
+                    label: subject.label,
+                    descr: subject.descr,
                     subjectId: subject.id,
                     categoryId: null,
-                    children: convertCategoriesToTreeNodes(subject.categories)
+                    children: convertCategoriesToTreeNodes(subject.categories, subject.id)
                 }));
                 const rootNode = {
                     key: 'all',
@@ -453,7 +484,7 @@ function QuestionManager() {
             const response = await getAllSubjects();
             if (response.data) {
                 setSubjects(response.data.map(item => ({
-                    label: item.name,
+                    label: item.label,
                     value: item.id
                 })));
             }
@@ -543,6 +574,172 @@ function QuestionManager() {
             setCategories([]);
         } finally {
             setCategoriesLoading(false);
+        }
+    };
+
+    // 学科管理函数
+    const handleTreeSubjectCreate = (node?) => {
+        const nodeData = node?.props || node;
+        setTreeSubjectMode('create');
+        setTreeSubjectNode(nodeData || null);
+        treeSubjectForm.setFieldsValue({
+            name: '',
+            label: '',
+            descr: '',
+        });
+        setTreeSubjectModalVisible(true);
+    };
+
+    const handleTreeSubjectEdit = (node) => {
+        const nodeData = node?.props || node;
+        setTreeSubjectMode('edit');
+        setTreeSubjectNode(nodeData);
+        treeSubjectForm.setFieldsValue({
+            name: nodeData.name || '',
+            label: nodeData.title || nodeData.label || '',
+            descr: nodeData.descr || '',
+        });
+        setTreeSubjectModalVisible(true);
+    };
+
+    const handleTreeSubjectDelete = (node) => {
+        const nodeData = node?.props || node;
+        Modal.confirm({
+            title: '确认删除',
+            content: `确定要删除学科 "${nodeData.title}" 吗？`,
+            onOk: async () => {
+                try {
+                    await deleteSubject(nodeData.id || nodeData.key);
+                    Message.success('删除成功');
+                    setSelectedTreeNode(null);
+                    setCurrentTreeNode(null);
+                    fetchSubjectCategoryTree();
+                    fetchSubjects();
+                    fetchTableData();
+                } catch (error: any) {
+                    Message.error(error.response?.data?.message || '删除失败');
+                }
+            },
+        });
+    };
+
+    const handleTreeSubjectSubmit = async () => {
+        try {
+            const values = await treeSubjectForm.validate();
+            setTreeSubjectSubmitting(true);
+
+            if (treeSubjectMode === 'create') {
+                await createSubject({
+                    name: values.name,
+                    label: values.label,
+                    descr: values.descr,
+                });
+                Message.success('学科创建成功');
+            } else {
+                await updateSubject({
+                    id: treeSubjectNode?.id || treeSubjectNode?.key,
+                    name: values.name,
+                    label: values.label,
+                    descr: values.descr,
+                });
+                Message.success('学科更新成功');
+            }
+
+            setTreeSubjectModalVisible(false);
+            fetchSubjectCategoryTree();
+            fetchSubjects();
+        } catch (error: any) {
+            if (error?.errorFields) {
+                return;
+            }
+            Message.error(error.response?.data?.message || '操作失败');
+        } finally {
+            setTreeSubjectSubmitting(false);
+        }
+    };
+
+    // 分类管理函数
+    const handleTreeCategoryCreate = (node) => {
+        const nodeData = node?.props || node;
+        setTreeCategoryMode('create');
+        setTreeCategoryNode(nodeData);
+        treeCategoryForm.setFieldsValue({
+            name: '',
+            description: '',
+        });
+        setTreeCategoryModalVisible(true);
+    };
+
+    const handleTreeCategoryEdit = (node) => {
+        const nodeData = node?.props || node;
+        setTreeCategoryMode('edit');
+        setTreeCategoryNode(nodeData);
+        treeCategoryForm.setFieldsValue({
+            name: nodeData.title,
+            description: nodeData.description || '',
+        });
+        setTreeCategoryModalVisible(true);
+    };
+
+    const handleTreeCategoryDelete = (node) => {
+        const nodeData = node?.props || node;
+        Modal.confirm({
+            title: '确认删除',
+            content: `确定要删除分类 "${nodeData.title}" 吗？`,
+            onOk: async () => {
+                try {
+                    await deleteCategory(nodeData.id || nodeData.key);
+                    Message.success('删除成功');
+                    setSelectedTreeNode(null);
+                    setCurrentTreeNode(null);
+                    fetchSubjectCategoryTree();
+                    fetchTableData();
+                } catch (error: any) {
+                    Message.error(error.response?.data?.message || '删除失败');
+                }
+            },
+        });
+    };
+
+    const handleTreeCategorySubmit = async () => {
+        try {
+            const values = await treeCategoryForm.validate();
+            setTreeCategorySubmitting(true);
+
+            if (treeCategoryMode === 'create') {
+                // 如果父节点是学科节点(categoryId为null)，parentId 应该是 null
+                // 如果父节点是分类节点，parentId 应该是该分类的 id
+                const parentId = treeCategoryNode?.categoryId === null 
+                    ? null 
+                    : (treeCategoryNode?.id || treeCategoryNode?.key);
+                    
+                await createCategory({
+                    name: values.name,
+                    description: values.description,
+                    subjectId: treeCategoryNode?.subjectId,
+                    parentId: parentId,
+                });
+                Message.success('分类创建成功');
+            } else {
+                await updateCategory({
+                    id: treeCategoryNode?.id || treeCategoryNode?.key,
+                    name: values.name,
+                    description: values.description,
+                    subjectId: treeCategoryNode?.subjectId,
+                    parentId: treeCategoryNode?.parentId,
+                });
+                Message.success('分类更新成功');
+            }
+
+            setTreeCategoryModalVisible(false);
+            fetchSubjectCategoryTree();
+        } catch (error: any) {
+            if (error?.errorFields) {
+                return;
+            }
+            Message.error(error.response?.data?.message || '操作失败');
+        } finally {
+            setTreeCategorySubmitting(false);
         }
     };
 
@@ -1029,8 +1226,12 @@ function QuestionManager() {
                     filterContent,
                     showTree: true,
                     treeContent: (
-                        <div style={{height: '100%'}} className="tree-container">
-                            <div style={{paddingBottom: '12px'}}>
+                        <div style={{height: '100%', display: 'flex', flexDirection: 'column'}} className="tree-container">
+                            <div style={{ paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                                <span style={{ fontWeight: 'bold', fontSize: '14px' }}>学科分类</span>
+                                <Button size="mini" type="text" icon={<IconPlus />} onClick={handleTreeSubjectCreate} />
+                            </div>
+                            <div style={{paddingBottom: '12px', flexShrink: 0}}>
                                 <Input.Search
                                     placeholder="搜索学科分类"
                                     allowClear
@@ -1041,63 +1242,166 @@ function QuestionManager() {
                                     }}
                                 />
                             </div>
-                            <div style={{height: 'calc(100% - 50px)'}}>
-                                <Spin loading={treeLoading}>
+                            <div style={{flex: 1, minHeight: 0}}>
+                                <Spin loading={treeLoading} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
                                     {filteredTreeData.length > 0 ? (
-                                        <Tree
-                                            treeData={filteredTreeData}
-                                            expandedKeys={expandedKeys}
-                                            selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
-                                            onExpand={(keys) => {
-                                                setExpandedKeys(keys as string[]);
-                                            }}
-                                            onSelect={(selectedKeys) => {
-                                                if (selectedKeys.length > 0) {
-                                                    const selectedKey = selectedKeys[0];
-                                                    setSelectedTreeNode(selectedKey);
-                                                    if (selectedKey === 'all') {
-                                                        setCurrentTreeNode(null);
-                                                        setPagination(prev => ({ ...prev, current: 1 }));
-                                                        fetchTableData(null, null, 1, null, null);
-                                                        return;
-                                                    }
-                                                    const nodeInfo = findNodeInTree(treeData, selectedKey);
-                                                    const collectChildCategoryIds = (treeNode) => {
-                                                        let categoryIds = [];
-                                                        if (treeNode.children && treeNode.children.length > 0) {
-                                                            treeNode.children.forEach((child) => {
-                                                                if (child.categoryId) {
-                                                                    categoryIds.push(child.categoryId);
-                                                                    categoryIds = categoryIds.concat(collectChildCategoryIds(child));
-                                                                }
-                                                            });
+                                        <div style={{ height: '100%', overflow: 'auto' }}>
+                                            <Tree
+                                                treeData={filteredTreeData}
+                                                expandedKeys={expandedKeys}
+                                                selectedKeys={selectedTreeNode ? [selectedTreeNode] : []}
+                                                onExpand={(keys) => {
+                                                    setExpandedKeys(keys as string[]);
+                                                }}
+                                                onSelect={(selectedKeys) => {
+                                                    if (selectedKeys.length > 0) {
+                                                        const selectedKey = selectedKeys[0];
+                                                        setSelectedTreeNode(selectedKey);
+                                                        if (selectedKey === 'all') {
+                                                            setCurrentTreeNode(null);
+                                                            setPagination(prev => ({ ...prev, current: 1 }));
+                                                            fetchTableData(null, null, 1, null, null);
+                                                            return;
                                                         }
-                                                        return categoryIds;
-                                                    };
-                                                    let categoryIds = [];
-                                                    if (nodeInfo.categoryId) {
-                                                        categoryIds.push(nodeInfo.categoryId);
-                                                        categoryIds = categoryIds.concat(collectChildCategoryIds(nodeInfo));
-                                                    }
-                                                    nodeInfo.categoryIds = categoryIds;
-                                                    setCurrentTreeNode(nodeInfo);
-                                                    if (nodeInfo) {
-                                                            fetchTableData(null, null, null, nodeInfo.subjectId, categoryIds);
+                                                        const nodeInfo = findNodeInTree(treeData, selectedKey);
+                                                        const collectChildCategoryIds = (treeNode) => {
+                                                            let categoryIds = [];
+                                                            if (treeNode.children && treeNode.children.length > 0) {
+                                                                treeNode.children.forEach((child) => {
+                                                                    if (child.categoryId) {
+                                                                        categoryIds.push(child.categoryId);
+                                                                        categoryIds = categoryIds.concat(collectChildCategoryIds(child));
+                                                                    }
+                                                                });
+                                                            }
+                                                            return categoryIds;
+                                                        };
+                                                        let categoryIds = [];
+                                                        if (nodeInfo.categoryId) {
+                                                            categoryIds.push(nodeInfo.categoryId);
+                                                            categoryIds = categoryIds.concat(collectChildCategoryIds(nodeInfo));
+                                                        }
+                                                        nodeInfo.categoryIds = categoryIds;
+                                                        setCurrentTreeNode(nodeInfo);
+                                                        if (nodeInfo) {
+                                                                fetchTableData(null, null, null, nodeInfo.subjectId, categoryIds);
+                                                        } else {
+                                                                fetchTableData();
+                                                        }
                                                     } else {
-                                                            fetchTableData();
+                                                        setSelectedTreeNode(null);
+                                                        setCurrentTreeNode(null);
+                                                        fetchTableData();
                                                     }
-                                                } else {
-                                                    setSelectedTreeNode(null);
-                                                    setCurrentTreeNode(null);
-                                                    fetchTableData();
-                                                }
-                                            }}
-                                            blockNode
-                                            showLine
-                                            style={{
-                                                backgroundColor: 'transparent',
-                                            }}
-                                        />
+                                                }}
+                                                renderExtra={(node) => {
+                                                    const nodeData = node?.props || node;
+                                                    
+                                                    // "全部"节点不显示操作
+                                                    if (!nodeData || nodeData.key === 'all') {
+                                                        return null;
+                                                    }
+                                                    
+                                                    // 学科节点（categoryId === null）
+                                                    if (nodeData.categoryId === null) {
+                                                        return (
+                                                            <Dropdown
+                                                                trigger="click"
+                                                                droplist={(
+                                                                    <Menu>
+                                                                        <Menu.Item
+                                                                            key="add"
+                                                                            onClick={(event) => {
+                                                                                event?.stopPropagation?.();
+                                                                                handleTreeCategoryCreate(node);
+                                                                            }}
+                                                                        >
+                                                                            <IconPlus style={{ marginRight: 8 }} />新增子分类
+                                                                        </Menu.Item>
+                                                                        <Menu.Item
+                                                                            key="edit"
+                                                                            onClick={(event) => {
+                                                                                event?.stopPropagation?.();
+                                                                                handleTreeSubjectEdit(node);
+                                                                            }}
+                                                                        >
+                                                                            <IconEdit style={{ marginRight: 8 }} />编辑
+                                                                        </Menu.Item>
+                                                                        <Menu.Item
+                                                                            key="delete"
+                                                                            onClick={(event) => {
+                                                                                event?.stopPropagation?.();
+                                                                                handleTreeSubjectDelete(node);
+                                                                            }}
+                                                                        >
+                                                                            <IconDelete style={{ marginRight: 8 }} />删除
+                                                                        </Menu.Item>
+                                                                    </Menu>
+                                                                )}
+                                                            >
+                                                                <span
+                                                                    className="question-tree-actions"
+                                                                    onClick={(event) => event.stopPropagation()}
+                                                                >
+                                                                    <IconMoreVertical />
+                                                                </span>
+                                                            </Dropdown>
+                                                        );
+                                                    }
+                                                    
+                                                    // 分类节点（categoryId !== null）
+                                                    return (
+                                                        <Dropdown
+                                                            trigger="click"
+                                                            droplist={(
+                                                                <Menu>
+                                                                    <Menu.Item
+                                                                        key="add"
+                                                                        onClick={(event) => {
+                                                                            event?.stopPropagation?.();
+                                                                            handleTreeCategoryCreate(node);
+                                                                        }}
+                                                                    >
+                                                                        <IconPlus style={{ marginRight: 8 }} />新增子分类
+                                                                    </Menu.Item>
+                                                                    <Menu.Item
+                                                                        key="edit"
+                                                                        onClick={(event) => {
+                                                                            event?.stopPropagation?.();
+                                                                            handleTreeCategoryEdit(node);
+                                                                        }}
+                                                                    >
+                                                                        <IconEdit style={{ marginRight: 8 }} />编辑
+                                                                    </Menu.Item>
+                                                                    <Menu.Item
+                                                                        key="delete"
+                                                                        onClick={(event) => {
+                                                                            event?.stopPropagation?.();
+                                                                            handleTreeCategoryDelete(node);
+                                                                        }}
+                                                                    >
+                                                                        <IconDelete style={{ marginRight: 8 }} />删除
+                                                                    </Menu.Item>
+                                                                </Menu>
+                                                            )}
+                                                        >
+                                                            <span
+                                                                className="question-tree-actions"
+                                                                onClick={(event) => event.stopPropagation()}
+                                                            >
+                                                                <IconMoreVertical />
+                                                            </span>
+                                                        </Dropdown>
+                                                    );
+                                                }}
+                                                blockNode
+                                                showLine
+                                                className="question-tree"
+                                                style={{
+                                                    backgroundColor: 'transparent',
+                                                }}
+                                            />
+                                        </div>
                                     ) : (
                                         <div
                                             style={{
@@ -1702,6 +2006,99 @@ function QuestionManager() {
                         </div>
                     </Modal>
                 )}
+
+                {/* 学科管理Modal */}
+                <Modal
+                    title={treeSubjectMode === 'create' ? '新增学科' : '编辑学科'}
+                    visible={treeSubjectModalVisible}
+                    onOk={handleTreeSubjectSubmit}
+                    onCancel={() => setTreeSubjectModalVisible(false)}
+                    confirmLoading={treeSubjectSubmitting}
+                >
+                    <Form form={treeSubjectForm} layout="vertical">
+                        <Form.Item
+                            label="英文名称"
+                            field="name"
+                            rules={[
+                                { required: true, message: '请输入英文名称' },
+                                { maxLength: 64, message: '长度不能超过64个字符' },
+                                {
+                                    pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/,
+                                    message: '英文名称必须以字母开头，只能包含字母、数字和下划线'
+                                },
+                                {
+                                    validator: async (value, callback) => {
+                                        if (!value || value.length > 64) return;
+                                        // 如果是编辑模式且名称未改变，跳过验证
+                                        if (treeSubjectMode === 'edit' && treeSubjectNode?.name === value) {
+                                            return;
+                                        }
+                                        try {
+                                            const res = await checkSubjectName(value, treeSubjectMode === 'edit' ? treeSubjectNode?.id : null);
+                                            if (!res.data) {
+                                                callback('该英文名称已存在');
+                                            }
+                                        } catch (error) {
+                                            console.error('名称验证失败:', error);
+                                            // 验证失败不阻断提交，由后端兜底
+                                        }
+                                    }
+                                }
+                            ]}
+                        >
+                            <Input placeholder="请输入英文名称 (例如: math)" disabled={treeSubjectMode === 'edit'} />
+                        </Form.Item>
+                        <Form.Item
+                            label="中文名称"
+                            field="label"
+                            rules={[
+                                { required: true, message: '请输入中文名称' },
+                                { maxLength: 128, message: '长度不能超过128个字符' }
+                            ]}
+                        >
+                            <Input placeholder="请输入中文名称 (例如: 数学)" />
+                        </Form.Item>
+                        <Form.Item
+                            label="描述"
+                            field="descr"
+                            rules={[{ maxLength: 512, message: '长度不能超过512个字符' }]}
+                        >
+                            <Input.TextArea rows={3} placeholder="请输入描述" />
+                        </Form.Item>
+                    </Form>
+                </Modal>
+
+                {/* 分类管理Modal */}
+                <Modal
+                    title={treeCategoryMode === 'create' ? '新增子分类' : '编辑分类'}
+                    visible={treeCategoryModalVisible}
+                    onOk={handleTreeCategorySubmit}
+                    onCancel={() => setTreeCategoryModalVisible(false)}
+                    confirmLoading={treeCategorySubmitting}
+                >
+                    <Form form={treeCategoryForm} layout="vertical">
+                        <Form.Item label="所属学科">
+                            <Input value={treeCategoryNode?.subjectId ? (findNodeInTree(treeData, treeCategoryNode.subjectId)?.title || '') : ''} disabled />
+                        </Form.Item>
+                        <Form.Item label="父分类">
+                            <Input value={treeCategoryNode?.title || '无'} disabled />
+                        </Form.Item>
+                        <Form.Item
+                            label="分类名称"
+                            field="name"
+                            rules={[{ required: true, message: '请输入分类名称' }, { maxLength: 50, message: '分类名称不能超过50个字符' }]}
+                        >
+                            <Input placeholder="请输入分类名称" />
+                        </Form.Item>
+                        <Form.Item
+                            label="分类描述"
+                            field="description"
+                            rules={[{ maxLength: 200, message: '描述不能超过200个字符' }]}
+                        >
+                            <Input.TextArea rows={3} placeholder="请输入分类描述（可选）" />
+                        </Form.Item>
+                    </Form>
+                </Modal>
 
         </div>
     );

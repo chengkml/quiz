@@ -51,6 +51,33 @@ const getSubjectCategoryTree = () => axios.get('/category/subject-category-tree'
 // 根据模型类型获取模型列表（例如 TEXT）
 const getModelsByType = (type) => axios.get(`/model/list/${type}`);
 
+// 创建学科
+const createSubject = params => axios.post('/subject/create', params);
+
+// 更新学科
+const updateSubject = params => axios.put('/subject/update', params);
+
+// 删除学科
+const deleteSubject = id => axios.delete(`/subject/delete/${id}`);
+
+// 检查学科名称是否存在
+const checkSubjectName = (name, excludeId) => {
+  const params = { subjectName: name };
+  if (excludeId) {
+    params.excludeSubjectId = excludeId;
+  }
+  return axios.get('/subject/check/name', { params });
+};
+
+// 创建分类
+const createCategory = params => axios.post('/category/create', params);
+
+// 更新分类
+const updateCategory = params => axios.put('/category/update', params);
+
+// 删除分类
+const deleteCategory = id => axios.delete(`/category/delete/${id}`);
+
 export {
   getQuestionList,
   getQuestionById,
@@ -66,5 +93,12 @@ export {
   getAllSubjects,
   getCategoriesBySubjectId,
   getSubjectCategoryTree,
-  getModelsByType
+  getModelsByType,
+  createSubject,
+  updateSubject,
+  deleteSubject,
+  checkSubjectName,
+  createCategory,
+  updateCategory,
+  deleteCategory
 };
