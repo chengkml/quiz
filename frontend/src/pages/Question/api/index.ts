@@ -49,7 +49,7 @@ const getCategoriesBySubjectId = (subjectId) => axios.get(`/category/subject/${s
 const getSubjectCategoryTree = () => axios.get('/category/subject-category-tree');
 
 // 根据模型类型获取模型列表（例如 TEXT）
-const getModelsByType = (type) => axios.get(`/model/list/${type}`);
+const getModelsByType = (type) => axios.get(`/llm-model/list-by-type/${type}`);
 
 // 创建学科
 const createSubject = params => axios.post('/subject/create', params);

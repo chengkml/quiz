@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
 import org.springframework.ai.openai.OpenAiChatModel;
@@ -428,6 +429,22 @@ public class KnowledgeServiceImpl extends ReviewBaseServiceImpl<KnowledgeCreateD
                 "  \"知识点3\"\n" +
                 "]\n" +
                 "请严格按照该格式输出。\n";
+    }
+
+    @Override
+    public Flux<String> streamGenerateQuestions(String knowledgeId, int num, String modelName) {
+        // 根据ID获取知识点
+        Knowledge knowledge = knowledgeRepository.findById(knowledgeId)
+                .orElseThrow(() -> new KnowledgeException("KNOWLEDGE_NOT_FOUND", "知识点不存在: " + knowledgeId));
+
+        // 获取知识点内容作为描述
+        String knowledgeDescr = knowledge.getContent();
+        if (!StringUtils.hasText(knowledgeDescr)) {
+            knowledgeDescr = knowledge.getName();
+        }
+
+        // 调用QuestionService的流式生成方法
+        return questionService.streamGenerateQuestions(knowledgeDescr, num, modelName);
     }
 
 }

@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -165,6 +166,23 @@ public class KnowledgeController {
     public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamPolishKnowledge(
             @Parameter(description = "原始内容") @RequestParam("content") String content) {
         return knowledgeService.streamPolishKnowledge(content);
+    }
+
+    /**
+     * 流式生成题目（SSE）
+     *
+     * @param knowledgeId 知识点ID
+     * @param num 生成数量
+     * @param modelName 模型名称
+     * @return Flux流
+     */
+    @Operation(summary = "流式生成题目（SSE）", description = "根据知识点ID调用大模型流式生成题目，逐条推送")
+    @GetMapping(path = "/generate-questions/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> streamGenerateQuestions(
+            @Parameter(description = "知识点ID", required = true) @RequestParam("knowledgeId") String knowledgeId,
+            @Parameter(description = "生成数量") @RequestParam(value = "num", defaultValue = "1") int num,
+            @Parameter(description = "模型名称") @RequestParam(value = "modelName", required = false) String modelName) {
+        return knowledgeService.streamGenerateQuestions(knowledgeId, num, modelName);
     }
 
     @PostMapping("/archive/{id}")

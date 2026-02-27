@@ -59,7 +59,7 @@ const getCategoriesBySubjectId = (subjectId) => axios.get(`/categories/subject/$
 const getSubjectCategoryTree = () => axios.get('/category/subject-category-tree');
 
 // 根据模型类型获取模型列表（例如 TEXT）
-const getModelsByType = (type) => axios.get(`/model/list/${type}`);
+const getModelsByType = (type) => axios.get(`/llm-model/list-by-type/${type}`);
 
 export {
   getMermaidList,

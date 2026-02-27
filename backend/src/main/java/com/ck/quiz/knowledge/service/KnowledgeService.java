@@ -8,6 +8,7 @@ import com.ck.quiz.knowledge.dto.KnowledgeUpdateDto;
 import com.ck.quiz.knowledge.entity.Knowledge;
 import com.ck.quiz.question.dto.QuestionDto;
 import org.springframework.data.domain.Page;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -98,5 +99,15 @@ public interface KnowledgeService extends ReviewBaseService<KnowledgeCreateDto, 
      * @return SseEmitter流
      */
     org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamPolishKnowledge(String content);
+
+    /**
+     * 流式生成题目（SSE）
+     *
+     * @param knowledgeId 知识点ID
+     * @param num 生成数量
+     * @param modelName 模型名称
+     * @return Flux流
+     */
+    Flux<String> streamGenerateQuestions(String knowledgeId, int num, String modelName);
 
 }

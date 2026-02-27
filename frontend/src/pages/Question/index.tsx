@@ -358,9 +358,10 @@ function QuestionManager() {
 
     // 初始化数据
     useEffect(() => {
-        fetchTableData({}, 20, 1);
+        fetchTableData({}, 20, 1, undefined, undefined);
         fetchSubjects();
         fetchSubjectCategoryTree();
+        fetchTextModels();
     }, []);
 
     // 组件卸载时关闭可能未关闭的 SSE 连接
@@ -484,7 +485,7 @@ function QuestionManager() {
             const response = await getAllSubjects();
             if (response.data) {
                 setSubjects(response.data.map(item => ({
-                    label: item.label,
+                    label: item.label || item.name,
                     value: item.id
                 })));
             }
@@ -1623,28 +1624,39 @@ function QuestionManager() {
                                     // 加载分类
                                     fetchCategoriesBySubject(currentTreeNode.subjectId);
 
-                                    // 加载文本模型列表并设置默认模型
-                                    try {
-                                        const list = await fetchTextModels();
-                                        const defaultModel = list.find(m => m.isDefault === '1' || m.isDefault === 1);
-                                        if (defaultModel) {
-                                            generateFormRef.current.setFieldValue('modelName', defaultModel.name);
+                                    // 设置默认模型
+                                    let modelList = textModels;
+                                    // 如果textModels为空，则重新加载
+                                    if (!modelList || modelList.length === 0) {
+                                        try {
+                                            modelList = await fetchTextModels();
+                                        } catch (e) {
+                                            // ignore
                                         }
-                                    } catch (e) {
-                                        // ignore
+                                    }
+                                    const defaultModel = modelList.find(m => m.isDefault === '1' || m.isDefault === 1);
+                                    if (defaultModel) {
+                                        generateFormRef.current.setFieldValue('modelName', defaultModel.name);
                                     }
                                 }
                             }, 0);
                         } else {
-                            // 若未在树上选择，仍尝试加载模型以便用户选择
+                            // 若未在树上选择，仍设置默认模型
                             setTimeout(async () => {
-                                try {
-                                    const list = await fetchTextModels();
-                                    const defaultModel = list.find(m => m.isDefault === '1' || m.isDefault === 1);
-                                    if (defaultModel && generateFormRef.current) {
+                                if (generateFormRef.current) {
+                                    let modelList = textModels;
+                                    // 如果textModels为空，则重新加载
+                                    if (!modelList || modelList.length === 0) {
+                                        try {
+                                            modelList = await fetchTextModels();
+                                        } catch (e) {
+                                            // ignore
+                                        }
+                                    }
+                                    const defaultModel = modelList.find(m => m.isDefault === '1' || m.isDefault === 1);
+                                    if (defaultModel) {
                                         generateFormRef.current.setFieldValue('modelName', defaultModel.name);
                                     }
-                                } catch (e) {
                                 }
                             }, 0);
                         }
