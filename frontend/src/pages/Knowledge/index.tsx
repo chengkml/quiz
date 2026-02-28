@@ -48,7 +48,7 @@ import {
 } from './api';
 import { DataManager } from '../../components/DataManager';
 import renderDate from '@/utils/timeUtil';
-import { IconArchive, IconDelete, IconEdit, IconList, IconPlus, IconPlayArrow, IconRefresh, IconMoreVertical } from '@arco-design/web-react/icon';
+import { IconArchive, IconBulb, IconDelete, IconEdit, IconList, IconPlus, IconPlayArrow, IconRefresh, IconMoreVertical } from '@arco-design/web-react/icon';
 import FilterForm from '@/components/FilterForm';
 import { CKEditor } from 'ckeditor4-react';
 import { getLLMModelsByType } from '@/services/llmModelService';
@@ -207,11 +207,22 @@ function KnowledgeManager() {
         },
         {
             title: '操作',
-            width: 200,
+            width: 240,
             align: 'center',
             fixed: 'right',
             render: (_, record) => (
                 <Space size="small">
+                    <Tooltip title="AI生成题目">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<IconBulb />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleGenerateOpen(record);
+                            }}
+                        />
+                    </Tooltip>
                     <Tooltip title="编辑">
                         <Button
                             type="text"
@@ -1240,7 +1251,7 @@ function KnowledgeManager() {
         }
     };
 
-    const handleGenerateOpen = () => {
+    const handleGenerateOpen = (record?: KnowledgeDto) => {
         setGeneratedQuestions([]);
         setSelectedQuestions([]);
         setStreamingContent('');
@@ -1248,7 +1259,7 @@ function KnowledgeManager() {
         setShowStreamLogVisible(true);
         setSseFirstMessageReceived(false);
         setStreamLogModalVisible(false);
-        setSelectedKnowledgeForGenerate(null);
+        setSelectedKnowledgeForGenerate(record || null);
         lastStreamErrorRef.current = null;
         hasReceivedQuestionRef.current = false;
         generatedCountRef.current = 0;
@@ -1266,9 +1277,10 @@ function KnowledgeManager() {
         setGenerateModalVisible(false);
     };
 
-    const handleGenerateSubmit = ({ knowledgeId, num, modelName }: any) => {
-        const selectedKnowledge = tableData.find((item: KnowledgeDto) => item.id === knowledgeId) || null;
-        if (!selectedKnowledge) {
+    const handleGenerateSubmit = ({ num, modelName }: any) => {
+        const selectedKnowledge = selectedKnowledgeForGenerate || null;
+        const knowledgeId = selectedKnowledge?.id;
+        if (!selectedKnowledge || !knowledgeId) {
             Message.warning('请选择有效的知识点');
             return;
         }
@@ -1442,9 +1454,6 @@ function KnowledgeManager() {
                     <Space>
                         <Button type="primary" icon={<IconPlayArrow />} onClick={handleReviewOpen}>
                             复习
-                        </Button>
-                        <Button onClick={handleGenerateOpen}>
-                            AI生成题目
                         </Button>
                     </Space>
                 )}
@@ -1861,16 +1870,8 @@ label="知识点内容"
                             }}
                             autoComplete={false}
                         >
-                            <Form.Item
-                                label="知识点"
-                                field="knowledgeId"
-                                rules={[{required: true, message: '请选择知识点'}]}
-                            >
-                                <Select
-                                    placeholder="请选择知识点"
-                                    options={tableData.map((item: KnowledgeDto) => ({ label: item.name, value: item.id }))}
-                                    allowClear
-                                />
+                            <Form.Item label="知识点">
+                                <Input value={selectedKnowledgeForGenerate?.name || ''} disabled placeholder="请选择知识点" />
                             </Form.Item>
                             <Form.Item
                                 label="模型"
