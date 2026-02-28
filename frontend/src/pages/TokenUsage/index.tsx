@@ -1,132 +1,196 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Button,
   Card,
+  DatePicker,
   Grid,
+  Message,
+  Select,
+  Space,
+  Spin,
   Statistic,
   Table,
-  Select,
-  DatePicker,
-  Space,
-  Message,
-  Spin,
-  Typography,
   Tabs,
+  Typography,
 } from '@arco-design/web-react';
 import {
   IconCalendar,
   IconFile,
-  IconUser,
+  IconRefresh,
   IconThunderbolt,
 } from '@arco-design/web-react/icon';
 import {
-  getMyStatisticsByModel,
   getMyStatisticsByBusiness,
   getMyStatisticsByDate,
+  getMyStatisticsByModel,
   TokenUsageStatDto,
 } from './api';
 import './index.less';
 
 const { Row, Col } = Grid;
 const { Title } = Typography;
-const { RangePicker } = DatePicker;
 const TabPane = Tabs.TabPane;
+const { RangePicker } = DatePicker;
+
+type WrappedList<T> = T[] | { data?: T[] };
+type DateRangeValue = [string, string] | undefined;
+
+const toList = <T,>(payload: WrappedList<T> | undefined): T[] => {
+  if (!payload) {
+    return [];
+  }
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  return payload.data ?? [];
+};
+
+const formatNumber = (value: number | null | undefined): string =>
+  Number(value ?? 0).toLocaleString();
+
+const formatCost = (value: number | null | undefined): string =>
+  `¥${Number(value ?? 0).toFixed(4)}`;
+
+const normalizeDateText = (value: unknown): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (
+    value &&
+    typeof value === 'object' &&
+    'format' in value &&
+    typeof (value as { format?: unknown }).format === 'function'
+  ) {
+    return (value as { format: (pattern: string) => string }).format(
+      'YYYY-MM-DD'
+    );
+  }
+  return '';
+};
+
+const mapBusinessType = (value: string): string => {
+  const typeMap: Record<string, string> = {
+    CHAT: '聊天',
+    QUESTION: '题目生成',
+    OCR: '图片识别',
+    KNOWLEDGE: '知识点',
+    DATASOURCE: '数据源',
+    FUNCDOC: '文档',
+    MINDMAP: '思维导图',
+    MERMAID: '流程图',
+    CALENDAR: '日历',
+  };
+  return typeMap[value] ?? value;
+};
 
 const TokenUsagePage: React.FC = () => {
-  const [loading, setLoading] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>('model');
+  const [overviewLoading, setOverviewLoading] = useState<boolean>(false);
+  const [dateLoading, setDateLoading] = useState<boolean>(false);
   const [modelStats, setModelStats] = useState<TokenUsageStatDto[]>([]);
   const [businessStats, setBusinessStats] = useState<TokenUsageStatDto[]>([]);
   const [dateStats, setDateStats] = useState<TokenUsageStatDto[]>([]);
-  const [dateRange, setDateRange] = useState<[string, string] | undefined>();
+  const [dateRange, setDateRange] = useState<DateRangeValue>();
   const [selectedModel, setSelectedModel] = useState<string | undefined>();
-  const [activeTab, setActiveTab] = useState<string>('model');
+  const [dateTabLoaded, setDateTabLoaded] = useState<boolean>(false);
+  const [datePickerKey, setDatePickerKey] = useState<number>(0);
 
-  // 计算总计
-  const calculateTotal = (stats: TokenUsageStatDto[]) => {
-    return stats.reduce(
-      (acc, stat) => ({
-        totalTokens: acc.totalTokens + stat.totalTokens,
-        promptTokens: acc.promptTokens + stat.promptTokens,
-        completionTokens: acc.completionTokens + stat.completionTokens,
-        totalCost: acc.totalCost + stat.totalCost,
-        requestCount: acc.requestCount + stat.requestCount,
-      }),
-      { totalTokens: 0, promptTokens: 0, completionTokens: 0, totalCost: 0, requestCount: 0 }
-    );
-  };
+  const total = useMemo(
+    () =>
+      modelStats.reduce(
+        (acc, stat) => ({
+          totalTokens: acc.totalTokens + Number(stat.totalTokens ?? 0),
+          promptTokens: acc.promptTokens + Number(stat.promptTokens ?? 0),
+          completionTokens:
+            acc.completionTokens + Number(stat.completionTokens ?? 0),
+          totalCost: acc.totalCost + Number(stat.totalCost ?? 0),
+          requestCount: acc.requestCount + Number(stat.requestCount ?? 0),
+        }),
+        {
+          totalTokens: 0,
+          promptTokens: 0,
+          completionTokens: 0,
+          totalCost: 0,
+          requestCount: 0,
+        }
+      ),
+    [modelStats]
+  );
 
-  const total = calculateTotal([...modelStats, ...businessStats]);
+  const modelOptions = useMemo(
+    () =>
+      modelStats
+        .map((stat) => stat.dimension)
+        .filter((name): name is string => Boolean(name))
+        .sort((left, right) => left.localeCompare(right)),
+    [modelStats]
+  );
 
-  // 加载按模型统计
-  const loadModelStats = async () => {
-    setLoading(true);
+  const loadOverview = useCallback(async () => {
+    setOverviewLoading(true);
     try {
-      const res = await getMyStatisticsByModel();
-      // 兼容可能存在的 Response Wrapper
-      const data = Array.isArray(res.data) ? res.data : (res.data as any)?.data;
-      if (data) {
-        setModelStats(data);
-      }
+      const [modelRes, businessRes] = await Promise.all([
+        getMyStatisticsByModel(),
+        getMyStatisticsByBusiness(),
+      ]);
+      setModelStats(toList(modelRes.data as WrappedList<TokenUsageStatDto>));
+      setBusinessStats(
+        toList(businessRes.data as WrappedList<TokenUsageStatDto>)
+      );
     } catch (error) {
       console.error(error);
-      Message.error('加载数据失败');
+      Message.error('加载 Token 统计失败');
     } finally {
-      setLoading(false);
+      setOverviewLoading(false);
     }
-  };
-
-  // 加载按业务类型统计
-  const loadBusinessStats = async () => {
-    setLoading(true);
-    try {
-      const res = await getMyStatisticsByBusiness();
-      const data = Array.isArray(res.data) ? res.data : (res.data as any)?.data;
-      if (data) {
-        setBusinessStats(data);
-      }
-    } catch (error) {
-      console.error(error);
-      Message.error('加载数据失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 加载按日期统计
-  const loadDateStats = async () => {
-    setLoading(true);
-    try {
-      const params: any = {};
-      if (dateRange) {
-        params.startDate = dateRange[0];
-        params.endDate = dateRange[1];
-      }
-      if (selectedModel) {
-        params.modelName = selectedModel;
-      }
-      const res = await getMyStatisticsByDate(params);
-      const data = Array.isArray(res.data) ? res.data : (res.data as any)?.data;
-      if (data) {
-        setDateStats(data);
-      }
-    } catch (error) {
-      console.error(error);
-      Message.error('加载数据失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadModelStats();
-    loadBusinessStats();
-    loadDateStats();
   }, []);
 
+  const loadDateStats = useCallback(
+    async (
+      range: DateRangeValue = dateRange,
+      modelName: string | undefined = selectedModel
+    ) => {
+      setDateLoading(true);
+      try {
+        const params: { startDate?: string; endDate?: string; modelName?: string } =
+          {};
+        if (range?.[0] && range?.[1]) {
+          params.startDate = range[0];
+          params.endDate = range[1];
+        }
+        if (modelName) {
+          params.modelName = modelName;
+        }
+        const res = await getMyStatisticsByDate(params);
+        setDateStats(toList(res.data as WrappedList<TokenUsageStatDto>));
+        setDateTabLoaded(true);
+      } catch (error) {
+        console.error(error);
+        Message.error('加载按日期统计失败');
+      } finally {
+        setDateLoading(false);
+      }
+    },
+    [dateRange, selectedModel]
+  );
+
   useEffect(() => {
-    if (activeTab === 'date') {
-      loadDateStats();
+    void loadOverview();
+  }, [loadOverview]);
+
+  const handleTabChange = (key: string) => {
+    setActiveTab(key);
+    if (key === 'date' && !dateTabLoaded) {
+      void loadDateStats();
     }
-  }, [dateRange, selectedModel]);
+  };
+
+  const handleResetFilters = () => {
+    setDateRange(undefined);
+    setSelectedModel(undefined);
+    setDatePickerKey((prev) => prev + 1);
+    void loadDateStats(undefined, undefined);
+  };
 
   const modelColumns = [
     {
@@ -135,34 +199,34 @@ const TokenUsagePage: React.FC = () => {
       key: 'dimension',
     },
     {
-      title: '输入Token',
+      title: '输入 Token',
       dataIndex: 'promptTokens',
       key: 'promptTokens',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
-      title: '输出Token',
+      title: '输出 Token',
       dataIndex: 'completionTokens',
       key: 'completionTokens',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
-      title: '总Token',
+      title: '总 Token',
       dataIndex: 'totalTokens',
       key: 'totalTokens',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
       title: '请求次数',
       dataIndex: 'requestCount',
       key: 'requestCount',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
       title: '总成本',
       dataIndex: 'totalCost',
       key: 'totalCost',
-      render: (val: number) => `¥${val.toFixed(4)}`,
+      render: (value: number) => formatCost(value),
     },
   ];
 
@@ -171,50 +235,37 @@ const TokenUsagePage: React.FC = () => {
       title: '业务类型',
       dataIndex: 'dimension',
       key: 'dimension',
-      render: (val: string) => {
-        const typeMap: Record<string, string> = {
-          CHAT: '聊天',
-          QUESTION: '题目生成',
-          OCR: '图片识别',
-          KNOWLEDGE: '知识点',
-          DATASOURCE: '数据源',
-          FUNCDOC: '文档',
-          MINDMAP: '思维导图',
-          MERMAID: '流程图',
-          CALENDAR: '日历',
-        };
-        return typeMap[val] || val;
-      },
+      render: (value: string) => mapBusinessType(value),
     },
     {
-      title: '输入Token',
+      title: '输入 Token',
       dataIndex: 'promptTokens',
       key: 'promptTokens',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
-      title: '输出Token',
+      title: '输出 Token',
       dataIndex: 'completionTokens',
       key: 'completionTokens',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
-      title: '总Token',
+      title: '总 Token',
       dataIndex: 'totalTokens',
       key: 'totalTokens',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
       title: '请求次数',
       dataIndex: 'requestCount',
       key: 'requestCount',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
       title: '总成本',
       dataIndex: 'totalCost',
       key: 'totalCost',
-      render: (val: number) => `¥${val.toFixed(4)}`,
+      render: (value: number) => formatCost(value),
     },
   ];
 
@@ -225,49 +276,61 @@ const TokenUsagePage: React.FC = () => {
       key: 'dimension',
     },
     {
-      title: '输入Token',
+      title: '输入 Token',
       dataIndex: 'promptTokens',
       key: 'promptTokens',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
-      title: '输出Token',
+      title: '输出 Token',
       dataIndex: 'completionTokens',
       key: 'completionTokens',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
-      title: '总Token',
+      title: '总 Token',
       dataIndex: 'totalTokens',
       key: 'totalTokens',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
       title: '请求次数',
       dataIndex: 'requestCount',
       key: 'requestCount',
-      render: (val: number) => val.toLocaleString(),
+      render: (value: number) => formatNumber(value),
     },
     {
       title: '总成本',
       dataIndex: 'totalCost',
       key: 'totalCost',
-      render: (val: number) => `¥${val.toFixed(4)}`,
+      render: (value: number) => formatCost(value),
     },
   ];
 
   return (
     <div className="token-usage-page">
-      <Title heading={4} style={{ marginBottom: 20 }}>
-        Token使用统计
-      </Title>
+      <div className="token-usage-header">
+        <Title heading={4} style={{ marginBottom: 0 }}>
+          Token 使用统计
+        </Title>
+        <Button
+          icon={<IconRefresh />}
+          onClick={() => {
+            void loadOverview();
+            if (activeTab === 'date') {
+              void loadDateStats();
+            }
+          }}
+        >
+          刷新
+        </Button>
+      </div>
 
-      {/* 统计卡片 */}
       <Row gutter={16} style={{ marginBottom: 20 }}>
         <Col span={6}>
           <Card>
             <Statistic
-              title="总Token数"
+              title="总 Token"
               value={total.totalTokens}
               prefix={<IconThunderbolt />}
               countUp
@@ -277,7 +340,7 @@ const TokenUsagePage: React.FC = () => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="输入Token"
+              title="输入 Token"
               value={total.promptTokens}
               prefix={<IconFile />}
               countUp
@@ -287,7 +350,7 @@ const TokenUsagePage: React.FC = () => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="输出Token"
+              title="输出 Token"
               value={total.completionTokens}
               prefix={<IconFile />}
               countUp
@@ -298,23 +361,23 @@ const TokenUsagePage: React.FC = () => {
           <Card>
             <Statistic
               title="总成本"
-              value={`¥${total.totalCost.toFixed(4)}`}
+              value={formatCost(total.totalCost)}
               prefix={<IconCalendar />}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* 统计表格 */}
       <Card>
-        <Spin loading={loading}>
-          <Tabs activeTab={activeTab} onChange={setActiveTab}>
+        <Spin loading={activeTab === 'date' ? dateLoading : overviewLoading}>
+          <Tabs activeTab={activeTab} onChange={handleTabChange}>
             <TabPane key="model" title="按模型统计">
               <Table
                 columns={modelColumns}
                 data={modelStats}
                 pagination={false}
                 rowKey="dimension"
+                scroll={{ x: 900 }}
               />
             </TabPane>
             <TabPane key="business" title="按业务类型统计">
@@ -323,38 +386,61 @@ const TokenUsagePage: React.FC = () => {
                 data={businessStats}
                 pagination={false}
                 rowKey="dimension"
+                scroll={{ x: 900 }}
               />
             </TabPane>
             <TabPane key="date" title="按日期统计">
-              <Space style={{ marginBottom: 16 }}>
+              <Space className="token-usage-filter" wrap>
                 <RangePicker
-                  onChange={(_, dateStrings) => {
-                    if (dateStrings && dateStrings[0] && dateStrings[1]) {
-                      setDateRange([dateStrings[0], dateStrings[1]]);
-                    } else {
-                      setDateRange(undefined);
+                  key={datePickerKey}
+                  onChange={(value) => {
+                    if (value?.[0] && value?.[1]) {
+                      const start = normalizeDateText(value[0]);
+                      const end = normalizeDateText(value[1]);
+                      if (start && end) {
+                        setDateRange([start, end]);
+                        return;
+                      }
                     }
+                    if (!value?.[0] || !value?.[1]) {
+                      setDateRange(undefined);
+                      return;
+                    }
+                    setDateRange(undefined);
                   }}
                   placeholder={['开始日期', '结束日期']}
                 />
                 <Select
                   placeholder="选择模型（可选）"
                   allowClear
-                  style={{ width: 200 }}
-                  onChange={(val) => setSelectedModel(val)}
+                  value={selectedModel}
+                  style={{ width: 240 }}
+                  onChange={(value) =>
+                    setSelectedModel(value as string | undefined)
+                  }
                 >
-                  {modelStats.map((stat) => (
-                    <Select.Option key={stat.dimension} value={stat.dimension}>
-                      {stat.dimension}
+                  {modelOptions.map((modelName) => (
+                    <Select.Option key={modelName} value={modelName}>
+                      {modelName}
                     </Select.Option>
                   ))}
                 </Select>
+                <Button
+                  type="primary"
+                  onClick={() => {
+                    void loadDateStats();
+                  }}
+                >
+                  查询
+                </Button>
+                <Button onClick={handleResetFilters}>重置</Button>
               </Space>
               <Table
                 columns={dateColumns}
                 data={dateStats}
                 pagination={false}
                 rowKey="dimension"
+                scroll={{ x: 900 }}
               />
             </TabPane>
           </Tabs>

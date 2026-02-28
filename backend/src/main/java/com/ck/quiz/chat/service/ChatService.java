@@ -18,5 +18,7 @@ public interface ChatService {
     Page<ChatSessionDto> listSessions(String userId, int page, int size);
 
     List<ChatMessageDto> listMessages(String userId, String sessionId, int limit);
+
+    void deleteSession(String userId, String sessionUuid);
 }
 

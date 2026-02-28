@@ -48,6 +48,9 @@ const getKnowledgeByName = name => axios.get(`/knowledge/name/${name}`);
 // 创建知识点
 const createKnowledge = params => axios.post('/knowledge', params);
 
+// 批量创建题目（知识点页面中创建题目使用）
+const batchCreateQuestion = params => axios.post('/question/batch/create', params);
+
 // 更新知识点
 const updateKnowledge = params => axios.put('/knowledge', params);
 
@@ -122,11 +125,24 @@ const streamPolishKnowledgeUrl = (content, modelName?: string) => {
   return `/api/knowledge/polish/stream?${qs.join('&')}`;
 };
 
+// 根据知识点流式生成题目（SSE） - 前端通过 EventSource 连接该地址
+const generateQuestionsStreamUrl = (params: any) => {
+  const qs = [];
+  if (params.knowledgeId !== undefined) qs.push(`knowledgeId=${encodeURIComponent(params.knowledgeId)}`);
+  if (params.num !== undefined) qs.push(`num=${encodeURIComponent(params.num)}`);
+  if (params.modelName !== undefined) qs.push(`modelName=${encodeURIComponent(params.modelName)}`);
+  return `/api/knowledge/generate-questions/stream?${qs.join('&')}`;
+};
+
+// 根据模型类型获取模型列表（例如 TEXT）
+const getModelsByType = (type) => axios.get(`/llm-model/list-by-type/${type}`);
+
 export {
   getKnowledgeList,
   getKnowledgeById,
   getKnowledgeByName,
   createKnowledge,
+  batchCreateQuestion,
   updateKnowledge,
   deleteKnowledge,
   checkKnowledgeNameExists,
@@ -136,6 +152,8 @@ export {
   getKnowledgeQuestions,
   getSubjectCategoryTree,
   streamPolishKnowledgeUrl,
+  generateQuestionsStreamUrl,
+  getModelsByType,
   archiveKnowledge,
   resetKnowledge,
   getDueToday,

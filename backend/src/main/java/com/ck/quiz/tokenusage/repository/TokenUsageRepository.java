@@ -18,9 +18,9 @@ public interface TokenUsageRepository extends JpaRepository<TokenUsage, String> 
     @Query("SELECT t.modelName, SUM(t.totalTokens) as totalTokens, SUM(t.promptTokens) as promptTokens, " +
            "SUM(t.completionTokens) as completionTokens, SUM(t.totalCost) as totalCost, COUNT(t) as requestCount " +
            "FROM TokenUsage t " +
-           "WHERE (:startDate IS NULL OR t.createDate >= :startDate) " +
-           "AND (:endDate IS NULL OR t.createDate <= :endDate) " +
-           "AND (:userId IS NULL OR t.createUser = :userId) " +
+           "WHERE t.createDate >= COALESCE(:startDate, t.createDate) " +
+           "AND t.createDate <= COALESCE(:endDate, t.createDate) " +
+           "AND (COALESCE(:userId, '') = '' OR t.createUser = :userId) " +
            "GROUP BY t.modelName " +
            "ORDER BY totalTokens DESC")
     List<Object[]> statisticsByModel(@Param("startDate") LocalDateTime startDate,
@@ -33,9 +33,9 @@ public interface TokenUsageRepository extends JpaRepository<TokenUsage, String> 
     @Query("SELECT t.businessType, SUM(t.totalTokens) as totalTokens, SUM(t.promptTokens) as promptTokens, " +
            "SUM(t.completionTokens) as completionTokens, SUM(t.totalCost) as totalCost, COUNT(t) as requestCount " +
            "FROM TokenUsage t " +
-           "WHERE (:startDate IS NULL OR t.createDate >= :startDate) " +
-           "AND (:endDate IS NULL OR t.createDate <= :endDate) " +
-           "AND (:userId IS NULL OR t.createUser = :userId) " +
+           "WHERE t.createDate >= COALESCE(:startDate, t.createDate) " +
+           "AND t.createDate <= COALESCE(:endDate, t.createDate) " +
+           "AND (COALESCE(:userId, '') = '' OR t.createUser = :userId) " +
            "GROUP BY t.businessType " +
            "ORDER BY totalTokens DESC")
     List<Object[]> statisticsByBusinessType(@Param("startDate") LocalDateTime startDate,
@@ -48,8 +48,8 @@ public interface TokenUsageRepository extends JpaRepository<TokenUsage, String> 
     @Query("SELECT t.createUser, SUM(t.totalTokens) as totalTokens, SUM(t.promptTokens) as promptTokens, " +
            "SUM(t.completionTokens) as completionTokens, SUM(t.totalCost) as totalCost, COUNT(t) as requestCount " +
            "FROM TokenUsage t " +
-           "WHERE (:startDate IS NULL OR t.createDate >= :startDate) " +
-           "AND (:endDate IS NULL OR t.createDate <= :endDate) " +
+           "WHERE t.createDate >= COALESCE(:startDate, t.createDate) " +
+           "AND t.createDate <= COALESCE(:endDate, t.createDate) " +
            "GROUP BY t.createUser " +
            "ORDER BY totalTokens DESC")
     List<Object[]> statisticsByUser(@Param("startDate") LocalDateTime startDate,
@@ -61,10 +61,10 @@ public interface TokenUsageRepository extends JpaRepository<TokenUsage, String> 
     @Query("SELECT CAST(t.createDate AS date), SUM(t.totalTokens) as totalTokens, SUM(t.promptTokens) as promptTokens, " +
            "SUM(t.completionTokens) as completionTokens, SUM(t.totalCost) as totalCost, COUNT(t) as requestCount " +
            "FROM TokenUsage t " +
-           "WHERE (:startDate IS NULL OR t.createDate >= :startDate) " +
-           "AND (:endDate IS NULL OR t.createDate <= :endDate) " +
-           "AND (:userId IS NULL OR t.createUser = :userId) " +
-           "AND (:modelName IS NULL OR t.modelName = :modelName) " +
+           "WHERE t.createDate >= COALESCE(:startDate, t.createDate) " +
+           "AND t.createDate <= COALESCE(:endDate, t.createDate) " +
+           "AND (COALESCE(:userId, '') = '' OR t.createUser = :userId) " +
+           "AND (COALESCE(:modelName, '') = '' OR t.modelName = :modelName) " +
            "GROUP BY CAST(t.createDate AS date) " +
            "ORDER BY CAST(t.createDate AS date) DESC")
     List<Object[]> statisticsByDate(@Param("startDate") LocalDateTime startDate,

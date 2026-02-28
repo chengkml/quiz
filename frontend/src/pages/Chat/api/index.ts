@@ -12,6 +12,9 @@ export const getChatMessages = (sessionId: string, params?: any) =>
 export const getLLMModelsByType = (type: string) =>
   http.get(`/llm-model/list-by-type/${type}`);
 
+export const deleteSession = (sessionId: string) =>
+  http.delete(`/chat/sessions/${sessionId}`);
+
 export const fetchStream = async (
   url: string,
   data: any,
@@ -93,6 +96,7 @@ export default {
   sendChatCompletion,
   getChatSessions,
   getChatMessages,
+  deleteSession,
   getLLMModelsByType,
   fetchStream,
 };

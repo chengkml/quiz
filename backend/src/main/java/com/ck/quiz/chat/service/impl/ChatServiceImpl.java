@@ -27,6 +27,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
@@ -95,7 +96,7 @@ public class ChatServiceImpl implements ChatService {
                     answer,
                     userId);
         } catch (Exception e) {
-            log.error("记录token使用失败", e);
+            log.error("璁板綍token浣跨敤澶辫触", e);
         }
 
         // Save Assistant Message
@@ -136,7 +137,7 @@ public class ChatServiceImpl implements ChatService {
         OpenAiChatModel chatModel = llmModelService.getChatModel(session.getModelName());
         ChatClient client = ChatClient.builder(chatModel).build();
         
-        // 使用 ObjectMapper 手动序列化，确保流式输出
+        // 浣跨敤 ObjectMapper 鎵嬪姩搴忓垪鍖栵紝纭繚娴佸紡杈撳嚭
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
         return client.prompt(prompt).stream().content()
@@ -228,7 +229,7 @@ public class ChatServiceImpl implements ChatService {
                 response.setUsage(null);
             }
         } catch (Exception e) {
-            log.warn("获取token使用统计失败", e);
+            log.warn("鑾峰彇token浣跨敤缁熻澶辫触", e);
             response.setUsage(null);
         }
         return response;
@@ -383,4 +384,24 @@ public class ChatServiceImpl implements ChatService {
         }
         return trimmed;
     }
+
+    @Override
+    @Transactional
+    public void deleteSession(String userId, String sessionUuid) {
+        ChatSession session = chatSessionRepository.findBySessionUuid(sessionUuid)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found"));
+        
+        if (session.getCreateUser() != null && !session.getCreateUser().equals(userId)) {
+            throw new IllegalArgumentException("No permission to delete this session");
+        }
+        
+        // Delete all messages in the session first.
+        chatMessageRepository.deleteBySessionId(session.getId());
+        
+        // 鍒犻櫎浼氳瘽
+        chatSessionRepository.deleteById(session.getId());
+        
+        log.info("浼氳瘽宸插垹闄わ紝sessionUuid: {}, userId: {}", sessionUuid, userId);
+    }
 }
+

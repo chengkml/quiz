@@ -25,4 +25,13 @@ public interface OcrService {
 	 */
 	SseEmitter recognizeStream(MultipartFile file, String modelName) throws Exception;
 
+	/**
+	 * 批量处理图片目录，使用线程池并发调用
+	 * @param sourceRoot 源图片根目录（包含多个子目录）
+	 * @param targetBase 输出Markdown基础目录
+	 * @param modelName 指定模型名称（可为null使用默认模型）
+	 * @param maxWorkers 线程池大小，默认为2
+	 */
+	void batchRecognize(String sourceRoot, String targetBase, String modelName, int maxWorkers);
+
 }

@@ -17,6 +17,7 @@ import {
   IconSend,
   IconUser,
   IconRobot,
+  IconDelete,
 } from '@arco-design/web-react/icon';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -27,6 +28,7 @@ import {
   sendChatCompletion,
   fetchStream,
   getLLMModelsByType,
+  deleteSession,
 } from './api';
 
 const { Sider, Content } = Layout;
@@ -151,6 +153,22 @@ const ChatPage: React.FC = () => {
     const defaultModel = models.find((m) => m.isDefault === '1');
     if (defaultModel) setCurrentModel(defaultModel.name);
     else if (models.length > 0) setCurrentModel(models[0].name);
+  };
+
+  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteSession(sessionId);
+      Message.success('会话已删除');
+      // If the deleted session was the current one, reset to new session
+      if (currentSessionId === sessionId) {
+        handleNewSession();
+      }
+      // Reload sessions list
+      loadSessions(sessionsPage);
+    } catch (error) {
+      Message.error('删除会话失败');
+    }
   };
 
   const handleSend = async () => {
@@ -326,10 +344,19 @@ const ChatPage: React.FC = () => {
                   }`}
                   onClick={() => handleSelectSession(item)}
                 >
-                  <div className="session-title">
-                    {item.title || item.sessionId}
+                  <div className="session-info">
+                    <div className="session-title">
+                      {item.title || item.sessionId}
+                    </div>
+                    <div className="session-time">{item.updatedAt || '-'}</div>
                   </div>
-                  <div className="session-time">{item.updatedAt || '-'}</div>
+                  <Button
+                    type="text"
+                    size="mini"
+                    icon={<IconDelete />}
+                    className="session-delete-btn"
+                    onClick={(e) => handleDeleteSession(item.sessionId, e)}
+                  />
                 </div>
               ))
             )}

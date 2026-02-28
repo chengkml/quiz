@@ -6,6 +6,7 @@ import {
     Drawer,
     Form,
     Input,
+    InputNumber,
     Layout,
     Menu,
     Message,
@@ -31,6 +32,9 @@ import {
     resetKnowledge,
     updateKnowledge,
     streamPolishKnowledgeUrl,
+    generateQuestionsStreamUrl,
+    getModelsByType,
+    batchCreateQuestion,
     getSubjectCategoryTree,
     getCategoriesBySubjectId,
     createCategory,
@@ -102,6 +106,20 @@ function KnowledgeManager() {
     const [questionsModalVisible, setQuestionsModalVisible] = useState(false);
     const [relatedQuestions, setRelatedQuestions] = useState([]);
     const [questionsLoading, setQuestionsLoading] = useState(false);
+
+    // 生成题目相关状态
+    const [generateModalVisible, setGenerateModalVisible] = useState(false);
+    const [generateLoading, setGenerateLoading] = useState(false);
+    const [generatedQuestions, setGeneratedQuestions] = useState([]);
+    const [selectedQuestions, setSelectedQuestions] = useState([]);
+    const [streamingContent, setStreamingContent] = useState('');
+    const [isStreamingComplete, setIsStreamingComplete] = useState(false);
+    const [showStreamLogVisible, setShowStreamLogVisible] = useState(false);
+    const [sseFirstMessageReceived, setSseFirstMessageReceived] = useState(false);
+
+    const generateEventSourceRef = useRef<EventSource | null>(null);
+    const lastStreamErrorRef = useRef<string | null>(null);
+    const hasReceivedQuestionRef = useRef(false);
 
     const deriveNameFromContent = (html: string) => {
         if (!html) return '未命名知识点';
@@ -1145,6 +1163,137 @@ function KnowledgeManager() {
         </div>
     );
 
+    // 生成题目相关函数
+    const formatDataToHtml = (text: string) => {
+        return text.replace(/\n/g, '<br/>').replace(/  /g, '&nbsp;&nbsp;');
+    };
+
+    const handleGenerateOpen = () => {
+        setGeneratedQuestions([]);
+        setSelectedQuestions([]);
+        setStreamingContent('');
+        setIsStreamingComplete(false);
+        setSseFirstMessageReceived(false);
+        setGenerateModalVisible(true);
+    };
+
+    const handleGenerateSubmit = ({ knowledgeId, num, modelName }: any) => {
+        setGenerateLoading(true);
+        // 清空之前的生成结果
+        setGeneratedQuestions([]);
+        setSelectedQuestions([]);
+        setStreamingContent('');
+        setIsStreamingComplete(false);
+        setSseFirstMessageReceived(false);
+
+        // 构造 SSE URL 并建立连接
+        const url = generateQuestionsStreamUrl({ knowledgeId, num, modelName });
+        if (generateEventSourceRef.current) {
+            generateEventSourceRef.current.close();
+            generateEventSourceRef.current = null;
+        }
+        const es = new EventSource(url);
+        generateEventSourceRef.current = es;
+
+        let isParsingResult = false;
+        const lastStreamErrorRef_local = useRef<string | null>(null);
+        let hasReceivedQuestion = false;
+
+        lastStreamErrorRef.current = null;
+        hasReceivedQuestionRef.current = false;
+
+        es.onmessage = (event) => {
+            const data = event.data;
+
+            if (!sseFirstMessageReceived) {
+                setSseFirstMessageReceived(true);
+            }
+
+            if (!isParsingResult) {
+                if (data.includes('[PARSE_RESULT]')) {
+                    isParsingResult = true;
+                    setIsStreamingComplete(true);
+                    const parseIndex = data.indexOf('[PARSE_RESULT]');
+                    const afterSeparator = data.substring(parseIndex + '[PARSE_RESULT]'.length).trim();
+                    if (afterSeparator && afterSeparator.startsWith('[QUESTION]')) {
+                        const jsonStr = afterSeparator.substring('[QUESTION]'.length);
+                        if (jsonStr) {
+                            try {
+                                const item = JSON.parse(jsonStr);
+                                hasReceivedQuestionRef.current = true;
+                                setGeneratedQuestions(prev => [...prev, item]);
+                            } catch (e) {
+                                console.error('Failed to parse question JSON:', jsonStr, e);
+                            }
+                        }
+                    }
+                    return;
+                } else {
+                    setStreamingContent(prev => prev + formatDataToHtml(data));
+                }
+            } else {
+                const trimmedData = data.trim();
+                if (trimmedData) {
+                    if (trimmedData.startsWith('[QUESTION]')) {
+                        const jsonStr = trimmedData.substring('[QUESTION]'.length);
+                        try {
+                            const item = JSON.parse(jsonStr);
+                            hasReceivedQuestionRef.current = true;
+                            setGeneratedQuestions(prev => [...prev, item]);
+                        } catch (e) {
+                            console.error('Failed to parse question JSON:', jsonStr, e);
+                        }
+                    } else if (trimmedData.startsWith('[ERROR]')) {
+                        const errorMsg = trimmedData.substring('[ERROR]'.length);
+                        console.error('Backend error (buffered):', errorMsg);
+                        lastStreamErrorRef.current = errorMsg;
+                    }
+                }
+            }
+        };
+
+        es.onerror = (err) => {
+            console.error('SSE error:', err);
+            try {
+                es.close();
+            } catch (e) {
+                // ignore
+            }
+            setGenerateLoading(false);
+
+            if (hasReceivedQuestionRef.current) {
+                Message.success(`已生成 ${generatedQuestions.length} 道题目`);
+            } else if (lastStreamErrorRef.current) {
+                Message.error('生成失败: ' + lastStreamErrorRef.current);
+            } else {
+                Message.error('生成失败：连接错误或服务异常');
+            }
+        };
+
+        // 为了界面响应，稍微延迟一下再显示加载状态
+        setTimeout(() => {
+            setGenerateLoading(false);
+        }, 500);
+    };
+
+    const handleAddGeneratedQuestion = async () => {
+        if (selectedQuestions.length === 0) {
+            Message.warning('请选择要添加的题目');
+            return;
+        }
+        setGenerateLoading(true);
+        try {
+            await batchCreateQuestion(selectedQuestions);
+            Message.success(`成功添加 ${selectedQuestions.length} 道题目`);
+            setGenerateModalVisible(false);
+            fetchTableData();
+        } catch (error: any) {
+            Message.error(error.response?.data?.message || '添加失败');
+        } finally {
+            setGenerateLoading(false);
+        }
+    };
+
     return (
         <div className="knowledge-manager">
             <DataManager
@@ -1158,9 +1307,14 @@ function KnowledgeManager() {
                 }}
                 actions={{ onAdd: handleAdd }}
                 actionButtons={(
-                    <Button type="primary" icon={<IconPlayArrow />} onClick={handleReviewOpen}>
-                        复习
-                    </Button>
+                    <Space>
+                        <Button type="primary" icon={<IconPlayArrow />} onClick={handleReviewOpen}>
+                            复习
+                        </Button>
+                        <Button onClick={handleGenerateOpen}>
+                            AI生成题目
+                        </Button>
+                    </Space>
                 )}
                 config={{
                     displayMode: 'table',
@@ -1542,6 +1696,122 @@ label="知识点内容"
                     </div>
                 )}
             </Drawer>
+
+            {/* AI生成题目对话框 */}
+            <Modal
+                title="AI生成题目"
+                style={{width: '50%'}}
+                visible={generateModalVisible}
+                onCancel={() => setGenerateModalVisible(false)}
+                footer={
+                    <div style={{textAlign: 'right'}}>
+                        <Button onClick={() => setGenerateModalVisible(false)} style={{marginRight: 8}}>
+                            取消
+                        </Button>
+                        <Button
+                            type="primary"
+                            onClick={() => handleAddGeneratedQuestion()}
+                            loading={generateLoading}
+                            disabled={selectedQuestions.length === 0}
+                        >
+                            添加选中的题目({selectedQuestions.length})
+                        </Button>
+                    </div>
+                }
+            >
+                <Spin loading={generateLoading} style={{width: '100%'}}>
+                    <div style={{maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px'}}>
+                        <Form
+                            layout="vertical"
+                            onSubmit={(values) => {
+                                handleGenerateSubmit(values);
+                            }}
+                            autoComplete={false}
+                        >
+                            <Form.Item
+                                label="知识点"
+                                field="knowledgeId"
+                                rules={[{required: true, message: '请选择知识点'}]}
+                            >
+                                <Select
+                                    placeholder="请选择知识点"
+                                    options={tableData.map(k => ({label: k.name, value: k.id}))}
+                                    allowClear
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="模型"
+                                field="modelName"
+                            >
+                                <Select
+                                    placeholder="请选择文本生成模型"
+                                    options={models.map(m => ({label: m.name, value: m.name}))}
+                                    loading={modelsLoading}
+                                    allowClear
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label="生成数量"
+                                field="num"
+                                initialValue={3}
+                                rules={[{required: true, message: '请输入生成数量'}]}
+                            >
+                                <InputNumber
+                                    min={1}
+                                    max={10}
+                                    placeholder="请输入生成题目数量（1-10）"
+                                    style={{width: '100%'}}
+                                />
+                            </Form.Item>
+                            <div style={{textAlign: 'center', marginTop: 16}}>
+                                <Button type="primary" htmlType="submit" loading={generateLoading}>
+                                    生成题目
+                                </Button>
+                            </div>
+                        </Form>
+
+                        {isStreamingComplete && (
+                            <div style={{marginTop: 16, padding: '12px', backgroundColor: '#f5f7fa', borderRadius: '4px'}}>
+                                <div style={{marginBottom: 8, fontWeight: 500}}>
+                                    生成进度：已生成 <span style={{color: '#4080ff'}}>{generatedQuestions.length}</span> 道题目
+                                </div>
+                            </div>
+                        )}
+
+                        {generatedQuestions.length > 0 && (
+                            <div style={{marginTop: 16}}>
+                                <div style={{marginBottom: 8, fontWeight: 500}}>
+                                    选择要添加的题目（共{generatedQuestions.length}道）
+                                </div>
+                                {generatedQuestions.map((q, index) => (
+                                    <div key={index} style={{padding: '12px', border: '1px solid #d9d9d9', marginBottom: 8, borderRadius: '4px', backgroundColor: selectedQuestions.some(sq => sq.id === q.id) ? '#e8f3ff' : 'transparent'}}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedQuestions.some(sq => sq.id === q.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedQuestions([...selectedQuestions, q]);
+                                                } else {
+                                                    setSelectedQuestions(selectedQuestions.filter(sq => sq.id !== q.id));
+                                                }
+                                            }}
+                                            style={{marginRight: 8, cursor: 'pointer'}}
+                                        />
+                                        <span style={{marginRight: 12}}>第 {index + 1} 道</span>
+                                        <div style={{marginTop: 8, padding: '8px', backgroundColor: '#f9f9f9', borderRadius: '2px'}}>
+                                            <div><strong>题目：</strong> {q.content?.substring(0, 100)}...</div>
+                                            <div><strong>类型：</strong> {q.type === 'SINGLE' ? '单选' : '多选'}</div>
+                                            {q.options && q.options.length > 0 && (
+                                                <div><strong>选项数：</strong> {q.options.length}</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </Spin>
+            </Modal>
 
             <Drawer
                 title="知识点复习"

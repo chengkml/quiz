@@ -65,4 +65,14 @@ public class ChatController {
         String userId = authentication != null ? authentication.getName() : null;
         return ResponseEntity.ok(chatService.listMessages(userId, sessionId, limit));
     }
+
+    @DeleteMapping("/sessions/{sessionId}")
+    @Operation(summary = "删除会话")
+    public ResponseEntity<Void> deleteSession(
+            @Parameter(description = "会话ID") @PathVariable("sessionId") String sessionId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userId = authentication != null ? authentication.getName() : null;
+        chatService.deleteSession(userId, sessionId);
+        return ResponseEntity.noContent().build();
+    }
 }
