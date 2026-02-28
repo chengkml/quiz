@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import UserAvatar from "@/components/UserAvatar";
 import {
   Button,
   Drawer,
@@ -30,7 +29,6 @@ import {
 import {
   IconDelete,
   IconEdit,
-  IconList,
   IconMenu,
   IconUser,
 } from "@arco-design/web-react/icon";
@@ -160,6 +158,8 @@ function RoleManager() {
       title: "角色描述",
       dataIndex: "descr",
       key: "descr",
+      width: 180,
+      ellipsis: true,
       render: (descr: string) => descr || "-",
     },
     {
@@ -182,18 +182,9 @@ function RoleManager() {
       render: (value: string) => renderDate(value),
     },
     {
-      title: "创建人",
-      dataIndex: "createUserName",
-      key: "createUserName",
-      width: 140,
-      render: (name: string, record: Role) => (
-        <UserAvatar name={name || (record?.createUser ?? "")} showName />
-      ),
-    },
-    {
       title: "操作",
       key: "action",
-      width: 100,
+      width: 140,
       align: "center" as const,
       fixed: "right" as const,
       render: (_: any, record: Role) => (

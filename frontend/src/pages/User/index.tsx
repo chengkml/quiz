@@ -117,7 +117,7 @@ function UserManager() {
     {
       title: "操作",
       key: "action",
-      width: 100,
+      width: 140,
       align: "center",
       fixed: "right",
       render: (_, record) => (
