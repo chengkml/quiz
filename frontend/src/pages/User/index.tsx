@@ -11,15 +11,11 @@ import {
   Select,
   Space,
   Spin,
-  Tag,
   Tooltip,
 } from "@arco-design/web-react";
-import UserAvatar from "@/components/UserAvatar";
 import "./style/index.less";
 import {
   deleteUser,
-  disableUser,
-  enableUser,
   getActiveRoles,
   getUserRoles,
   registerUser,
@@ -34,7 +30,6 @@ import {
   IconList,
   IconMenu,
   IconRefresh,
-  IconUser,
 } from "@arco-design/web-react/icon";
 import { DataManager, AddEditModal } from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
@@ -113,35 +108,11 @@ function UserManager() {
       width: 120,
     },
     {
-      title: "状态",
-      dataIndex: "state",
-      key: "state",
-      align: "center",
-      width: 80,
-      render: (state) => (
-        <Tag color={state === "ENABLED" ? "green" : "red"} bordered>
-          {state === "ENABLED" ? "启用" : "禁用"}
-        </Tag>
-      ),
-    },
-    {
       title: "创建时间",
       dataIndex: "createDate",
       key: "createDate",
       width: 160,
       render: (value) => renderDate(value),
-    },
-    {
-      title: "创建人",
-      dataIndex: "createUserName",
-      key: "createUserName",
-      width: 120,
-      render: (_: any, record: any) => (
-        <UserAvatar
-          name={record.createUserName || record.createUser || ""}
-          showName
-        />
-      ),
     },
     {
       title: "操作",
@@ -173,15 +144,6 @@ function UserManager() {
               size="small"
               icon={<IconMenu />}
               onClick={() => openAssignRoles(record)}
-            />
-          </Tooltip>
-          <Tooltip content={record.state === "ENABLED" ? "禁用" : "启用"}>
-            <Button
-              type="text"
-              size="small"
-              status={record.state === "ENABLED" ? "warning" : "success"}
-              icon={<IconUser />}
-              onClick={() => handleToggleState(record)}
             />
           </Tooltip>
           <Tooltip content="删除">
@@ -382,26 +344,6 @@ function UserManager() {
     resetPasswordForm.resetFields();
   };
 
-  // 切换用户状态
-  const handleToggleState = async (record) => {
-    try {
-      if (record.state === "ENABLED") {
-        await disableUser(record.userId);
-        Message.success("用户已禁用");
-      } else {
-        await enableUser(record.userId);
-        Message.success("用户已启用");
-      }
-      // 重新获取数据（直接调用以确保列表刷新）
-      await fetchUsers(pagination.current - 1, searchParams);
-      // 如果需要跳回首页可保留重置
-      setPagination((prev) => ({ ...prev, current: 1 }));
-    } catch (error) {
-      Message.error("操作失败");
-      console.error("切换用户状态失败:", error);
-    }
-  };
-
   // 打开角色分配抽屉并加载数据
   const openAssignRoles = async (record) => {
     setCurrentUser(record);
@@ -454,8 +396,6 @@ function UserManager() {
       handleResetPassword(record);
     } else if (key === "assignRoles") {
       openAssignRoles(record);
-    } else if (key === "toggleState") {
-      handleToggleState(record);
     } else if (key === "delete") {
       handleDelete(record);
     }

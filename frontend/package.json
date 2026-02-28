@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "cross-env APP_BASE_PATH=/ webpack serve --config webpack.dev.js",
-    "build": "webpack --config webpack.prod.js",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 webpack --config webpack.prod.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
