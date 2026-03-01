@@ -87,6 +87,12 @@ dependencies {
 
     implementation platform("org.springframework.ai:spring-ai-bom:1.0.1")
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+    
+    // Spring AI MCP integration
+    implementation 'org.springframework.ai:spring-ai-mcp'
+    
+    // WebClient for async HTTP calls
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 }
 
 tasks.named('test') {

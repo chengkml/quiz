@@ -183,37 +183,23 @@ public class McpServerServiceImpl extends
 
         try {
             logger.info("Starting MCP tool discovery for server: {}, address: {}", serverId, server.getAddress());
-
-            // 阶段一：握手 - 获取 session ID
             String endpoint = performHandshake(server);
             logger.info("Handshake completed, endpoint: {}", endpoint);
-
-            // 阶段二：初始化 - 发送 initialize 指令
             performInitialize(server, endpoint);
             logger.info("Initialize completed for server: {}", serverId);
-
-            // 阶段三：发现工具 - 获取并保存工具列表
             List<McpDiscoveredToolDto> resultList = discoverTools(server, endpoint, serverId);
             logger.info("Tool discovery completed, found {} tools", resultList.size());
-
             return resultList;
-
         } catch (Exception e) {
             logger.error("MCP tool discovery failed for server: {}", serverId, e);
             throw new RuntimeException("Tool discovery failed: " + e.getMessage(), e);
         }
     }
 
-    /**
-     * 阶段一：握手 - 建立 SSE 连接并获取 endpoint（session_id）
-     * 流程：向 /sse 端点发送 POST 请求，等待接收 event: endpoint 消息
-     */
     private String performHandshake(McpServer server) {
         WebClient webClient = buildWebClient(server);
         final String[] endpoint = {null};
         final RuntimeException[] error = {null};
-        final StringBuilder[] sseBuffer = {new StringBuilder()};
-        final int[] eventCount = {0};
 
         String baseAddress = server.getAddress();
         String handshakeUrl = baseAddress.endsWith("/sse") ? baseAddress : baseAddress + "/sse";
@@ -230,84 +216,46 @@ public class McpServerServiceImpl extends
                     .bodyToFlux(String.class)
                     .filter(StringUtils::hasText)
                     .doOnNext(line -> {
-                        sseBuffer[0].append(line).append("\n");
-                        logger.debug("Handshake SSE raw line: {}", line);
-
                         try {
-                            // 处理 SSE 格式: event: endpoint\ndata: {...}
-                            if (line.startsWith("event:")) {
-                                String eventType = line.substring(6).trim();
-                                logger.debug("Received SSE event type: {}", eventType);
-                            } else if (line.startsWith("data:")) {
-                                eventCount[0]++;
+                            if (line.startsWith("data:")) {
                                 String jsonData = line.substring(5).trim();
-                                logger.debug("Received SSE data (event #{}): {}", eventCount[0], jsonData);
-
                                 if (StringUtils.hasText(jsonData)) {
                                     try {
                                         Map<String, Object> data = objectMapper.readValue(jsonData, Map.class);
-                                        logger.debug("Parsed data object: {}", data);
-
-                                        // 多种方式尝试获取 session_id
                                         String sessionId = null;
-                                        
-                                        // 方式1: 直接从 data 中获取
                                         if (data.containsKey("session_id")) {
                                             sessionId = (String) data.get("session_id");
-                                            logger.info("Found session_id directly in data");
                                         }
-                                        
-                                        // 方式2: 从嵌套的 endpoint 对象中获取
                                         if (!StringUtils.hasText(sessionId) && data.containsKey("endpoint")) {
                                             Object endpointObj = data.get("endpoint");
                                             if (endpointObj instanceof Map) {
                                                 Map<String, Object> endpointMap = (Map<String, Object>) endpointObj;
                                                 sessionId = (String) endpointMap.get("session_id");
-                                                logger.info("Found session_id in nested endpoint object");
                                             } else if (endpointObj instanceof String) {
                                                 sessionId = (String) endpointObj;
-                                                logger.info("Found session_id as string in endpoint");
                                             }
                                         }
 
                                         if (StringUtils.hasText(sessionId)) {
                                             endpoint[0] = baseAddress + "/sse?session_id=" + sessionId;
-                                            logger.info("Handshake successful - Received session_id: {}", sessionId);
                                         }
                                     } catch (Exception e) {
-                                        logger.warn("Failed to parse data as JSON, treating as plain text: {}", jsonData);
-                                        // 可能是纯文本响应，尝试直接使用为 session_id
                                         if (StringUtils.hasText(jsonData) && !jsonData.startsWith("{")) {
                                             endpoint[0] = baseAddress + "/sse?session_id=" + jsonData.trim();
-                                            logger.info("Using plain text response as session_id");
                                         }
                                     }
                                 }
-                            } else if (line.startsWith(":")) {
-                                // SSE 注释，忽略
-                                logger.debug("Ignoring SSE comment: {}", line);
-                            } else if (!line.isEmpty()) {
-                                logger.debug("Received unknown SSE line format: {}", line);
                             }
                         } catch (Exception e) {
-                            logger.warn("Exception processing SSE line: {}", line, e);
+                            logger.warn("Exception processing handshake line", e);
                         }
                     })
                     .timeout(java.time.Duration.ofSeconds(20))
-                    .doOnError(e -> {
-                        logger.error("Handshake SSE stream error ({}): {}", e.getClass().getSimpleName(), e.getMessage());
-                        error[0] = new RuntimeException("Handshake SSE connection failed: " + e.getMessage(), e);
-                    })
-                    .onErrorResume(e -> {
-                        logger.error("Handshake error (resuming)", e);
-                        return reactor.core.publisher.Flux.empty();
-                    })
+                    .doOnError(e -> error[0] = new RuntimeException("Handshake SSE connection failed: " + e.getMessage(), e))
+                    .onErrorResume(e -> reactor.core.publisher.Flux.empty())
                     .blockLast();
 
-            logger.debug("Handshake SSE stream ended after {} events. Buffer content:\n{}", eventCount[0], sseBuffer[0].toString());
-
         } catch (Exception e) {
-            logger.error("Handshake blockLast failed: {}", e.getMessage(), e);
             if (error[0] == null) {
                 error[0] = new RuntimeException("Handshake connection error: " + e.getMessage(), e);
             }
@@ -318,18 +266,12 @@ public class McpServerServiceImpl extends
         }
 
         if (!StringUtils.hasText(endpoint[0])) {
-            logger.error("Failed to obtain endpoint from handshake (received {} events). SSE buffer:\n{}", eventCount[0], sseBuffer[0].toString());
-            throw new RuntimeException("Failed to obtain endpoint from handshake - no valid session_id received after " + eventCount[0] + " events");
+            throw new RuntimeException("Failed to obtain endpoint from handshake");
         }
 
-        logger.info("Handshake successful, endpoint: {}", endpoint[0]);
         return endpoint[0];
     }
 
-    /**
-     * 阶段二：初始化 - 发送 initialize 指令
-     * 这是必需的握手步骤，否则服务器不会响应后续指令
-     */
     private void performInitialize(McpServer server, String endpoint) {
         WebClient webClient = buildWebClient(server);
 
@@ -348,10 +290,6 @@ public class McpServerServiceImpl extends
         );
 
         final RuntimeException[] error = {null};
-        final StringBuilder[] sseBuffer = {new StringBuilder()};
-        final boolean[] initialized = {false};
-
-        logger.info("Sending initialize request to endpoint: {}", endpoint);
 
         try {
             webClient.post()
@@ -362,67 +300,37 @@ public class McpServerServiceImpl extends
                     .bodyToFlux(String.class)
                     .filter(StringUtils::hasText)
                     .doOnNext(line -> {
-                        sseBuffer[0].append(line).append("\n");
-                        logger.debug("Initialize SSE raw line: {}", line);
-
                         if (line.startsWith("data:")) {
                             String jsonData = line.substring(5).trim();
-                            logger.debug("Parsing initialize data: {}", jsonData);
-
                             if (StringUtils.hasText(jsonData)) {
                                 try {
                                     Map<String, Object> response = objectMapper.readValue(jsonData, Map.class);
-                                    logger.debug("Initialize response: {}", response);
-
                                     if (response.containsKey("error")) {
                                         Map<String, Object> errObj = (Map<String, Object>) response.get("error");
                                         String errMsg = (String) errObj.getOrDefault("message", "Unknown error");
                                         error[0] = new RuntimeException("Initialize failed: " + errMsg);
-                                        logger.error("Initialize error response: {}", errMsg);
-                                    } else if (response.containsKey("result")) {
-                                        logger.info("Initialize successful, result: {}", response.get("result"));
-                                        initialized[0] = true;
                                     }
-                                } catch (Exception e) {
-                                    logger.warn("Failed to parse initialize response: {}", jsonData, e);
+                                } catch (Exception ignored) {
                                 }
                             }
-                        } else if (line.startsWith("event:")) {
-                            String eventType = line.substring(6).trim();
-                            logger.debug("Initialize event type: {}", eventType);
                         }
                     })
                     .timeout(java.time.Duration.ofSeconds(20))
-                    .doOnError(e -> {
-                        logger.error("Initialize SSE stream error: {}", e.getMessage());
-                        error[0] = new RuntimeException("Initialize request failed: " + e.getMessage(), e);
-                    })
-                    .onErrorResume(e -> {
-                        logger.error("Initialize error (resuming)", e);
-                        return reactor.core.publisher.Flux.empty();
-                    })
+                    .doOnError(e -> error[0] = new RuntimeException("Initialize request failed: " + e.getMessage(), e))
+                    .onErrorResume(e -> reactor.core.publisher.Flux.empty())
                     .blockLast();
 
-            logger.debug("Initialize SSE stream ended. Buffer:\n{}", sseBuffer[0].toString());
-
         } catch (Exception e) {
-            logger.error("Initialize blockLast failed: {}", e.getMessage(), e);
             if (error[0] == null) {
                 error[0] = new RuntimeException("Initialize connection error: " + e.getMessage(), e);
             }
         }
 
-        // 检查错误
         if (error[0] != null) {
             throw error[0];
         }
-
-        logger.info("Initialize completed successfully");
     }
 
-    /**
-     * 阶段三：发现工具 - 发送 tools/list 指令并收集结果
-     */
     private List<McpDiscoveredToolDto> discoverTools(McpServer server, String endpoint, String serverId) {
         WebClient webClient = buildWebClient(server);
         List<McpDiscoveredToolDto> resultList = new ArrayList<>();
@@ -435,10 +343,6 @@ public class McpServerServiceImpl extends
         );
 
         final RuntimeException[] error = {null};
-        final StringBuilder[] sseBuffer = {new StringBuilder()};
-        final int[] toolCount = {0};
-
-        logger.info("Sending tools/list request to endpoint: {}", endpoint);
 
         try {
             webClient.post()
@@ -450,35 +354,23 @@ public class McpServerServiceImpl extends
                     .bodyToFlux(String.class)
                     .filter(StringUtils::hasText)
                     .doOnNext(line -> {
-                        sseBuffer[0].append(line).append("\n");
-                        logger.debug("Tool discovery SSE raw line: {}", line);
-
                         try {
                             if (line.startsWith("data:")) {
                                 String jsonData = line.substring(5).trim();
-                                logger.debug("Parsing tools/list data: {}", jsonData);
-
                                 if (StringUtils.hasText(jsonData)) {
                                     Map<String, Object> body = objectMapper.readValue(jsonData, Map.class);
-                                    logger.debug("Tool discovery response: {}", body);
-
-                                    // 检查是否有错误
                                     if (body.containsKey("error")) {
                                         Map<String, Object> errObj = (Map<String, Object>) body.get("error");
                                         String errMsg = (String) errObj.getOrDefault("message", "Unknown error");
                                         error[0] = new RuntimeException("Tool discovery failed: " + errMsg);
-                                        logger.error("Tool discovery error: {}", errMsg);
                                         return;
                                     }
 
-                                    // 解析结果
                                     if (body.containsKey("result")) {
                                         Map<String, Object> result = (Map<String, Object>) body.get("result");
                                         List<Map<String, Object>> tools = (List<Map<String, Object>>) result.get("tools");
 
                                         if (tools != null && !tools.isEmpty()) {
-                                            logger.info("Received {} tools from server", tools.size());
-
                                             for (Map<String, Object> toolMap : tools) {
                                                 String name = (String) toolMap.get("name");
                                                 String desc = (String) toolMap.get("description");
@@ -490,56 +382,34 @@ public class McpServerServiceImpl extends
                                                 dto.setInputSchema(schema);
 
                                                 resultList.add(dto);
-                                                toolCount[0]++;
-
-                                                logger.debug("Discovered tool: {} - {}", name, desc);
                                                 saveMcpTool(serverId, server.getIdentifier(), name, desc, schema);
                                             }
-                                        } else {
-                                            logger.warn("No tools found in response");
                                         }
                                     }
                                 }
-                            } else if (line.startsWith("event:")) {
-                                String eventType = line.substring(6).trim();
-                                logger.debug("Tool discovery event type: {}", eventType);
                             }
                         } catch (Exception e) {
-                            logger.warn("Failed to parse tools/list response line: {}", line, e);
+                            logger.warn("Failed to parse tools/list response line", e);
                         }
                     })
                     .timeout(java.time.Duration.ofSeconds(30))
-                    .doOnError(e -> {
-                        logger.error("Tool discovery SSE stream error: {}", e.getMessage());
-                        error[0] = new RuntimeException("Tool discovery request failed: " + e.getMessage(), e);
-                    })
-                    .onErrorResume(e -> {
-                        logger.error("Tool discovery error (resuming)", e);
-                        return reactor.core.publisher.Flux.empty();
-                    })
+                    .doOnError(e -> error[0] = new RuntimeException("Tool discovery request failed: " + e.getMessage(), e))
+                    .onErrorResume(e -> reactor.core.publisher.Flux.empty())
                     .blockLast();
 
-            logger.debug("Tool discovery SSE stream ended. Buffer:\n{}", sseBuffer[0].toString());
-
         } catch (Exception e) {
-            logger.error("Tool discovery blockLast failed: {}", e.getMessage(), e);
             if (error[0] == null) {
                 error[0] = new RuntimeException("Tool discovery connection error: " + e.getMessage(), e);
             }
         }
 
-        // 检查错误
         if (error[0] != null) {
             throw error[0];
         }
 
-        logger.info("Tool discovery completed, found {} tools total", toolCount[0]);
         return resultList;
     }
 
-    /**
-     * 构建 WebClient，带上认证信息
-     */
     private WebClient buildWebClient(McpServer server) {
         WebClient webClient = webClientBuilder
                 .baseUrl(server.getAddress())
@@ -559,16 +429,14 @@ public class McpServerServiceImpl extends
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         if (StringUtils.hasText(server.getAuthConfig())) {
-            // 默认采用 Bearer Token 模式（适配阿里云百炼等）
             headers.set("Authorization", "Bearer " + server.getAuthConfig().trim());
         }
         return headers;
     }
 
     private void saveMcpTool(String serverId, String env, String toolName, String toolDescription,
-            Map<String, Object> inputSchema) {
+                             Map<String, Object> inputSchema) {
         try {
-            // 查询是否已存在该服务器下的同名原始工具
             List<McpTool> existing = mcpToolRepository.findByServerId(serverId);
             Optional<McpTool> targetTool = existing.stream()
                     .filter(t -> toolName.equals(t.getOriginName()))
@@ -609,52 +477,24 @@ public class McpServerServiceImpl extends
                 .orElseThrow(() -> new IllegalArgumentException("Server not found: " + serverId));
 
         try {
-            logger.info("Starting MCP tool call - Server: {}, Tool: {}, Arguments: {}", serverId, toolName, arguments);
-
-            // 阶段一：握手 - 获取 session ID
             String endpoint = performHandshake(server);
-            logger.debug("Handshake completed for tool call, endpoint: {}", endpoint);
-
-            // 阶段二：初始化 - 发送 initialize 指令
             performInitialize(server, endpoint);
-            logger.debug("Initialize completed for tool call");
-
-            // 阶段三：执行工具 - 发送 tools/call 指令
             McpToolCallResultDto result = executeToolCall(server, endpoint, toolName, arguments);
             result.setDuration(System.currentTimeMillis() - startTime);
-
-            logger.info("Tool call completed successfully - Tool: {}, Duration: {}ms", toolName, result.getDuration());
             return result;
-
         } catch (Exception e) {
             logger.error("MCP tool call failed - Server: {}, Tool: {}", serverId, toolName, e);
-
-            McpToolCallResultDto errorResult = new McpToolCallResultDto(
-                    toolName,
-                    false,
-                    e.getMessage()
-            );
+            McpToolCallResultDto errorResult = new McpToolCallResultDto(toolName, false, e.getMessage());
             errorResult.setDuration(System.currentTimeMillis() - startTime);
             return errorResult;
         }
     }
 
-    /**
-     * 阶段三（工具执行）：发送 tools/call 指令并获取结果
-     * 
-     * @param server MCP 服务器信息
-     * @param endpoint SSE 端点地址（包含 session_id）
-     * @param toolName 工具名称
-     * @param arguments 工具参数
-     * @return 工具执行结果
-     */
     private McpToolCallResultDto executeToolCall(McpServer server, String endpoint, String toolName,
-                                                   Map<String, Object> arguments) {
+                                                 Map<String, Object> arguments) {
         WebClient webClient = buildWebClient(server);
         final McpToolCallResultDto[] result = {null};
         final RuntimeException[] error = {null};
-        final StringBuilder[] sseBuffer = {new StringBuilder()};
-        final int[] eventCount = {0};
 
         Map<String, Object> callRequest = Map.of(
                 "jsonrpc", "2.0",
@@ -666,8 +506,6 @@ public class McpServerServiceImpl extends
                 )
         );
 
-        logger.info("Sending tools/call request - Tool: {}, Arguments: {}", toolName, arguments);
-
         try {
             webClient.post()
                     .uri(endpoint)
@@ -678,23 +516,15 @@ public class McpServerServiceImpl extends
                     .bodyToFlux(String.class)
                     .filter(StringUtils::hasText)
                     .doOnNext(line -> {
-                        sseBuffer[0].append(line).append("\n");
-                        logger.debug("Tool call SSE raw line: {}", line);
-
                         try {
                             if (line.startsWith("data:")) {
-                                eventCount[0]++;
                                 String jsonData = line.substring(5).trim();
-                                logger.debug("Parsing tools/call data (event #{}): {}", eventCount[0], jsonData);
-
                                 if (StringUtils.hasText(jsonData)) {
                                     Map<String, Object> body = objectMapper.readValue(jsonData, Map.class);
-                                    logger.debug("Tool call response: {}", body);
 
                                     if (body.containsKey("error")) {
                                         Map<String, Object> errObj = (Map<String, Object>) body.get("error");
                                         String errMsg = (String) errObj.getOrDefault("message", "Unknown error");
-                                        logger.error("Tool execution error: {}", errMsg);
                                         error[0] = new RuntimeException("Tool execution failed: " + errMsg);
                                         result[0] = new McpToolCallResultDto(toolName, false, errMsg);
                                         result[0].setRawResponse(body);
@@ -704,7 +534,6 @@ public class McpServerServiceImpl extends
                                     if (body.containsKey("result")) {
                                         Map<String, Object> resultObj = (Map<String, Object>) body.get("result");
                                         List<Map<String, Object>> content = (List<Map<String, Object>>) resultObj.get("content");
-
                                         McpToolCallResultDto callResult = new McpToolCallResultDto(
                                                 toolName,
                                                 true,
@@ -712,34 +541,19 @@ public class McpServerServiceImpl extends
                                         );
                                         callResult.setRawResponse(body);
                                         result[0] = callResult;
-
-                                        logger.info("Tool call result received - Tool: {}, Content items: {}",
-                                                toolName, content != null ? content.size() : 0);
                                     }
                                 }
-                            } else if (line.startsWith("event:")) {
-                                String eventType = line.substring(6).trim();
-                                logger.debug("Tool call event type: {}", eventType);
                             }
                         } catch (Exception e) {
-                            logger.warn("Failed to parse tool call response line: {}", line, e);
+                            logger.warn("Failed to parse tool call response", e);
                         }
                     })
                     .timeout(java.time.Duration.ofSeconds(30))
-                    .doOnError(e -> {
-                        logger.error("Tool call SSE stream error: {}", e.getMessage());
-                        error[0] = new RuntimeException("Tool call request failed: " + e.getMessage(), e);
-                    })
-                    .onErrorResume(e -> {
-                        logger.error("Tool call error (resuming)", e);
-                        return reactor.core.publisher.Flux.empty();
-                    })
+                    .doOnError(e -> error[0] = new RuntimeException("Tool call request failed: " + e.getMessage(), e))
+                    .onErrorResume(e -> reactor.core.publisher.Flux.empty())
                     .blockLast();
 
-            logger.debug("Tool call SSE stream ended after {} events. Buffer:\n{}", eventCount[0], sseBuffer[0].toString());
-
         } catch (Exception e) {
-            logger.error("Tool call blockLast failed: {}", e.getMessage(), e);
             if (error[0] == null) {
                 error[0] = new RuntimeException("Tool call connection error: " + e.getMessage(), e);
             }
@@ -750,10 +564,9 @@ public class McpServerServiceImpl extends
         }
 
         if (result[0] == null) {
-            result[0] = new McpToolCallResultDto(toolName, false, "No response from server after " + eventCount[0] + " events");
+            result[0] = new McpToolCallResultDto(toolName, false, "No response from server");
         }
 
-        logger.info("Tool call completed - Tool: {}, Success: {}", toolName, result[0].getSuccess());
         return result[0];
     }
 }

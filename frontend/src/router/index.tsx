@@ -70,6 +70,7 @@ import RequirementManager from "@/pages/Requirement";
 import AgentManager from "@/pages/Agent";
 import VocabularyPage from "@/pages/Vocabulary";
 import VocabularyReviewPage from "@/pages/Vocabulary/Review";
+import PoetryPage from "@/pages/Poetry";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -360,6 +361,11 @@ const protectedPages = [
     path: "vocabulary/review",
     element: <VocabularyReviewPage />,
     requiredPath: "vocabulary",
+  },
+  {
+    path: "poetry",
+    element: <PoetryPage />,
+    requiredPath: "poetry",
   },
 ];
 
