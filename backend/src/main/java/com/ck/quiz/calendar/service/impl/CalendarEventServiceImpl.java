@@ -58,6 +58,10 @@ public class CalendarEventServiceImpl
     @Autowired
     private TodoService todoService;
 
+    @Lazy
+    @Autowired
+    private com.ck.quiz.todo.repository.TodoRepository todoRepository;
+
     @Override
     public CalendarEventDto create(CalendarEventCreateDto createDto) {
         CalendarEventDto dto = super.create(createDto);
@@ -218,6 +222,25 @@ public class CalendarEventServiceImpl
         event.setStatus(CalendarEvent.Status.COMPLETED);
         event.setCompletedAt(LocalDateTime.now());
         CalendarEvent saved = calendarEventRepository.save(event);
+        
+        // 同步完成关联的待办
+        if (event.getTodoId() != null && !event.getTodoId().isEmpty()) {
+            try {
+                Optional<Todo> optionalTodo = todoRepository.findById(event.getTodoId());
+                if (optionalTodo.isPresent()) {
+                    Todo todo = optionalTodo.get();
+                    if (todo.getStatus() != Todo.Status.COMPLETED) {
+                        todo.setStatus(Todo.Status.COMPLETED);
+                        todo.setUpdateDate(LocalDateTime.now());
+                        todoRepository.save(todo);
+                        log.info("已同步完成关联的待办，待办ID: {}", event.getTodoId());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("同步完成关联待办失败: {}", e.getMessage());
+            }
+        }
+        
         return convertToDto(saved, true);
     }
 

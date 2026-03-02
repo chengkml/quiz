@@ -57,6 +57,10 @@ public class TodoServiceImpl
 
     @Lazy
     @Autowired
+    private com.ck.quiz.calendar.repository.CalendarEventRepository calendarEventRepository;
+
+    @Lazy
+    @Autowired
     private MindMapService mindMapService;
 
     @Lazy
@@ -253,6 +257,25 @@ public class TodoServiceImpl
         todo.setUpdateUser(userId);
         todo.setUpdateDate(LocalDateTime.now());
         Todo updatedTodo = todoRepository.save(todo);
+        
+        // 同步完成关联的日程
+        if (todo.getCalendarEventId() != null && !todo.getCalendarEventId().isEmpty()) {
+            try {
+                Optional<CalendarEvent> optionalEvent = calendarEventRepository.findById(todo.getCalendarEventId());
+                if (optionalEvent.isPresent()) {
+                    CalendarEvent event = optionalEvent.get();
+                    if (event.getStatus() != CalendarEvent.Status.COMPLETED) {
+                        event.setStatus(CalendarEvent.Status.COMPLETED);
+                        event.setCompletedAt(LocalDateTime.now());
+                        calendarEventRepository.save(event);
+                        log.info("已同步完成关联的日程，日程ID: {}", todo.getCalendarEventId());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("同步完成关联日程失败: {}", e.getMessage());
+            }
+        }
+        
         return convertToDto(updatedTodo, true);
     }
 

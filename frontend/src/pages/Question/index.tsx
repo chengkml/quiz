@@ -82,6 +82,8 @@ function QuestionManager() {
     const [streamLogModalVisible, setStreamLogModalVisible] = useState(false);
     // 标记是否已收到第一条SSE消息（用于显示初始loading）
     const [sseFirstMessageReceived, setSseFirstMessageReceived] = useState(false);
+    // 保存上次生成题目的参数，用于重试
+    const [lastGenerateParams, setLastGenerateParams] = useState<any>(null);
     const streamingContainerRef = useRef<HTMLDivElement | null>(null);
     const generatedListRef = useRef<HTMLDivElement | null>(null);
 
@@ -853,6 +855,8 @@ function QuestionManager() {
         try {
             values.categoryId = values.categoryIds[values.categoryIds.length - 1];
             delete values.categoryIds;
+            // 保存生成参数用于重试
+            setLastGenerateParams({...values});
             // 保存生成时选择的学科和分类信息
             setSelectedSubjectForGenerate(values.subjectId);
             setSelectedCategoryForGenerate(values.categoryId);
@@ -967,6 +971,122 @@ function QuestionManager() {
             generateFormRef.current?.resetFields();
         } catch (error) {
             Message.error('生成题目失败');
+            if (generateEventSourceRef.current) {
+                generateEventSourceRef.current.close();
+                generateEventSourceRef.current = null;
+            }
+        } finally {
+            setGenerateLoading(false);
+        }
+    };
+
+    // 重试生成题目
+    const handleRetryGenerate = async () => {
+        if (!lastGenerateParams) {
+            Message.warning('没有可重试的生成参数');
+            return;
+        }
+        setGenerateLoading(true);
+        try {
+            const values = {...lastGenerateParams};
+            
+            // 清空之前的生成结果
+            setGeneratedQuestions([]);
+            setSelectedQuestions([]);
+            setStreamingContent('');
+            setIsStreamingComplete(false);
+            setSseFirstMessageReceived(false);
+
+            // 构造 SSE URL 并建立连接
+            const url = generateQuestionsStreamUrl(values);
+            if (generateEventSourceRef.current) {
+                generateEventSourceRef.current.close();
+                generateEventSourceRef.current = null;
+            }
+            const es = new EventSource(url);
+            generateEventSourceRef.current = es;
+
+            let isParsingResult = false;
+            let parseResultBuffer = '';
+
+            // 重置本次生成的临时状态
+            lastStreamErrorRef.current = null;
+            hasReceivedQuestionRef.current = false;
+            // 生成开始时强制显示日志区
+            setShowStreamLogVisible(true);
+            setStreamLogModalVisible(false);
+
+            es.onmessage = (event) => {
+                const data = event.data;
+                
+                // 标记已收到第一条消息
+                if (!sseFirstMessageReceived) {
+                    setSseFirstMessageReceived(true);
+                }
+
+                // 如果还未进入解析阶段，检查是否收到分隔符
+                if (!isParsingResult) {
+                    // 检查是否包含 [PARSE_RESULT]
+                    if (data.includes('[PARSE_RESULT]')) {
+                        isParsingResult = true;
+                        setIsStreamingComplete(true);
+                        const parseIndex = data.indexOf('[PARSE_RESULT]');
+                        const afterSeparator = data.substring(parseIndex + '[PARSE_RESULT]'.length).trim();
+                        if (afterSeparator && afterSeparator.startsWith('[QUESTION]')) {
+                            const jsonStr = afterSeparator.substring('[QUESTION]'.length);
+                            if (jsonStr) {
+                                try {
+                                    const item = JSON.parse(jsonStr);
+                                    hasReceivedQuestionRef.current = true;
+                                    setGeneratedQuestions(prev => [...prev, item]);
+                                } catch (e) {
+                                    console.error('Failed to parse question JSON:', jsonStr, e);
+                                }
+                            }
+                        }
+                        return;
+                    } else {
+                        setStreamingContent(prev => prev + formatDataToHtml(data));
+                    }
+                } else {
+                    const trimmedData = data.trim();
+                    if (trimmedData) {
+                        if (trimmedData.startsWith('[QUESTION]')) {
+                            const jsonStr = trimmedData.substring('[QUESTION]'.length);
+                            try {
+                                const item = JSON.parse(jsonStr);
+                                hasReceivedQuestionRef.current = true;
+                                setGeneratedQuestions(prev => [...prev, item]);
+                            } catch (e) {
+                                console.error('Failed to parse question JSON:', jsonStr, e);
+                            }
+                        } else if (trimmedData.startsWith('[ERROR]')) {
+                            const errorMsg = trimmedData.substring('[ERROR]'.length);
+                            console.error('Backend error (buffered):', errorMsg);
+                            lastStreamErrorRef.current = errorMsg;
+                        }
+                    }
+                }
+            };
+
+            es.onerror = (err) => {
+                console.error('SSE error:', err);
+                try {
+                    es.close();
+                } catch (e) {
+                    // ignore
+                }
+                generateEventSourceRef.current = null;
+
+                setTimeout(() => {
+                    if (!hasReceivedQuestionRef.current) {
+                        const finalMsg = lastStreamErrorRef.current ? ('生成失败: ' + lastStreamErrorRef.current) : '生成题目失败';
+                        Message.error(finalMsg);
+                    }
+                }, 50);
+            };
+        } catch (error) {
+            Message.error('重试生成题目失败');
             if (generateEventSourceRef.current) {
                 generateEventSourceRef.current.close();
                 generateEventSourceRef.current = null;
@@ -1769,18 +1889,31 @@ function QuestionManager() {
                         onCancel={handleCancelSave}
                         style={{width: '50%'}}
                         footer={
-                            <div style={{textAlign: 'right'}}>
-                                <Button onClick={handleCancelSave} style={{marginRight: 8}}>
-                                    取消
-                                </Button>
-                                <Button
-                                    type="primary"
-                                    onClick={handleSaveSelectedQuestions}
-                                    disabled={selectedQuestions.length === 0 || !isStreamingComplete}
-                                    loading={saveLoading}
-                                >
-                                    保存选中题目 ({selectedQuestions.length})
-                                </Button>
+                            <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                                <div>
+                                    {isStreamingComplete && lastGenerateParams && (
+                                        <Button
+                                            onClick={handleRetryGenerate}
+                                            loading={generateLoading}
+                                            disabled={generateLoading}
+                                        >
+                                            重新生成
+                                        </Button>
+                                    )}
+                                </div>
+                                <div>
+                                    <Button onClick={handleCancelSave} style={{marginRight: 8}}>
+                                        取消
+                                    </Button>
+                                    <Button
+                                        type="primary"
+                                        onClick={handleSaveSelectedQuestions}
+                                        disabled={selectedQuestions.length === 0 || !isStreamingComplete}
+                                        loading={saveLoading}
+                                    >
+                                        保存选中题目 ({selectedQuestions.length})
+                                    </Button>
+                                </div>
                             </div>
                         }
                     >
