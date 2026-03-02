@@ -129,30 +129,9 @@ public class QuestionServiceImpl implements QuestionService {
                 .user(prompt)
                 .stream()
                 .content()
-                .map(chunk -> {
-                    fullContent.append(chunk);
-                    return "";
-                })
-                .filter(StringUtils::hasText)
+                .doOnNext(chunk -> fullContent.append(chunk))
                 .concatWith(Flux.defer(() -> {
                     String content = fullContent.toString().trim();
-                    // 尝试提取JSON数组部分
-                    int startIndex = content.indexOf("[");
-                    int endIndex = content.lastIndexOf("]");
-                    if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
-                         content = content.substring(startIndex, endIndex + 1);
-                    } else {
-                         // 如果找不到 []，尝试去除 markdown 标记兜底
-                        if (content.startsWith("```json")) {
-                            content = content.substring(7);
-                        } else if (content.startsWith("```")) {
-                            content = content.substring(3);
-                        }
-                        if (content.endsWith("```")) {
-                            content = content.substring(0, content.length() - 3);
-                        }
-                        content = content.trim();
-                    }
 
                     try {
                         List<QuestionCreateDto> list = objectMapper.readValue(content, new TypeReference<>() {
