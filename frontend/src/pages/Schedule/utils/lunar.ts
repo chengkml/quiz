@@ -131,15 +131,24 @@ export const getLunarHoliday = (date: Date): string => {
 /**
  * 获取日期的所有节日（公历和农历）
  * @param date JavaScript Date对象
- * @returns 节日数组
+ * @returns 节日数组（去重）
  */
 export const getHolidays = (date: Date): string[] => {
     const holidays: string[] = [];
+    const holidaySet = new Set<string>();
+    
     const solarHoliday = getSolarHoliday(date);
     const lunarHoliday = getLunarHoliday(date);
 
-    if (solarHoliday) holidays.push(solarHoliday);
-    if (lunarHoliday) holidays.push(lunarHoliday);
+    if (solarHoliday && solarHoliday.trim()) {
+        holidaySet.add(solarHoliday);
+    }
+    if (lunarHoliday && lunarHoliday.trim()) {
+        holidaySet.add(lunarHoliday);
+    }
 
+    // 将Set转换回数组，保持顺序（先公历后农历）
+    holidaySet.forEach(holiday => holidays.push(holiday));
+    
     return holidays;
 };

@@ -562,7 +562,7 @@ function ScheduleManager() {
                 currentDay = firstDay.add(i - firstDayOfWeek, 'day');
             } else {
                 // 下月日期
-                currentDay = firstDay.add(i - firstDayOfWeek - daysInMonth + 1, 'day');
+                currentDay = firstDay.add(i - firstDayOfWeek, 'day');
             }
 
             // 获取当天的日程
