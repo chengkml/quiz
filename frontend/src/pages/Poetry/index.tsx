@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Button, Drawer, Link, Message, Tag, Tooltip, Popconfirm } from '@arco-design/web-react';
 import { IconDelete, IconArchive, IconRefresh, IconEdit } from '@arco-design/web-react/icon';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import DataManager from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
@@ -329,7 +330,7 @@ const PoetryPage: React.FC = () => {
                 </div>
                 <div className="poetry-content">{currentRecord?.content || '无正文'}</div>
                 <div className="md-preview" style={{ marginBottom: 0 }}>
-                    <ReactMarkdown>{currentRecord?.mdAnalysis || '无赏析'}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentRecord?.mdAnalysis || '无赏析'}</ReactMarkdown>
                 </div>
             </Drawer>
         </div>

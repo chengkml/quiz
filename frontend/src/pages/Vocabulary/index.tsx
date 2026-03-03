@@ -15,6 +15,7 @@ import {
 } from './api';
 import renderDate from '@/utils/timeUtil';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './style/index.less';
 
 /**
@@ -378,7 +379,7 @@ const VocabularyPage: React.FC = () => {
                 bodyStyle={{ padding: '12px 16px 0', overflow: 'auto' }}
             >
                 <div className="md-preview" style={{ marginBottom: 0 }}>
-                    <ReactMarkdown>{currentRecord?.mdDefinition || '无释义'}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentRecord?.mdDefinition || '无释义'}</ReactMarkdown>
                 </div>
             </Drawer>
 

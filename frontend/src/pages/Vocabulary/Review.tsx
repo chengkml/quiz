@@ -4,6 +4,7 @@ import { IconCheckCircle } from '@arco-design/web-react/icon';
 import { useNavigate } from 'react-router-dom';
 import { getDueToday, reviewVocabulary, VocabularyCardDto } from './api';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './style/index.less';
 
 /**
@@ -182,7 +183,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ embedded = false, onExit }) => 
                     </div>
                     <div className="card-face card-back">
                         <div className="md-content">
-                            <ReactMarkdown>{currentCard.mdDefinition || '无释义'}</ReactMarkdown>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentCard.mdDefinition || '无释义'}</ReactMarkdown>
                         </div>
                     </div>
                 </Card>

@@ -10,7 +10,6 @@ import {
 import {
   IconDelete,
   IconEdit,
-  IconPlus,
 } from "@arco-design/web-react/icon";
 import {
   createPromptTemplate,
@@ -18,7 +17,6 @@ import {
   getPromptTemplateList,
   updatePromptTemplate,
 } from "./api";
-import UserAvatar from "@/components/UserAvatar";
 import { DataManager, AddEditModal } from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
 import { FormFieldConfig, PaginationConfig } from "@/components/types/types";
@@ -33,7 +31,7 @@ const MarkdownEditor = ({ value, onChange }: { value?: string, onChange?: (val: 
         height="400px"
         defaultLanguage="markdown"
         value={value || ''}
-        theme="vs-dark" 
+        theme="light"
         options={{
           minimap: { enabled: false },
           lineNumbers: 'off',
@@ -121,7 +119,7 @@ function PromptTemplateManagement() {
               }}
             />
           </Tooltip>
-          
+
           <Popconfirm
             title="确认删除该提示词模板吗？"
             onOk={() => handleDelete(record)}
@@ -176,9 +174,9 @@ function PromptTemplateManagement() {
         placeholder: "请输入模板内容",
         rules: [{ required: true, message: "请输入模板内容" }],
         render: (value) => {
-           // Form.Item will inject value and onChange to this component instance
-           return <MarkdownEditor value={value} />;
-         }
+          // Form.Item will inject value and onChange to this component instance
+          return <MarkdownEditor value={value} />;
+        }
       },
       {
         field: "description",
@@ -186,13 +184,6 @@ function PromptTemplateManagement() {
         type: "textarea",
         placeholder: "请输入模板描述",
         rules: [{ max: 500, message: "模板描述不能超过500个字符" }],
-      },
-      {
-        field: "variables",
-        label: "变量列表",
-        type: "input",
-        placeholder: "例如：question,context,options",
-        rules: [{ max: 500, message: "变量列表不能超过500个字符" }],
       },
     ];
   };
@@ -347,6 +338,7 @@ function PromptTemplateManagement() {
           setCurrentRecord(null);
         }}
         width={700}
+        bodyStyle={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}
       />
 
       <Modal

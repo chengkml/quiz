@@ -92,19 +92,13 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ visible, record, onOk, onCa
 
         let isParsingResult = false;
 
-        const applyDefinitionResult = (jsonStr: string) => {
-            try {
-                const result = JSON.parse(jsonStr);
-                const mdDefinition = result?.mdDefinition || '';
-                setMdContent(mdDefinition);
-                form.setFieldValue('mdDefinition', mdDefinition);
-                setIsGenerating(false);
-                es.close();
-                generateEventSourceRef.current = null;
-            } catch (error) {
-                Message.error('解析生成结果失败');
-                setIsGenerating(false);
-            }
+        const applyDefinitionResult = (content: string) => {
+            // 直接使用Markdown内容，不再JSON解析
+            setMdContent(content);
+            form.setFieldValue('mdDefinition', content);
+            setIsGenerating(false);
+            es.close();
+            generateEventSourceRef.current = null;
         };
 
         es.onmessage = (event) => {

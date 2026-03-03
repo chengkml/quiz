@@ -186,7 +186,6 @@ public class VocabularyCardServiceImpl
         String prompt = buildDefinitionPrompt(word);
 
         StringBuilder fullContent = new StringBuilder();
-        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         return chat.prompt()
                 .user(prompt)
@@ -195,14 +194,8 @@ public class VocabularyCardServiceImpl
                 .doOnNext(fullContent::append)
                 .concatWith(Flux.defer(() -> {
                     String content = fullContent.toString().trim();
-                    try {
-                        VocabularyDefinitionGenerateDto dto = objectMapper.readValue(content, VocabularyDefinitionGenerateDto.class);
-                        String json = objectMapper.writeValueAsString(dto);
-                        return Flux.just("\n\n[PARSE_RESULT]\n", "[DEFINITION]" + json);
-                    } catch (Exception parseEx) {
-                        log.error("[Vocabulary] JSON parse error", parseEx);
-                        return Flux.just("[ERROR]解析JSON失败: " + parseEx.getMessage());
-                    }
+                    // 直接返回Markdown内容，不再JSON解析
+                    return Flux.just("\n\n[PARSE_RESULT]\n", "[DEFINITION]" + content);
                 }))
                 .onErrorResume(e -> Flux.just("[ERROR]服务异常: " + e.getMessage()));
     }

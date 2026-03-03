@@ -24,6 +24,9 @@ const generateQuestions = params => axios.post('/question/generate', params);
 // 根据知识点流式生成题目（SSE） - 前端通过 EventSource 连接该地址
 const generateQuestionsStreamUrl = (params: any) => {
   const qs = [];
+  if (params.knowledgeTitle !== undefined) qs.push(`knowledgeTitle=${encodeURIComponent(params.knowledgeTitle)}`);
+  if (params.knowledgeContent !== undefined) qs.push(`knowledgeContent=${encodeURIComponent(params.knowledgeContent)}`);
+  // 保持向后兼容性，如果有 knowledgeDescr 也发送
   if (params.knowledgeDescr !== undefined) qs.push(`knowledgeDescr=${encodeURIComponent(params.knowledgeDescr)}`);
   if (params.num !== undefined) qs.push(`num=${encodeURIComponent(params.num)}`);
   if (params.modelName !== undefined) qs.push(`modelName=${encodeURIComponent(params.modelName)}`);

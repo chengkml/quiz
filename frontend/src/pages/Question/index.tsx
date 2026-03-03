@@ -19,6 +19,7 @@ import {
     Tooltip,
     Tree,
 } from '@arco-design/web-react';
+import Editor from "@monaco-editor/react";
 import './style/index.less';
 import {
     associateKnowledge,
@@ -49,6 +50,28 @@ import { FormFieldConfig } from '@/components/types/types';
 
 const {TextArea} = Input;
 
+// MarkdownEditor 组件（参考 Prompt 页面的实现）
+const MarkdownEditor = ({ value, onChange }: { value?: string, onChange?: (val: string | undefined) => void }) => {
+  return (
+    <div style={{ border: '1px solid var(--color-border-2)', borderRadius: 4, overflow: 'hidden' }}>
+      <Editor
+        height="300px"
+        defaultLanguage="markdown"
+        value={value || ''}
+        theme="light"
+        options={{
+          minimap: { enabled: false },
+          lineNumbers: 'off',
+          scrollBeyondLastLine: false,
+          wordWrap: 'on',
+          fontSize: 14,
+        }}
+        onChange={onChange}
+      />
+    </div>
+  );
+};
+
 function QuestionManager() {
     // 状态管理
     const [tableData, setTableData] = useState<any[]>([]);
@@ -67,7 +90,8 @@ function QuestionManager() {
     const [showGeneratedQuestions, setShowGeneratedQuestions] = useState(false);
     const [generateLoading, setGenerateLoading] = useState(false);
     const [saveLoading, setSaveLoading] = useState(false);
-    const [knowledge, setKnowledge] = useState('');
+    const [knowledgeTitle, setKnowledgeTitle] = useState('');
+    const [knowledgeContent, setKnowledgeContent] = useState('');
     const [knowledgeDescrDisabled, setKnowledgeDescrDisabled] = useState(false);
     const [editKnowledgeDescrDisabled, setEditKnowledgeDescrDisabled] = useState(false);
     // 文本模型列表（用于AI生成题目时选择模型）
@@ -889,7 +913,6 @@ function QuestionManager() {
 
             es.onmessage = (event) => {
                 const data = event.data;
-                
                 // 标记已收到第一条消息
                 if (!sseFirstMessageReceived) {
                     setSseFirstMessageReceived(true);
@@ -996,6 +1019,9 @@ function QuestionManager() {
             setStreamingContent('');
             setIsStreamingComplete(false);
             setSseFirstMessageReceived(false);
+            // 清空知识点相关状态
+            setKnowledgeTitle('');
+            setKnowledgeContent('');
 
             // 构造 SSE URL 并建立连接
             const url = generateQuestionsStreamUrl(values);
@@ -1165,7 +1191,6 @@ function QuestionManager() {
                     // 对于AI生成的题目，options和answer已经是正确格式，不需要再次JSON.stringify
                     options: question.options || null,
                     answer: question.answer || null,
-                    knowledge: knowledge
                 };
             });
 
@@ -1173,12 +1198,39 @@ function QuestionManager() {
             await batchCreateQuestion(questionsToSave);
             Message.success(`成功保存${selectedQuestions.length}道题目`);
 
+            // 如果有知识点标题，则创建知识点并关联到题目
+            if (knowledgeTitle && knowledgeContent && subjectId && categoryId) {
+                try {
+                    const createResp = await createKnowledge({
+                        name: knowledgeTitle,
+                        description: knowledgeContent,
+                        subjectId: subjectId,
+                        categoryId: categoryId,
+                    });
+                    const newKnowledgeId = createResp?.data?.id || createResp?.id;
+                    if (newKnowledgeId) {
+                        // 获取刚刚创建的题目ID，并关联知识点
+                        // 这需要后端支持，或者前端从批量创建响应中获取题目ID
+                        // 目前先注释掉，可能需要后端配合
+                        // const questionIds = questionsToSave.map(q => q.id);
+                        // if (questionIds.length > 0) {
+                        //     await associateKnowledge({questionId: questionIds[0], knowledgeIds: [newKnowledgeId]});
+                        // }
+                    }
+                } catch (e) {
+                    console.error('创建关联知识点失败', e);
+                    // 知识点创建失败不影响题目保存
+                }
+            }
+
             // 重置状态
             setGeneratedQuestions([]);
             setSelectedQuestions([]);
             setShowGeneratedQuestions(false);
             setSelectedSubjectForGenerate(null);
             setSelectedCategoryForGenerate(null);
+            setKnowledgeTitle('');
+            setKnowledgeContent('');
 
             // 刷新表格数据
             fetchTableData();
@@ -1224,6 +1276,8 @@ function QuestionManager() {
         setStreamingContent('');
         setIsStreamingComplete(false);
         setSseFirstMessageReceived(false);
+        setKnowledgeTitle('');
+        setKnowledgeContent('');
     };
 
     // 渲染题目选项
@@ -1789,7 +1843,8 @@ function QuestionManager() {
                             <Button
                                 type="primary"
                                 onClick={() => {
-                                    setKnowledge(generateFormRef.current.getFieldValue('knowledgeDescr'));
+                                    setKnowledgeTitle(generateFormRef.current.getFieldValue('knowledgeTitle'));
+                                    setKnowledgeContent(generateFormRef.current.getFieldValue('knowledgeContent'));
                                     generateFormRef.current?.submit()
                                 }}
                                 loading={generateLoading}
@@ -1842,15 +1897,23 @@ function QuestionManager() {
                                     />
                                 </Form.Item>
                                 <Form.Item
-                                    label="知识点"
-                                    field="knowledgeDescr"
-                                    rules={[{required: true, message: '请输入知识点'}]}
+                                    label="知识点标题"
+                                    field="knowledgeTitle"
+                                    rules={[{required: true, message: '请输入知识点标题'}]}
                                 >
-                                    <TextArea
-                                        placeholder="请输入知识点描述，AI将根据此描述生成相关题目"
-                                        rows={4}
+                                    <Input
+                                        placeholder="请输入知识点标题"
                                         disabled={knowledgeDescrDisabled}
                                     />
+                                </Form.Item>
+                                <Form.Item
+                                    label="知识点内容"
+                                    field="knowledgeContent"
+                                    rules={[{required: true, message: '请输入知识点内容'}]}
+                                    render={(value) => {
+                                        return <MarkdownEditor value={value} />;
+                                    }}
+                                >
                                 </Form.Item>
                                 <Form.Item
                                     label="模型"
