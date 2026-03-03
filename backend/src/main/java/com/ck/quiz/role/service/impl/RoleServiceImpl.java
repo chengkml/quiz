@@ -41,7 +41,7 @@ public class RoleServiceImpl
                 " and lower(r.name) like :keyWord ", params, namedParameterJdbcTemplate, sql, countSql);
 
         // 排序
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("r.create_date", "desc", sql);
 
         // 分页SQL
         String limitSql = JdbcQueryHelper.getLimitSql(

@@ -97,7 +97,7 @@ public class LLMModelServiceImpl extends
             params.put("tags", queryDto.getTags());
         }
 
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("m.create_date", "desc", sql);
 
         String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(),
                 queryDto.getPageSize());

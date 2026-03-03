@@ -12,6 +12,7 @@ import {
     Menu,
     Message,
     Modal,
+    Collapse,
     Popconfirm,
     Select,
     Space,
@@ -119,6 +120,9 @@ function KnowledgeManager() {
     const [sseFirstMessageReceived, setSseFirstMessageReceived] = useState(false);
     const [streamLogModalVisible, setStreamLogModalVisible] = useState(false);
     const [selectedKnowledgeForGenerate, setSelectedKnowledgeForGenerate] = useState<KnowledgeDto | null>(null);
+    const [showGeneratedQuestions, setShowGeneratedQuestions] = useState(false);
+    const [lastGenerateParams, setLastGenerateParams] = useState<any>(null);
+    const [saveLoading, setSaveLoading] = useState(false);
 
     const generateEventSourceRef = useRef<EventSource | null>(null);
     const lastStreamErrorRef = useRef<string | null>(null);
@@ -429,7 +433,7 @@ function KnowledgeManager() {
                         command: 'aiPolish',
                         // toolbar property removed as we are using explicit toolbar config
                     });
-                    
+
                     // 注入图标样式
                     const style = document.createElement('style');
                     style.innerHTML = `
@@ -791,10 +795,10 @@ function KnowledgeManager() {
             if (treeCategoryMode === 'create') {
                 // 如果是在学科节点（level === 1）下新增子分类，parentId 应该是 null
                 // 如果是在分类节点下新增子分类，parentId 应该是该分类的 id
-                const parentId = treeCategoryNode?.level === 1 
-                    ? null 
+                const parentId = treeCategoryNode?.level === 1
+                    ? null
                     : (treeCategoryNode?.id || treeCategoryNode?.key);
-                    
+
                 await createCategory({
                     name: values.name,
                     description: values.description,
@@ -1050,158 +1054,158 @@ function KnowledgeManager() {
                                     setExpandedKeys(expandedKeys);
                                 }}
                                 onSelect={(selectedKeys, info) => {
-                                if (selectedKeys.length > 0) {
-                                    const node = info.node;
+                                    if (selectedKeys.length > 0) {
+                                        const node = info.node;
 
-                                    const subjectId = node.props.subjectId;
-                                    const isSubjectNode = node.key === node.props.subjectId;
-                                    const categoryId = isSubjectNode ? null : node.key;
+                                        const subjectId = node.props.subjectId;
+                                        const isSubjectNode = node.key === node.props.subjectId;
+                                        const categoryId = isSubjectNode ? null : node.key;
 
-                                    const collectChildCategoryIds = (treeNode) => {
-                                        let ids = [];
-                                        if (treeNode.children && treeNode.children.length > 0) {
-                                            treeNode.children.forEach((child) => {
-                                                ids.push(child.key);
-                                                ids = ids.concat(collectChildCategoryIds(child));
-                                            });
+                                        const collectChildCategoryIds = (treeNode) => {
+                                            let ids = [];
+                                            if (treeNode.children && treeNode.children.length > 0) {
+                                                treeNode.children.forEach((child) => {
+                                                    ids.push(child.key);
+                                                    ids = ids.concat(collectChildCategoryIds(child));
+                                                });
+                                            }
+                                            return ids;
+                                        };
+
+                                        let categoryIds = [];
+                                        if (!isSubjectNode) {
+                                            categoryIds.push(categoryId);
+                                            categoryIds = categoryIds.concat(collectChildCategoryIds(node));
                                         }
-                                        return ids;
-                                    };
 
-                                    let categoryIds = [];
-                                    if (!isSubjectNode) {
-                                        categoryIds.push(categoryId);
-                                        categoryIds = categoryIds.concat(collectChildCategoryIds(node));
+                                        setSelectedTreeNode(selectedKeys[0]);
+                                        setCurrentSubjectId(subjectId);
+                                        setCurrentCategoryIds(categoryIds);
+
+                                        fetchTableData(
+                                            null,
+                                            pagination.pageSize,
+                                            pagination.current,
+                                            subjectId,
+                                            categoryIds.length > 0 ? categoryIds : null
+                                        );
+                                    } else {
+                                        setSelectedTreeNode(null);
+                                        setCurrentSubjectId(null);
+                                        setCurrentCategoryIds([]);
+                                        fetchTableData();
+                                    }
+                                }}
+                                renderExtra={(node) => {
+                                    const nodeData = node?.props || node;
+                                    console.log('renderExtra called:', nodeData?.title, 'level:', nodeData?.level, 'nodeData:', nodeData);
+
+                                    // 不显示操作
+                                    if (!nodeData) {
+                                        return null;
                                     }
 
-                                    setSelectedTreeNode(selectedKeys[0]);
-                                    setCurrentSubjectId(subjectId);
-                                    setCurrentCategoryIds(categoryIds);
+                                    // 学科节点（level === 1）
+                                    if (nodeData.level === 1) {
+                                        return (
+                                            <Dropdown
+                                                trigger="click"
+                                                droplist={(
+                                                    <Menu>
+                                                        <Menu.Item
+                                                            key="add"
+                                                            onClick={(event) => {
+                                                                event?.stopPropagation?.();
+                                                                handleTreeCategoryCreate(node);
+                                                            }}
+                                                        >
+                                                            <IconPlus style={{ marginRight: 8 }} />新增子分类
+                                                        </Menu.Item>
+                                                        <Menu.Item
+                                                            key="edit"
+                                                            onClick={(event) => {
+                                                                event?.stopPropagation?.();
+                                                                handleTreeSubjectEdit(node);
+                                                            }}
+                                                        >
+                                                            <IconEdit style={{ marginRight: 8 }} />编辑
+                                                        </Menu.Item>
+                                                        <Menu.Item
+                                                            key="delete"
+                                                            onClick={(event) => {
+                                                                event?.stopPropagation?.();
+                                                                handleTreeSubjectDelete(node);
+                                                            }}
+                                                        >
+                                                            <IconDelete style={{ marginRight: 8 }} />删除
+                                                        </Menu.Item>
+                                                    </Menu>
+                                                )}
+                                            >
+                                                <span
+                                                    className="knowledge-tree-actions"
+                                                    onClick={(event) => event.stopPropagation()}
+                                                >
+                                                    <IconMoreVertical />
+                                                </span>
+                                            </Dropdown>
+                                        );
+                                    }
 
-                                    fetchTableData(
-                                        null,
-                                        pagination.pageSize,
-                                        pagination.current,
-                                        subjectId,
-                                        categoryIds.length > 0 ? categoryIds : null
-                                    );
-                                } else {
-                                    setSelectedTreeNode(null);
-                                    setCurrentSubjectId(null);
-                                    setCurrentCategoryIds([]);
-                                    fetchTableData();
-                                }
-                            }}
-                            renderExtra={(node) => {
-                                const nodeData = node?.props || node;
-                                console.log('renderExtra called:', nodeData?.title, 'level:', nodeData?.level, 'nodeData:', nodeData);
-                                
-                                // 不显示操作
-                                if (!nodeData) {
+                                    // 分类节点（level >= 2）
+                                    if (nodeData.level >= 2) {
+                                        return (
+                                            <Dropdown
+                                                trigger="click"
+                                                droplist={(
+                                                    <Menu>
+                                                        <Menu.Item
+                                                            key="add"
+                                                            onClick={(event) => {
+                                                                event?.stopPropagation?.();
+                                                                handleTreeCategoryCreate(node);
+                                                            }}
+                                                        >
+                                                            <IconPlus style={{ marginRight: 8 }} />新增子分类
+                                                        </Menu.Item>
+                                                        <Menu.Item
+                                                            key="edit"
+                                                            onClick={(event) => {
+                                                                event?.stopPropagation?.();
+                                                                handleTreeCategoryEdit(node);
+                                                            }}
+                                                        >
+                                                            <IconEdit style={{ marginRight: 8 }} />编辑
+                                                        </Menu.Item>
+                                                        <Menu.Item
+                                                            key="delete"
+                                                            onClick={(event) => {
+                                                                event?.stopPropagation?.();
+                                                                handleTreeCategoryDelete(node);
+                                                            }}
+                                                        >
+                                                            <IconDelete style={{ marginRight: 8 }} />删除
+                                                        </Menu.Item>
+                                                    </Menu>
+                                                )}
+                                            >
+                                                <span
+                                                    className="knowledge-tree-actions"
+                                                    onClick={(event) => event.stopPropagation()}
+                                                >
+                                                    <IconMoreVertical />
+                                                </span>
+                                            </Dropdown>
+                                        );
+                                    }
+
                                     return null;
-                                }
-                                
-                                // 学科节点（level === 1）
-                                if (nodeData.level === 1) {
-                                    return (
-                                        <Dropdown
-                                            trigger="click"
-                                            droplist={(
-                                                <Menu>
-                                                    <Menu.Item
-                                                        key="add"
-                                                        onClick={(event) => {
-                                                            event?.stopPropagation?.();
-                                                            handleTreeCategoryCreate(node);
-                                                        }}
-                                                    >
-                                                        <IconPlus style={{ marginRight: 8 }} />新增子分类
-                                                    </Menu.Item>
-                                                    <Menu.Item
-                                                        key="edit"
-                                                        onClick={(event) => {
-                                                            event?.stopPropagation?.();
-                                                            handleTreeSubjectEdit(node);
-                                                        }}
-                                                    >
-                                                        <IconEdit style={{ marginRight: 8 }} />编辑
-                                                    </Menu.Item>
-                                                    <Menu.Item
-                                                        key="delete"
-                                                        onClick={(event) => {
-                                                            event?.stopPropagation?.();
-                                                            handleTreeSubjectDelete(node);
-                                                        }}
-                                                    >
-                                                        <IconDelete style={{ marginRight: 8 }} />删除
-                                                    </Menu.Item>
-                                                </Menu>
-                                            )}
-                                        >
-                                            <span
-                                                className="knowledge-tree-actions"
-                                                onClick={(event) => event.stopPropagation()}
-                                            >
-                                                <IconMoreVertical />
-                                            </span>
-                                        </Dropdown>
-                                    );
-                                }
-                                
-                                // 分类节点（level >= 2）
-                                if (nodeData.level >= 2) {
-                                    return (
-                                        <Dropdown
-                                            trigger="click"
-                                            droplist={(
-                                                <Menu>
-                                                    <Menu.Item
-                                                        key="add"
-                                                        onClick={(event) => {
-                                                            event?.stopPropagation?.();
-                                                            handleTreeCategoryCreate(node);
-                                                        }}
-                                                    >
-                                                        <IconPlus style={{ marginRight: 8 }} />新增子分类
-                                                    </Menu.Item>
-                                                    <Menu.Item
-                                                        key="edit"
-                                                        onClick={(event) => {
-                                                            event?.stopPropagation?.();
-                                                            handleTreeCategoryEdit(node);
-                                                        }}
-                                                    >
-                                                        <IconEdit style={{ marginRight: 8 }} />编辑
-                                                    </Menu.Item>
-                                                    <Menu.Item
-                                                        key="delete"
-                                                        onClick={(event) => {
-                                                            event?.stopPropagation?.();
-                                                            handleTreeCategoryDelete(node);
-                                                        }}
-                                                    >
-                                                        <IconDelete style={{ marginRight: 8 }} />删除
-                                                    </Menu.Item>
-                                                </Menu>
-                                            )}
-                                        >
-                                            <span
-                                                className="knowledge-tree-actions"
-                                                onClick={(event) => event.stopPropagation()}
-                                            >
-                                                <IconMoreVertical />
-                                            </span>
-                                        </Dropdown>
-                                    );
-                                }
-                                
-                                return null;
-                            }}
-                            blockNode
-                            showLine
-                            className="knowledge-tree"
-                            style={{ backgroundColor: 'transparent' }}
-                        />
+                                }}
+                                blockNode
+                                showLine
+                                className="knowledge-tree"
+                                style={{ backgroundColor: 'transparent' }}
+                            />
                         </div>
                     ) : (
                         <div
@@ -1257,6 +1261,7 @@ function KnowledgeManager() {
         setStreamingContent('');
         setIsStreamingComplete(false);
         setShowStreamLogVisible(true);
+        setShowGeneratedQuestions(false);
         setSseFirstMessageReceived(false);
         setStreamLogModalVisible(false);
         setSelectedKnowledgeForGenerate(record || null);
@@ -1287,6 +1292,7 @@ function KnowledgeManager() {
 
         setGenerateLoading(true);
         setSelectedKnowledgeForGenerate(selectedKnowledge);
+        setLastGenerateParams({ num, modelName });
         // 清空之前的生成结果
         setGeneratedQuestions([]);
         setSelectedQuestions([]);
@@ -1296,6 +1302,9 @@ function KnowledgeManager() {
         setShowStreamLogVisible(true);
         setStreamLogModalVisible(false);
         generatedCountRef.current = 0;
+
+        setShowGeneratedQuestions(true);
+        setGenerateModalVisible(false);
 
         // 构造 SSE URL 并建立连接
         const url = generateQuestionsStreamUrl({ knowledgeId, num, modelName });
@@ -1407,19 +1416,187 @@ function KnowledgeManager() {
             return;
         }
 
-        setGenerateLoading(true);
+        setSaveLoading(true);
         try {
             await batchCreateQuestion(payload);
             Message.success(`成功添加 ${payload.length} 道题目`);
             closeGenerateStream();
-            setGenerateModalVisible(false);
+            setGeneratedQuestions([]);
+            setSelectedQuestions([]);
+            setShowGeneratedQuestions(false);
             const values = filterFormRef.current?.getFieldsValue?.() || {};
             fetchTableData(values, pagination.pageSize, pagination.current);
         } catch (error: any) {
             Message.error(error.response?.data?.message || '添加失败');
         } finally {
+            setSaveLoading(false);
+        }
+    };
+
+    const handleRetryGenerate = async () => {
+        if (!lastGenerateParams) {
+            Message.warning('没有可重试的生成参数');
+            return;
+        }
+        setGenerateLoading(true);
+        try {
+            const { num, modelName } = lastGenerateParams;
+            const selectedKnowledge = selectedKnowledgeForGenerate || null;
+            const knowledgeId = selectedKnowledge?.id;
+
+            setGeneratedQuestions([]);
+            setSelectedQuestions([]);
+            setStreamingContent('');
+            setIsStreamingComplete(false);
+            setSseFirstMessageReceived(false);
+            setShowStreamLogVisible(true);
+            setStreamLogModalVisible(false);
+            generatedCountRef.current = 0;
+
+            const url = generateQuestionsStreamUrl({ knowledgeId, num, modelName });
+            closeGenerateStream();
+            const es = new EventSource(url);
+            generateEventSourceRef.current = es;
+
+            let isParsingResult = false;
+            lastStreamErrorRef.current = null;
+            hasReceivedQuestionRef.current = false;
+
+            const appendQuestion = (jsonStr: string) => {
+                if (!jsonStr) return;
+                try {
+                    const item = JSON.parse(jsonStr);
+                    hasReceivedQuestionRef.current = true;
+                    setGeneratedQuestions((prev) => {
+                        const next = [...prev, item];
+                        generatedCountRef.current = next.length;
+                        return next;
+                    });
+                } catch (e) {
+                    console.error('Failed to parse question JSON:', jsonStr, e);
+                }
+            };
+
+            es.onmessage = (event) => {
+                if (generateEventSourceRef.current !== es) return;
+                const data = event.data;
+                if (!sseFirstMessageReceived) setSseFirstMessageReceived(true);
+
+                if (!isParsingResult) {
+                    if (data.includes('[PARSE_RESULT]')) {
+                        isParsingResult = true;
+                        setIsStreamingComplete(true);
+                        const parseIndex = data.indexOf('[PARSE_RESULT]');
+                        const afterSeparator = data.substring(parseIndex + '[PARSE_RESULT]'.length).trim();
+                        if (afterSeparator && afterSeparator.startsWith('[QUESTION]')) {
+                            appendQuestion(afterSeparator.substring('[QUESTION]'.length));
+                        }
+                        return;
+                    } else {
+                        setStreamingContent((prev) => prev + formatDataToHtml(data));
+                    }
+                } else {
+                    const trimmedData = data.trim();
+                    if (trimmedData) {
+                        if (trimmedData.startsWith('[QUESTION]')) {
+                            appendQuestion(trimmedData.substring('[QUESTION]'.length));
+                        } else if (trimmedData.startsWith('[ERROR]')) {
+                            const errorMsg = trimmedData.substring('[ERROR]'.length);
+                            console.error('Backend error (buffered):', errorMsg);
+                            lastStreamErrorRef.current = errorMsg;
+                        }
+                    }
+                }
+            };
+
+            es.onerror = (err) => {
+                if (generateEventSourceRef.current !== es) return;
+                console.error('SSE error:', err);
+                closeGenerateStream();
+                setGenerateLoading(false);
+                setIsStreamingComplete(true);
+
+                if (hasReceivedQuestionRef.current) {
+                    Message.success(`已生成 ${generatedCountRef.current} 道题目`);
+                } else if (lastStreamErrorRef.current) {
+                    Message.error('生成失败: ' + lastStreamErrorRef.current);
+                } else {
+                    Message.error('生成失败：连接错误或服务异常');
+                }
+            };
+        } catch (error) {
+            Message.error('重试生成题目失败');
+            closeGenerateStream();
             setGenerateLoading(false);
         }
+    };
+
+    const handleCancelSave = () => {
+        setGeneratedQuestions([]);
+        setSelectedQuestions([]);
+        setShowGeneratedQuestions(false);
+        setStreamingContent('');
+        setIsStreamingComplete(false);
+        setSseFirstMessageReceived(false);
+    };
+
+    const renderQuestionOptions = (options, questionType) => {
+        if (!options || options === '') return null;
+        if (typeof options === 'string' && (options.includes(';') || options.includes('；'))) {
+            const optionsList = options.split(/[;；]/).map(opt => opt.trim()).filter(Boolean);
+            return (
+                <div style={{ marginTop: 8 }}>
+                    <strong>选项:</strong>
+                    <div style={{ marginTop: 4, paddingLeft: 16 }}>
+                        {optionsList.map((option, index) => (
+                            <div key={index} style={{ marginBottom: 4 }}>
+                                {option}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+        try {
+            const optionsObj = typeof options === 'string' ? JSON.parse(options) : options;
+            if (typeof optionsObj === 'object' && optionsObj !== null) {
+                return (
+                    <div style={{ marginTop: 8 }}>
+                        <strong>选项:</strong>
+                        <div style={{ marginTop: 4, paddingLeft: 16 }}>
+                            {Object.entries(optionsObj).map(([key, value]) => (
+                                <div key={key} style={{ marginBottom: 4 }}>
+                                    <strong>{key}:</strong> {String(value)}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+        } catch (e) {
+            return (
+                <div style={{ marginTop: 8 }}>
+                    <strong>选项:</strong>
+                    <div style={{ marginTop: 4, paddingLeft: 16 }}>
+                        {options}
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    };
+
+    const renderQuestionAnswer = (answer) => {
+        if (!answer) return null;
+        let displayAnswer = answer;
+        if (typeof answer === 'string' && answer.includes(',')) {
+            displayAnswer = answer.split(',').map(a => a.trim()).join(', ');
+        }
+        return (
+            <div style={{ marginTop: 8, color: 'var(--color-primary-6)' }}>
+                <strong>答案:</strong> {displayAnswer}
+            </div>
+        );
     };
 
     const handleQuestionSelect = (index: number, checked: boolean) => {
@@ -1572,75 +1749,75 @@ function KnowledgeManager() {
             >
                 <div style={{ maxHeight: '100vh', overflowY: 'auto', paddingRight: '10px' }}>
                     <Form ref={addFormRef} className="modal-form" layout="vertical">
-                                <Form.Item
-                                    label="知识点标题"
-                                    field="name"
-                                    rules={[{ required: true, message: '请输入知识点标题' }]}
-                                >
-                                    <Input
-                                        placeholder="请输入知识点标题"
-                                        maxLength={512}
-                                    />
-                                </Form.Item>
-                                <Form.Item
-                                    label="所属学科"
-                                    field="subjectId"
-                                    rules={[{ required: true, message: '请选择所属学科' }]}
-                                >
-                                    <Select
-                                        placeholder="请选择所属学科"
-                                        options={subjects}
-                                        loading={subjectsLoading}
-                                        allowClear
-                                        onChange={(value) => {
-                                            addFormRef.current?.setFieldValue('categoryId', undefined);
-                                            fetchCategoriesBySubject(value);
-                                        }}
-                                    />
-                                </Form.Item>
-                                <Form.Item
-                                    label="所属分类"
-                                    field="categoryId"
-                                    rules={[{ required: true, message: '请选择所属分类' }]}
-                                >
-                                    <Select
-                                        placeholder="请选择所属分类"
-                                        options={categories}
-                                        loading={categoriesLoading}
-                                        allowClear
-                                        disabled={!addFormRef.current?.getFieldValue('subjectId')}
-                                    />
-                                </Form.Item>
-                                <Form.Item
-label="知识点内容"
-                                    field="content"
-                                    triggerPropName="initData"
-                                    trigger="onChange"
-                                    normalize={(value) => {
-                                        return value?.editor?.getData?.() || value;
-                                    }}
-                                    rules={[{ required: true, message: '请输入知识点内容' }]}
-                                >
-                                    <CKEditor
-                                        editorUrl={editorScriptUrl}
-                                        onNamespaceLoaded={handleNamespaceLoaded}
-                                        onInstanceReady={({ editor }) => {
-                                            addEditorRef.current = editor;
-                                            editor.on('aiPolishEvent', () => handlePolish(editor));
-                                        }}
-                                        config={{
-                                            height: 300,
-                                            // 允许源码编辑
-                                            allowedContent: true,
-                                            extraPlugins: 'sourcearea,aiPolish',
-                                            versionCheck: false,
-                                            toolbar: editorToolbarConfig
-                                        }}
-                                    />
-                                </Form.Item>
-                            </Form>
-                        </div>
-                    </Drawer>
+                        <Form.Item
+                            label="知识点标题"
+                            field="name"
+                            rules={[{ required: true, message: '请输入知识点标题' }]}
+                        >
+                            <Input
+                                placeholder="请输入知识点标题"
+                                maxLength={512}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="所属学科"
+                            field="subjectId"
+                            rules={[{ required: true, message: '请选择所属学科' }]}
+                        >
+                            <Select
+                                placeholder="请选择所属学科"
+                                options={subjects}
+                                loading={subjectsLoading}
+                                allowClear
+                                onChange={(value) => {
+                                    addFormRef.current?.setFieldValue('categoryId', undefined);
+                                    fetchCategoriesBySubject(value);
+                                }}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="所属分类"
+                            field="categoryId"
+                            rules={[{ required: true, message: '请选择所属分类' }]}
+                        >
+                            <Select
+                                placeholder="请选择所属分类"
+                                options={categories}
+                                loading={categoriesLoading}
+                                allowClear
+                                disabled={!addFormRef.current?.getFieldValue('subjectId')}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="知识点内容"
+                            field="content"
+                            triggerPropName="initData"
+                            trigger="onChange"
+                            normalize={(value) => {
+                                return value?.editor?.getData?.() || value;
+                            }}
+                            rules={[{ required: true, message: '请输入知识点内容' }]}
+                        >
+                            <CKEditor
+                                editorUrl={editorScriptUrl}
+                                onNamespaceLoaded={handleNamespaceLoaded}
+                                onInstanceReady={({ editor }) => {
+                                    addEditorRef.current = editor;
+                                    editor.on('aiPolishEvent', () => handlePolish(editor));
+                                }}
+                                config={{
+                                    height: 300,
+                                    // 允许源码编辑
+                                    allowedContent: true,
+                                    extraPlugins: 'sourcearea,aiPolish',
+                                    versionCheck: false,
+                                    toolbar: editorToolbarConfig
+                                }}
+                            />
+                        </Form.Item>
+                    </Form>
+                </div>
+            </Drawer>
             <Modal
                 title="AI 智能润色"
                 visible={polishModalVisible}
@@ -1719,77 +1896,77 @@ label="知识点内容"
             >
                 <div style={{ maxHeight: '100vh', overflowY: 'auto', paddingRight: '10px' }}>
                     <Form ref={editFormRef} className="modal-form" layout="vertical">
-                                <Form.Item
-                                    label="知识点标题"
-                                    field="name"
-                                    rules={[{ required: true, message: '请输入知识点标题' }]}
-                                >
-                                    <Input
-                                        placeholder="请输入知识点标题"
-                                        maxLength={512}
-                                    />
-                                </Form.Item>
-                                <Form.Item
-                                    label="所属学科"
-                                    field="subjectId"
-                                    rules={[{ required: true, message: '请选择所属学科' }]}
-                                >
-                                    <Select
-                                        placeholder="请选择所属学科"
-                                        options={subjects}
-                                        loading={subjectsLoading}
-                                        allowClear
-                                        onChange={(value) => {
-                                            editFormRef.current?.setFieldValue('categoryId', undefined);
-                                            fetchCategoriesBySubject(value);
-                                        }}
-                                    />
-                                </Form.Item>
-                                <Form.Item
-                                    label="所属分类"
-                                    field="categoryId"
-                                    rules={[{ required: true, message: '请选择所属分类' }]}
-                                >
-                                    <Select
-                                        placeholder="请选择所属分类"
-                                        options={categories}
-                                        loading={categoriesLoading}
-                                        allowClear
-                                        disabled={!editFormRef.current?.getFieldValue('subjectId')}
-                                    />
-                                </Form.Item>
-                                <Form.Item
-label="知识点内容"
-                                    field="content"
-                                    triggerPropName="initData"
-                                    trigger="onChange"
-                                    normalize={(value) => {
-                                        return value?.editor?.getData?.() || value;
-                                    }}
-                                    rules={[{ required: true, message: '请输入知识点内容' }]}
-                                >
-                                    <CKEditor
-                                        editorUrl={editorScriptUrl}
-                                        onNamespaceLoaded={handleNamespaceLoaded}
-                                        onInstanceReady={({ editor }) => {
-                                            editEditorRef.current = editor;
-                                            editor.on('aiPolishEvent', () => handlePolish(editor));
-                                            if (currentRecord?.content) {
-                                                editor.setData(currentRecord.content);
-                                            }
-                                        }}
-                                        config={{
-                                            height: 300,
-                                            allowedContent: true,
-                                            extraPlugins: 'sourcearea,aiPolish',
-                                            versionCheck: false,
-                                            toolbar: editorToolbarConfig
-                                        }}
-                                    />
-                                </Form.Item>
-                            </Form>
-                        </div>
-                    </Drawer>
+                        <Form.Item
+                            label="知识点标题"
+                            field="name"
+                            rules={[{ required: true, message: '请输入知识点标题' }]}
+                        >
+                            <Input
+                                placeholder="请输入知识点标题"
+                                maxLength={512}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="所属学科"
+                            field="subjectId"
+                            rules={[{ required: true, message: '请选择所属学科' }]}
+                        >
+                            <Select
+                                placeholder="请选择所属学科"
+                                options={subjects}
+                                loading={subjectsLoading}
+                                allowClear
+                                onChange={(value) => {
+                                    editFormRef.current?.setFieldValue('categoryId', undefined);
+                                    fetchCategoriesBySubject(value);
+                                }}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="所属分类"
+                            field="categoryId"
+                            rules={[{ required: true, message: '请选择所属分类' }]}
+                        >
+                            <Select
+                                placeholder="请选择所属分类"
+                                options={categories}
+                                loading={categoriesLoading}
+                                allowClear
+                                disabled={!editFormRef.current?.getFieldValue('subjectId')}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="知识点内容"
+                            field="content"
+                            triggerPropName="initData"
+                            trigger="onChange"
+                            normalize={(value) => {
+                                return value?.editor?.getData?.() || value;
+                            }}
+                            rules={[{ required: true, message: '请输入知识点内容' }]}
+                        >
+                            <CKEditor
+                                editorUrl={editorScriptUrl}
+                                onNamespaceLoaded={handleNamespaceLoaded}
+                                onInstanceReady={({ editor }) => {
+                                    editEditorRef.current = editor;
+                                    editor.on('aiPolishEvent', () => handlePolish(editor));
+                                    if (currentRecord?.content) {
+                                        editor.setData(currentRecord.content);
+                                    }
+                                }}
+                                config={{
+                                    height: 300,
+                                    allowedContent: true,
+                                    extraPlugins: 'sourcearea,aiPolish',
+                                    versionCheck: false,
+                                    toolbar: editorToolbarConfig
+                                }}
+                            />
+                        </Form.Item>
+                    </Form>
+                </div>
+            </Drawer>
 
             {/* 删除确认对话框 */}
             <Modal
@@ -1841,27 +2018,26 @@ label="知识点内容"
             {/* AI生成题目对话框 */}
             <Modal
                 title="AI生成题目"
-                style={{width: '50%'}}
+                style={{ width: '50%' }}
                 visible={generateModalVisible}
                 onCancel={handleGenerateClose}
                 footer={
-                    <div style={{textAlign: 'right'}}>
-                        <Button onClick={handleGenerateClose} style={{marginRight: 8}}>
+                    <div style={{ textAlign: 'right' }}>
+                        <Button onClick={handleGenerateClose} style={{ marginRight: 8 }}>
                             取消
                         </Button>
                         <Button
                             type="primary"
-                            onClick={() => handleAddGeneratedQuestion()}
+                            onClick={() => generateFormRef.current?.submit()}
                             loading={generateLoading}
-                            disabled={selectedQuestions.length === 0 || !isStreamingComplete}
                         >
-                            添加选中的题目({selectedQuestions.length})
+                            确定
                         </Button>
                     </div>
                 }
             >
-                <Spin loading={generateLoading} style={{width: '100%'}}>
-                    <div style={{maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px'}}>
+                <Spin loading={generateLoading} style={{ width: '100%' }}>
+                    <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
                         <Form
                             ref={generateFormRef}
                             layout="vertical"
@@ -1869,6 +2045,7 @@ label="知识点内容"
                                 handleGenerateSubmit(values);
                             }}
                             autoComplete={false}
+                            className="modal-form"
                         >
                             <Form.Item label="知识点">
                                 <Input value={selectedKnowledgeForGenerate?.name || ''} disabled placeholder="请选择知识点" />
@@ -1888,142 +2065,211 @@ label="知识点内容"
                                 label="生成数量"
                                 field="num"
                                 initialValue={3}
-                                rules={[{required: true, message: '请输入生成数量'}]}
+                                rules={[{ required: true, message: '请输入生成数量' }]}
                             >
                                 <InputNumber
                                     min={1}
                                     max={10}
                                     placeholder="请输入生成题目数量（1-10）"
-                                    style={{width: '100%'}}
+                                    style={{ width: '100%' }}
                                 />
                             </Form.Item>
-                            <div style={{textAlign: 'center', marginTop: 16}}>
-                                <Button type="primary" htmlType="submit" loading={generateLoading}>
-                                    生成题目
-                                </Button>
-                            </div>
                         </Form>
-
-                        {!showStreamLogVisible && (streamingContent || lastStreamErrorRef.current) && (
-                            <div style={{marginTop: 8, textAlign: 'right'}}>
-                                <Button type="text" onClick={() => setStreamLogModalVisible(true)}>
-                                    查看生成日志
-                                </Button>
-                            </div>
-                        )}
-
-                        {showStreamLogVisible && !isStreamingComplete && (
-                            <div style={{
-                                marginTop: 16,
-                                marginBottom: 8,
-                                padding: 12,
-                                backgroundColor: 'var(--color-info-light-1)',
-                                borderRadius: 6,
-                                border: '1px solid #b6e3ff',
-                                maxHeight: 200,
-                                overflowY: 'auto',
-                            }}>
-                                {!sseFirstMessageReceived ? (
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        padding: '20px',
-                                        color: 'var(--color-primary-6)',
-                                    }}>
-                                        <Spin />
-                                        <span style={{marginLeft: 12}}>正在连接AI模型，准备生成题目...</span>
-                                    </div>
-                                ) : (
-                                    <div
-                                        ref={streamingContainerRef}
-                                        style={{
-                                            fontSize: 12,
-                                            color: 'var(--color-text-3)',
-                                            whiteSpace: 'pre-wrap',
-                                            wordBreak: 'break-word',
-                                            fontFamily: 'monospace',
-                                        }}
-                                        dangerouslySetInnerHTML={{ __html: streamingContent }}
-                                    />
-                                )}
-                            </div>
-                        )}
-
-                        {isStreamingComplete && (
-                            <div style={{marginTop: 16, padding: '12px', backgroundColor: '#f5f7fa', borderRadius: '4px'}}>
-                                <div style={{marginBottom: 8, fontWeight: 500}}>
-                                    生成进度：已生成 <span style={{color: '#4080ff'}}>{generatedQuestions.length}</span> 道题目
-                                </div>
-                                {selectedKnowledgeForGenerate && (
-                                    <div>
-                                        <Tag color="blue" bordered>
-                                            知识点：{selectedKnowledgeForGenerate.name}
-                                        </Tag>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {generatedQuestions.length > 0 && (
-                            <div style={{marginTop: 16}}>
-                                <div style={{marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid #f0f0f0'}}>
-                                    <Checkbox
-                                        checked={selectedQuestions.length === generatedQuestions.length}
-                                        indeterminate={selectedQuestions.length > 0 && selectedQuestions.length < generatedQuestions.length}
-                                        onChange={handleSelectAllQuestions}
-                                    >
-                                        全选（{generatedQuestions.length}道）
-                                    </Checkbox>
-                                </div>
-                                <div style={{marginBottom: 8, fontWeight: 500}}>
-                                    选择要添加的题目（共{generatedQuestions.length}道）
-                                </div>
-                                {generatedQuestions.map((q, index) => (
-                                    <div
-                                        key={index}
-                                        style={{
-                                            padding: '12px',
-                                            border: '1px solid #d9d9d9',
-                                            marginBottom: 8,
-                                            borderRadius: '4px',
-                                            backgroundColor: selectedQuestions.includes(index) ? '#e8f3ff' : 'transparent',
-                                        }}
-                                    >
-                                        <Checkbox
-                                            checked={selectedQuestions.includes(index)}
-                                            onChange={(checked) => handleQuestionSelect(index, checked)}
-                                            style={{marginRight: 8}}
-                                        >
-                                            第 {index + 1} 道
-                                        </Checkbox>
-                                        <div style={{marginTop: 8, padding: '8px', backgroundColor: '#f9f9f9', borderRadius: '2px'}}>
-                                            <div><strong>题目：</strong> {q.content?.substring(0, 100)}{q.content?.length > 100 ? '...' : ''}</div>
-                                            <div><strong>类型：</strong> {q.type === 'SINGLE' ? '单选' : '多选'}</div>
-                                            {q.options && (
-                                                <div>
-                                                    <strong>选项：</strong> {typeof q.options === 'string' ? q.options : JSON.stringify(q.options)}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </Spin>
             </Modal>
 
+            {/* AI生成题目展示 */}
+            {showGeneratedQuestions && (
+                <Modal
+                    title={`AI生成的题目 (${generatedQuestions.length}道)`}
+                    visible={showGeneratedQuestions}
+                    onCancel={handleCancelSave}
+                    style={{ width: '50%' }}
+                    footer={
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <div>
+                                {isStreamingComplete && lastGenerateParams && (
+                                    <Button
+                                        onClick={handleRetryGenerate}
+                                        loading={generateLoading}
+                                        disabled={generateLoading}
+                                    >
+                                        重新生成
+                                    </Button>
+                                )}
+                            </div>
+                            <div>
+                                <Button onClick={handleCancelSave} style={{ marginRight: 8 }}>
+                                    取消
+                                </Button>
+                                <Button
+                                    type="primary"
+                                    onClick={handleAddGeneratedQuestion}
+                                    disabled={selectedQuestions.length === 0 || !isStreamingComplete}
+                                    loading={saveLoading}
+                                >
+                                    保存选中题目 ({selectedQuestions.length})
+                                </Button>
+                            </div>
+                        </div>
+                    }
+                >
+                    {(selectedKnowledgeForGenerate) && (
+                        <div style={{
+                            marginBottom: 16,
+                            padding: 12,
+                            backgroundColor: 'var(--color-fill-2)',
+                            borderRadius: 6,
+                            border: '1px solid #e5e6eb'
+                        }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: 8, color: 'var(--color-text-1)' }}>
+                                生成信息:
+                            </div>
+                            <div style={{ display: 'flex', gap: 12 }}>
+                                <Tag color="blue" bordered>
+                                    知识点: {selectedKnowledgeForGenerate.name}
+                                </Tag>
+                            </div>
+                        </div>
+                    )}
+
+                    {!showStreamLogVisible && (streamingContent || lastStreamErrorRef.current) && (
+                        <div style={{ marginBottom: 8, textAlign: 'right' }}>
+                            <Button type="text" onClick={() => setStreamLogModalVisible(true)}>
+                                查看生成日志
+                            </Button>
+                        </div>
+                    )}
+
+                    {showStreamLogVisible && !isStreamingComplete && (
+                        <div style={{
+                            marginBottom: 16,
+                            padding: 12,
+                            backgroundColor: 'var(--color-info-light-1)',
+                            borderRadius: 6,
+                            border: '1px solid #b6e3ff',
+                            maxHeight: 200,
+                            overflowY: 'auto'
+                        }}>
+                            {!sseFirstMessageReceived ? (
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '20px',
+                                    color: 'var(--color-primary-6)'
+                                }}>
+                                    <Spin />
+                                    <span style={{ marginLeft: 12 }}>正在连接AI模型，准备生成题目...</span>
+                                </div>
+                            ) : streamingContent ? (
+                                <div ref={streamingContainerRef} style={{
+                                    fontSize: 12,
+                                    color: 'var(--color-text-3)',
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word',
+                                    fontFamily: 'monospace'
+                                }} dangerouslySetInnerHTML={{ __html: streamingContent }}>
+                                </div>
+                            ) : null}
+                        </div>
+                    )}
+
+                    {generatedQuestions.length > 0 && (
+                        <>
+                            <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #f0f0f0' }}>
+                                <Checkbox
+                                    checked={selectedQuestions.length === generatedQuestions.length}
+                                    indeterminate={selectedQuestions.length > 0 && selectedQuestions.length < generatedQuestions.length}
+                                    onChange={handleSelectAllQuestions}
+                                >
+                                    全选 ({generatedQuestions.length}道)
+                                </Checkbox>
+                            </div>
+                            <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                                <Collapse
+                                    defaultActiveKey={generatedQuestions.map((_, index) => index.toString())}
+                                >
+                                    {generatedQuestions.map((question, index) => {
+                                        const typeMap = {
+                                            'SINGLE': '单选题',
+                                            'MULTIPLE': '多选题'
+                                        };
+
+                                        return (
+                                            <Collapse.Item
+                                                key={index}
+                                                name={index.toString()}
+                                                header={
+                                                    <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                                        <Checkbox
+                                                            checked={selectedQuestions.includes(index)}
+                                                            onChange={(checked) => handleQuestionSelect(index, checked)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            style={{ marginRight: 12 }}
+                                                        />
+                                                        <Tag color="blue" style={{ marginRight: 8 }} bordered>
+                                                            {typeMap[question.type as keyof typeof typeMap] || question.type}
+                                                        </Tag>
+                                                        <Tooltip content={question.content}>
+                                                            <span style={{
+                                                                flex: 1,
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap'
+                                                            }}>
+                                                                {question.content}
+                                                            </span>
+                                                        </Tooltip>
+                                                    </div>
+                                                }
+                                            >
+                                                <div style={{ padding: '0 16px' }}>
+                                                    <div style={{ marginBottom: 12 }}>
+                                                        <strong>题干:</strong>
+                                                        <div style={{
+                                                            marginTop: 4,
+                                                            padding: '8px 12px',
+                                                            backgroundColor: 'var(--color-fill-2)',
+                                                            borderRadius: 4
+                                                        }}>
+                                                            {question.content}
+                                                        </div>
+                                                    </div>
+
+                                                    {question.options && renderQuestionOptions(question.options, question.type)}
+                                                    {question.answer && renderQuestionAnswer(question.answer)}
+
+                                                    {question.explanation && (
+                                                        <div style={{ marginTop: 8 }}>
+                                                            <strong>解析:</strong>
+                                                            <div style={{ marginTop: 4, color: 'var(--color-text-3)' }}>
+                                                                {question.explanation}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </Collapse.Item>
+                                        );
+                                    })}
+                                </Collapse>
+                            </div>
+                        </>
+                    )}
+                </Modal>
+            )}
+
             <Modal
                 title="生成日志"
                 visible={streamLogModalVisible}
-                style={{width: '50%'}}
+                style={{ width: '50%' }}
                 onCancel={() => setStreamLogModalVisible(false)}
                 footer={null}
             >
-                <div style={{maxHeight: '60vh', overflowY: 'auto', padding: 12, background: '#fafafa'}}>
+                <div style={{ maxHeight: '60vh', overflowY: 'auto', padding: 12, background: '#fafafa' }}>
                     <div
-                        style={{fontSize: 12, color: 'var(--color-text-3)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace'}}
+                        style={{ fontSize: 12, color: 'var(--color-text-3)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace' }}
                         dangerouslySetInnerHTML={{ __html: streamingContent || (lastStreamErrorRef.current || '') }}
                     />
                 </div>

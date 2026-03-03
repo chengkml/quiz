@@ -444,7 +444,7 @@ public class KnowledgeServiceImpl extends ReviewBaseServiceImpl<KnowledgeCreateD
         }
 
         // 调用QuestionService的流式生成方法
-        return questionService.streamGenerateQuestions(knowledgeDescr, num, modelName);
+        return questionService.streamGenerateQuestions(null, knowledge.getName(), knowledge.getContent(), num, modelName);
     }
 
 }

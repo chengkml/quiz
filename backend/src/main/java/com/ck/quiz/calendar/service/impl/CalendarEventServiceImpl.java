@@ -168,7 +168,7 @@ public class CalendarEventServiceImpl
         }
 
         // 排序
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("e.create_date", "desc", sql);
 
         // 分页
         String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(),

@@ -177,7 +177,7 @@ public class TodoServiceImpl
         }
 
         // 排序
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("t.create_date", "desc", sql);
 
         // 分页
         String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(),

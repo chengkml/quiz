@@ -159,7 +159,7 @@ public class KnowledgeSourceServiceImpl extends
         JdbcQueryHelper.equals("status", queryDto.getStatus(), " and ks.status = :status ", params, sql, countSql);
         JdbcQueryHelper.equals("type", queryDto.getType(), " and ks.type = :type ", params, sql, countSql);
 
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("ks.create_date", "desc", sql);
 
         String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(),
                 queryDto.getPageSize());

@@ -47,7 +47,7 @@ public class ScriptInfoServiceImpl extends
                 namedParameterJdbcTemplate, sql, countSql);
 
         // 排序
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("s.create_date", "desc", sql);
 
         // 分页SQL
         String limitSql = JdbcQueryHelper.getLimitSql(

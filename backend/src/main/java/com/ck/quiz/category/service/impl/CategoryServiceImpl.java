@@ -74,7 +74,7 @@ public class CategoryServiceImpl extends
                     " AND c.create_user = :createUser ", params, sql, countSql);
         }
 
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("c.create_date", "desc", sql);
 
         String limitSql = JdbcQueryHelper.getLimitSql(
                 namedParameterJdbcTemplate,

@@ -87,7 +87,7 @@ public class KnowledgeSetServiceImpl extends
         JdbcQueryHelper.equals("status", queryDto.getStatus(), " and ks.status = :status ", params, sql, countSql);
         JdbcQueryHelper.equals("visibility", queryDto.getVisibility(), " and ks.visibility = :visibility ", params, sql,
                 countSql);
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("ks.create_date", "desc", sql);
         String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(),
                 queryDto.getPageSize());
         List<KnowledgeSetDto> list = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> {
@@ -146,7 +146,7 @@ public class KnowledgeSetServiceImpl extends
                 jdbcTemplate, sql, countSql);
         JdbcQueryHelper.equals("status", queryDto.getStatus(), " and ks.status = :status ", params, sql, countSql);
 
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("ks.create_date", "desc", sql);
         String pageSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(),
                 queryDto.getPageSize());
         List<KnowledgeSetDto> list = jdbcTemplate.query(pageSql, params, (rs, rowNum) -> {

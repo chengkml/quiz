@@ -78,12 +78,14 @@ public interface QuestionService {
 
     /**
      * 流式生成题目
-     * @param knowledgeDescr
-     * @param num
-     * @param modelName
+     * @param knowledgeDescr 知识点描述（向后兼容）
+     * @param knowledgeTitle 知识点标题（新增）
+     * @param knowledgeContent 知识点内容（新增）
+     * @param num 生成题目数量
+     * @param modelName 模型名称
      * @return
      */
-    Flux<String> streamGenerateQuestions(String knowledgeDescr, int num, String modelName);
+    Flux<String> streamGenerateQuestions(String knowledgeDescr, String knowledgeTitle, String knowledgeContent, int num, String modelName);
 
     /**
      * 批量创建题目

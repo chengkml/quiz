@@ -73,7 +73,7 @@ public class OrchestrationWorkflowServiceImpl extends
                     " and w.status = :status ", params, sql, countSql);
         }
 
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("w.create_date", "desc", sql);
 
         String limitSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sql.toString(), queryDto.getPageNum(),
                 queryDto.getPageSize());

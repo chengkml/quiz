@@ -115,7 +115,7 @@ public class McpServerServiceImpl extends
             JdbcQueryHelper.equals("status", queryDto.getStatus(), " and s.status = :status ", params, sql, countSql);
         }
 
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("s.create_date", "desc", sql);
         String limitSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(),
                 queryDto.getPageSize());
 

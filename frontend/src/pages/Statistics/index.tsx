@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Card, Grid, Layout, Statistic } from '@arco-design/web-react';
 const { Row, Col } = Grid;
-import {IconQuestionCircle, IconList, IconFile, IconBulb} from '@arco-design/web-react/icon';
+import { IconQuestionCircle, IconList, IconFile, IconBulb } from '@arco-design/web-react/icon';
 import * as echarts from 'echarts';
-import { DateCountData, Statistics, SubjectCountData, getQuestionCountByLastMonth, getQuestionCountByLastSevenDays, getQuestionCountBySubject, getStatistics } from './api/dashboardApi';
+import { DateCountData, Statistics as StatisticsDataType, SubjectCountData, getQuestionCountByLastMonth, getQuestionCountByLastSevenDays, getQuestionCountBySubject, getStatistics } from './api/dashboardApi';
 import './index.less';
 
 const { Content } = Layout;
 
-function Home() {
-  const [statisticsData, setStatisticsData] = useState<Statistics | null>(null);
+function Statistics() {
+  const [statisticsData, setStatisticsData] = useState<StatisticsDataType | null>(null);
   const [lastSevenDaysData, setLastSevenDaysData] = useState<DateCountData | null>(null);
   const [subjectQuestionData, setSubjectQuestionData] = useState<SubjectCountData | null>(null);
   const [lastMonthData, setLastMonthData] = useState<DateCountData | null>(null);
@@ -98,17 +98,17 @@ function Home() {
           data: counts,
           itemStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              {offset: 0, color: '#40a9ff'},
-              {offset: 0.5, color: '#1890ff'},
-              {offset: 1, color: '#096dd9'}
+              { offset: 0, color: '#40a9ff' },
+              { offset: 0.5, color: '#1890ff' },
+              { offset: 1, color: '#096dd9' }
             ])
           },
           emphasis: {
             itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                {offset: 0, color: '#69c0ff'},
-                {offset: 0.7, color: '#69c0ff'},
-                {offset: 1, color: '#40a9ff'}
+                { offset: 0, color: '#69c0ff' },
+                { offset: 0.7, color: '#69c0ff' },
+                { offset: 1, color: '#40a9ff' }
               ])
             }
           },
@@ -159,7 +159,7 @@ function Home() {
       },
       tooltip: {
         trigger: 'axis',
-        formatter: function(params) {
+        formatter: function (params: any) {
           return params[0].name + '<br/>新增题目: ' + params[0].value + ' 道';
         }
       },
@@ -188,8 +188,8 @@ function Home() {
           },
           areaStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              {offset: 0, color: 'rgba(82, 196, 26, 0.3)'},
-              {offset: 1, color: 'rgba(82, 196, 26, 0.1)'}
+              { offset: 0, color: 'rgba(82, 196, 26, 0.3)' },
+              { offset: 1, color: 'rgba(82, 196, 26, 0.1)' }
             ])
           },
           markLine: {
@@ -315,7 +315,7 @@ function Home() {
       },
       tooltip: {
         trigger: 'axis',
-        formatter: function(params) {
+        formatter: function (params: any) {
           return params[0].name + '<br/>新增题目: ' + params[0].value + ' 道';
         }
       },
@@ -344,17 +344,17 @@ function Home() {
           data: counts,
           itemStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              {offset: 0, color: '#fccb05'},
-              {offset: 0.5, color: '#f5804d'},
-              {offset: 1, color: '#f5804d'}
+              { offset: 0, color: '#fccb05' },
+              { offset: 0.5, color: '#f5804d' },
+              { offset: 1, color: '#f5804d' }
             ])
           },
           emphasis: {
             itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                {offset: 0, color: '#f89d1e'},
-                {offset: 0.7, color: '#f89d1e'},
-                {offset: 1, color: '#fccb05'}
+                { offset: 0, color: '#f89d1e' },
+                { offset: 0.7, color: '#f89d1e' },
+                { offset: 1, color: '#fccb05' }
               ])
             }
           }
@@ -378,7 +378,7 @@ function Home() {
   }, [lastMonthData, loading]);
 
   return (
-    <Layout className="home-container">
+    <Layout className="statistics-container">
       <Content className="content">
         {/* 统计指标卡片 */}
         <Row gutter={16} className="stats-row">
@@ -454,4 +454,4 @@ function Home() {
   );
 }
 
-export default Home;
+export default Statistics;

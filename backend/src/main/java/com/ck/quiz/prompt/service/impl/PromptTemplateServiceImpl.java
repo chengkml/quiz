@@ -37,7 +37,7 @@ public class PromptTemplateServiceImpl extends BaseServiceImpl<PromptTemplateCre
                 " and lower(t.name) like :keyWord ", params, namedParameterJdbcTemplate, sql, countSql);
 
         // 排序
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("t.create_date", "desc", sql);
 
         // 分页SQL
         String limitSql = JdbcQueryHelper.getLimitSql(

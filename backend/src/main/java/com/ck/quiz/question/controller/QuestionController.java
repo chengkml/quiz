@@ -79,10 +79,12 @@ public class QuestionController {
     @Operation(summary = "流式生成题目（SSE）", description = "根据知识点描述调用大模型流式生成题目，逐条推送")
     @GetMapping(path = "/generate/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> streamGenerateQuestions(
-            @RequestParam("knowledgeDescr") String knowledgeDescr,
+            @RequestParam(value = "knowledgeDescr", required = false) String knowledgeDescr,
+            @RequestParam(value = "knowledgeTitle", required = false) String knowledgeTitle,
+            @RequestParam(value = "knowledgeContent", required = false) String knowledgeContent,
             @RequestParam(value = "num", defaultValue = "1") int num,
             @RequestParam(value = "modelName", required = false) String modelName) {
-        return questionService.streamGenerateQuestions(knowledgeDescr, num, modelName);
+        return questionService.streamGenerateQuestions(knowledgeDescr, knowledgeTitle, knowledgeContent, num, modelName);
     }
 
     @Operation(summary = "关联知识点", description = "为题目关联知识点")

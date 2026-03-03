@@ -52,4 +52,14 @@ public class QuestionCreateDto {
     private String explanation;
 
     private String knowledge;
+    
+    /**
+     * 知识点标题（AI生成题目时使用）
+     */
+    private String knowledgeTitle;
+    
+    /**
+     * 知识点内容（AI生成题目时使用）
+     */
+    private String knowledgeContent;
 }

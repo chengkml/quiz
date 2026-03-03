@@ -27,7 +27,7 @@ import ScriptManagement from "@/pages/Script";
 import JobQueueManagement from "@/pages/JobQueue";
 import JobManager from "@/pages/Job";
 import ExamHistoryManager from "@/pages/Exam/History";
-import Home from "@/pages/Home";
+import Statistics from "@/pages/Statistics";
 import NotFound from "@/pages/NotFound";
 import MindMapPage from "@/pages/MindMap";
 import MindMapEditPage from "@/pages/MindMap/Edit";
@@ -76,6 +76,42 @@ import {
   setupNavigationListeners,
 } from "@/utils/navigationManager";
 import { useEffect } from "react";
+
+/**
+ * 根页面重定向组件：加载菜单数据后自动跳转到第一个可访问的菜单
+ */
+const FrameRootRedirect = () => {
+  const { menuTree, menuLoading } = useUser();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!menuTree && menuLoading) return;
+    if (menuTree && menuTree.length > 0) {
+      const getFirstMenu = (menus: MenuTreeDto[]): string | null => {
+        for (const menu of menus) {
+          if (menu.menuType === MenuType.MENU && menu.url) return menu.url;
+          if (menu.children && menu.children.length > 0) {
+            const childPath = getFirstMenu(menu.children);
+            if (childPath) return childPath;
+          }
+        }
+        return null;
+      };
+      const firstPath = getFirstMenu(menuTree);
+      if (firstPath) {
+        navigate(`/frame/${firstPath}`, { replace: true });
+      } else {
+        navigate('/frame/notfound', { replace: true });
+      }
+    }
+  }, [menuTree, menuLoading, navigate]);
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+      <Spin dot />
+    </div>
+  );
+};
 
 /**
  * 全局导航处理组件 - 处理来自拦截器的全局导航事件
@@ -159,27 +195,27 @@ const MenuPermissionRoute: React.FC<{
   // 如果正在加载菜单，或者菜单未初始化，显示加载中
   if (menuLoading || menuTree === null) {
     return (
-        <div style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '200px'
-        }}>
-            <Spin dot />
-        </div>
+      <div style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '200px'
+      }}>
+        <Spin dot />
+      </div>
     );
   }
 
   // 如果菜单为空数组（已加载完但无菜单），则认为无权限或获取失败
   if (menuTree.length === 0) {
-      // 尝试从localStorage兜底读取（以防context未及时更新但storage有值的情况）
-      // 这里主要信赖Context，但保留兼容逻辑
-      const menuInfoStr = localStorage.getItem("menuInfo");
-      if (!menuInfoStr) {
-          return <Navigate to="/frame/notfound" replace />;
-      }
+    // 尝试从localStorage兜底读取（以防context未及时更新但storage有值的情况）
+    // 这里主要信赖Context，但保留兼容逻辑
+    const menuInfoStr = localStorage.getItem("menuInfo");
+    if (!menuInfoStr) {
+      return <Navigate to="/frame/notfound" replace />;
+    }
   }
 
   // 检查是否有访问权限 (如果有需要，可以取消注释并启用严格权限检查)
@@ -197,7 +233,7 @@ const MenuPermissionRoute: React.FC<{
  * 需要登录访问的页面（不带Layout）
  */
 const protectedPages = [
-  { path: "home", element: <Home />, requiredPath: "home" },
+  { path: "statistics", element: <Statistics />, requiredPath: "statistics" },
   { path: "user", element: <UserManagement />, requiredPath: "user" },
   { path: "role", element: <RoleManagement />, requiredPath: "role" },
   { path: "menu", element: <MenuManagement />, requiredPath: "menu" },
@@ -427,8 +463,8 @@ export const router = createBrowserRouter(
             </MenuPermissionRoute>
           ),
         })),
-        // 默认重定向到home页面
-        { path: "", element: <Navigate to="home" replace /> },
+        // 默认重定向到第一个可访问的菜单
+        { path: "", element: <FrameRootRedirect /> },
         // 非菜单页：考试作答页和详情页（需登录，但不校验菜单权限）
         { path: "exam/take/:id", element: <ExamTakePage /> },
         { path: "exam/detail/:id", element: <ExamDetailPage /> },

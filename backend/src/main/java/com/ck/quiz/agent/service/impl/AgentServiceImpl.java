@@ -150,7 +150,7 @@ public class AgentServiceImpl extends
             JdbcQueryHelper.equals("modelId", queryDto.getModelId(), " and a.model_id = :modelId ", params, sql, countSql);
         }
         
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("a.create_date", "desc", sql);
         
         String limitSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(),
                 queryDto.getPageNum(), queryDto.getPageSize());

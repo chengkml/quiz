@@ -79,10 +79,20 @@ public class QuestionServiceImpl implements QuestionService {
         String categoryId = questionCreateDto.getCategoryId();
 
         // 将题目内容作为知识点存储
+        // 优先使用 knowledgeTitle 和 knowledgeContent，其次使用 knowledge
+        String knowledgeName = null;
+        String knowledgeDescription = null;
+        
+        if (StringUtils.hasText(questionCreateDto.getKnowledgeTitle())) {
+            knowledgeName = questionCreateDto.getKnowledgeTitle();
+            knowledgeDescription = questionCreateDto.getKnowledgeContent();
+        } else if (StringUtils.hasText(questionCreateDto.getKnowledge())) {
+            knowledgeName = questionCreateDto.getKnowledge();
+            knowledgeDescription = questionCreateDto.getKnowledge();
+        }
+        
         if (StringUtils.hasText(subjectId) && StringUtils.hasText(categoryId)
-                && StringUtils.hasText(questionCreateDto.getKnowledge())) {
-            String knowledgeName = questionCreateDto.getKnowledge();
-
+                && StringUtils.hasText(knowledgeName)) {
             // 检查是否已存在相同名称的知识点
             Optional<Knowledge> existingKnowledge = knowledgeRepository.findByName(knowledgeName);
 
@@ -91,6 +101,7 @@ public class QuestionServiceImpl implements QuestionService {
                 // 创建新的知识点
                 KnowledgeCreateDto knowledgeCreateDto = new KnowledgeCreateDto();
                 knowledgeCreateDto.setName(knowledgeName);
+                knowledgeCreateDto.setContent(knowledgeDescription != null ? knowledgeDescription : knowledgeName);
                 knowledgeCreateDto.setSubjectId(subjectId);
                 knowledgeCreateDto.setCategoryId(categoryId);
 
@@ -117,10 +128,10 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public Flux<String> streamGenerateQuestions(String knowledgeDescr, int num, String modelName) {
+    public Flux<String> streamGenerateQuestions(String knowledgeDescr, String knowledgeTitle, String knowledgeContent, int num, String modelName) {
         OpenAiChatModel chatModel = llmModelService.getChatModel(modelName);
         ChatClient chat = ChatClient.builder(chatModel).build();
-        String prompt = buildPrompt(knowledgeDescr, num);
+        String prompt = buildPrompt(knowledgeDescr, knowledgeTitle, knowledgeContent, num);
 
         StringBuilder fullContent = new StringBuilder();
         ObjectMapper objectMapper = new ObjectMapper();
@@ -353,7 +364,7 @@ public class QuestionServiceImpl implements QuestionService {
         while (true) {
             try {
                 attempt++;
-                String content = chat.prompt(buildPrompt(knowledgeDescr, num)).call().content();
+                String content = chat.prompt(buildPrompt(knowledgeDescr, null, null, num)).call().content();
                 return objectMapper.readValue(content, new TypeReference<>() {
                 });
             } catch (Exception e) {
@@ -379,10 +390,23 @@ public class QuestionServiceImpl implements QuestionService {
         return result;
     }
 
-    private String buildPrompt(String knowledgePointDescription, int num) {
+    private String buildPrompt(String knowledgePointDescription, String knowledgeTitle, String knowledgeContent, int num) {
         PromptTemplateDto promptTemplateDto = promptTemplateService.getByName("questionGenerate");
         String targetPrompt = promptTemplateDto.getContent().replace("{{questionNum}}", String.valueOf(num));
-        targetPrompt = targetPrompt.replace("{{knowledgePointDescr}}", knowledgePointDescription);
+        
+        // 优先使用 knowledgeContent，其次使用 knowledgeTitle，最后使用 knowledgeDescr
+        String knowledgeInput = knowledgeContent;
+        if (knowledgeInput == null || knowledgeInput.trim().isEmpty()) {
+            knowledgeInput = knowledgeTitle;
+        }
+        if (knowledgeInput == null || knowledgeInput.trim().isEmpty()) {
+            knowledgeInput = knowledgePointDescription;
+        }
+        if (knowledgeInput == null || knowledgeInput.trim().isEmpty()) {
+            knowledgeInput = "";
+        }
+        
+        targetPrompt = targetPrompt.replace("{{knowledgePointDescr}}", knowledgeInput);
         return targetPrompt;
     }
 

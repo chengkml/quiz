@@ -67,7 +67,7 @@ public class McpToolServiceImpl extends
             JdbcQueryHelper.equals("category", queryDto.getCategory(), " and t.category = :category ", params, sql,
                     countSql);
         }
-        JdbcQueryHelper.order("create_date", "desc", sql);
+        JdbcQueryHelper.order("t.create_date", "desc", sql);
         String limitSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(),
                 queryDto.getPageNum(), queryDto.getPageSize());
         List<McpToolDto> list = namedParameterJdbcTemplate.query(limitSql, params, (rs, rowNum) -> {
