@@ -1375,7 +1375,11 @@ function KnowledgeManager() {
             setIsStreamingComplete(true);
 
             if (hasReceivedQuestionRef.current) {
-                Message.success(`已生成 ${generatedCountRef.current} 道题目`);
+                // 使用setGeneratedQuestions的状态来获取最新长度
+                setGeneratedQuestions((prev) => {
+                    Message.success(`已生成 ${prev.length} 道题目`);
+                    return prev;
+                });
             } else if (lastStreamErrorRef.current) {
                 Message.error('生成失败: ' + lastStreamErrorRef.current);
             } else {
@@ -1517,7 +1521,11 @@ function KnowledgeManager() {
                 setIsStreamingComplete(true);
 
                 if (hasReceivedQuestionRef.current) {
-                    Message.success(`已生成 ${generatedCountRef.current} 道题目`);
+                    // 使用setGeneratedQuestions的状态来获取最新长度
+                    setGeneratedQuestions((prev) => {
+                        Message.success(`已生成 ${prev.length} 道题目`);
+                        return prev;
+                    });
                 } else if (lastStreamErrorRef.current) {
                     Message.error('生成失败: ' + lastStreamErrorRef.current);
                 } else {
