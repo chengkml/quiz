@@ -63,6 +63,12 @@ public class ExamServiceImpl implements ExamService {
     private ExamResultAnswerRepository examResultAnswerRepository;
 
     @Autowired
+    private com.ck.quiz.subject.repository.SubjectRepository subjectRepository;
+
+    @Autowired
+    private com.ck.quiz.notification.service.NotificationDispatcher notificationDispatcher;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     @Override
@@ -709,12 +715,116 @@ public class ExamServiceImpl implements ExamService {
     /**
      * 将ExamQuestion实体转换为ExamQuestionDto
      */
-    private ExamQuestionDto convertExamQuestionToDto(ExamQuestion examQuestion) {
-        ExamQuestionDto dto = new ExamQuestionDto();
-        dto.setId(examQuestion.getId());
-        dto.setQuestion(questionService.convertToDto(examQuestion.getQuestion()));
-        dto.setOrderNo(examQuestion.getOrderNo());
-        dto.setScore(examQuestion.getScore());
-        return dto;
+    @Override
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void generateReviewExam(String userId, String subjectId) {
+        // 1. 检查未答试卷数量
+        String countSql = "SELECT COUNT(1) FROM exam e " +
+                "WHERE e.create_user = :userId " +
+                "AND e.subject_id = :subjectId " +
+                "AND e.status = 'PUBLISHED' " +
+                "AND NOT EXISTS (SELECT 1 FROM exam_result r WHERE r.paper_id = e.paper_id AND r.user_id = :userId)";
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("subjectId", subjectId);
+        
+        Integer count = jdbcTemplate.queryForObject(countSql, params, Integer.class);
+        if (count != null && count >= 5) {
+            return;
+        }
+
+        // 2. 获取待复习知识点关联的题目
+        String questionSql = "SELECT DISTINCT q.question_id " +
+                "FROM question q " +
+                "JOIN question_knowledge_rela r ON q.question_id = r.question_id " +
+                "JOIN knowledge k ON r.knowledge_id = k.knowledge_id " +
+                "WHERE k.create_user = :userId " +
+                "AND k.subject_id = :subjectId " +
+                "AND k.next_review_date <= :now";
+        
+        params.put("now", LocalDateTime.now());
+        List<String> questionIds = jdbcTemplate.queryForList(questionSql, params, String.class);
+        
+        if (questionIds == null || questionIds.isEmpty()) {
+            return;
+        }
+
+        // 3. 确定试卷题目数量 (100的约数)
+        int totalQuestions = questionIds.size();
+        int examSize = determineExamSize(totalQuestions);
+        
+        if (examSize == 0) {
+            return;
+        }
+
+        // 4. 随机选取题目
+        Collections.shuffle(questionIds);
+        List<String> selectedQuestionIds = questionIds.subList(0, examSize);
+        
+        // 5. 生成试卷
+        com.ck.quiz.subject.entity.Subject subject = subjectRepository.findById(subjectId).orElse(null);
+        String subjectLabel = (subject != null && StringUtils.hasText(subject.getLabel())) ? subject.getLabel() : "未知学科";
+        if (subject != null && !StringUtils.hasText(subject.getLabel())) {
+             subjectLabel = subject.getName();
+        }
+
+        Exam exam = new Exam();
+        exam.setId(IdHelper.genUuid());
+        exam.setName(String.format("%s-复习试卷-%s", subjectLabel, LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"))));
+        exam.setDescription("系统自动生成的复习试卷");
+        exam.setTotalScore(100);
+        exam.setDurationMinutes(selectedQuestionIds.size() * 2); 
+        exam.setSubjectId(subjectId);
+        exam.setStatus(Exam.ExamPaperStatus.PUBLISHED);
+        
+        exam.setCreateUser(userId);
+        exam.setUpdateUser(userId);
+        exam.setCreateDate(LocalDateTime.now());
+        exam.setUpdateDate(LocalDateTime.now());
+
+        Exam savedExam = examRepository.save(exam);
+
+        int scorePerQuestion = 100 / selectedQuestionIds.size();
+        List<ExamQuestion> examQuestions = new ArrayList<>();
+        for (int i = 0; i < selectedQuestionIds.size(); i++) {
+            ExamQuestion eq = new ExamQuestion();
+            eq.setId(IdHelper.genUuid());
+            eq.setExam(savedExam);
+            
+            Question q = questionRepository.getReferenceById(selectedQuestionIds.get(i));
+            eq.setQuestion(q);
+            
+            eq.setOrderNo(i + 1);
+            eq.setScore(scorePerQuestion);
+            examQuestions.add(eq);
+        }
+        examQuestionRepository.saveAll(examQuestions);
+        
+        // 6. 发送通知
+        try {
+            com.ck.quiz.notification.service.NotificationMessage message = com.ck.quiz.notification.service.NotificationMessage.builder()
+                    .to(userId)
+                    .title("复习提醒")
+                    .content("您的复习试卷【" + exam.getName() + "】已生成，请及时完成复习。")
+                    .channelType(com.ck.quiz.notification.service.NotificationChannelType.BROWSER)
+                    .type("INFO")
+                    .senderId("SYSTEM")
+                    .build();
+            
+            notificationDispatcher.dispatch(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private int determineExamSize(int availableCount) {
+        int[] supportedSizes = {100, 50, 25, 20, 10, 5, 4, 2, 1};
+        for (int size : supportedSizes) {
+            if (availableCount >= size) {
+                return size;
+            }
+        }
+        return 0;
     }
 }
