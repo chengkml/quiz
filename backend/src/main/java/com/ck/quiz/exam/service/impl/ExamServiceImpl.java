@@ -926,7 +926,7 @@ public class ExamServiceImpl implements ExamService {
 
                 // 构造复习请求
                 ReviewRequestDto reviewRequest = new ReviewRequestDto();
-                reviewRequest.setCardId(knowledgeId);
+                reviewRequest.setId(knowledgeId);
                 reviewRequest.setScore(finalScore);
 
                 // 调用已有的 review 方法（会自动更新 SM-2 参数并记录 ReviewLog）
