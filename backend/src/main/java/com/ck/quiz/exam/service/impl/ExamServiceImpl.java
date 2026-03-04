@@ -13,9 +13,13 @@ import com.ck.quiz.exam.service.ExamService;
 import com.ck.quiz.question.entity.Question;
 import com.ck.quiz.question.repository.QuestionRepository;
 import com.ck.quiz.question.service.QuestionService;
+import com.ck.quiz.knowledge.entity.Knowledge;
+import com.ck.quiz.knowledge.service.KnowledgeService;
+import com.ck.quiz.base.dto.ReviewRequestDto;
 import com.ck.quiz.utils.HumpHelper;
 import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +42,7 @@ import java.util.stream.Collectors;
 /**
  * 试卷管理服务实现类
  */
+@Slf4j
 @Service
 public class ExamServiceImpl implements ExamService {
 
@@ -70,6 +75,9 @@ public class ExamServiceImpl implements ExamService {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private KnowledgeService knowledgeService;
 
     @Override
     @Transactional
@@ -278,6 +286,23 @@ public class ExamServiceImpl implements ExamService {
         return examDto;
     }
 
+    /**
+     * 将ExamQuestion实体转换为ExamQuestionDto
+     */
+    private ExamQuestionDto convertExamQuestionToDto(ExamQuestion examQuestion) {
+        ExamQuestionDto dto = new ExamQuestionDto();
+        dto.setId(examQuestion.getId());
+        dto.setOrderNo(examQuestion.getOrderNo());
+        dto.setScore(examQuestion.getScore());
+        
+        // 转换题目信息
+        if (examQuestion.getQuestion() != null) {
+            dto.setQuestion(questionService.convertToDto(examQuestion.getQuestion()));
+        }
+        
+        return dto;
+    }
+
     @Override
     @Transactional
     public ExamDto publishExam(String examId) {
@@ -462,6 +487,13 @@ public class ExamServiceImpl implements ExamService {
         result.setAnswers(resultAnswers);
 
         examResultRepository.save(result);
+
+        // 更新知识点复习状态
+        try {
+            updateKnowledgeReviewStatus(result, submitDto.getUserId());
+        } catch (Exception e) {
+            log.warn("更新知识点复习状态失败: {}", e.getMessage(), e);
+        }
 
         ExamResultDto dto = new ExamResultDto();
         dto.setResultId(result.getId());
@@ -712,9 +744,6 @@ public class ExamServiceImpl implements ExamService {
         return false;
     }
 
-    /**
-     * 将ExamQuestion实体转换为ExamQuestionDto
-     */
     @Override
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void generateReviewExam(String userId, String subjectId) {
@@ -826,5 +855,93 @@ public class ExamServiceImpl implements ExamService {
             }
         }
         return 0;
+    }
+
+    /**
+     * 根据答题结果更新知识点复习状态
+     * 使用 SM-2 算法更新知识点的复习间隔和下次复习时间
+     * 
+     * @param examResult 试卷答题结果
+     * @param userId 用户ID
+     */
+    private void updateKnowledgeReviewStatus(ExamResult examResult, String userId) {
+        if (examResult == null || examResult.getAnswers() == null || examResult.getAnswers().isEmpty()) {
+            return;
+        }
+
+        log.debug("开始更新知识点复习状态，试卷ID: {}, 用户: {}", examResult.getExam().getId(), userId);
+
+        // 1. 收集知识点评分
+        // Map<知识点ID, 评分列表>
+        Map<String, List<Integer>> knowledgeScores = new HashMap<>();
+
+        for (ExamResultAnswer answer : examResult.getAnswers()) {
+            ExamQuestion examQuestion = answer.getExamQuestion();
+            if (examQuestion == null || examQuestion.getQuestion() == null) {
+                continue;
+            }
+
+            Question question = examQuestion.getQuestion();
+            List<Knowledge> knowledgePoints = question.getKnowledgePoints();
+            
+            // 跳过没有关联知识点的题目
+            if (knowledgePoints == null || knowledgePoints.isEmpty()) {
+                continue;
+            }
+
+            // 确定评分：答对 = 4 分（良好），答错 = 1 分（完全不记得）
+            int score = Boolean.TRUE.equals(answer.getCorrect()) ? 4 : 1;
+
+            // 为每个关联的知识点记录评分
+            for (Knowledge knowledge : knowledgePoints) {
+                knowledgeScores
+                    .computeIfAbsent(knowledge.getId(), k -> new ArrayList<>())
+                    .add(score);
+            }
+        }
+
+        if (knowledgeScores.isEmpty()) {
+            log.debug("没有需要更新的知识点");
+            return;
+        }
+
+        log.info("试卷提交后共涉及 {} 个知识点需要更新复习状态", knowledgeScores.size());
+
+        // 2. 批量更新知识点复习状态
+        int successCount = 0;
+        int failCount = 0;
+
+        for (Map.Entry<String, List<Integer>> entry : knowledgeScores.entrySet()) {
+            String knowledgeId = entry.getKey();
+            List<Integer> scores = entry.getValue();
+
+            try {
+                // 合并策略：取最高分（体现最好的掌握程度）
+                int finalScore = scores.stream()
+                    .max(Integer::compareTo)
+                    .orElse(1);
+
+                log.debug("知识点 {} 在本次答题中出现 {} 次，评分: {}，最终评分: {}", 
+                    knowledgeId, scores.size(), scores, finalScore);
+
+                // 构造复习请求
+                ReviewRequestDto reviewRequest = new ReviewRequestDto();
+                reviewRequest.setCardId(knowledgeId);
+                reviewRequest.setScore(finalScore);
+
+                // 调用已有的 review 方法（会自动更新 SM-2 参数并记录 ReviewLog）
+                knowledgeService.review(userId, reviewRequest);
+                
+                successCount++;
+                log.debug("知识点 {} 复习状态更新成功", knowledgeId);
+
+            } catch (Exception e) {
+                // 单个知识点更新失败不影响整体流程
+                failCount++;
+                log.warn("更新知识点 {} 复习状态失败: {}", knowledgeId, e.getMessage());
+            }
+        }
+
+        log.info("知识点复习状态更新完成，成功: {}, 失败: {}", successCount, failCount);
     }
 }
