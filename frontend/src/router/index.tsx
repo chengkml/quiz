@@ -71,6 +71,7 @@ import AgentManager from "@/pages/Agent";
 import VocabularyPage from "@/pages/Vocabulary";
 import VocabularyReviewPage from "@/pages/Vocabulary/Review";
 import PoetryPage from "@/pages/Poetry";
+import GitDesktopPage from "@/pages/GitDesktop";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -280,6 +281,7 @@ const protectedPages = [
   { path: "llmmodel", element: <Model />, requiredPath: "llmmodel" },
   { path: "token-usage", element: <TokenUsagePage />, requiredPath: "token-usage" },
   { path: "mindmap", element: <MindMapPage />, requiredPath: "mindmap" },
+  { path: "git-desktop", element: <GitDesktopPage />, requiredPath: "git-desktop" },
   { path: "FuncDoc", element: <FuncDocManager />, requiredPath: "funcDoc" },
   {
     path: "prompt",

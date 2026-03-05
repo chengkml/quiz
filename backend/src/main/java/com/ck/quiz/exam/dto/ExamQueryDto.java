@@ -48,4 +48,23 @@ public class ExamQueryDto {
      * 排序方向：asc, desc
      */
     private String sortType = "desc";
+
+    /**
+     * 答题过滤条件（用于筛选已作答或未作答试卷，仅对已发布试卷生效）
+     */
+    private AnswerFilter answerFilter;
+
+    /**
+     * 答题过滤枚举
+     */
+    public enum AnswerFilter {
+        /**
+         * 已作答
+         */
+        ANSWERED,
+        /**
+         * 未作答
+         */
+        UNANSWERED
+    }
 }

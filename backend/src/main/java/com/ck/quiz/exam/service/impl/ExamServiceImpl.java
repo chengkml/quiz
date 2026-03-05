@@ -216,7 +216,30 @@ public class ExamServiceImpl implements ExamService {
                     " AND e.subject_id = :subjectId ", params, sb, countSb);
         }
 
+        // 已作答/未作答过滤（仅对已发布试卷生效）
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (queryDto.getAnswerFilter() != null && authentication != null && authentication.isAuthenticated()) {
+            String currentUserId = authentication.getName();
+            
+            if (queryDto.getAnswerFilter() == ExamQueryDto.AnswerFilter.ANSWERED) {
+                String condition = " AND EXISTS (SELECT 1 FROM exam_result r WHERE r.paper_id = e.paper_id AND r.user_id = :currentUserId) ";
+                sb.append(condition);
+                countSb.append(condition);
+                params.put("currentUserId", currentUserId);
+            } else if (queryDto.getAnswerFilter() == ExamQueryDto.AnswerFilter.UNANSWERED) {
+                String condition = " AND NOT EXISTS (SELECT 1 FROM exam_result r WHERE r.paper_id = e.paper_id AND r.user_id = :currentUserId) ";
+                sb.append(condition);
+                countSb.append(condition);
+                params.put("currentUserId", currentUserId);
+            }
+            
+            // 只对已发布试卷筛选已作答/未作答
+            JdbcQueryHelper.equals("publishedFilter", "PUBLISHED", " AND e.status = :publishedFilter ", params, sb, countSb);
+        }
+
+        if (authentication == null) {
+            authentication = SecurityContextHolder.getContext().getAuthentication();
+        }
         if (authentication != null && authentication.isAuthenticated()) {
             JdbcQueryHelper.equals("createUser", authentication.getName(),
                     " AND e.create_user = :createUser ", params, sb, countSb);

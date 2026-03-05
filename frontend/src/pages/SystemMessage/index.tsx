@@ -325,7 +325,7 @@ function SystemMessageManager() {
           onDelete: handleDelete,
         }}
         config={{
-          showModeToggle: true,
+          showModeToggle: false,
           displayMode: "table",
           filterContent,
           tableColumns,
@@ -336,14 +336,11 @@ function SystemMessageManager() {
               icon={<IconCheck />}
               onClick={handleMarkAllAsRead}
             >
-              全部已读
+              全部标为已读
             </Button>
           ),
         }}
         tableScrollHeight={400}
-        cardColumns={2}
-        cardGutter={16}
-        cardSize="medium"
       />
 
       <DetailModal

@@ -68,12 +68,16 @@ export interface ExamUpdateDto {
   questions?: ExamQuestionCreateDto[];
 }
 
+// 答题过滤枚举
+export type AnswerFilter = 'ANSWERED' | 'UNANSWERED';
+
 // 试卷查询参数DTO
 export interface ExamQueryDto {
   keyWord?: string;           // 关键字（名称/描述模糊查询）
   status?: ExamStatus;        // 试卷状态
   createUser?: string;        // 创建人
   subjectId?: number;         // 学科ID
+  answerFilter?: AnswerFilter; // 答题过滤条件
   pageNum?: number;           // 页码（后端从0开始）
   pageSize?: number;          // 每页大小
   sortColumn?: string;        // 排序字段

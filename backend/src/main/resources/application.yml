@@ -56,6 +56,9 @@ quiz:
       endpoint: http://localhost:9000
       base-path:
 
+  git:
+    base-path: ./data/git_repos # Base directory for all Git repositories
+
 springdoc:
   api-docs:
     path: /api/v3/api-docs

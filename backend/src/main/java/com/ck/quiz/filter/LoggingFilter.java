@@ -34,6 +34,7 @@ import java.util.Set;
 public class LoggingFilter extends OncePerRequestFilter {
 
     @Autowired
+    @Lazy
     private SysLogService sysLogService;
 
     @Autowired

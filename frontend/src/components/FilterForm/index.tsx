@@ -57,6 +57,7 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
   const formRef = useRef<any>(null);
   const triggerRef = useRef<any>(null);
   const valuesRef = useRef(initialValues);
+  const lastInitialValuesRef = useRef(initialValues);
 
   // 更新已选条件标签
   const updateValueList = useCallback((currentValues: Record<string, any>) => {
@@ -205,6 +206,29 @@ const FilterForm = React.forwardRef<any, FilterFormProps>((props, ref) => {
   useEffect(() => {
     updateValueList(values);
   }, []); // 移除 initialValues 的依赖，仅在挂载时执行
+
+  // 同步 initialValues 变化到表单和内部状态（仅在 initialValues 本身变化时同步，避免覆盖用户输入）
+  useEffect(() => {
+    const prevInitialValues = lastInitialValuesRef.current || {};
+    const nextValues = initialValues || {};
+    const prevKeys = Object.keys(prevInitialValues);
+    const nextKeys = Object.keys(nextValues);
+    const isSame =
+      prevKeys.length === nextKeys.length &&
+      nextKeys.every((key) => prevInitialValues[key] === nextValues[key]);
+
+    if (isSame) {
+      return;
+    }
+
+    lastInitialValuesRef.current = nextValues;
+    setValues(nextValues);
+    valuesRef.current = nextValues;
+    if (formRef.current) {
+      formRef.current.setFieldsValue(nextValues);
+    }
+    updateValueList(nextValues);
+  }, [initialValues, updateValueList]);
 
   // 暴露公共方法
   React.useImperativeHandle(ref, () => ({

@@ -45,7 +45,7 @@ import {
 import ExamQuestionManager from './components/ExamQuestionManager';
 import {getAllSubjects} from '../Subject/api';
 import {getCategoriesBySubjectId} from '../Category/api';
-import {ExamDto, ExamQueryDto, ExamStatus, FormRef, PaginationConfig, StatusOption} from './types';
+import {ExamDto, ExamQueryDto, FormRef, PaginationConfig} from './types';
 import { DataManager } from '../../components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
@@ -64,8 +64,13 @@ const {Row, Col} = Grid;
     // 搜索条件
     const [searchParams, setSearchParams] = useState({
         name: '',
-        status: '',
+        answerFilter: 'UNANSWERED',
     });
+
+    const answerFilterOptions = [
+        { label: '已作答', value: 'ANSWERED' },
+        { label: '未作答', value: 'UNANSWERED' },
+    ];
 
     // 对话框状态
     const [deleteModalVisible, setDeleteModalVisible] = useState<boolean>(false);
@@ -98,6 +103,10 @@ const {Row, Col} = Grid;
     // 表单引用
     const filterFormRef = useRef<any>(null);
 
+    const syncFilterForm = (values: { name: string; answerFilter: string }) => {
+        filterFormRef.current?.setFieldsValue(values);
+    };
+
     // 分页配置
     const [pagination, setPagination] = useState<PaginationConfig>({
         current: 1,
@@ -107,13 +116,6 @@ const {Row, Col} = Grid;
         showJumper: true,
         showPageSize: true,
     });
-
-    // 试卷状态选项
-    const statusOptions: StatusOption[] = [
-        {label: '草稿', value: ExamStatus.DRAFT},
-        {label: '已发布', value: ExamStatus.PUBLISHED},
-        {label: '已归档', value: ExamStatus.ARCHIVED},
-    ];
 
     // 表格列配置
     const columns = [
@@ -238,7 +240,7 @@ const {Row, Col} = Grid;
         try {
             const targetParams: ExamQueryDto = {
                 keyWord: params?.name,
-                status: params?.status,
+                answerFilter: params?.answerFilter || undefined,
                 pageNum: current - 1,
                 pageSize: pageSize,
                 subjectId: subjectId !== undefined ? subjectId : currentTreeNode?.subjectId,
@@ -262,13 +264,24 @@ const {Row, Col} = Grid;
 
     // 搜索处理
     const handleSearch = (values: any) => {
-        const filterValues = Object.fromEntries(
-            Object.entries(values).filter(([_, v]) => v !== '' && v !== undefined)
-        );
-        setSearchParams((prev) => ({ ...prev, ...filterValues }));
+        const nextSearchParams = {
+            name: values?.name || '',
+            answerFilter: values?.answerFilter || '',
+        };
+        setSearchParams(nextSearchParams);
+        syncFilterForm(nextSearchParams);
         setPagination((prev) => ({ ...prev, current: 1 }));
         // 保留当前选中的学科过滤
-        fetchTableData(filterValues, pagination.pageSize, 1, currentTreeNode?.subjectId);
+        fetchTableData(nextSearchParams, pagination.pageSize, 1, currentTreeNode?.subjectId);
+    };
+
+    // 重置处理（默认未作答）
+    const handleReset = () => {
+        const defaultParams = { name: '', answerFilter: 'UNANSWERED' };
+        setSearchParams(defaultParams);
+        syncFilterForm(defaultParams);
+        setPagination((prev) => ({ ...prev, current: 1 }));
+        fetchTableData(defaultParams, pagination.pageSize, 1, currentTreeNode?.subjectId);
     };
 
     // 分页变化
@@ -547,11 +560,12 @@ const {Row, Col} = Grid;
             span: 6,
         },
         {
-            field: 'status',
+            field: 'answerFilter',
             label: '状态',
             type: 'select',
-            placeholder: '请选择试卷状态',
-            options: statusOptions,
+            placeholder: '请选择状态',
+            options: answerFilterOptions,
+            initialValue: 'UNANSWERED',
             span: 6,
             allowClear: true,
         },
@@ -560,8 +574,10 @@ const {Row, Col} = Grid;
     const filterContent = (
         <FilterForm
             ref={filterFormRef}
+            initialValues={{ name: '', answerFilter: 'UNANSWERED' }}
             formFields={searchFormFields}
             onSearch={handleSearch}
+            onReset={handleReset}
         />
     );
 
@@ -606,8 +622,9 @@ const {Row, Col} = Grid;
                                                     const selectedKey = selectedKeys[0];
                                                     if (selectedKey === 'all') {
                                                         setCurrentTreeNode(null);
-                                                        const emptyParams = { name: '', status: '' };
+                                                        const emptyParams = { name: '', answerFilter: 'UNANSWERED' };
                                                         setSearchParams(emptyParams);
+                                                        syncFilterForm(emptyParams);
                                                         setPagination(prev => ({ ...prev, current: 1 }));
                                                         fetchTableData(emptyParams, pagination.pageSize, 1, null);
                                                         return;
@@ -615,8 +632,9 @@ const {Row, Col} = Grid;
                                                     const nodeInfo = findNodeInTree(treeData, selectedKey);
                                                     setCurrentTreeNode(nodeInfo);
                                                     // 重置搜索条件和分页，按学科过滤
-                                                    const emptyParams = { name: '', status: '' };
+                                                    const emptyParams = { name: '', answerFilter: 'UNANSWERED' };
                                                     setSearchParams(emptyParams);
+                                                    syncFilterForm(emptyParams);
                                                     setPagination(prev => ({ ...prev, current: 1 }));
                                                     if (nodeInfo) {
                                                         fetchTableData(emptyParams, pagination.pageSize, 1, nodeInfo.subjectId);
@@ -627,8 +645,9 @@ const {Row, Col} = Grid;
                                                     setSelectedTreeNode(null);
                                                     setCurrentTreeNode(null);
                                                     // 清空树选择时，也重置搜索条件
-                                                    const emptyParams = { name: '', status: '' };
+                                                    const emptyParams = { name: '', answerFilter: 'UNANSWERED' };
                                                     setSearchParams(emptyParams);
+                                                    syncFilterForm(emptyParams);
                                                     setPagination(prev => ({ ...prev, current: 1 }));
                                                     fetchTableData(emptyParams, pagination.pageSize, 1);
                                                 }
