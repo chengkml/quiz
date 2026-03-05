@@ -15,7 +15,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
-import org.eclipse.jgit.transport.TransportCommand;
+import org.eclipse.jgit.api.TransportCommand;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,8 +53,8 @@ public class GitServiceImpl implements GitService {
      */
     private void setCredientialsProvider(TransportCommand<?, ?> cmd) {
         try {
-            org.eclipse.jgit.transport.CredentialsProvider provider = 
-                org.eclipse.jgit.transport.CredentialsProvider.getDefault();
+            org.eclipse.jgit.transport.CredentialsProvider provider = org.eclipse.jgit.transport.CredentialsProvider
+                    .getDefault();
             if (provider != null) {
                 cmd.setCredentialsProvider(provider);
                 log.debug("已设置系统凭证提供程序");
@@ -562,7 +562,7 @@ public class GitServiceImpl implements GitService {
                     pushCmd.setRemote(remoteName);
                 }
                 pushCmd.setForce(force);
-                
+
                 // 设置凭证提供程序以支持 HTTPS 认证
                 setCredientialsProvider(pushCmd);
 
@@ -578,7 +578,7 @@ public class GitServiceImpl implements GitService {
                             hasAuthError = true;
                         }
                     }
-                    
+
                     for (RemoteRefUpdate update : pr.getRemoteUpdates()) {
                         if (update.getStatus() != RemoteRefUpdate.Status.OK
                                 && update.getStatus() != RemoteRefUpdate.Status.UP_TO_DATE) {
@@ -597,7 +597,7 @@ public class GitServiceImpl implements GitService {
                     }
                 }
                 result.setSuccess(allOk);
-                
+
                 if (!allOk && hasAuthError) {
                     result.setMessage("推送失败: 需要身份认证。请确保已配置 Git 凭证或使用 SSH 密钥。");
                 } else if (!allOk && msg.length() > 0) {
@@ -632,30 +632,31 @@ public class GitServiceImpl implements GitService {
             try (Git git = new Git(repo)) {
                 String currentBranch = getCurrentBranch(repo);
                 String remoteToUse = (remoteName != null && !remoteName.isEmpty()) ? remoteName : "origin";
-                
+
                 // 如果没有指定远程分支，尝试找到远端对应的分支
                 String remoteBranch = null;
                 try {
                     // 获取远程分支列表
                     java.util.List<Ref> remoteRefs = git.lsRemote()
                             .setRemote(remoteToUse)
-                            .setHeads(true)  // 只获取分支，不获取 tags
+                            .setHeads(true) // 只获取分支，不获取 tags
                             .call()
                             .stream()
                             .filter(ref -> ref.getName().startsWith("refs/heads/"))
                             .collect(java.util.stream.Collectors.toList());
-                    
+
                     // 首先尝试找到当前分支名对应的远程分支
                     remoteBranch = remoteRefs.stream()
                             .filter(ref -> ref.getName().equals("refs/heads/" + currentBranch))
                             .map(ref -> currentBranch)
                             .findFirst()
                             .orElse(null);
-                    
+
                     // 如果当前分支在远端不存在，尝试找到默认分支（main 或 master）
                     if (remoteBranch == null && !remoteRefs.isEmpty()) {
                         remoteBranch = remoteRefs.stream()
-                                .filter(ref -> ref.getName().equals("refs/heads/main") || ref.getName().equals("refs/heads/master"))
+                                .filter(ref -> ref.getName().equals("refs/heads/main")
+                                        || ref.getName().equals("refs/heads/master"))
                                 .map(ref -> {
                                     String refName = ref.getName();
                                     return refName.substring("refs/heads/".length());
@@ -663,7 +664,7 @@ public class GitServiceImpl implements GitService {
                                 .findFirst()
                                 .orElse(null);
                     }
-                    
+
                     if (remoteBranch == null && !remoteRefs.isEmpty()) {
                         // 如果找不到 main 或 master，使用第一个远程分支
                         String refName = remoteRefs.get(0).getName();
@@ -674,7 +675,7 @@ public class GitServiceImpl implements GitService {
                     // 如果获取列表失败，使用当前分支名
                     remoteBranch = currentBranch;
                 }
-                
+
                 if (remoteBranch == null) {
                     result.setSuccess(false);
                     result.setMessage("无法找到合适的远程分支。请检查远程仓库是否为空或网络连接。");
@@ -686,10 +687,10 @@ public class GitServiceImpl implements GitService {
                 if (rebase) {
                     pullCmd.setRebase(BranchConfig.BranchRebaseMode.REBASE);
                 }
-                
+
                 // 设置凭证提供程序以支持 HTTPS 认证
                 setCredientialsProvider(pullCmd);
-                
+
                 org.eclipse.jgit.api.PullResult pullResult = pullCmd.call();
 
                 result.setSuccess(pullResult.isSuccessful());
