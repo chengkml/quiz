@@ -15,6 +15,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
+import org.eclipse.jgit.transport.TransportCommand;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,45 @@ public class GitServiceImpl implements GitService {
         return repoLocks.computeIfAbsent(repoId, id -> new ReentrantLock());
     }
 
+    /**
+     * 为 Git 命令设置凭证提供程序（支持 HTTPS）
+     */
+    private void setCredientialsProvider(TransportCommand<?, ?> cmd) {
+        try {
+            org.eclipse.jgit.transport.CredentialsProvider provider = 
+                org.eclipse.jgit.transport.CredentialsProvider.getDefault();
+            if (provider != null) {
+                cmd.setCredentialsProvider(provider);
+                log.debug("已设置系统凭证提供程序");
+            } else {
+                log.debug("系统凭证提供程序为空，将使用默认 SSH 或其他认证方式");
+            }
+        } catch (Exception e) {
+            log.warn("设置凭证提供程序失败: {}", e.getMessage());
+            // 不中止执行，继续使用默认认证方式
+        }
+    }
+
+    /**
+     * 安全获取当前分支名
+     */
+    private String getCurrentBranch(Repository repo) {
+        try {
+            return repo.getBranch();
+        } catch (IOException e) {
+            log.warn("获取当前分支名失败，可能处于分离头指针状态", e);
+            try {
+                ObjectId headId = repo.resolve("HEAD");
+                if (headId != null) {
+                    return headId.abbreviate(7).name();
+                }
+            } catch (Exception ex) {
+                log.debug("获取HEAD失败");
+            }
+            return "HEAD";
+        }
+    }
+
     private Repository getRepo(String repoId) {
         GitRepo gitRepo = gitRepoRepository.findById(repoId)
                 .orElseThrow(() -> new IllegalArgumentException("仓库不存在: " + repoId));
@@ -66,7 +106,7 @@ public class GitServiceImpl implements GitService {
             GitRepo gitRepo = gitRepoRepository.findById(repoId).orElse(null);
             dto.setRepoId(repoId);
             dto.setRepoName(gitRepo != null ? gitRepo.getName() : "");
-            dto.setCurrentBranch(repo.getBranch());
+            dto.setCurrentBranch(getCurrentBranch(repo));
             dto.setClean(status.isClean());
 
             List<FileChangeDto> files = new ArrayList<>();
@@ -105,7 +145,8 @@ public class GitServiceImpl implements GitService {
 
             // ahead/behind counts
             try {
-                BranchTrackingStatus trackingStatus = BranchTrackingStatus.of(repo, repo.getBranch());
+                String currentBranch = getCurrentBranch(repo);
+                BranchTrackingStatus trackingStatus = BranchTrackingStatus.of(repo, currentBranch);
                 if (trackingStatus != null) {
                     dto.setAhead(trackingStatus.getAheadCount());
                     dto.setBehind(trackingStatus.getBehindCount());
@@ -115,7 +156,7 @@ public class GitServiceImpl implements GitService {
             }
 
             return dto;
-        } catch (GitAPIException | IOException e) {
+        } catch (GitAPIException e) {
             throw new RuntimeException("获取仓库状态失败", e);
         }
     }
@@ -171,7 +212,7 @@ public class GitServiceImpl implements GitService {
                     break;
                 }
             }
-        } catch (IOException | GitAPIException e) {
+        } catch (Exception e) {
             throw new RuntimeException("获取 diff 失败: " + filePath, e);
         }
 
@@ -311,14 +352,30 @@ public class GitServiceImpl implements GitService {
     public List<GitCommitDto> getLog(String repoId, String branch, int page, int size, String keyword) {
         Repository repo = getRepo(repoId);
         try (Git git = new Git(repo)) {
+            // 检查仓库是否为空（没有任何提交）
+            try {
+                ObjectId headId = repo.resolve("HEAD");
+                if (headId == null) {
+                    log.info("仓库为空，没有任何提交历史");
+                    return new ArrayList<>();
+                }
+            } catch (Exception e) {
+                log.info("仓库为空或损坏，没有有效的HEAD");
+                return new ArrayList<>();
+            }
+
             LogCommand logCmd = git.log();
 
             if (branch != null && !branch.isEmpty()) {
                 ObjectId branchId = repo.resolve(branch);
                 if (branchId != null) {
                     logCmd.add(branchId);
+                } else {
+                    log.warn("分支不存在: {}", branch);
+                    return new ArrayList<>();
                 }
             } else {
+                // 当没有指定分支时，获取所有分支的提交历史
                 logCmd.all();
             }
 
@@ -326,20 +383,24 @@ public class GitServiceImpl implements GitService {
             logCmd.setMaxCount(size);
 
             List<GitCommitDto> commits = new ArrayList<>();
-            for (RevCommit commit : logCmd.call()) {
-                GitCommitDto dto = convertCommit(commit);
-                // keyword 过滤
-                if (keyword != null && !keyword.isEmpty()) {
-                    if (!dto.getMessage().toLowerCase().contains(keyword.toLowerCase())
-                            && !dto.getAuthor().toLowerCase().contains(keyword.toLowerCase())) {
-                        continue;
+            Iterable<RevCommit> commitIter = logCmd.call();
+            if (commitIter != null) {
+                for (RevCommit commit : commitIter) {
+                    GitCommitDto dto = convertCommit(commit);
+                    // keyword 过滤
+                    if (keyword != null && !keyword.isEmpty()) {
+                        if (!dto.getMessage().toLowerCase().contains(keyword.toLowerCase())
+                                && !dto.getAuthor().toLowerCase().contains(keyword.toLowerCase())) {
+                            continue;
+                        }
                     }
+                    commits.add(dto);
                 }
-                commits.add(dto);
             }
             return commits;
         } catch (GitAPIException | IOException e) {
-            throw new RuntimeException("获取提交历史失败", e);
+            log.error("获取提交历史失败，repoId: {}, branch: {}", repoId, branch, e);
+            throw new RuntimeException("获取提交历史失败: " + e.getMessage(), e);
         }
     }
 
@@ -381,7 +442,7 @@ public class GitServiceImpl implements GitService {
             }
             dto.setChangedFiles(changes);
             return dto;
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException("获取提交详情失败", e);
         }
     }
@@ -391,7 +452,7 @@ public class GitServiceImpl implements GitService {
         Repository repo = getRepo(repoId);
         try (Git git = new Git(repo)) {
             List<GitBranchDto> result = new ArrayList<>();
-            String currentBranch = repo.getBranch();
+            String currentBranch = getCurrentBranch(repo);
 
             // 本地分支
             for (Ref ref : git.branchList().call()) {
@@ -424,7 +485,7 @@ public class GitServiceImpl implements GitService {
             }
 
             return result;
-        } catch (GitAPIException | IOException e) {
+        } catch (GitAPIException e) {
             throw new RuntimeException("获取分支列表失败", e);
         }
     }
@@ -501,25 +562,59 @@ public class GitServiceImpl implements GitService {
                     pushCmd.setRemote(remoteName);
                 }
                 pushCmd.setForce(force);
+                
+                // 设置凭证提供程序以支持 HTTPS 认证
+                setCredientialsProvider(pushCmd);
 
                 Iterable<PushResult> pushResults = pushCmd.call();
                 StringBuilder msg = new StringBuilder();
                 boolean allOk = true;
+                boolean hasAuthError = false;
                 for (PushResult pr : pushResults) {
+                    // 检查推送结果中的错误消息
+                    if (pr.getMessages() != null && !pr.getMessages().isEmpty()) {
+                        String messages = pr.getMessages();
+                        if (messages.contains("Authentication")) {
+                            hasAuthError = true;
+                        }
+                    }
+                    
                     for (RemoteRefUpdate update : pr.getRemoteUpdates()) {
                         if (update.getStatus() != RemoteRefUpdate.Status.OK
                                 && update.getStatus() != RemoteRefUpdate.Status.UP_TO_DATE) {
                             allOk = false;
+                            // 检查更新的具体状态
+                            String statusMsg = update.getStatus().toString();
+                            if (statusMsg.contains("REJECTED") || statusMsg.contains("NO_CHANGE")) {
+                                msg.append(update.getRemoteName()).append(": ")
+                                        .append(statusMsg);
+                                if (update.getMessage() != null && !update.getMessage().isEmpty()) {
+                                    msg.append(" - ").append(update.getMessage());
+                                }
+                                msg.append("\n");
+                            }
                         }
-                        msg.append(update.getRemoteName()).append(": ")
-                                .append(update.getStatus()).append("\n");
                     }
                 }
                 result.setSuccess(allOk);
-                result.setMessage(msg.toString().trim());
+                
+                if (!allOk && hasAuthError) {
+                    result.setMessage("推送失败: 需要身份认证。请确保已配置 Git 凭证或使用 SSH 密钥。");
+                } else if (!allOk && msg.length() > 0) {
+                    result.setMessage("推送失败: " + msg.toString().trim());
+                } else if (!allOk) {
+                    result.setMessage("推送失败: 未知错误");
+                } else {
+                    result.setMessage("推送成功");
+                }
             } catch (GitAPIException e) {
                 result.setSuccess(false);
-                result.setMessage("推送失败: " + e.getMessage());
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && errorMsg.contains("Authentication is required")) {
+                    result.setMessage("推送失败: 需要身份认证。请配置 Git 凭证或使用 SSH 密钥。");
+                } else {
+                    result.setMessage("推送失败: " + errorMsg);
+                }
             }
             return result;
         } finally {
@@ -535,34 +630,94 @@ public class GitServiceImpl implements GitService {
             Repository repo = getRepo(repoId);
             GitPushPullResult result = new GitPushPullResult();
             try (Git git = new Git(repo)) {
-                PullCommand pullCmd = git.pull();
-                if (remoteName != null && !remoteName.isEmpty()) {
-                    pullCmd.setRemote(remoteName);
+                String currentBranch = getCurrentBranch(repo);
+                String remoteToUse = (remoteName != null && !remoteName.isEmpty()) ? remoteName : "origin";
+                
+                // 如果没有指定远程分支，尝试找到远端对应的分支
+                String remoteBranch = null;
+                try {
+                    // 获取远程分支列表
+                    java.util.List<Ref> remoteRefs = git.lsRemote()
+                            .setRemote(remoteToUse)
+                            .setHeads(true)  // 只获取分支，不获取 tags
+                            .call()
+                            .stream()
+                            .filter(ref -> ref.getName().startsWith("refs/heads/"))
+                            .collect(java.util.stream.Collectors.toList());
+                    
+                    // 首先尝试找到当前分支名对应的远程分支
+                    remoteBranch = remoteRefs.stream()
+                            .filter(ref -> ref.getName().equals("refs/heads/" + currentBranch))
+                            .map(ref -> currentBranch)
+                            .findFirst()
+                            .orElse(null);
+                    
+                    // 如果当前分支在远端不存在，尝试找到默认分支（main 或 master）
+                    if (remoteBranch == null && !remoteRefs.isEmpty()) {
+                        remoteBranch = remoteRefs.stream()
+                                .filter(ref -> ref.getName().equals("refs/heads/main") || ref.getName().equals("refs/heads/master"))
+                                .map(ref -> {
+                                    String refName = ref.getName();
+                                    return refName.substring("refs/heads/".length());
+                                })
+                                .findFirst()
+                                .orElse(null);
+                    }
+                    
+                    if (remoteBranch == null && !remoteRefs.isEmpty()) {
+                        // 如果找不到 main 或 master，使用第一个远程分支
+                        String refName = remoteRefs.get(0).getName();
+                        remoteBranch = refName.substring("refs/heads/".length());
+                    }
+                } catch (Exception e) {
+                    log.warn("获取远程分支列表失败: {}", e.getMessage());
+                    // 如果获取列表失败，使用当前分支名
+                    remoteBranch = currentBranch;
                 }
+                
+                if (remoteBranch == null) {
+                    result.setSuccess(false);
+                    result.setMessage("无法找到合适的远程分支。请检查远程仓库是否为空或网络连接。");
+                    return result;
+                }
+
+                PullCommand pullCmd = git.pull();
+                pullCmd.setRemote(remoteToUse);
                 if (rebase) {
                     pullCmd.setRebase(BranchConfig.BranchRebaseMode.REBASE);
                 }
+                
+                // 设置凭证提供程序以支持 HTTPS 认证
+                setCredientialsProvider(pullCmd);
+                
                 org.eclipse.jgit.api.PullResult pullResult = pullCmd.call();
 
                 result.setSuccess(pullResult.isSuccessful());
+                String resultMsg = "";
                 if (pullResult.getMergeResult() != null) {
-                    result.setMessage(pullResult.getMergeResult().getMergeStatus().toString());
+                    resultMsg = pullResult.getMergeResult().getMergeStatus().toString();
                     if (pullResult.getMergeResult().getConflicts() != null) {
                         result.setHasConflicts(true);
                         result.setConflictFiles(new ArrayList<>(pullResult.getMergeResult().getConflicts().keySet()));
                     }
                 } else if (pullResult.getRebaseResult() != null) {
-                    result.setMessage(pullResult.getRebaseResult().getStatus().toString());
+                    resultMsg = pullResult.getRebaseResult().getStatus().toString();
                     if (pullResult.getRebaseResult().getConflicts() != null) {
                         result.setHasConflicts(true);
                         result.setConflictFiles(pullResult.getRebaseResult().getConflicts());
                     }
                 } else {
-                    result.setMessage("Pull completed");
+                    resultMsg = "成功从 " + remoteToUse + "/" + remoteBranch + " 拉取更新";
                 }
+                result.setMessage(resultMsg);
             } catch (GitAPIException e) {
                 result.setSuccess(false);
-                result.setMessage("拉取失败: " + e.getMessage());
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && errorMsg.contains("did not advertise Ref")) {
+                    result.setMessage("拉取失败: 远程分支不存在。请检查远程仓库的分支配置。");
+                } else {
+                    result.setMessage("拉取失败: " + errorMsg);
+                }
             }
             return result;
         } finally {
@@ -582,6 +737,8 @@ public class GitServiceImpl implements GitService {
                 if (remoteName != null && !remoteName.isEmpty()) {
                     fetchCmd.setRemote(remoteName);
                 }
+                // 设置凭证提供程序以支持 HTTPS 认证
+                setCredientialsProvider(fetchCmd);
                 fetchCmd.call();
                 result.setSuccess(true);
                 result.setMessage("Fetch completed");
@@ -618,7 +775,7 @@ public class GitServiceImpl implements GitService {
                     result.setHasConflicts(true);
                     result.setConflictFiles(new ArrayList<>(mergeResult.getConflicts().keySet()));
                 }
-            } catch (GitAPIException | IOException e) {
+            } catch (Exception e) {
                 result.setSuccess(false);
                 result.setMessage("合并失败: " + e.getMessage());
             }

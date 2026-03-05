@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import UserAvatar from '@/components/UserAvatar';
 import { DataManager } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
@@ -20,8 +20,10 @@ import {
     IconCheck,
     IconDelete,
     IconEdit,
+    IconMessage,
 } from '@arco-design/web-react/icon';
 import './style/index.less';
+import ModelChatDrawer from './components/ModelChatDrawer';
 import {
     createModel,
     deleteModel,
@@ -30,8 +32,8 @@ import {
     setDefaultModel,
 } from './api';
 
-const {TextArea} = Input;
-const {Option} = Select;
+const { TextArea } = Input;
+const { Option } = Select;
 
 function LlmModelManager() {
 
@@ -60,6 +62,8 @@ function LlmModelManager() {
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [chatDrawerVisible, setChatDrawerVisible] = useState(false);
+    const [currentChatModel, setCurrentChatModel] = useState<any | null>(null);
 
     // 表单引用
     const addFormRef = useRef<any>(null);
@@ -68,14 +72,14 @@ function LlmModelManager() {
 
     // 提供者与模型类型示例选项（可根据后端实际值调整）
     const providerOptions = [
-        {label: 'OpenAI', value: 'OPENAI'},
-        {label: 'Local', value: 'LOCAL'},
+        { label: 'OpenAI', value: 'OPENAI' },
+        { label: 'Local', value: 'LOCAL' },
     ];
     const typeOptions = [
-        {label: '文本', value: 'TEXT'},
-        {label: '视觉', value: 'VISION'},
-        {label: '语音', value: 'VOICE'},
-        {label: '嵌入', value: 'EMBEDDING'},
+        { label: '文本', value: 'TEXT' },
+        { label: '视觉', value: 'VISION' },
+        { label: '语音', value: 'VOICE' },
+        { label: '嵌入', value: 'EMBEDDING' },
     ];
 
     // 搜索表单配置
@@ -257,10 +261,12 @@ function LlmModelManager() {
     const columns = [
         { title: '名称', dataIndex: 'name', ellipsis: true },
         { title: '提供者', dataIndex: 'provider', width: 140 },
-        { title: '类型', dataIndex: 'type', width: 120, render: (v: any) => {
-            const typeInfo = typeMap[v];
-            return typeInfo ? <Tag color={typeInfo.color} bordered>{typeInfo.label}</Tag> : <Tag bordered>{v}</Tag>;
-        } },
+        {
+            title: '类型', dataIndex: 'type', width: 120, render: (v: any) => {
+                const typeInfo = typeMap[v];
+                return typeInfo ? <Tag color={typeInfo.color} bordered>{typeInfo.label}</Tag> : <Tag bordered>{v}</Tag>;
+            }
+        },
         {
             title: '默认',
             dataIndex: 'isDefault',
@@ -276,7 +282,7 @@ function LlmModelManager() {
             fixed: 'right' as any,
             render: (_: any, record: any) => (
                 <Space size="small">
-                    <Tooltip title="编辑">
+                    <Tooltip content="编辑">
                         <Button
                             type="text"
                             size="small"
@@ -287,7 +293,7 @@ function LlmModelManager() {
                             }}
                         />
                     </Tooltip>
-                    <Tooltip title="设为默认">
+                    <Tooltip content="设为默认">
                         <Button
                             type="text"
                             size="small"
@@ -301,11 +307,25 @@ function LlmModelManager() {
                             }}
                         />
                     </Tooltip>
+                    {record.type === 'TEXT' && (
+                        <Tooltip content="聊天体验">
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<IconMessage />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCurrentChatModel(record);
+                                    setChatDrawerVisible(true);
+                                }}
+                            />
+                        </Tooltip>
+                    )}
                     <Popconfirm
                         title="确认删除该模形吗？"
                         onOk={() => handleDelete(record)}
                     >
-                        <Tooltip title="删除">
+                        <Tooltip content="删除">
                             <Button
                                 type="text"
                                 size="small"
@@ -372,80 +392,85 @@ function LlmModelManager() {
             />
 
             <Modal title="新增模型" visible={addModalVisible} onOk={handleAddConfirm} onCancel={() => setAddModalVisible(false)}>
-                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                            <Form ref={addFormRef} layout="vertical" className="modal-form">
-                                <Form.Item label="名称" field="name" rules={[{required: true, message: '请输入名称'}]}>
-                                    <Input placeholder="请输入名称" />
-                                </Form.Item>
-                                <Form.Item label="提供者" field="provider" rules={[{required: true, message: '请输入提供者'}]}>
-                                    <Input placeholder="请输入提供者" />
-                                </Form.Item>
-                                <Form.Item label="类型" field="type" rules={[{required: true, message: '请选择类型'}]}>
-                                    <Select placeholder="请选择类型" allowClear>{typeOptions.map(opt => <Option key={opt.value} value={opt.value}>{opt.label}</Option>)}</Select>
-                                </Form.Item>
-                                <Form.Item label="API Key" field="apiKey" rules={[{required: true, message: '请输入 API Key'}]}>
-                                    <Input placeholder="请输入 API Key" />
-                                </Form.Item>
-                                <Form.Item label="API 端点" field="apiEndpoint" rules={[{required: true, message: '请输入 API 端点'}]}>
-                                    <Input placeholder="请输入 API 端点" />
-                                </Form.Item>
-                                <Form.Item label="上下文窗口" field="contextWindow">
-                                    <Input placeholder="上下文窗口大小（整数）" />
-                                </Form.Item>
-                                <Form.Item label="输入单价(分/千token)" field="inputPricePer1k" rules={[{required: true, message: '请输入输入单价'}]}>
-                                    <Input placeholder="输入单价" />
-                                </Form.Item>
-                                <Form.Item label="输出单价(分/千token)" field="outputPricePer1k" rules={[{required: true, message: '请输入输出单价'}]}>
-                                    <Input placeholder="输出单价" />
-                                </Form.Item>
-                                <Form.Item label="描述" field="description">
-                                    <TextArea placeholder="请输入描述" autoSize={{minRows: 3, maxRows: 6}} />
-                                </Form.Item>
-                            </Form>
-                        </div>
-                    </Modal>
+                <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
+                    <Form ref={addFormRef} layout="vertical" className="modal-form">
+                        <Form.Item label="名称" field="name" rules={[{ required: true, message: '请输入名称' }]}>
+                            <Input placeholder="请输入名称" />
+                        </Form.Item>
+                        <Form.Item label="提供者" field="provider" rules={[{ required: true, message: '请输入提供者' }]}>
+                            <Input placeholder="请输入提供者" />
+                        </Form.Item>
+                        <Form.Item label="类型" field="type" rules={[{ required: true, message: '请选择类型' }]}>
+                            <Select placeholder="请选择类型" allowClear>{typeOptions.map(opt => <Option key={opt.value} value={opt.value}>{opt.label}</Option>)}</Select>
+                        </Form.Item>
+                        <Form.Item label="API Key" field="apiKey" rules={[{ required: true, message: '请输入 API Key' }]}>
+                            <Input placeholder="请输入 API Key" />
+                        </Form.Item>
+                        <Form.Item label="API 端点" field="apiEndpoint" rules={[{ required: true, message: '请输入 API 端点' }]}>
+                            <Input placeholder="请输入 API 端点" />
+                        </Form.Item>
+                        <Form.Item label="上下文窗口" field="contextWindow">
+                            <Input placeholder="上下文窗口大小（整数）" />
+                        </Form.Item>
+                        <Form.Item label="输入单价(分/千token)" field="inputPricePer1k" rules={[{ required: true, message: '请输入输入单价' }]}>
+                            <Input placeholder="输入单价" />
+                        </Form.Item>
+                        <Form.Item label="输出单价(分/千token)" field="outputPricePer1k" rules={[{ required: true, message: '请输入输出单价' }]}>
+                            <Input placeholder="输出单价" />
+                        </Form.Item>
+                        <Form.Item label="描述" field="description">
+                            <TextArea placeholder="请输入描述" autoSize={{ minRows: 3, maxRows: 6 }} />
+                        </Form.Item>
+                    </Form>
+                </div>
+            </Modal>
 
             <Modal title="编辑模型" visible={editModalVisible} onOk={handleEditConfirm} onCancel={() => setEditModalVisible(false)}>
-                        <div style={{maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
-                            <Form ref={editFormRef} layout="vertical" className="modal-form">
-                                <Form.Item label="名称" field="name" rules={[{required: true, message: '请输入名称'}]}>
-                                    <Input placeholder="请输入名称" />
-                                </Form.Item>
-                                <Form.Item label="提供者" field="provider">
-                                    <Input placeholder="请输入提供者" disabled />
-                                </Form.Item>
-                                <Form.Item label="类型" field="type">
-                                    <Select placeholder="请选择类型" allowClear disabled>{typeOptions.map(opt => <Option key={opt.value} value={opt.value}>{opt.label}</Option>)}</Select>
-                                </Form.Item>
-                                <Form.Item label="API Key" field="apiKey">
-                                    <Input placeholder="API Key（可选更新）" />
-                                </Form.Item>
-                                <Form.Item label="API 端点" field="apiEndpoint">
-                                    <Input placeholder="请输入 API 端点" />
-                                </Form.Item>
-                                <Form.Item label="上下文窗口" field="contextWindow">
-                                    <Input placeholder="上下文窗口大小（整数）" />
-                                </Form.Item>
-                                <Form.Item label="输入单价(分/千token)" field="inputPricePer1k">
-                                    <Input placeholder="输入单价" />
-                                </Form.Item>
-                                <Form.Item label="输出单价(分/千token)" field="outputPricePer1k">
-                                    <Input placeholder="输出单价" />
-                                </Form.Item>
-                                <Form.Item label="描述" field="description">
-                                    <TextArea placeholder="请输入描述" autoSize={{minRows: 3, maxRows: 6}} />
-                                </Form.Item>
-                                <Form.Item label="配置(JSON)" field="config">
-                                    <TextArea placeholder='可选 JSON 配置' autoSize={{minRows: 2, maxRows: 6}} />
-                                </Form.Item>
-                            </Form>
-                        </div>
-                    </Modal>
+                <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
+                    <Form ref={editFormRef} layout="vertical" className="modal-form">
+                        <Form.Item label="名称" field="name" rules={[{ required: true, message: '请输入名称' }]}>
+                            <Input placeholder="请输入名称" />
+                        </Form.Item>
+                        <Form.Item label="提供者" field="provider">
+                            <Input placeholder="请输入提供者" disabled />
+                        </Form.Item>
+                        <Form.Item label="类型" field="type">
+                            <Select placeholder="请选择类型" allowClear disabled>{typeOptions.map(opt => <Option key={opt.value} value={opt.value}>{opt.label}</Option>)}</Select>
+                        </Form.Item>
+                        <Form.Item label="API Key" field="apiKey">
+                            <Input placeholder="API Key（可选更新）" />
+                        </Form.Item>
+                        <Form.Item label="API 端点" field="apiEndpoint">
+                            <Input placeholder="请输入 API 端点" />
+                        </Form.Item>
+                        <Form.Item label="上下文窗口" field="contextWindow">
+                            <Input placeholder="上下文窗口大小（整数）" />
+                        </Form.Item>
+                        <Form.Item label="输入单价(分/千token)" field="inputPricePer1k">
+                            <Input placeholder="输入单价" />
+                        </Form.Item>
+                        <Form.Item label="输出单价(分/千token)" field="outputPricePer1k">
+                            <Input placeholder="输出单价" />
+                        </Form.Item>
+                        <Form.Item label="描述" field="description">
+                            <TextArea placeholder="请输入描述" autoSize={{ minRows: 3, maxRows: 6 }} />
+                        </Form.Item>
+                        <Form.Item label="配置(JSON)" field="config">
+                            <TextArea placeholder='可选 JSON 配置' autoSize={{ minRows: 2, maxRows: 6 }} />
+                        </Form.Item>
+                    </Form>
+                </div>
+            </Modal>
 
             <Modal title="确认删除" visible={deleteModalVisible} onOk={handleDeleteConfirm} onCancel={() => setDeleteModalVisible(false)}>
-                        <div className="delete-modal">确定要删除该模型吗？此操作不可恢复。</div>
-                    </Modal>
+                <div className="delete-modal">确定要删除该模型吗？此操作不可恢复。</div>
+            </Modal>
 
+            <ModelChatDrawer
+                visible={chatDrawerVisible}
+                model={currentChatModel}
+                onClose={() => setChatDrawerVisible(false)}
+            />
         </div>
     );
 }

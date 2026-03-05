@@ -98,57 +98,62 @@ const GitDesktop: React.FC = () => {
 
                         <div className="workspace-body">
                             <ResizeBox.Split
+                                direction="horizontal"
                                 style={{ height: '100%', width: '100%' }}
                                 min={0.1}
                                 max={0.5}
-                                size={0.25} // Changes Area width
-                            >
-                                <div className="changes-area">
-                                    <div className="changes-list-container">
-                                        <FileChangeList
-                                            staged={false}
-                                            files={status ? status.changedFiles.filter(f => !f.staged) : []}
-                                            selectedFiles={selectedFiles}
-                                            onSelectChange={setSelectedFiles}
-                                            onStageFiles={handleStage}
-                                            onDiscardFiles={handleDiscard}
-                                            onFileClick={setActiveFile}
-                                            activeFile={activeFile?.filePath}
-                                        />
-                                        <FileChangeList
-                                            staged={true}
-                                            files={status ? status.changedFiles.filter(f => f.staged) : []}
-                                            selectedFiles={selectedFiles}
-                                            onSelectChange={setSelectedFiles}
-                                            onUnstageFiles={handleUnstage}
-                                            onFileClick={setActiveFile}
-                                            activeFile={activeFile?.filePath}
-                                        />
-                                    </div>
-                                    <CommitPanel
-                                        stagedCount={status ? status.changedFiles.filter(f => f.staged).length : 0}
-                                        onCommit={(req) => handleCommit(req)}
-                                        loading={loading}
-                                    />
-                                </div>
-                                <ResizeBox.Split
-                                    style={{ height: '100%', width: '100%' }}
-                                    min={0.2}
-                                    max={0.8}
-                                    size={0.6} // Diff Viewer Width (vs History)
-                                >
-                                    <div className="diff-area">
-                                        <DiffViewer repoId={activeRepoId} activeFile={activeFile} />
-                                    </div>
-                                    <div className="history-area" style={{ background: 'var(--color-bg-2)', borderLeft: '1px solid var(--color-border)' }}>
-                                        <CommitHistory
-                                            commits={commits}
+                                size={0.25}
+                                panes={[
+                                    <div className="changes-area" key="changes">
+                                        <div className="changes-list-container">
+                                            <FileChangeList
+                                                staged={false}
+                                                files={status ? status.changedFiles.filter(f => !f.staged) : []}
+                                                selectedFiles={selectedFiles}
+                                                onSelectChange={setSelectedFiles}
+                                                onStageFiles={handleStage}
+                                                onDiscardFiles={handleDiscard}
+                                                onFileClick={setActiveFile}
+                                                activeFile={activeFile?.filePath}
+                                            />
+                                            <FileChangeList
+                                                staged={true}
+                                                files={status ? status.changedFiles.filter(f => f.staged) : []}
+                                                selectedFiles={selectedFiles}
+                                                onSelectChange={setSelectedFiles}
+                                                onUnstageFiles={handleUnstage}
+                                                onFileClick={setActiveFile}
+                                                activeFile={activeFile?.filePath}
+                                            />
+                                        </div>
+                                        <CommitPanel
+                                            stagedCount={status ? status.changedFiles.filter(f => f.staged).length : 0}
+                                            onCommit={(req) => handleCommit(req)}
                                             loading={loading}
-                                            onViewDetail={() => { }}
                                         />
-                                    </div>
-                                </ResizeBox.Split>
-                            </ResizeBox.Split>
+                                    </div>,
+                                    <ResizeBox.Split
+                                        key="diff-history"
+                                        direction="horizontal"
+                                        style={{ height: '100%', width: '100%' }}
+                                        min={0.2}
+                                        max={0.8}
+                                        size={0.6}
+                                        panes={[
+                                            <div className="diff-area" key="diff">
+                                                <DiffViewer repoId={activeRepoId} activeFile={activeFile} />
+                                            </div>,
+                                            <div className="history-area" key="history" style={{ background: 'var(--color-bg-2)', borderLeft: '1px solid var(--color-border)' }}>
+                                                <CommitHistory
+                                                    commits={commits}
+                                                    loading={loading}
+                                                    onViewDetail={() => { }}
+                                                />
+                                            </div>
+                                        ]}
+                                    />
+                                ]}
+                            />
                         </div>
                     </div>
                 )}
