@@ -5,6 +5,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PreDestroy;
@@ -57,7 +58,7 @@ public class GitRepositoryManager {
     /**
      * 克隆远程仓库到本地路径
      */
-    public void cloneRepository(String remoteUrl, String localPath) throws GitAPIException {
+    public void cloneRepository(String remoteUrl, String localPath, String username, String password) throws GitAPIException {
         File targetDir = new File(localPath);
         if (targetDir.exists()) {
             throw new IllegalArgumentException("目标路径已存在: " + localPath);
@@ -68,11 +69,26 @@ public class GitRepositoryManager {
             targetDir.getParentFile().mkdirs();
         }
         
+        // 检查 URL 类型
+        if (remoteUrl.startsWith("git@")) {
+            throw new IllegalArgumentException("不支持 SSH 协议，请使用 HTTPS 地址\n例如：https://github.com/username/repo.git");
+        }
+        
         log.info("开始克隆仓库: {} -> {}", remoteUrl, localPath);
-        Git.cloneRepository()
+        
+        var cloneCommand = Git.cloneRepository()
                 .setURI(remoteUrl)
-                .setDirectory(targetDir)
-                .call();
+                .setDirectory(targetDir);
+        
+        // 如果提供了凭据，则使用身份验证
+        if (username != null && !username.trim().isEmpty() && password != null && !password.trim().isEmpty()) {
+            cloneCommand.setCredentialsProvider(
+                new UsernamePasswordCredentialsProvider(username.trim(), password.trim())
+            );
+            log.info("使用身份验证: {}", username);
+        }
+        
+        cloneCommand.call();
         log.info("仓库克隆完成: {}", localPath);
     }
 

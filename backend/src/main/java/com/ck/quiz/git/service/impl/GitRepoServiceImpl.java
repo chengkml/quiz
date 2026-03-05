@@ -58,7 +58,12 @@ public class GitRepoServiceImpl
         String remoteUrl = createDto.getRemoteUrl();
         if (remoteUrl != null && !remoteUrl.trim().isEmpty()) {
             try {
-                gitRepositoryManager.cloneRepository(remoteUrl.trim(), localPath);
+                gitRepositoryManager.cloneRepository(
+                    remoteUrl.trim(), 
+                    localPath,
+                    createDto.getGitUsername(),
+                    createDto.getGitPassword()
+                );
             } catch (org.eclipse.jgit.api.errors.GitAPIException e) {
                 log.error("克隆仓库失败: {} -> {}", remoteUrl, localPath, e);
                 throw new RuntimeException("克隆仓库失败: " + e.getMessage(), e);

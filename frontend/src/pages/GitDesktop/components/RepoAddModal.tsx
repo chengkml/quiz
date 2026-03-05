@@ -77,9 +77,23 @@ const RepoAddModal: React.FC<RepoAddModalProps> = ({ visible, onCancel, onSucces
                 <Form.Item
                     label="远程仓库地址"
                     field="remoteUrl"
-                    extra="提供远程地址将自动克隆仓库到本地；留空则使用已存在的本地仓库"
+                    extra="提供 HTTPS 地址将自动克隆仓库；留空则使用已存在的本地仓库（不支持 SSH 协议）"
                 >
                     <Input placeholder="https://github.com/username/repo.git" />
+                </Form.Item>
+                <Form.Item
+                    label="Git 用户名"
+                    field="gitUsername"
+                    extra="用于 HTTPS 认证，公开仓库可留空"
+                >
+                    <Input placeholder="GitHub 用户名" />
+                </Form.Item>
+                <Form.Item
+                    label="Git 密码/访问令牌"
+                    field="gitPassword"
+                    extra="用于 HTTPS 认证，建议使用 Personal Access Token"
+                >
+                    <Input.Password placeholder="密码或访问令牌" />
                 </Form.Item>
                 <Form.Item
                     label="描述"

@@ -16,5 +16,9 @@ public class GitRepoCreateDto extends CreateDto {
 
     private String remoteUrl;
 
+    private String gitUsername;
+
+    private String gitPassword;
+
     private Integer sortOrder;
 }
