@@ -581,14 +581,14 @@ function QuestionManager() {
                 if (generateFormRef.current && currentTreeNode && currentTreeNode.categoryId) {
                     const path = findPathById(categoryTree, currentTreeNode.categoryId);
                     if (path) {
-                        generateFormRef.current.setFieldValue('categoryIds', path);
+                        generateFormRef.current?.setFieldValue('categoryIds', path);
                     }
                 }
 
                 if (editFormRef.current && currentRecord && currentRecord.categoryId) {
                     const path = findPathById(categoryTree, currentRecord.categoryId);
                     if (path) {
-                        editFormRef.current.setFieldValue('categoryIds', path);
+                        editFormRef.current?.setFieldValue('categoryIds', path);
                     }
                 }
 
@@ -1834,7 +1834,7 @@ function QuestionManager() {
                         if (currentTreeNode && generateFormRef.current) {
                             setTimeout(async () => {
                                 if (generateFormRef.current) {
-                                    generateFormRef.current.setFieldValue('subjectId', currentTreeNode.subjectId);
+                                    generateFormRef.current?.setFieldValue('subjectId', currentTreeNode.subjectId);
                                     setKnowledgeDescrDisabled(false);
 
                                     // 加载分类
@@ -1852,7 +1852,7 @@ function QuestionManager() {
                                     }
                                     const defaultModel = modelList.find(m => m.isDefault === '1' || m.isDefault === 1);
                                     if (defaultModel) {
-                                        generateFormRef.current.setFieldValue('modelName', defaultModel.name);
+                                        generateFormRef.current?.setFieldValue('modelName', defaultModel.name);
                                     }
                                 }
                             }, 0);
@@ -1871,7 +1871,7 @@ function QuestionManager() {
                                     }
                                     const defaultModel = modelList.find(m => m.isDefault === '1' || m.isDefault === 1);
                                     if (defaultModel) {
-                                        generateFormRef.current.setFieldValue('modelName', defaultModel.name);
+                                        generateFormRef.current?.setFieldValue('modelName', defaultModel.name);
                                     }
                                 }
                             }, 0);
@@ -1901,7 +1901,7 @@ function QuestionManager() {
                                     }
                                     
                                     // 先将编辑器的值设置到表单字段中，确保提交时能获取到
-                                    generateFormRef.current.setFieldValue('knowledgeContent', content);
+                                    generateFormRef.current?.setFieldValue('knowledgeContent', content);
                                     
                                     // 保存到状态中
                                     setKnowledgeTitle(title);

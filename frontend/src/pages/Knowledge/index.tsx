@@ -1817,7 +1817,7 @@ function KnowledgeManager() {
                                     height: 300,
                                     // 允许源码编辑
                                     allowedContent: true,
-                                    extraPlugins: 'sourcearea,aiPolish',
+                                    extraPlugins: 'sourcearea',
                                     versionCheck: false,
                                     toolbar: editorToolbarConfig
                                 }}
@@ -1966,7 +1966,7 @@ function KnowledgeManager() {
                                 config={{
                                     height: 300,
                                     allowedContent: true,
-                                    extraPlugins: 'sourcearea,aiPolish',
+                                    extraPlugins: 'sourcearea',
                                     versionCheck: false,
                                     toolbar: editorToolbarConfig
                                 }}
