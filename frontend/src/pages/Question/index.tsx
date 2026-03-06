@@ -175,6 +175,7 @@ function QuestionManager() {
     // AI生成时选择的学科和分类信息
     const [selectedSubjectForGenerate, setSelectedSubjectForGenerate] = useState<any>(null);
     const [selectedCategoryForGenerate, setSelectedCategoryForGenerate] = useState<any>(null);
+    const [selectedCategoryPathForGenerate, setSelectedCategoryPathForGenerate] = useState<string>('');
 
     // 学科管理相关状态
     const [treeSubjectModalVisible, setTreeSubjectModalVisible] = useState(false);
@@ -534,48 +535,64 @@ function QuestionManager() {
             const response = await getCategoriesBySubjectId(subjectId);
 
             if (response.data) {
-                const flatList = response.data;
+                let categoryTree = response.data;
 
-                // 构建树形结构
-                const idMap = {};
-                const tree = [];
+                // 检查返回的数据是否已经是树形结构
+                // 如果有children字段说明已经是树形，否则需要构建树形
+                const isAlreadyTree = categoryTree.some(item => item.children);
 
-                // 先构造映射
-                flatList.forEach(item => {
-                    idMap[item.id] = {
+                if (!isAlreadyTree) {
+                    // 需要从平铺结构构建树形（向后兼容）
+                    const idMap = {};
+                    const tree = [];
+
+                    // 先构造映射
+                    categoryTree.forEach(item => {
+                        idMap[item.id] = {
+                            label: item.name,
+                            value: item.id,
+                            parentId: item.parentId,
+                            children: []
+                        };
+                    });
+
+                    // 组装 parent -> children
+                    categoryTree.forEach(item => {
+                        const node = idMap[item.id];
+                        if (item.parentId && idMap[item.parentId]) {
+                            idMap[item.parentId].children.push(node);
+                        } else {
+                            // parentId 为 null 或未找到父节点 → 顶级节点
+                            tree.push(node);
+                        }
+                    });
+
+                    categoryTree = tree;
+                } else {
+                    // 已经是树形结构，转换为Cascader所需的格式
+                    categoryTree = categoryTree.map(item => ({
                         label: item.name,
                         value: item.id,
                         parentId: item.parentId,
-                        children: []
-                    };
-                });
-
-                // 组装 parent -> children
-                flatList.forEach(item => {
-                    const node = idMap[item.id];
-                    if (item.parentId && idMap[item.parentId]) {
-                        idMap[item.parentId].children.push(node);
-                    } else {
-                        // parentId 为 null 或未找到父节点 → 顶级节点
-                        tree.push(node);
-                    }
-                });
+                        children: item.children ? item.children.map(convertCategoryDtoToCascader) : []
+                    }));
+                }
 
                 if (generateFormRef.current && currentTreeNode && currentTreeNode.categoryId) {
-                    const path = findPathById(tree, currentTreeNode.categoryId);
+                    const path = findPathById(categoryTree, currentTreeNode.categoryId);
                     if (path) {
                         generateFormRef.current.setFieldValue('categoryIds', path);
                     }
                 }
 
                 if (editFormRef.current && currentRecord && currentRecord.categoryId) {
-                    const path = findPathById(tree, currentRecord.categoryId);
+                    const path = findPathById(categoryTree, currentRecord.categoryId);
                     if (path) {
                         editFormRef.current.setFieldValue('categoryIds', path);
                     }
                 }
 
-                setCategories(tree);
+                setCategories(categoryTree);
             }
         } catch (error) {
             console.error('获取分类列表失败:', error);
@@ -584,6 +601,18 @@ function QuestionManager() {
         } finally {
             setCategoriesLoading(false);
         }
+    };
+
+    // 递归转换分类DTO为Cascader选项格式
+    const convertCategoryDtoToCascader = (categoryDto: any): any => {
+        return {
+            label: categoryDto.name,
+            value: categoryDto.id,
+            parentId: categoryDto.parentId,
+            children: categoryDto.children && categoryDto.children.length > 0
+                ? categoryDto.children.map(convertCategoryDtoToCascader)
+                : []
+        };
     };
 
     // 学科管理函数
@@ -842,6 +871,35 @@ function QuestionManager() {
         return null;
     };
 
+    // 在树中查找节点对象
+    const findNodeById = (tree, targetId) => {
+        for (const node of tree) {
+            if (node.value === targetId) {
+                return node;
+            }
+            if (node.children) {
+                const result = findNodeById(node.children, targetId);
+                if (result) return result;
+            }
+        }
+        return null;
+    };
+
+    // 获取完整的分类路径（名称形式）
+    const findPathLabels = (tree, targetId, path = []) => {
+        for (const node of tree) {
+            const newPath = [...path, node.label];
+            if (node.value === targetId) {
+                return newPath;
+            }
+            if (node.children) {
+                const result = findPathLabels(node.children, targetId, newPath);
+                if (result) return result;
+            }
+        }
+        return null;
+    };
+
 
     // 确认删除
     const handleDeleteConfirm = async () => {
@@ -860,12 +918,17 @@ function QuestionManager() {
         setGenerateLoading(true);
         try {
             values.categoryId = values.categoryIds[values.categoryIds.length - 1];
+            // 保存完整的分类路径信息（用于显示）
+            const categoryPath = findPathLabels(categories, values.categoryId);
+            values.categoryPath = categoryPath ? categoryPath.join(' > ') : '';
             delete values.categoryIds;
             // 保存生成参数用于重试
             setLastGenerateParams({...values});
             // 保存生成时选择的学科和分类信息
             setSelectedSubjectForGenerate(values.subjectId);
             setSelectedCategoryForGenerate(values.categoryId);
+            // 保存分类路径用于显示
+            setSelectedCategoryPathForGenerate(values.categoryPath);
 
             // 清空之前的生成结果
             setGeneratedQuestions([]);
@@ -1711,6 +1774,8 @@ function QuestionManager() {
                                     disabled={categories.length === 0}
                                     changeOnSelect
                                     allowClear
+                                    fieldNames={{'label': 'label', 'value': 'value', 'children': 'children'}}
+                                    style={{width: '100%'}}
                                 />
                             </Form.Item>
                             <Form.Item
@@ -1892,6 +1957,8 @@ function QuestionManager() {
                                         disabled={categories.length === 0}
                                         changeOnSelect
                                         allowClear
+                                        fieldNames={{'label': 'label', 'value': 'value', 'children': 'children'}}
+                                        style={{width: '100%'}}
                                     />
                                 </Form.Item>
                                 <Form.Item
@@ -1999,7 +2066,7 @@ function QuestionManager() {
                                 <div style={{fontWeight: 'bold', marginBottom: 8, color: 'var(--color-text-1)'}}>
                                     生成信息:
                                 </div>
-                                <div style={{display: 'flex', gap: 12}}>
+                                <div style={{display: 'flex', gap: 12, flexWrap: 'wrap'}}>
                                     {selectedSubjectForGenerate && (
                                         <Tag color="blue" bordered>
                                             学科: {subjects.find(s => s.value === selectedSubjectForGenerate)?.label || selectedSubjectForGenerate}
@@ -2007,7 +2074,7 @@ function QuestionManager() {
                                     )}
                                     {selectedCategoryForGenerate && (
                                         <Tag color="green" bordered>
-                                            分类: {categories.find(c => c.value === selectedCategoryForGenerate)?.label || selectedCategoryForGenerate}
+                                            分类: {selectedCategoryPathForGenerate || findPathLabels(categories, selectedCategoryForGenerate)?.join(' > ') || selectedCategoryForGenerate}
                                         </Tag>
                                     )}
                                 </div>

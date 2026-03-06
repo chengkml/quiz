@@ -88,7 +88,6 @@ const RepoList: React.FC<RepoListProps> = ({ activeRepoId, onSelectRepo, onAddCl
                             onClick={() => onSelectRepo(repo.id)}
                             style={{
                                 cursor: 'pointer',
-                                cursor: 'pointer',
                                 background: activeRepoId === repo.id ? 'var(--color-fill-2)' : 'transparent',
                                 borderLeft: activeRepoId === repo.id ? '3px solid rgb(var(--primary-6))' : '3px solid transparent'
                             }}
