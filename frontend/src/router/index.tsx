@@ -72,6 +72,7 @@ import VocabularyPage from "@/pages/Vocabulary";
 import VocabularyReviewPage from "@/pages/Vocabulary/Review";
 import PoetryPage from "@/pages/Poetry";
 import GitDesktopPage from "@/pages/GitDesktop";
+import HomeworkManager from "@/pages/Homework";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -404,6 +405,11 @@ const protectedPages = [
     path: "poetry",
     element: <PoetryPage />,
     requiredPath: "poetry",
+  },
+  {
+    path: "homework",
+    element: <HomeworkManager />,
+    requiredPath: "homework",
   },
 ];
 
