@@ -96,8 +96,8 @@ public class ExamServiceImpl implements ExamService {
         // 添加题目到试卷
         if (examCreateDto.getQuestions() != null && !examCreateDto.getQuestions().isEmpty()) {
             for (ExamQuestionCreateDto questionDto : examCreateDto.getQuestions()) {
-                addQuestionToExam(savedExam.getId(), questionDto.getQuestionId(), 
-                                questionDto.getOrderNo(), questionDto.getScore());
+                addQuestionToExam(savedExam.getId(), questionDto.getQuestionId(),
+                        questionDto.getOrderNo(), questionDto.getScore());
             }
         }
 
@@ -140,11 +140,11 @@ public class ExamServiceImpl implements ExamService {
         if (examUpdateDto.getQuestions() != null) {
             // 删除原有题目关系
             examQuestionRepository.deleteByExamId(exam.getId());
-            
+
             // 添加新的题目关系
             for (ExamQuestionCreateDto questionDto : examUpdateDto.getQuestions()) {
-                addQuestionToExam(exam.getId(), questionDto.getQuestionId(), 
-                                questionDto.getOrderNo(), questionDto.getScore());
+                addQuestionToExam(exam.getId(), questionDto.getQuestionId(),
+                        questionDto.getOrderNo(), questionDto.getScore());
             }
         }
 
@@ -171,7 +171,6 @@ public class ExamServiceImpl implements ExamService {
         return examDto;
     }
 
-
     @Override
     @Transactional(readOnly = true)
     public ExamDto getExamById(String examId) {
@@ -192,8 +191,7 @@ public class ExamServiceImpl implements ExamService {
                         "FROM exam e " +
                         "LEFT JOIN users u ON e.create_user = u.user_id " +
                         "LEFT JOIN subject s ON s.id = e.subject_id " +
-                        "WHERE 1=1 "
-        );
+                        "WHERE 1=1 ");
 
         StringBuilder countSb = new StringBuilder("SELECT count(*) FROM exam e WHERE 1=1 ");
         Map<String, Object> params = new HashMap<>();
@@ -201,7 +199,8 @@ public class ExamServiceImpl implements ExamService {
         // 试卷名称模糊查询（name 或 description）
         if (queryDto.getKeyWord() != null && !queryDto.getKeyWord().trim().isEmpty()) {
             JdbcQueryHelper.lowerLike("keyWord", queryDto.getKeyWord(),
-                    " AND (LOWER(e.name) LIKE :keyWord OR LOWER(e.description) LIKE :keyWord) ", params, jdbcTemplate, sb, countSb);
+                    " AND (LOWER(e.name) LIKE :keyWord OR LOWER(e.description) LIKE :keyWord) ", params, jdbcTemplate,
+                    sb, countSb);
         }
 
         // 状态精确查询
@@ -209,7 +208,7 @@ public class ExamServiceImpl implements ExamService {
             JdbcQueryHelper.equals("status", queryDto.getStatus().name(),
                     " AND e.status = :status ", params, sb, countSb);
         }
-        
+
         // 学科ID精确查询
         if (queryDto.getSubjectId() != null) {
             JdbcQueryHelper.equals("subjectId", queryDto.getSubjectId(),
@@ -220,7 +219,7 @@ public class ExamServiceImpl implements ExamService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (queryDto.getAnswerFilter() != null && authentication != null && authentication.isAuthenticated()) {
             String currentUserId = authentication.getName();
-            
+
             if (queryDto.getAnswerFilter() == ExamQueryDto.AnswerFilter.ANSWERED) {
                 String condition = " AND EXISTS (SELECT 1 FROM exam_result r WHERE r.paper_id = e.paper_id AND r.user_id = :currentUserId) ";
                 sb.append(condition);
@@ -232,9 +231,10 @@ public class ExamServiceImpl implements ExamService {
                 countSb.append(condition);
                 params.put("currentUserId", currentUserId);
             }
-            
+
             // 只对已发布试卷筛选已作答/未作答
-            JdbcQueryHelper.equals("publishedFilter", "PUBLISHED", " AND e.status = :publishedFilter ", params, sb, countSb);
+            JdbcQueryHelper.equals("publishedFilter", "PUBLISHED", " AND e.status = :publishedFilter ", params, sb,
+                    countSb);
         }
 
         if (authentication == null) {
@@ -251,7 +251,8 @@ public class ExamServiceImpl implements ExamService {
         }
 
         // 分页 SQL
-        String listSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sb.toString(), queryDto.getPageNum(), queryDto.getPageSize());
+        String listSql = JdbcQueryHelper.getLimitSql(jdbcTemplate, sb.toString(), queryDto.getPageNum(),
+                queryDto.getPageSize());
 
         Map<String, ExamDto> idMap = new HashMap<>();
         // 查询数据
@@ -272,27 +273,29 @@ public class ExamServiceImpl implements ExamService {
             idMap.put(id, dto);
             return dto;
         });
-        if(!idMap.isEmpty()) {
+        if (!idMap.isEmpty()) {
             params.put("paperIds", new ArrayList<>(idMap.keySet()));
-            HumpHelper.lineToHump(jdbcTemplate.queryForList("select paper_id, count(*) num from exam_paper_question where paper_id in (:paperIds) group by paper_id", params)).forEach(map->{
-                String paperId = MapUtils.getString(map, "paperId");
-                int num = MapUtils.getIntValue(map, "num");
-                if(idMap.containsKey(paperId)) {
-                    idMap.get(paperId).setQuestionNum(num);
-                }
-            });
+            HumpHelper.lineToHump(jdbcTemplate.queryForList(
+                    "select paper_id, count(*) num from exam_paper_question where paper_id in (:paperIds) group by paper_id",
+                    params)).forEach(map -> {
+                        String paperId = MapUtils.getString(map, "paperId");
+                        int num = MapUtils.getIntValue(map, "num");
+                        if (idMap.containsKey(paperId)) {
+                            idMap.get(paperId).setQuestionNum(num);
+                        }
+                    });
         }
 
         // 封装分页对象
-        return JdbcQueryHelper.toPage(jdbcTemplate, countSb.toString(), params, exams, queryDto.getPageNum(), queryDto.getPageSize());
+        return JdbcQueryHelper.toPage(jdbcTemplate, countSb.toString(), params, exams, queryDto.getPageNum(),
+                queryDto.getPageSize());
     }
-
 
     @Override
     public ExamDto convertToDto(Exam exam) {
         ExamDto examDto = new ExamDto();
         BeanUtils.copyProperties(exam, examDto);
-        
+
         // 设置学科ID
         examDto.setSubjectId(exam.getSubjectId());
 
@@ -302,7 +305,7 @@ public class ExamServiceImpl implements ExamService {
                 .map(this::convertExamQuestionToDto)
                 .collect(Collectors.toList());
         examDto.setQuestions(questionDtos);
-        
+
         // 设置题目数量
         examDto.setQuestionNum(questionDtos.size());
 
@@ -317,12 +320,12 @@ public class ExamServiceImpl implements ExamService {
         dto.setId(examQuestion.getId());
         dto.setOrderNo(examQuestion.getOrderNo());
         dto.setScore(examQuestion.getScore());
-        
+
         // 转换题目信息
         if (examQuestion.getQuestion() != null) {
             dto.setQuestion(questionService.convertToDto(examQuestion.getQuestion()));
         }
-        
+
         return dto;
     }
 
@@ -479,7 +482,7 @@ public class ExamServiceImpl implements ExamService {
         for (ExamQuestion eq : examQuestions) {
             Question q = eq.getQuestion();
             List<String> std = new ArrayList<>();
-            if(StringUtils.hasText(q.getAnswer())) {
+            if (StringUtils.hasText(q.getAnswer())) {
                 std = Arrays.asList(q.getAnswer().split(","));
             }
 
@@ -544,25 +547,25 @@ public class ExamServiceImpl implements ExamService {
 
         // === 构造主查询SQL ===
         StringBuilder sb = new StringBuilder("""
-        SELECT r.result_id,
-               e.paper_id AS exam_id,
-               e.name AS exam_name,
-               e.total_score total_score,
-               r.total_score user_score,
-               r.correct_count AS correct_count,
-               r.submit_time AS submit_time
-          FROM exam_result r
-          LEFT JOIN exam e ON r.paper_id = e.paper_id
-         WHERE 1=1
-    """);
+                    SELECT r.result_id,
+                           e.paper_id AS exam_id,
+                           e.name AS exam_name,
+                           e.total_score total_score,
+                           r.total_score user_score,
+                           r.correct_count AS correct_count,
+                           r.submit_time AS submit_time
+                      FROM exam_result r
+                      LEFT JOIN exam e ON r.paper_id = e.paper_id
+                     WHERE 1=1
+                """);
 
         // === 构造总数SQL ===
         StringBuilder countSb = new StringBuilder("""
-        SELECT COUNT(*)
-          FROM exam_result r
-          LEFT JOIN exam e ON r.paper_id = e.paper_id
-         WHERE 1=1
-    """);
+                    SELECT COUNT(*)
+                      FROM exam_result r
+                      LEFT JOIN exam e ON r.paper_id = e.paper_id
+                     WHERE 1=1
+                """);
 
         Map<String, Object> params = new HashMap<>();
 
@@ -597,7 +600,6 @@ public class ExamServiceImpl implements ExamService {
         return JdbcQueryHelper.toPage(jdbcTemplate, countSb.toString(), params, results, pageNum, pageSize);
     }
 
-
     @Override
     @Transactional
     public void deleteExamResult(String resultId, String userId) {
@@ -605,23 +607,23 @@ public class ExamServiceImpl implements ExamService {
         if (optionalExamResult.isEmpty()) {
             throw new RuntimeException("答卷不存在，ID: " + resultId);
         }
-        
+
         ExamResult examResult = optionalExamResult.get();
         // 验证权限：确保只有用户本人可以删除自己的答卷
         if (!examResult.getUserId().equals(userId)) {
             throw new RuntimeException("无权删除此答卷");
         }
-        
+
         // 删除相关的答案记录
         List<ExamResultAnswer> answers = examResultAnswerRepository.findByExamResult_Id(resultId);
         if (!answers.isEmpty()) {
             examResultAnswerRepository.deleteAll(answers);
         }
-        
+
         // 删除答卷记录
         examResultRepository.delete(examResult);
     }
-    
+
     @Override
     public ExamResultDetailDto getExamResultById(String resultId) {
         java.util.Optional<ExamResult> optional = examResultRepository.findById(resultId);
@@ -646,8 +648,7 @@ public class ExamServiceImpl implements ExamService {
             try {
                 java.util.List<String> userAns = objectMapper.readValue(
                         java.util.Optional.ofNullable(ra.getUserAnswer()).orElse("[]"),
-                        objectMapper.getTypeFactory().constructCollectionType(java.util.List.class, String.class)
-                );
+                        objectMapper.getTypeFactory().constructCollectionType(java.util.List.class, String.class));
                 ad.setUserAnswers(userAns);
             } catch (Exception e) {
                 ad.setUserAnswers(java.util.Collections.emptyList());
@@ -674,7 +675,8 @@ public class ExamServiceImpl implements ExamService {
         Integer totalScore = autoGenerateDto.getTotalScore();
         String subjectId = autoGenerateDto.getSubjectId();
         Integer durationMinutes = autoGenerateDto.getDurationMinutes();
-        boolean publish = autoGenerateDto.getPublishImmediately() != null ? autoGenerateDto.getPublishImmediately() : true;
+        boolean publish = autoGenerateDto.getPublishImmediately() != null ? autoGenerateDto.getPublishImmediately()
+                : true;
 
         if (questionCount == null || questionCount <= 0) {
             throw new RuntimeException("题目数量必须为正数");
@@ -723,7 +725,8 @@ public class ExamServiceImpl implements ExamService {
         // 生成试卷名称（可选）
         String name = autoGenerateDto.getName();
         if (!StringUtils.hasText(name)) {
-            String timestamp = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmm").format(LocalDateTime.now());
+            String timestamp = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmm")
+                    .format(LocalDateTime.now());
             name = "智能生成试卷-" + questionCount + "题-" + totalScore + "分-" + timestamp;
         }
 
@@ -746,6 +749,7 @@ public class ExamServiceImpl implements ExamService {
 
         return created;
     }
+
     private boolean isCorrect(Question.QuestionType type, List<String> std, List<String> user) {
         if (type == Question.QuestionType.SINGLE || type == Question.QuestionType.SHORT_ANSWER) {
             String s = std.isEmpty() ? "" : std.get(0);
@@ -758,9 +762,11 @@ public class ExamServiceImpl implements ExamService {
             return s1.equals(s2);
         }
         if (type == Question.QuestionType.BLANK) {
-            if (std.size() != user.size()) return false;
+            if (std.size() != user.size())
+                return false;
             for (int i = 0; i < std.size(); i++) {
-                if (!std.get(i).trim().equals(user.get(i).trim())) return false;
+                if (!std.get(i).trim().equals(user.get(i).trim()))
+                    return false;
             }
             return true;
         }
@@ -776,11 +782,11 @@ public class ExamServiceImpl implements ExamService {
                 "AND e.subject_id = :subjectId " +
                 "AND e.status = 'PUBLISHED' " +
                 "AND NOT EXISTS (SELECT 1 FROM exam_result r WHERE r.paper_id = e.paper_id AND r.user_id = :userId)";
-        
+
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);
         params.put("subjectId", subjectId);
-        
+
         Integer count = jdbcTemplate.queryForObject(countSql, params, Integer.class);
         if (count != null && count >= 5) {
             return;
@@ -794,10 +800,10 @@ public class ExamServiceImpl implements ExamService {
                 "WHERE k.create_user = :userId " +
                 "AND k.subject_id = :subjectId " +
                 "AND k.next_review_date <= :now";
-        
+
         params.put("now", LocalDateTime.now());
         List<String> questionIds = jdbcTemplate.queryForList(questionSql, params, String.class);
-        
+
         if (questionIds == null || questionIds.isEmpty()) {
             return;
         }
@@ -805,7 +811,7 @@ public class ExamServiceImpl implements ExamService {
         // 3. 确定试卷题目数量 (100的约数)
         int totalQuestions = questionIds.size();
         int examSize = determineExamSize(totalQuestions);
-        
+
         if (examSize == 0) {
             return;
         }
@@ -813,23 +819,25 @@ public class ExamServiceImpl implements ExamService {
         // 4. 随机选取题目
         Collections.shuffle(questionIds);
         List<String> selectedQuestionIds = questionIds.subList(0, examSize);
-        
+
         // 5. 生成试卷
         com.ck.quiz.subject.entity.Subject subject = subjectRepository.findById(subjectId).orElse(null);
-        String subjectLabel = (subject != null && StringUtils.hasText(subject.getLabel())) ? subject.getLabel() : "未知学科";
+        String subjectLabel = (subject != null && StringUtils.hasText(subject.getLabel())) ? subject.getLabel()
+                : "未知学科";
         if (subject != null && !StringUtils.hasText(subject.getLabel())) {
-             subjectLabel = subject.getName();
+            subjectLabel = subject.getName();
         }
 
         Exam exam = new Exam();
         exam.setId(IdHelper.genUuid());
-        exam.setName(String.format("%s-复习试卷-%s", subjectLabel, LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"))));
+        exam.setName(String.format("%s-复习试卷-%s", subjectLabel,
+                LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"))));
         exam.setDescription("系统自动生成的复习试卷");
         exam.setTotalScore(100);
-        exam.setDurationMinutes(selectedQuestionIds.size() * 2); 
+        exam.setDurationMinutes(selectedQuestionIds.size() * 2);
         exam.setSubjectId(subjectId);
         exam.setStatus(Exam.ExamPaperStatus.PUBLISHED);
-        
+
         exam.setCreateUser(userId);
         exam.setUpdateUser(userId);
         exam.setCreateDate(LocalDateTime.now());
@@ -843,19 +851,20 @@ public class ExamServiceImpl implements ExamService {
             ExamQuestion eq = new ExamQuestion();
             eq.setId(IdHelper.genUuid());
             eq.setExam(savedExam);
-            
+
             Question q = questionRepository.getReferenceById(selectedQuestionIds.get(i));
             eq.setQuestion(q);
-            
+
             eq.setOrderNo(i + 1);
             eq.setScore(scorePerQuestion);
             examQuestions.add(eq);
         }
         examQuestionRepository.saveAll(examQuestions);
-        
+
         // 6. 发送通知
         try {
-            com.ck.quiz.notification.service.NotificationMessage message = com.ck.quiz.notification.service.NotificationMessage.builder()
+            com.ck.quiz.notification.service.NotificationMessage message = com.ck.quiz.notification.service.NotificationMessage
+                    .builder()
                     .to(userId)
                     .title("复习提醒")
                     .content("您的复习试卷【" + exam.getName() + "】已生成，请及时完成复习。")
@@ -863,7 +872,7 @@ public class ExamServiceImpl implements ExamService {
                     .type("INFO")
                     .senderId("SYSTEM")
                     .build();
-            
+
             notificationDispatcher.dispatch(message);
         } catch (Exception e) {
             e.printStackTrace();
@@ -871,7 +880,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     private int determineExamSize(int availableCount) {
-        int[] supportedSizes = {100, 50, 25, 20, 10, 5, 4, 2, 1};
+        int[] supportedSizes = { 20, 10, 5, 4, 2, 1 };
         for (int size : supportedSizes) {
             if (availableCount >= size) {
                 return size;
@@ -885,7 +894,7 @@ public class ExamServiceImpl implements ExamService {
      * 使用 SM-2 算法更新知识点的复习间隔和下次复习时间
      * 
      * @param examResult 试卷答题结果
-     * @param userId 用户ID
+     * @param userId     用户ID
      */
     private void updateKnowledgeReviewStatus(ExamResult examResult, String userId) {
         if (examResult == null || examResult.getAnswers() == null || examResult.getAnswers().isEmpty()) {
@@ -906,7 +915,7 @@ public class ExamServiceImpl implements ExamService {
 
             Question question = examQuestion.getQuestion();
             List<Knowledge> knowledgePoints = question.getKnowledgePoints();
-            
+
             // 跳过没有关联知识点的题目
             if (knowledgePoints == null || knowledgePoints.isEmpty()) {
                 continue;
@@ -918,8 +927,8 @@ public class ExamServiceImpl implements ExamService {
             // 为每个关联的知识点记录评分
             for (Knowledge knowledge : knowledgePoints) {
                 knowledgeScores
-                    .computeIfAbsent(knowledge.getId(), k -> new ArrayList<>())
-                    .add(score);
+                        .computeIfAbsent(knowledge.getId(), k -> new ArrayList<>())
+                        .add(score);
             }
         }
 
@@ -941,11 +950,11 @@ public class ExamServiceImpl implements ExamService {
             try {
                 // 合并策略：取最高分（体现最好的掌握程度）
                 int finalScore = scores.stream()
-                    .max(Integer::compareTo)
-                    .orElse(1);
+                        .max(Integer::compareTo)
+                        .orElse(1);
 
-                log.debug("知识点 {} 在本次答题中出现 {} 次，评分: {}，最终评分: {}", 
-                    knowledgeId, scores.size(), scores, finalScore);
+                log.debug("知识点 {} 在本次答题中出现 {} 次，评分: {}，最终评分: {}",
+                        knowledgeId, scores.size(), scores, finalScore);
 
                 // 构造复习请求
                 ReviewRequestDto reviewRequest = new ReviewRequestDto();
@@ -954,7 +963,7 @@ public class ExamServiceImpl implements ExamService {
 
                 // 调用已有的 review 方法（会自动更新 SM-2 参数并记录 ReviewLog）
                 knowledgeService.review(userId, reviewRequest);
-                
+
                 successCount++;
                 log.debug("知识点 {} 复习状态更新成功", knowledgeId);
 
