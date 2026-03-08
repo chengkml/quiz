@@ -135,9 +135,7 @@ public class LoggingFilter extends OncePerRequestFilter {
             logDto.setSuccess(success ? "1" : "0");
             logDto.setErrorMessage(errorMessage);
 
-            // 4. 修复点：异步下 User 丢失问题
-            // 这里获取当前登录人并传入。如果 sysLogService.createSysLogAsync 支持设置 createUser 最好；
-            // 如果不支持，建议在 Service 内部手动处理 SecurityContext 的传递。
+            // 使用带 SecurityContext 透传能力的异步执行器，确保审计字段能拿到当前登录用户。
             sysLogService.createSysLogAsync(logDto);
 
         } catch (Exception e) {

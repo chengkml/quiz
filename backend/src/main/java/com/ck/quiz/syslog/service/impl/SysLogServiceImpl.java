@@ -24,7 +24,7 @@ import java.util.Map;
 @Transactional
 public class SysLogServiceImpl extends BaseServiceImpl<SysLogCreateDto, SysLogUpdateDto, SysLogQueryDto, SysLogDto, SysLog, SysLogRepository> implements SysLogService {
 
-    @Async
+    @Async("sysLogAsyncExecutor")
     @Override
     public void createSysLogAsync(SysLogCreateDto dto) {
         create(dto);
