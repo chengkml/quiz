@@ -128,7 +128,8 @@ public class KnowledgeSourceServiceImpl extends
         try {
             JobDto jobDto = new JobDto();
             jobDto.setTaskClass(KnowledgeProcessingJob.class.getName());
-            jobDto.setQueueName("knowledge-queue"); // 指定队列
+            // 默认不指定队列，避免因队列未配置导致任务长期 PENDING。
+            jobDto.setQueueName(null);
             jobDto.setPriority(10);
 
             Map<String, Object> params = new HashMap<>();

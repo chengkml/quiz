@@ -106,23 +106,25 @@ public class KnowledgeProcessingJob extends AbstractAsyncJob {
     }
 
     private String convertDocument(KnowledgeSource source) throws Exception {
-        // 判断来源类型，目前假设是 FILE
-        // 实际路径可能存储在 content 字段 (假设 content 存的是文件路径)
-        String filePath = source.getContent();
-        if (!StringUtils.hasText(filePath)) {
-            throw new RuntimeException("文件路径为空");
-        }
-        
-        File file = new File(filePath);
-        if (!file.exists()) {
-             // 尝试从项目根目录寻找 (仅用于测试方便，实际应使用绝对路径或对象存储)
-             // 这里假设 content 可能是相对路径或绝对路径
-             throw new RuntimeException("文件不存在: " + filePath);
+        String content = source.getContent();
+        if (!StringUtils.hasText(content)) {
+            throw new RuntimeException("文件路径或内容为空");
         }
 
-        try (InputStream inputStream = new FileInputStream(file)) {
-            return documentConverterService.convertToString(inputStream, source.getName());
+        File file = new File(content);
+        if (file.exists() && file.isFile()) {
+            try (InputStream inputStream = new FileInputStream(file)) {
+                return documentConverterService.convertToString(inputStream, source.getName());
+            }
         }
+
+        // 兼容“直接粘贴文本”场景：当 content 看起来不像文件路径时，直接当文本入库。
+        if (!looksLikeFilePath(content)) {
+            log.warn("知识来源 {} 未命中文件路径，按纯文本处理", source.getId());
+            return content;
+        }
+
+        throw new RuntimeException("文件不存在: " + content);
     }
 
     private List<String> splitDocument(String text, String method, int chunkSize, int overlap, 
@@ -170,6 +172,17 @@ public class KnowledgeProcessingJob extends AbstractAsyncJob {
 
         // 调用 VectorService 入库
         vectorService.embedAndStore(chunks, embeddingModel);
+    }
+
+    private boolean looksLikeFilePath(String content) {
+        String normalized = content.trim();
+        if (normalized.startsWith("/") || normalized.startsWith("./") || normalized.startsWith("../")) {
+            return true;
+        }
+        if (normalized.matches("^[A-Za-z]:\\\\.*")) {
+            return true;
+        }
+        return normalized.matches(".*\\.(pdf|doc|docx|txt|md|ppt|pptx|xls|xlsx)$");
     }
 
     private void updateSourceStatus(KnowledgeSource source, String status) {

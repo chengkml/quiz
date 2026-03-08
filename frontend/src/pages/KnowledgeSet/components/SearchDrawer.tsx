@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Drawer, Form, Input, InputNumber, Radio, Button, List, Card, Typography, Spin, Tag, Empty, Divider } from '@arco-design/web-react';
+import { Drawer, Form, Input, InputNumber, Radio, Button, List, Typography, Spin, Tag, Empty, Divider, Message } from '@arco-design/web-react';
 import { IconSearch } from '@arco-design/web-react/icon';
 import { vectorSearch } from '../api';
 
@@ -20,10 +20,15 @@ const SearchDrawer: React.FC<SearchDrawerProps> = ({ visible, knowledgeSetId, on
     const handleSearch = async () => {
         try {
             const values = await form.validate();
+            if (!knowledgeSetId) {
+                Message.error('缺少知识集ID，请重新打开检索面板');
+                return;
+            }
+
             setLoading(true);
             setResults([]);
             setSearched(true);
-            
+
             const params = {
                 ...values,
                 knowledgeSetId,
@@ -31,8 +36,10 @@ const SearchDrawer: React.FC<SearchDrawerProps> = ({ visible, knowledgeSetId, on
 
             const response = await vectorSearch(params);
             setResults(response.data || []);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Search failed:', error);
+            const message = error?.response?.data?.message || error?.message || '检索失败';
+            Message.error(message);
         } finally {
             setLoading(false);
         }
