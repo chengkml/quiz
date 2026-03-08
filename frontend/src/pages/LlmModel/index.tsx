@@ -20,10 +20,12 @@ import {
     IconCheck,
     IconDelete,
     IconEdit,
+    IconImage,
     IconMessage,
 } from '@arco-design/web-react/icon';
 import './style/index.less';
 import ModelChatDrawer from './components/ModelChatDrawer';
+import ModelMultimodalDrawer from './components/ModelMultimodalDrawer';
 import {
     createModel,
     deleteModel,
@@ -64,6 +66,8 @@ function LlmModelManager() {
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [chatDrawerVisible, setChatDrawerVisible] = useState(false);
     const [currentChatModel, setCurrentChatModel] = useState<any | null>(null);
+    const [multimodalDrawerVisible, setMultimodalDrawerVisible] = useState(false);
+    const [currentMultimodalModel, setCurrentMultimodalModel] = useState<any | null>(null);
 
     // 表单引用
     const addFormRef = useRef<any>(null);
@@ -78,6 +82,7 @@ function LlmModelManager() {
     const typeOptions = [
         { label: '文本', value: 'TEXT' },
         { label: '视觉', value: 'VISION' },
+        { label: '图像', value: 'IMAGE' },
         { label: '语音', value: 'VOICE' },
         { label: '嵌入', value: 'EMBEDDING' },
     ];
@@ -253,6 +258,7 @@ function LlmModelManager() {
     const typeMap: Record<string, { label: string; color: string }> = {
         'TEXT': { label: '文本', color: 'blue' },
         'VISION': { label: '视觉', color: 'green' },
+        'IMAGE': { label: '图像', color: 'magenta' },
         'VOICE': { label: '语音', color: 'purple' },
         'EMBEDDING': { label: '嵌入', color: 'orange' },
     };
@@ -277,7 +283,7 @@ function LlmModelManager() {
         { title: '创建时间', dataIndex: 'createDate', width: 180, render: (value: string) => renderDate(value) },
         {
             title: '操作',
-            width: 140,
+            width: 180,
             align: 'center' as any,
             fixed: 'right' as any,
             render: (_: any, record: any) => (
@@ -317,6 +323,20 @@ function LlmModelManager() {
                                     e.stopPropagation();
                                     setCurrentChatModel(record);
                                     setChatDrawerVisible(true);
+                                }}
+                            />
+                        </Tooltip>
+                    )}
+                    {(record.type === 'VISION' || record.type === 'IMAGE') && (
+                        <Tooltip content="多模态测试">
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<IconImage />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCurrentMultimodalModel(record);
+                                    setMultimodalDrawerVisible(true);
                                 }}
                             />
                         </Tooltip>
@@ -470,6 +490,12 @@ function LlmModelManager() {
                 visible={chatDrawerVisible}
                 model={currentChatModel}
                 onClose={() => setChatDrawerVisible(false)}
+            />
+
+            <ModelMultimodalDrawer
+                visible={multimodalDrawerVisible}
+                model={currentMultimodalModel}
+                onClose={() => setMultimodalDrawerVisible(false)}
             />
         </div>
     );

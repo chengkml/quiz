@@ -18,6 +18,18 @@ export const deleteModel = (id: string) => axios.delete(`/llm-model/delete/${id}
 // 设置默认模型
 export const setDefaultModel = (id: string) => axios.put(`/llm-model/${id}/set-default`);
 
+// 多模态测试
+export const testMultimodalModel = (id: string, prompt: string, image: File) => {
+  const formData = new FormData();
+  formData.append('prompt', prompt);
+  formData.append('image', image);
+  return axios.post(`/llm-model/${id}/test-multimodal`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
 export default {
   getModelList,
   getModelById,
@@ -25,4 +37,5 @@ export default {
   updateModel,
   deleteModel,
   setDefaultModel,
+  testMultimodalModel,
 };
