@@ -67,6 +67,7 @@ import JwtGenerator from "@/pages/JwtGenerator";
 import ApiTester from "@/pages/ApiTester";
 import TagManager from "@/pages/Tag";
 import RequirementManager from "@/pages/Requirement";
+import CodeReviewManager from "@/pages/CodeReview";
 import AgentManager from "@/pages/Agent";
 import VocabularyPage from "@/pages/Vocabulary";
 import VocabularyReviewPage from "@/pages/Vocabulary/Review";
@@ -385,6 +386,11 @@ const protectedPages = [
     path: "requirement",
     element: <RequirementManager />,
     requiredPath: "requirement",
+  },
+  {
+    path: "code-review",
+    element: <CodeReviewManager />,
+    requiredPath: "code-review",
   },
   {
     path: "agent",
