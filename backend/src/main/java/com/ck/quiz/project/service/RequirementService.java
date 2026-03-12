@@ -21,8 +21,9 @@ public interface RequirementService extends BaseService<RequirementCreateDto, Re
      * @param id 需求ID
      * @param status 新状态
      * @param resultMsg 结果信息
+     * @param progressPercent 进度百分比(0-100)
      */
-    void updateStatus(String id, String status, String resultMsg);
+    void updateStatus(String id, String status, String resultMsg, Integer progressPercent);
 
     /**
      * 获取历史输入选项

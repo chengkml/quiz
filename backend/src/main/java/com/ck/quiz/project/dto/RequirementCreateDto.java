@@ -21,6 +21,8 @@ public class RequirementCreateDto extends CreateDto {
 
     private String descr;
 
+    private Integer progressPercent;
+
     private Status status;
     
     private Priority priority;

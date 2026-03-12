@@ -41,10 +41,13 @@ public class RequirementController extends BaseController<RequirementCreateDto, 
         return requirementService.getPendingRequirement();
     }
 
-    @Operation(summary = "更新需求状态 (OpenClaw)", description = "更新需求状态及结果信息")
+    @Operation(summary = "更新需求状态 (OpenClaw)", description = "更新需求状态、结果信息及进度")
     @PostMapping("/{id}/status")
-    public void updateStatus(@PathVariable String id, @RequestParam String status, @RequestParam(required = false) String resultMsg) {
-        requirementService.updateStatus(id, status, resultMsg);
+    public void updateStatus(@PathVariable String id,
+                             @RequestParam String status,
+                             @RequestParam(required = false) String resultMsg,
+                             @RequestParam(required = false) Integer progressPercent) {
+        requirementService.updateStatus(id, status, resultMsg, progressPercent);
     }
 
     @Operation(summary = "获取历史输入选项", description = "获取项目名称、Git仓库地址、分支名称的历史输入记录")

@@ -15,6 +15,7 @@ public class RequirementDto extends Dto {
     private String branch;
     private String descr;
     private String resultMsg;
+    private Integer progressPercent;
     private Status status;
     private Priority priority;
 }

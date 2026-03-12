@@ -3,9 +3,11 @@ import {
   Button,
   Form,
   Input,
+  InputNumber,
   Message,
   Modal,
   Popconfirm,
+  Progress,
   Select,
   Tag,
   Tooltip,
@@ -83,6 +85,22 @@ function Requirement() {
     { label: "已完成", value: "COMPLETED" },
     { label: "已关闭", value: "CLOSED" },
   ];
+
+  const normalizeProgressPercent = (
+    status: string | undefined,
+    progressPercent: number | undefined,
+    fallbackPercent = 0
+  ) => {
+    if (status === "OPEN") {
+      return 0;
+    }
+    if (status === "COMPLETED") {
+      return 100;
+    }
+    const raw = progressPercent ?? fallbackPercent;
+    const normalized = Number.isFinite(raw) ? Number(raw) : 0;
+    return Math.max(0, Math.min(100, Math.round(normalized)));
+  };
 
   // 搜索表单配置
   const searchFormFields: FormFieldConfig[] = [
@@ -182,7 +200,11 @@ function Requirement() {
     try {
       const values = await addFormRef.current?.validate?.();
       if (values) {
-        await createRequirement(values);
+        const payload = {
+          ...values,
+          progressPercent: normalizeProgressPercent(values.status, values.progressPercent),
+        };
+        await createRequirement(payload);
         Message.success("需求创建成功");
         setAddModalVisible(false);
         addFormRef.current?.resetFields?.();
@@ -212,6 +234,11 @@ function Requirement() {
       if (values && currentRecord) {
         const payload = {
           ...values,
+          progressPercent: normalizeProgressPercent(
+            values.status,
+            values.progressPercent,
+            currentRecord.progressPercent
+          ),
           id: currentRecord.id,
         };
         await updateRequirement(payload);
@@ -313,6 +340,27 @@ function Requirement() {
             {it.icon}
             <span>{it.text}</span>
           </Tag>
+        );
+      },
+    },
+    {
+      title: "开发进度",
+      dataIndex: "progressPercent",
+      width: 160,
+      render: (value: number, record: any) => {
+        const percent = normalizeProgressPercent(
+          record?.status,
+          value,
+          record?.status === "COMPLETED" ? 100 : 0
+        );
+        return (
+          <div className="requirement-progress-cell">
+            <Progress
+              percent={percent}
+              size="small"
+              status={record?.status === "COMPLETED" ? "success" : "normal"}
+            />
+          </div>
         );
       },
     },
@@ -476,6 +524,9 @@ function Requirement() {
                     ))}
                   </Select>
                 </Form.Item>
+                <Form.Item label="开发进度(%)" field="progressPercent" initialValue={0}>
+                  <InputNumber min={0} max={100} precision={0} placeholder="0-100" style={{ width: "100%" }} />
+                </Form.Item>
                 <Form.Item label="优先级" field="priority" initialValue="MEDIUM">
                   <Select placeholder="请选择优先级">
                     <Option value="LOW">低</Option>
@@ -495,6 +546,9 @@ function Requirement() {
                       </Option>
                     ))}
                   </Select>
+                </Form.Item>
+                <Form.Item label="开发进度(%)" field="progressPercent">
+                  <InputNumber min={0} max={100} precision={0} placeholder="0-100" style={{ width: "100%" }} />
                 </Form.Item>
                 <Form.Item label="优先级" field="priority">
                   <Select placeholder="请选择优先级">

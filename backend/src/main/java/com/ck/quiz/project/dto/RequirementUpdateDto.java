@@ -14,6 +14,7 @@ public class RequirementUpdateDto extends UpdateDto {
     private String gitUrl;
     private String branch;
     private String descr;
+    private Integer progressPercent;
     private Status status;
     private Priority priority;
 }

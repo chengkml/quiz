@@ -59,12 +59,13 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
 
     @Override
     @Transactional
-    public void updateStatus(String id, String statusStr, String resultMsg) {
+    public void updateStatus(String id, String statusStr, String resultMsg, Integer progressPercent) {
         Requirement requirement = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Requirement not found: " + id));
 
+        Status status;
         try {
-            Status status = Status.valueOf(statusStr.toUpperCase());
+            status = Status.valueOf(statusStr.toUpperCase());
             requirement.setStatus(status);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Invalid status: " + statusStr);
@@ -74,7 +75,22 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
             requirement.setResultMsg(resultMsg);
         }
 
+        if (progressPercent != null) {
+            requirement.setProgressPercent(normalizeProgress(progressPercent));
+        } else if (status == Status.OPEN) {
+            requirement.setProgressPercent(0);
+        } else if (status == Status.COMPLETED) {
+            requirement.setProgressPercent(100);
+        }
+
         repository.save(requirement);
+    }
+
+    private int normalizeProgress(Integer progressPercent) {
+        if (progressPercent == null) {
+            return 0;
+        }
+        return Math.max(0, Math.min(100, progressPercent));
     }
 
     @Override

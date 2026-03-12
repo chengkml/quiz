@@ -40,6 +40,10 @@ public class Requirement extends Model {
     @Comment("处理结果/错误信息")
     private String resultMsg;
 
+    @Column
+    @Comment("开发进度百分比(0-100)")
+    private Integer progressPercent = 0;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
     @Comment("状态：OPEN, IN_PROGRESS, COMPLETED, CLOSED")
@@ -61,5 +65,23 @@ public class Requirement extends Model {
         LOW,
         MEDIUM,
         HIGH
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void normalizeProgressPercent() {
+        if (progressPercent == null) {
+            progressPercent = 0;
+        }
+        if (progressPercent < 0) {
+            progressPercent = 0;
+        } else if (progressPercent > 100) {
+            progressPercent = 100;
+        }
+        if (status == Status.OPEN) {
+            progressPercent = 0;
+        } else if (status == Status.COMPLETED) {
+            progressPercent = 100;
+        }
     }
 }
