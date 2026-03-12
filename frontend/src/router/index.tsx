@@ -19,6 +19,7 @@ import CategoryManagement from "@/pages/Category";
 import KnowledgeManagement from "@/pages/Knowledge";
 import UserManagement from "@/pages/User";
 import TodoManagement from "@/pages/Todo";
+import DiaryManagement from "@/pages/Diary";
 import GroupManagement from "@/pages/Group";
 import DocManagement from "@/pages/DocMgr";
 import FileManager from "@/pages/FileManager";
@@ -265,6 +266,7 @@ const protectedPages = [
   },
   { path: "exam", element: <ExamManagement />, requiredPath: "exam" },
   { path: "todo", element: <TodoManagement />, requiredPath: "todo" },
+  { path: "diary", element: <DiaryManagement />, requiredPath: "diary" },
   { path: "group", element: <GroupManagement />, requiredPath: "group" },
   { path: "doc", element: <DocManagement />, requiredPath: "doc" },
   { path: "file-manager", element: <FileManager />, requiredPath: "file-manager" },
