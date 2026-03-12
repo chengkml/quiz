@@ -71,6 +71,7 @@ import CodeReviewManager from "@/pages/CodeReview";
 import AgentManager from "@/pages/Agent";
 import VocabularyPage from "@/pages/Vocabulary";
 import VocabularyReviewPage from "@/pages/Vocabulary/Review";
+import CharacterPage from "@/pages/Character";
 import PoetryPage from "@/pages/Poetry";
 import GitDesktopPage from "@/pages/GitDesktop";
 import HomeworkManager from "@/pages/Homework";
@@ -406,6 +407,11 @@ const protectedPages = [
     path: "vocabulary/review",
     element: <VocabularyReviewPage />,
     requiredPath: "vocabulary",
+  },
+  {
+    path: "character",
+    element: <CharacterPage />,
+    requiredPath: "character",
   },
   {
     path: "poetry",
