@@ -9,7 +9,6 @@ import {
     Popconfirm,
     Select,
     Space,
-    Spin,
     Table,
     Tag,
     Tooltip,
@@ -21,6 +20,11 @@ import {
     IconPlus,
     IconSearch,
 } from '@arco-design/web-react/icon';
+import MDEditor from '@uiw/react-md-editor';
+import '@uiw/react-md-editor/markdown-editor.css';
+import '@uiw/react-markdown-preview/markdown.css';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import renderDate from '@/utils/timeUtil';
 import {
     createHomework,
@@ -34,7 +38,6 @@ import {
 } from './api';
 import './style/index.less';
 
-const { TextArea } = Input;
 const { Option } = Select;
 
 const STATUS_OPTIONS = [
@@ -48,6 +51,22 @@ const getStatusLabel = (status: string) => {
 };
 const getStatusColor = (status: string) => {
     return STATUS_OPTIONS.find((o) => o.value === status)?.color || 'gray';
+};
+
+const buildContentPreview = (content?: string) => {
+    if (!content) {
+        return '-';
+    }
+    const plainText = content
+        .replace(/```[\s\S]*?```/g, ' ')
+        .replace(/[`*_>#~\-|]/g, ' ')
+        .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!plainText) {
+        return '-';
+    }
+    return plainText.length > 80 ? `${plainText.slice(0, 80)}...` : plainText;
 };
 
 const HomeworkPage: React.FC = () => {
@@ -65,6 +84,7 @@ const HomeworkPage: React.FC = () => {
     const [editingItem, setEditingItem] = useState<HomeworkDto | null>(null);
     const [form] = Form.useForm();
     const [saving, setSaving] = useState(false);
+    const [mdContent, setMdContent] = useState('');
 
     // Detail view modal
     const [detailVisible, setDetailVisible] = useState(false);
@@ -98,14 +118,18 @@ const HomeworkPage: React.FC = () => {
     const handleAdd = () => {
         setEditingItem(null);
         form.resetFields();
+        setMdContent('');
+        form.setFieldValue('content', '');
         setDrawerVisible(true);
     };
 
     const handleEdit = (record: HomeworkDto) => {
+        const nextContent = record.content || '';
         setEditingItem(record);
+        setMdContent(nextContent);
         form.setFieldsValue({
             title: record.title,
-            content: record.content,
+            content: nextContent,
             status: record.status,
         });
         setDrawerVisible(true);
@@ -181,7 +205,7 @@ const HomeworkPage: React.FC = () => {
             ellipsis: true,
             render: (content: string) => (
                 <span style={{ color: 'var(--color-text-2)', fontSize: 13 }}>
-                    {content ? content.slice(0, 80) + (content.length > 80 ? '...' : '') : '-'}
+                    {buildContentPreview(content)}
                 </span>
             ),
         },
@@ -317,10 +341,18 @@ const HomeworkPage: React.FC = () => {
                         </Select>
                     </Form.Item>
                     <Form.Item label="内容（Markdown）" field="content">
-                        <TextArea
-                            placeholder="请输入作业内容（支持 Markdown 格式）"
-                            autoSize={{ minRows: 12, maxRows: 30 }}
-                        />
+                        <div data-color-mode="light">
+                            <MDEditor
+                                value={mdContent}
+                                onChange={(val) => {
+                                    const nextContent = val || '';
+                                    setMdContent(nextContent);
+                                    form.setFieldValue('content', nextContent);
+                                }}
+                                height={380}
+                                preview="live"
+                            />
+                        </div>
                     </Form.Item>
                 </Form>
             </Drawer>
@@ -367,21 +399,10 @@ const HomeworkPage: React.FC = () => {
                                 </span>
                             )}
                         </Space>
-                        <div
-                            style={{
-                                background: 'var(--color-fill-2)',
-                                borderRadius: 6,
-                                padding: 16,
-                                minHeight: 120,
-                                maxHeight: 500,
-                                overflowY: 'auto',
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
-                                fontSize: 14,
-                                lineHeight: 1.8,
-                            }}
-                        >
-                            {detailItem.content || '（暂无内容）'}
+                        <div className="md-preview md-detail-preview">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {detailItem.content || '（暂无内容）'}
+                            </ReactMarkdown>
                         </div>
                     </div>
                 )}

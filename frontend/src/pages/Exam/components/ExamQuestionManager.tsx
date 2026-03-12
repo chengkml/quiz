@@ -16,7 +16,7 @@ import {
     IconEdit,
     IconPlus,
 } from '@arco-design/web-react/icon';
-import { SortableContainer, SortableElement, SortableHandle } from 'react-sortable-hoc';
+import { SortableContainer, SortableElement, SortableHandle } from '@prma85/react-sortable-hoc';
 import {
     addQuestionsToExam,
     removeQuestionFromExam,
