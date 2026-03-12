@@ -53,7 +53,8 @@ public class HumpHelper {
             matcher.appendReplacement(sb, "_" + matcher.group(0).toLowerCase());
         }
         matcher.appendTail(sb);
-        return sb.toString();
+        String result = sb.toString();
+        return result.startsWith("_") ? result.substring(1) : result;
     }
 
     public static Map<String, Object> humpToLineMap(Map<String, Object> map) {
