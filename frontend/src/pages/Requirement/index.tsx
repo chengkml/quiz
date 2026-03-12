@@ -26,6 +26,7 @@ import "./style/index.less";
 import {
   createRequirement,
   deleteRequirement,
+  getRequirementHistoryOptions,
   getRequirementList,
   updateRequirement,
 } from "./api";
@@ -34,6 +35,8 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 function Requirement() {
+  const DEFAULT_BRANCH = "main";
+
   // 表格数据与状态
   const [tableData, setTableData] = useState<any[]>([]);
   const [tableLoading, setTableLoading] = useState(false);
@@ -58,6 +61,15 @@ function Requirement() {
   const [currentRecord, setCurrentRecord] = useState<any | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [historyOptions, setHistoryOptions] = useState<{
+    projectNames: string[];
+    gitUrls: string[];
+    branches: string[];
+  }>({
+    projectNames: [],
+    gitUrls: [],
+    branches: [],
+  });
 
   // 表单引用
   const addFormRef = useRef<any>(null);
@@ -161,6 +173,7 @@ function Requirement() {
   // 新增
   const handleAdd = () => {
     setCurrentRecord(null);
+    fetchHistoryOptions();
     setAddModalVisible(true);
     setTimeout(() => addFormRef.current?.resetFields?.(), 50);
   };
@@ -184,6 +197,7 @@ function Requirement() {
   // 编辑
   const handleEdit = (record: any) => {
     setCurrentRecord(record);
+    fetchHistoryOptions();
     setEditModalVisible(true);
     setTimeout(() => {
       editFormRef.current?.setFieldsValue?.({
@@ -222,6 +236,31 @@ function Requirement() {
       Message.error("需求删除失败");
     }
   };
+
+  const fetchHistoryOptions = async () => {
+    try {
+      const response = await getRequirementHistoryOptions();
+      const data = (response as any)?.data || {};
+      setHistoryOptions({
+        projectNames: Array.isArray(data.projectNames) ? data.projectNames : [],
+        gitUrls: Array.isArray(data.gitUrls) ? data.gitUrls : [],
+        branches: Array.isArray(data.branches) ? data.branches : [],
+      });
+    } catch {
+      setHistoryOptions({ projectNames: [], gitUrls: [], branches: [] });
+    }
+  };
+
+  const renderSelectOptions = (values: string[]) =>
+    values.map((item) => (
+      <Option key={item} value={item}>
+        {item}
+      </Option>
+    ));
+
+  const branchOptions = historyOptions.branches.includes(DEFAULT_BRANCH)
+    ? historyOptions.branches
+    : [DEFAULT_BRANCH, ...historyOptions.branches];
 
   // 列配置
   const columns = [
@@ -394,13 +433,34 @@ function Requirement() {
               <Input placeholder="请输入标题" />
             </Form.Item>
             <Form.Item label="项目名称" field="projectName">
-              <Input placeholder="请输入项目名称" />
+              <Select
+                placeholder="请选择或输入项目名称"
+                showSearch
+                allowClear
+                allowCreate
+              >
+                {renderSelectOptions(historyOptions.projectNames)}
+              </Select>
             </Form.Item>
             <Form.Item label="Git 仓库地址" field="gitUrl">
-              <Input placeholder="请输入 Git 仓库地址" />
+              <Select
+                placeholder="请选择或输入 Git 仓库地址"
+                showSearch
+                allowClear
+                allowCreate
+              >
+                {renderSelectOptions(historyOptions.gitUrls)}
+              </Select>
             </Form.Item>
-            <Form.Item label="分支名称" field="branch" initialValue="main">
-              <Input placeholder="请输入分支名称" />
+            <Form.Item label="分支名称" field="branch" initialValue={DEFAULT_BRANCH}>
+              <Select
+                placeholder="请选择或输入分支名称"
+                showSearch
+                allowClear
+                allowCreate
+              >
+                {renderSelectOptions(branchOptions)}
+              </Select>
             </Form.Item>
             <Form.Item label="描述" field="descr">
               <TextArea placeholder="请输入详细描述" autoSize={{ minRows: 3 }} />

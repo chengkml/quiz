@@ -17,13 +17,16 @@ import org.springframework.util.StringUtils;
 import com.ck.quiz.base.service.impl.BaseServiceImpl;
 import com.ck.quiz.project.dto.RequirementCreateDto;
 import com.ck.quiz.project.dto.RequirementDto;
+import com.ck.quiz.project.dto.RequirementHistoryOptionsDto;
 import com.ck.quiz.project.dto.RequirementQueryDto;
 import com.ck.quiz.project.dto.RequirementUpdateDto;
 import com.ck.quiz.project.entity.Requirement;
 import com.ck.quiz.project.repository.RequirementRepository;
 import com.ck.quiz.project.service.RequirementService;
 import com.ck.quiz.project.entity.Requirement.Status;
-import org.springframework.transaction.annotation.Transactional;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Service
 public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto, RequirementUpdateDto, RequirementQueryDto, RequirementDto, Requirement, RequirementRepository> implements RequirementService {
@@ -117,5 +120,36 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createDate"));
         Page<Requirement> resultPage = repository.findAll(spec, pageable);
         return resultPage.map(model -> convertToDto(model, true));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RequirementHistoryOptionsDto getHistoryOptions(String userId) {
+        RequirementHistoryOptionsDto dto = new RequirementHistoryOptionsDto();
+        if (!StringUtils.hasText(userId)) {
+            return dto;
+        }
+
+        List<Requirement> requirements = repository.findTop200ByCreateUserOrderByCreateDateDesc(userId);
+        Set<String> projectNames = new LinkedHashSet<>();
+        Set<String> gitUrls = new LinkedHashSet<>();
+        Set<String> branches = new LinkedHashSet<>();
+
+        for (Requirement requirement : requirements) {
+            if (StringUtils.hasText(requirement.getProjectName())) {
+                projectNames.add(requirement.getProjectName().trim());
+            }
+            if (StringUtils.hasText(requirement.getGitUrl())) {
+                gitUrls.add(requirement.getGitUrl().trim());
+            }
+            if (StringUtils.hasText(requirement.getBranch())) {
+                branches.add(requirement.getBranch().trim());
+            }
+        }
+
+        dto.setProjectNames(new ArrayList<>(projectNames));
+        dto.setGitUrls(new ArrayList<>(gitUrls));
+        dto.setBranches(new ArrayList<>(branches));
+        return dto;
     }
 }

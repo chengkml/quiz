@@ -1,6 +1,8 @@
 package com.ck.quiz.project.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +14,7 @@ import com.ck.quiz.base.controller.BaseController;
 import com.ck.quiz.base.service.BaseService;
 import com.ck.quiz.project.dto.RequirementCreateDto;
 import com.ck.quiz.project.dto.RequirementDto;
+import com.ck.quiz.project.dto.RequirementHistoryOptionsDto;
 import com.ck.quiz.project.dto.RequirementQueryDto;
 import com.ck.quiz.project.dto.RequirementUpdateDto;
 import com.ck.quiz.project.service.RequirementService;
@@ -42,5 +45,12 @@ public class RequirementController extends BaseController<RequirementCreateDto, 
     @PostMapping("/{id}/status")
     public void updateStatus(@PathVariable String id, @RequestParam String status, @RequestParam(required = false) String resultMsg) {
         requirementService.updateStatus(id, status, resultMsg);
+    }
+
+    @Operation(summary = "获取历史输入选项", description = "获取项目名称、Git仓库地址、分支名称的历史输入记录")
+    @GetMapping("/history-options")
+    public RequirementHistoryOptionsDto getHistoryOptions() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return requirementService.getHistoryOptions(authentication.getName());
     }
 }

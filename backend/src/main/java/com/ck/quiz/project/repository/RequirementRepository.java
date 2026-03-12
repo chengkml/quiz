@@ -4,6 +4,10 @@ import com.ck.quiz.base.repository.BaseRepository;
 import com.ck.quiz.project.entity.Requirement;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface RequirementRepository extends BaseRepository<Requirement> {
+
+	List<Requirement> findTop200ByCreateUserOrderByCreateDateDesc(String createUser);
 }

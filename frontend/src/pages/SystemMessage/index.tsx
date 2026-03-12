@@ -35,6 +35,18 @@ interface SystemMessageItem {
   readDate?: string;
 }
 
+const MESSAGE_TYPE_META: Record<string, { color: string; text: string }> = {
+  NOTIFICATION: { color: "blue", text: "通知" },
+  WARNING: { color: "orange", text: "警告" },
+  SYSTEM: { color: "gray", text: "系统" },
+  SUCCESS: { color: "green", text: "成功" },
+  ERROR: { color: "red", text: "错误" },
+  INFO: { color: "arcoblue", text: "信息" },
+};
+
+const getMessageTypeMeta = (type: string) =>
+  MESSAGE_TYPE_META[type] || { color: "arcoblue", text: type };
+
 function SystemMessageManager() {
   const filterFormRef = useRef<any>(null);
 
@@ -56,11 +68,9 @@ function SystemMessageManager() {
     null
   );
 
-  const messageTypeOptions = [
-    { label: "通知", value: "NOTIFICATION" },
-    { label: "警告", value: "WARNING" },
-    { label: "系统", value: "SYSTEM" },
-  ];
+  const messageTypeOptions = Object.entries(MESSAGE_TYPE_META).map(
+    ([value, meta]) => ({ label: meta.text, value })
+  );
 
   const readStatusOptions = [
     { label: "全部", value: "all" },
@@ -180,12 +190,7 @@ function SystemMessageManager() {
       dataIndex: "type",
       width: 120,
       render: (type: string) => {
-        const map: Record<string, any> = {
-          NOTIFICATION: { color: "blue", text: "通知" },
-          WARNING: { color: "orange", text: "警告" },
-          SYSTEM: { color: "gray", text: "系统" },
-        };
-        const it = map[type] || { color: "arcoblue", text: type };
+        const it = getMessageTypeMeta(type);
         return (
           <Tag color={it.color} bordered>
             {it.text}
@@ -219,14 +224,7 @@ function SystemMessageManager() {
       key: "type",
       label: "类型",
       dataIndex: "type",
-      render: (type: string) => {
-        const map: Record<string, any> = {
-          NOTIFICATION: "通知",
-          WARNING: "警告",
-          SYSTEM: "系统",
-        };
-        return map[type] || type;
-      },
+      render: (type: string) => getMessageTypeMeta(type).text,
     },
     {
       key: "createDate",
