@@ -51,8 +51,8 @@ function SystemMessageManager() {
   const filterFormRef = useRef<any>(null);
 
   const [items, setItems] = useState<SystemMessageItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [tableScrollHeight, setTableScrollHeight] = useState(420);
 
   const [pagination, setPagination] = useState<PaginationConfig>({
     current: 1,
@@ -119,6 +119,17 @@ function SystemMessageManager() {
 
   useEffect(() => {
     fetchMessages({ page: 0, size: pagination.pageSize });
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => {
+      const height = window.innerHeight;
+      const header = 260;
+      setTableScrollHeight(Math.max(320, height - header));
+    };
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   const searchFormFields: FormFieldConfig[] = [
@@ -338,7 +349,7 @@ function SystemMessageManager() {
             </Button>
           ),
         }}
-        tableScrollHeight={400}
+        tableScrollHeight={tableScrollHeight}
       />
 
       <DetailModal

@@ -8,6 +8,7 @@ import com.ck.quiz.syslog.dto.SysLogUpdateDto;
 import com.ck.quiz.syslog.entity.SysLog;
 import com.ck.quiz.syslog.repository.SysLogRepository;
 import com.ck.quiz.syslog.service.SysLogService;
+import com.ck.quiz.user.dto.UserDto;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import org.springframework.data.domain.Page;
 import org.springframework.scheduling.annotation.Async;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +84,36 @@ public class SysLogServiceImpl extends BaseServiceImpl<SysLogCreateDto, SysLogUp
             dto.setUpdateUser(rs.getString("update_user"));
             return dto;
         });
+
+        if (!list.isEmpty()) {
+            List<String> userIds = new ArrayList<>();
+            for (SysLogDto dto : list) {
+                if (StringUtils.hasText(dto.getCreateUser())) {
+                    userIds.add(dto.getCreateUser());
+                }
+                if (StringUtils.hasText(dto.getUpdateUser())) {
+                    userIds.add(dto.getUpdateUser());
+                }
+            }
+            List<String> distinctUserIds = userIds.stream().distinct().toList();
+            if (!distinctUserIds.isEmpty()) {
+                Map<String, UserDto> userMap = userService.getUserMapByIds(distinctUserIds);
+                for (SysLogDto dto : list) {
+                    UserDto createUser = userMap.get(dto.getCreateUser());
+                    if (createUser != null) {
+                        dto.setCreateUserName(createUser.getUserName());
+                    } else if ("SYSTEM".equalsIgnoreCase(dto.getCreateUser())) {
+                        dto.setCreateUserName("系统");
+                    }
+                    UserDto updateUser = userMap.get(dto.getUpdateUser());
+                    if (updateUser != null) {
+                        dto.setUpdateUserName(updateUser.getUserName());
+                    } else if ("SYSTEM".equalsIgnoreCase(dto.getUpdateUser())) {
+                        dto.setUpdateUserName("系统");
+                    }
+                }
+            }
+        }
 
         return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list, queryDto.getPageNum(), queryDto.getPageSize());
     }

@@ -35,8 +35,6 @@ function SysLogPage() {
       const pageSize = params?.pageSize ?? pagination.pageSize;
       const formValues = filterFormRef.current?.getFieldsValue?.() || {};
       const targetParams = {
-        module: formValues.module || undefined,
-        action: formValues.action || undefined,
         requestUri: formValues.requestUri || undefined,
         success: formValues.success === '' ? undefined : formValues.success,
         pageNum: current - 1,
@@ -185,9 +183,7 @@ function SysLogPage() {
   ];
 
   const filterFields: FormFieldConfig[] = [
-    { field: 'module', label: '模块', type: 'input', placeholder: '请输入模块名', span: 8 },
-    { field: 'action', label: '操作', type: 'input', placeholder: '请输入操作类型', span: 6 },
-    { field: 'requestUri', label: '请求URI', type: 'input', placeholder: '支持模糊匹配', span: 9 },
+    { field: 'requestUri', label: '请求URI', type: 'input', placeholder: '支持模糊匹配', span: 16 },
     {
       field: 'success',
       label: '是否成功',
