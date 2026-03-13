@@ -45,9 +45,9 @@ public class Requirement extends Model {
     private Integer progressPercent = 0;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 20, nullable = false)
-    @Comment("状态：OPEN, IN_PROGRESS, COMPLETED, CLOSED")
-    private Status status = Status.OPEN;
+    @Column(length = 30, nullable = false)
+    @Comment("状态：PENDING_ANALYSIS, PENDING_REVIEW, PENDING_REVISION, OPEN, IN_PROGRESS, COMPLETED, CLOSED")
+    private Status status = Status.PENDING_ANALYSIS;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
@@ -55,6 +55,9 @@ public class Requirement extends Model {
     private Priority priority = Priority.MEDIUM;
 
     public enum Status {
+        PENDING_ANALYSIS,
+        PENDING_REVIEW,
+        PENDING_REVISION,
         OPEN,
         IN_PROGRESS,
         COMPLETED,
@@ -78,7 +81,10 @@ public class Requirement extends Model {
         } else if (progressPercent > 100) {
             progressPercent = 100;
         }
-        if (status == Status.OPEN) {
+        if (status == Status.PENDING_ANALYSIS
+                || status == Status.PENDING_REVIEW
+                || status == Status.PENDING_REVISION
+                || status == Status.OPEN) {
             progressPercent = 0;
         } else if (status == Status.COMPLETED) {
             progressPercent = 100;

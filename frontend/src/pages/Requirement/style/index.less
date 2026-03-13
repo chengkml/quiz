@@ -45,3 +45,107 @@
     padding-left: 18px;
   }
 }
+
+.requirement-lifecycle-wrap {
+  max-height: 68vh;
+  overflow-y: auto;
+}
+
+.requirement-lifecycle-loading {
+  text-align: center;
+  color: var(--color-text-3);
+  padding: 24px 0;
+}
+
+.requirement-lifecycle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.requirement-lifecycle-item {
+  display: flex;
+  gap: 12px;
+}
+
+.requirement-lifecycle-axis {
+  width: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.requirement-lifecycle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(var(--primary-6));
+  margin-top: 6px;
+}
+
+.requirement-lifecycle-line {
+  flex: 1;
+  width: 2px;
+  background: var(--color-border-2);
+  margin-top: 4px;
+}
+
+.requirement-lifecycle-content {
+  flex: 1;
+  background: var(--color-fill-1);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.requirement-lifecycle-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.requirement-lifecycle-event {
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.requirement-lifecycle-meta {
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+.requirement-lifecycle-status {
+  margin-top: 6px;
+  color: var(--color-text-2);
+
+  .arrow {
+    color: var(--color-text-3);
+  }
+}
+
+.requirement-lifecycle-remark {
+  margin-top: 6px;
+  color: var(--color-text-2);
+}
+
+.requirement-lifecycle-descr {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--color-bg-2);
+  font-size: 13px;
+  line-height: 1.5;
+
+  p,
+  ul,
+  ol,
+  pre,
+  blockquote {
+    margin: 4px 0;
+  }
+
+  ul,
+  ol {
+    padding-left: 18px;
+  }
+}

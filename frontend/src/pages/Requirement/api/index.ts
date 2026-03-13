@@ -18,6 +18,23 @@ export const updateRequirement = (params: any) => axios.put('/project/requiremen
 // 删除需求
 export const deleteRequirement = (id: string) => axios.delete(`/project/requirement/delete/${id}`);
 
+// 需求分析
+export const analyzeRequirement = (id: string, params: {
+  descr?: string;
+  comment?: string;
+  progressPercent?: number;
+}) => axios.post(`/project/requirement/${id}/analyze`, params);
+
+// 需求评审
+export const reviewRequirement = (id: string, params: {
+  descr?: string;
+  comment?: string;
+  decision: "TO_OPEN" | "TO_REVISION";
+}) => axios.post(`/project/requirement/${id}/review`, params);
+
+// 生命周期日志
+export const getRequirementLifecycle = (id: string) => axios.get(`/project/requirement/${id}/lifecycle`);
+
 export default {
   getRequirementList,
   getRequirementHistoryOptions,
@@ -25,4 +42,7 @@ export default {
   createRequirement,
   updateRequirement,
   deleteRequirement,
+  analyzeRequirement,
+  reviewRequirement,
+  getRequirementLifecycle,
 };

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
+  Empty,
   Form,
   Input,
   InputNumber,
@@ -31,19 +32,70 @@ import {
 import renderDate from "@/utils/timeUtil";
 import "./style/index.less";
 import {
+  analyzeRequirement,
   createRequirement,
   deleteRequirement,
   getRequirementHistoryOptions,
+  getRequirementLifecycle,
   getRequirementList,
+  reviewRequirement,
   updateRequirement,
 } from "./api";
 
 const { Option } = Select;
 
+type RequirementStatus =
+  | "PENDING_ANALYSIS"
+  | "PENDING_REVIEW"
+  | "PENDING_REVISION"
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CLOSED";
+
+interface RequirementLifecycleLog {
+  id: string;
+  requirementId: string;
+  eventType: "CREATE" | "EDIT" | "STATUS_CHANGE" | "ANALYZE" | "REVIEW";
+  fromStatus?: RequirementStatus;
+  toStatus?: RequirementStatus;
+  beforeDescr?: string;
+  afterDescr?: string;
+  remark?: string;
+  createDate?: string;
+  createUser?: string;
+  createUserName?: string;
+}
+
+const STATUS_OPTIONS: Array<{ label: string; value: RequirementStatus }> = [
+  { label: "待分析", value: "PENDING_ANALYSIS" },
+  { label: "待评审", value: "PENDING_REVIEW" },
+  { label: "待修订", value: "PENDING_REVISION" },
+  { label: "待处理", value: "OPEN" },
+  { label: "处理中", value: "IN_PROGRESS" },
+  { label: "已完成", value: "COMPLETED" },
+  { label: "已关闭", value: "CLOSED" },
+];
+
+const STATUS_TEXT_MAP: Record<string, string> = STATUS_OPTIONS.reduce(
+  (acc, cur) => {
+    acc[cur.value] = cur.label;
+    return acc;
+  },
+  {} as Record<string, string>
+);
+
+const EVENT_TEXT_MAP: Record<string, string> = {
+  CREATE: "创建需求",
+  EDIT: "更新需求",
+  STATUS_CHANGE: "状态变更",
+  ANALYZE: "需求分析",
+  REVIEW: "需求评审",
+};
+
 function Requirement() {
   const DEFAULT_BRANCH = "main";
 
-  // 表格数据与状态
   const [tableData, setTableData] = useState<any[]>([]);
   const [tableLoading, setTableLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -56,19 +108,13 @@ function Requirement() {
   });
   const [tableScrollHeight, setTableScrollHeight] = useState(420);
 
-  // 搜索条件
   const [searchParams, setSearchParams] = useState({
     title: null,
     status: null,
     projectName: null,
   });
 
-  // 当前记录与弹窗
   const [currentRecord, setCurrentRecord] = useState<any | null>(null);
-  const [addModalVisible, setAddModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [addDescr, setAddDescr] = useState("");
-  const [editDescr, setEditDescr] = useState("");
   const [historyOptions, setHistoryOptions] = useState<{
     projectNames: string[];
     gitUrls: string[];
@@ -79,25 +125,37 @@ function Requirement() {
     branches: [],
   });
 
-  // 表单引用
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [analyzeModalVisible, setAnalyzeModalVisible] = useState(false);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [lifecycleVisible, setLifecycleVisible] = useState(false);
+
+  const [addDescr, setAddDescr] = useState("");
+  const [editDescr, setEditDescr] = useState("");
+  const [analyzeDescr, setAnalyzeDescr] = useState("");
+  const [reviewDescr, setReviewDescr] = useState("");
+
+  const [lifecycleLoading, setLifecycleLoading] = useState(false);
+  const [lifecycleLogs, setLifecycleLogs] = useState<RequirementLifecycleLog[]>([]);
+
   const addFormRef = useRef<any>(null);
   const editFormRef = useRef<any>(null);
+  const analyzeFormRef = useRef<any>(null);
+  const reviewFormRef = useRef<any>(null);
   const filterFormRef = useRef<any>(null);
-
-  // 状态选项
-  const statusOptions = [
-    { label: "待处理", value: "OPEN" },
-    { label: "处理中", value: "IN_PROGRESS" },
-    { label: "已完成", value: "COMPLETED" },
-    { label: "已关闭", value: "CLOSED" },
-  ];
 
   const normalizeProgressPercent = (
     status: string | undefined,
     progressPercent: number | undefined,
     fallbackPercent = 0
   ) => {
-    if (status === "OPEN") {
+    if (
+      status === "PENDING_ANALYSIS" ||
+      status === "PENDING_REVIEW" ||
+      status === "PENDING_REVISION" ||
+      status === "OPEN"
+    ) {
       return 0;
     }
     if (status === "COMPLETED") {
@@ -108,7 +166,6 @@ function Requirement() {
     return Math.max(0, Math.min(100, Math.round(normalized)));
   };
 
-  // 搜索表单配置
   const searchFormFields: FormFieldConfig[] = [
     {
       field: "title",
@@ -129,13 +186,12 @@ function Requirement() {
       label: "状态",
       type: "select",
       placeholder: "请选择状态",
-      options: statusOptions,
+      options: STATUS_OPTIONS,
       span: 6,
       allowClear: true,
     },
   ];
 
-  // 获取表格数据
   const fetchTableData = async (
     params: any = searchParams,
     pageSize: number = pagination.pageSize,
@@ -145,10 +201,8 @@ function Requirement() {
     try {
       const targetParams = {
         ...params,
-        pageNum: current, // 后端通常需要 1-based 或 0-based，根据 Todo 示例，这里传 current 即可，BaseServiceImpl 会处理
-        // 注意：BaseServiceImpl 中 page = queryDto.getPageNum() - 1。
-        // 如果前端传 1，后端 -1 = 0。符合预期。
-        pageSize: pageSize,
+        pageNum: current,
+        pageSize,
       };
       const response = await getRequirementList(targetParams);
       if (response.data) {
@@ -167,17 +221,45 @@ function Requirement() {
     }
   };
 
-  // 搜索处理
+  const fetchHistoryOptions = async () => {
+    try {
+      const response = await getRequirementHistoryOptions();
+      const data = (response as any)?.data || {};
+      setHistoryOptions({
+        projectNames: Array.isArray(data.projectNames) ? data.projectNames : [],
+        gitUrls: Array.isArray(data.gitUrls) ? data.gitUrls : [],
+        branches: Array.isArray(data.branches) ? data.branches : [],
+      });
+    } catch {
+      setHistoryOptions({ projectNames: [], gitUrls: [], branches: [] });
+    }
+  };
+
+  const fetchLifecycle = async (record: any) => {
+    setLifecycleLoading(true);
+    try {
+      const response = await getRequirementLifecycle(record.id);
+      const logs = ((response as any)?.data || []) as RequirementLifecycleLog[];
+      setLifecycleLogs(logs);
+    } catch {
+      Message.error("获取生命周期日志失败");
+      setLifecycleLogs([]);
+    } finally {
+      setLifecycleLoading(false);
+    }
+  };
+
   const handleSearch = (values: any) => {
     const filterValues = Object.fromEntries(
-      Object.entries(values).filter(([_, v]) => v !== "" && v !== undefined && v !== null)
+      Object.entries(values).filter(
+        ([_, v]) => v !== "" && v !== undefined && v !== null
+      )
     );
     setSearchParams(filterValues as any);
     setPagination((prev) => ({ ...prev, current: 1 }));
     fetchTableData(filterValues, pagination.pageSize, 1);
   };
 
-  // 重置处理
   const handleReset = () => {
     const defaultParams = {};
     setSearchParams(defaultParams as any);
@@ -185,16 +267,10 @@ function Requirement() {
     fetchTableData(defaultParams, pagination.pageSize, 1);
   };
 
-  // 分页变化
   const handlePaginationChange = (nextPagination: any) => {
-    fetchTableData(
-      searchParams,
-      nextPagination.pageSize,
-      nextPagination.current
-    );
+    fetchTableData(searchParams, nextPagination.pageSize, nextPagination.current);
   };
 
-  // 新增
   const handleAdd = () => {
     setCurrentRecord(null);
     setAddDescr("");
@@ -202,32 +278,16 @@ function Requirement() {
     setAddModalVisible(true);
     setTimeout(() => {
       addFormRef.current?.resetFields?.();
-      addFormRef.current?.setFieldsValue?.({ descr: "" });
+      addFormRef.current?.setFieldsValue?.({
+        status: "PENDING_ANALYSIS",
+        priority: "MEDIUM",
+        progressPercent: 0,
+        branch: DEFAULT_BRANCH,
+        descr: "",
+      });
     }, 50);
   };
 
-  const handleAddConfirm = async () => {
-    try {
-      const values = await addFormRef.current?.validate?.();
-      if (values) {
-        const payload = {
-          ...values,
-          progressPercent: normalizeProgressPercent(values.status, values.progressPercent),
-        };
-        await createRequirement(payload);
-        Message.success("需求创建成功");
-        setAddModalVisible(false);
-        setAddDescr("");
-        addFormRef.current?.resetFields?.();
-        fetchTableData();
-      }
-    } catch (error: any) {
-      if (error?.fields) return;
-      Message.error("需求创建失败");
-    }
-  };
-
-  // 编辑
   const handleEdit = (record: any) => {
     setCurrentRecord(record);
     setEditDescr(record?.descr || "");
@@ -240,12 +300,68 @@ function Requirement() {
     }, 50);
   };
 
+  const handleAnalyze = (record: any) => {
+    setCurrentRecord(record);
+    setAnalyzeDescr(record?.descr || "");
+    setAnalyzeModalVisible(true);
+    setTimeout(() => {
+      analyzeFormRef.current?.setFieldsValue?.({
+        descr: record?.descr || "",
+        comment: "",
+      });
+    }, 50);
+  };
+
+  const handleReview = (record: any) => {
+    setCurrentRecord(record);
+    setReviewDescr(record?.descr || "");
+    setReviewModalVisible(true);
+    setTimeout(() => {
+      reviewFormRef.current?.setFieldsValue?.({
+        descr: record?.descr || "",
+        comment: "",
+        decision: "TO_OPEN",
+      });
+    }, 50);
+  };
+
+  const handleViewLifecycle = async (record: any) => {
+    setCurrentRecord(record);
+    setLifecycleVisible(true);
+    await fetchLifecycle(record);
+  };
+
+  const handleAddConfirm = async () => {
+    try {
+      const values = await addFormRef.current?.validate?.();
+      if (values) {
+        const payload = {
+          ...values,
+          descr: addDescr,
+          progressPercent: normalizeProgressPercent(values.status, values.progressPercent),
+        };
+        await createRequirement(payload);
+        Message.success("需求创建成功");
+        setAddModalVisible(false);
+        setAddDescr("");
+        addFormRef.current?.resetFields?.();
+        fetchTableData();
+      }
+    } catch (error: any) {
+      if (error?.fields) {
+        return;
+      }
+      Message.error("需求创建失败");
+    }
+  };
+
   const handleEditConfirm = async () => {
     try {
       const values = await editFormRef.current?.validate?.();
       if (values && currentRecord) {
         const payload = {
           ...values,
+          descr: editDescr,
           progressPercent: normalizeProgressPercent(
             values.status,
             values.progressPercent,
@@ -261,12 +377,58 @@ function Requirement() {
         fetchTableData();
       }
     } catch (error: any) {
-      if (error?.fields) return;
+      if (error?.fields) {
+        return;
+      }
       Message.error("需求更新失败");
     }
   };
 
-  // 删除
+  const handleAnalyzeConfirm = async () => {
+    try {
+      const values = await analyzeFormRef.current?.validate?.();
+      if (values && currentRecord) {
+        await analyzeRequirement(currentRecord.id, {
+          descr: analyzeDescr,
+          comment: values.comment,
+        });
+        Message.success("需求分析完成，已流转到待评审");
+        setAnalyzeModalVisible(false);
+        setAnalyzeDescr("");
+        analyzeFormRef.current?.resetFields?.();
+        fetchTableData();
+      }
+    } catch (error: any) {
+      if (error?.fields) {
+        return;
+      }
+      Message.error("需求分析失败");
+    }
+  };
+
+  const handleReviewConfirm = async () => {
+    try {
+      const values = await reviewFormRef.current?.validate?.();
+      if (values && currentRecord) {
+        await reviewRequirement(currentRecord.id, {
+          descr: reviewDescr,
+          comment: values.comment,
+          decision: values.decision,
+        });
+        Message.success("需求评审完成");
+        setReviewModalVisible(false);
+        setReviewDescr("");
+        reviewFormRef.current?.resetFields?.();
+        fetchTableData();
+      }
+    } catch (error: any) {
+      if (error?.fields) {
+        return;
+      }
+      Message.error("需求评审失败");
+    }
+  };
+
   const handleDelete = async (record: any) => {
     try {
       await deleteRequirement(record.id);
@@ -274,20 +436,6 @@ function Requirement() {
       fetchTableData();
     } catch (error) {
       Message.error("需求删除失败");
-    }
-  };
-
-  const fetchHistoryOptions = async () => {
-    try {
-      const response = await getRequirementHistoryOptions();
-      const data = (response as any)?.data || {};
-      setHistoryOptions({
-        projectNames: Array.isArray(data.projectNames) ? data.projectNames : [],
-        gitUrls: Array.isArray(data.gitUrls) ? data.gitUrls : [],
-        branches: Array.isArray(data.branches) ? data.branches : [],
-      });
-    } catch {
-      setHistoryOptions({ projectNames: [], gitUrls: [], branches: [] });
     }
   };
 
@@ -302,18 +450,64 @@ function Requirement() {
     ? historyOptions.branches
     : [DEFAULT_BRANCH, ...historyOptions.branches];
 
-  // 列配置
+  const statusTag = (status: RequirementStatus) => {
+    const map: Record<string, any> = {
+      PENDING_ANALYSIS: {
+        color: "arcoblue",
+        text: "待分析",
+        icon: <IconClockCircle />,
+      },
+      PENDING_REVIEW: {
+        color: "purple",
+        text: "待评审",
+        icon: <IconClockCircle />,
+      },
+      PENDING_REVISION: {
+        color: "gold",
+        text: "待修订",
+        icon: <IconClockCircle />,
+      },
+      OPEN: {
+        color: "blue",
+        text: "待处理",
+        icon: <IconClockCircle />,
+      },
+      IN_PROGRESS: {
+        color: "orange",
+        text: "处理中",
+        icon: <IconLoading />,
+      },
+      COMPLETED: {
+        color: "green",
+        text: "已完成",
+        icon: <IconCheckCircle />,
+      },
+      CLOSED: {
+        color: "gray",
+        text: "已关闭",
+        icon: <IconCloseCircle />,
+      },
+    };
+    const it = map[status] || { color: "gray", text: status };
+    return (
+      <Tag color={it.color} className="requirement-status-tag">
+        {it.icon}
+        <span>{it.text}</span>
+      </Tag>
+    );
+  };
+
   const columns = [
     {
       title: "标题",
       dataIndex: "title",
       ellipsis: true,
-      width: 200,
+      width: 180,
     },
     {
       title: "项目名称",
       dataIndex: "projectName",
-      width: 150,
+      width: 120,
     },
     {
       title: "分支",
@@ -336,38 +530,8 @@ function Requirement() {
     {
       title: "状态",
       dataIndex: "status",
-      width: 100,
-      render: (status: string) => {
-        const map: Record<string, any> = {
-          OPEN: {
-            color: "blue",
-            text: "待处理",
-            icon: <IconClockCircle />,
-          },
-          IN_PROGRESS: {
-            color: "orange",
-            text: "处理中",
-            icon: <IconLoading />,
-          },
-          COMPLETED: {
-            color: "green",
-            text: "已完成",
-            icon: <IconCheckCircle />,
-          },
-          CLOSED: {
-            color: "gray",
-            text: "已关闭",
-            icon: <IconCloseCircle />,
-          },
-        };
-        const it = map[status] || { color: "gray", text: status };
-        return (
-          <Tag color={it.color} className="requirement-status-tag">
-            {it.icon}
-            <span>{it.text}</span>
-          </Tag>
-        );
-      },
+      width: 110,
+      render: (status: RequirementStatus) => statusTag(status),
     },
     {
       title: "开发进度",
@@ -394,7 +558,7 @@ function Requirement() {
       title: "处理结果",
       dataIndex: "resultMsg",
       ellipsis: true,
-      width: 150,
+      width: 180,
       render: (text: string) =>
         text ? (
           <Tooltip content={text}>
@@ -407,34 +571,36 @@ function Requirement() {
     {
       title: "创建时间",
       dataIndex: "createDate",
-      width: 180,
+      width: 170,
       render: (value: string) => renderDate(value),
     },
     {
       title: "操作",
-      width: 120,
+      width: 280,
       fixed: "right",
       render: (_: any, record: any) => (
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 8 }}>
           <Tooltip content="编辑">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconEdit />}
-              onClick={() => handleEdit(record)}
-            />
+            <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEdit(record)} />
           </Tooltip>
-          <Popconfirm
-            title="确认删除该需求吗？"
-            onOk={() => handleDelete(record)}
-          >
+          <Tooltip content="分析">
+            <Button type="text" size="small" onClick={() => handleAnalyze(record)}>
+              分析
+            </Button>
+          </Tooltip>
+          <Tooltip content="评审">
+            <Button type="text" size="small" onClick={() => handleReview(record)}>
+              评审
+            </Button>
+          </Tooltip>
+          <Tooltip content="生命周期">
+            <Button type="text" size="small" onClick={() => handleViewLifecycle(record)}>
+              生命周期
+            </Button>
+          </Tooltip>
+          <Popconfirm title="确认删除该需求吗？" onOk={() => handleDelete(record)}>
             <Tooltip content="删除">
-              <Button
-                type="text"
-                size="small"
-                status="danger"
-                icon={<IconDelete />}
-              />
+              <Button type="text" size="small" status="danger" icon={<IconDelete />} />
             </Tooltip>
           </Popconfirm>
         </div>
@@ -455,6 +621,17 @@ function Requirement() {
     fetchTableData(searchParams, pagination.pageSize, pagination.current);
   }, []);
 
+  useEffect(() => {
+    const onResize = () => {
+      const height = window.innerHeight;
+      const header = 260;
+      setTableScrollHeight(Math.max(320, height - header));
+    };
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   return (
     <div className="requirement-page">
       <DataManager
@@ -471,146 +648,266 @@ function Requirement() {
           filterContent,
           tableColumns: columns,
           tableProps: {
-            scroll: { x: 1600, y: tableScrollHeight },
+            scroll: { x: 1850, y: tableScrollHeight },
           },
         }}
         tableScrollHeight={tableScrollHeight}
       />
 
-      {/* 新增/编辑 表单配置 */}
-      {[
-        {
-          visible: addModalVisible,
-          title: "新增需求",
-          onOk: handleAddConfirm,
-          onCancel: () => {
-            setAddModalVisible(false);
-            setAddDescr("");
-          },
-          ref: addFormRef,
-        },
-        {
-          visible: editModalVisible,
-          title: "编辑需求",
-          onOk: handleEditConfirm,
-          onCancel: () => {
-            setEditModalVisible(false);
-            setEditDescr("");
-          },
-          ref: editFormRef,
-        },
-      ].map((modal, index) => (
-        <Modal
-          key={index}
-          title={modal.title}
-          visible={modal.visible}
-          onOk={modal.onOk}
-          onCancel={modal.onCancel}
-          mountOnEnter
-          style={{ width: 900 }}
-        >
-          <Form ref={modal.ref} layout="vertical">
-            <Form.Item label="标题" field="title" rules={[{ required: true }]}>
-              <Input placeholder="请输入标题" />
-            </Form.Item>
-            <Form.Item label="项目名称" field="projectName">
-              <Select
-                placeholder="请选择或输入项目名称"
-                showSearch
-                allowClear
-                allowCreate
-              >
-                {renderSelectOptions(historyOptions.projectNames)}
-              </Select>
-            </Form.Item>
-            <Form.Item label="Git 仓库地址" field="gitUrl">
-              <Select
-                placeholder="请选择或输入 Git 仓库地址"
-                showSearch
-                allowClear
-                allowCreate
-              >
-                {renderSelectOptions(historyOptions.gitUrls)}
-              </Select>
-            </Form.Item>
-            <Form.Item label="分支名称" field="branch" initialValue={DEFAULT_BRANCH}>
-              <Select
-                placeholder="请选择或输入分支名称"
-                showSearch
-                allowClear
-                allowCreate
-              >
-                {renderSelectOptions(branchOptions)}
-              </Select>
-            </Form.Item>
-            <Form.Item label="描述 (Markdown)" field="descr">
-              <div data-color-mode="light" className="requirement-md-editor">
-                <MDEditor
-                  value={index === 0 ? addDescr : editDescr}
-                  onChange={(val) => {
-                    const nextValue = val || "";
-                    if (index === 0) {
-                      setAddDescr(nextValue);
-                      addFormRef.current?.setFieldsValue?.({ descr: nextValue });
-                    } else {
-                      setEditDescr(nextValue);
-                      editFormRef.current?.setFieldsValue?.({ descr: nextValue });
-                    }
-                  }}
-                  height={260}
-                  preview="edit"
-                />
-              </div>
-            </Form.Item>
-            {index === 0 && (
-              <>
-                <Form.Item label="状态" field="status" initialValue="OPEN">
-                  <Select placeholder="请选择状态">
-                    {statusOptions.map((opt) => (
-                      <Option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item label="开发进度(%)" field="progressPercent" initialValue={0}>
-                  <InputNumber min={0} max={100} precision={0} placeholder="0-100" style={{ width: "100%" }} />
-                </Form.Item>
-                <Form.Item label="优先级" field="priority" initialValue="MEDIUM">
-                  <Select placeholder="请选择优先级">
-                    <Option value="LOW">低</Option>
-                    <Option value="MEDIUM">中</Option>
-                    <Option value="HIGH">高</Option>
-                  </Select>
-                </Form.Item>
-              </>
-            )}
-            {index === 1 && (
-              <>
-                <Form.Item label="状态" field="status">
-                  <Select placeholder="请选择状态">
-                    {statusOptions.map((opt) => (
-                      <Option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item label="开发进度(%)" field="progressPercent">
-                  <InputNumber min={0} max={100} precision={0} placeholder="0-100" style={{ width: "100%" }} />
-                </Form.Item>
-                <Form.Item label="优先级" field="priority">
-                  <Select placeholder="请选择优先级">
-                    <Option value="LOW">低</Option>
-                    <Option value="MEDIUM">中</Option>
-                    <Option value="HIGH">高</Option>
-                  </Select>
-                </Form.Item>
-              </>
-            )}
-          </Form>
-        </Modal>
-      ))}
+      <Modal
+        title="新增需求"
+        visible={addModalVisible}
+        onOk={handleAddConfirm}
+        onCancel={() => {
+          setAddModalVisible(false);
+          setAddDescr("");
+        }}
+        mountOnEnter
+        style={{ width: 900 }}
+      >
+        <Form ref={addFormRef} layout="vertical">
+          <Form.Item label="标题" field="title" rules={[{ required: true }]}>
+            <Input placeholder="请输入标题" />
+          </Form.Item>
+          <Form.Item label="项目名称" field="projectName">
+            <Select placeholder="请选择或输入项目名称" showSearch allowClear allowCreate>
+              {renderSelectOptions(historyOptions.projectNames)}
+            </Select>
+          </Form.Item>
+          <Form.Item label="Git 仓库地址" field="gitUrl">
+            <Select placeholder="请选择或输入 Git 仓库地址" showSearch allowClear allowCreate>
+              {renderSelectOptions(historyOptions.gitUrls)}
+            </Select>
+          </Form.Item>
+          <Form.Item label="分支名称" field="branch" initialValue={DEFAULT_BRANCH}>
+            <Select placeholder="请选择或输入分支名称" showSearch allowClear allowCreate>
+              {renderSelectOptions(branchOptions)}
+            </Select>
+          </Form.Item>
+          <Form.Item label="描述 (Markdown)" field="descr">
+            <div data-color-mode="light" className="requirement-md-editor">
+              <MDEditor
+                value={addDescr}
+                onChange={(val) => {
+                  const nextValue = val || "";
+                  setAddDescr(nextValue);
+                  addFormRef.current?.setFieldsValue?.({ descr: nextValue });
+                }}
+                height={260}
+                preview="edit"
+              />
+            </div>
+          </Form.Item>
+          <Form.Item label="状态" field="status" initialValue="PENDING_ANALYSIS">
+            <Select placeholder="请选择状态">
+              {STATUS_OPTIONS.map((opt) => (
+                <Option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item label="开发进度(%)" field="progressPercent" initialValue={0}>
+            <InputNumber min={0} max={100} precision={0} placeholder="0-100" style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item label="优先级" field="priority" initialValue="MEDIUM">
+            <Select placeholder="请选择优先级">
+              <Option value="LOW">低</Option>
+              <Option value="MEDIUM">中</Option>
+              <Option value="HIGH">高</Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="编辑需求"
+        visible={editModalVisible}
+        onOk={handleEditConfirm}
+        onCancel={() => {
+          setEditModalVisible(false);
+          setEditDescr("");
+        }}
+        mountOnEnter
+        style={{ width: 900 }}
+      >
+        <Form ref={editFormRef} layout="vertical">
+          <Form.Item label="标题" field="title" rules={[{ required: true }]}>
+            <Input placeholder="请输入标题" />
+          </Form.Item>
+          <Form.Item label="项目名称" field="projectName">
+            <Select placeholder="请选择或输入项目名称" showSearch allowClear allowCreate>
+              {renderSelectOptions(historyOptions.projectNames)}
+            </Select>
+          </Form.Item>
+          <Form.Item label="Git 仓库地址" field="gitUrl">
+            <Select placeholder="请选择或输入 Git 仓库地址" showSearch allowClear allowCreate>
+              {renderSelectOptions(historyOptions.gitUrls)}
+            </Select>
+          </Form.Item>
+          <Form.Item label="分支名称" field="branch">
+            <Select placeholder="请选择或输入分支名称" showSearch allowClear allowCreate>
+              {renderSelectOptions(branchOptions)}
+            </Select>
+          </Form.Item>
+          <Form.Item label="描述 (Markdown)" field="descr">
+            <div data-color-mode="light" className="requirement-md-editor">
+              <MDEditor
+                value={editDescr}
+                onChange={(val) => {
+                  const nextValue = val || "";
+                  setEditDescr(nextValue);
+                  editFormRef.current?.setFieldsValue?.({ descr: nextValue });
+                }}
+                height={260}
+                preview="edit"
+              />
+            </div>
+          </Form.Item>
+          <Form.Item label="状态" field="status">
+            <Select placeholder="请选择状态">
+              {STATUS_OPTIONS.map((opt) => (
+                <Option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item label="开发进度(%)" field="progressPercent">
+            <InputNumber min={0} max={100} precision={0} placeholder="0-100" style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item label="优先级" field="priority">
+            <Select placeholder="请选择优先级">
+              <Option value="LOW">低</Option>
+              <Option value="MEDIUM">中</Option>
+              <Option value="HIGH">高</Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="需求分析"
+        visible={analyzeModalVisible}
+        onOk={handleAnalyzeConfirm}
+        onCancel={() => {
+          setAnalyzeModalVisible(false);
+          setAnalyzeDescr("");
+        }}
+        mountOnEnter
+        style={{ width: 900 }}
+      >
+        <Form ref={analyzeFormRef} layout="vertical">
+          <Form.Item label="需求描述 (Markdown)" field="descr">
+            <div data-color-mode="light" className="requirement-md-editor">
+              <MDEditor
+                value={analyzeDescr}
+                onChange={(val) => {
+                  const nextValue = val || "";
+                  setAnalyzeDescr(nextValue);
+                  analyzeFormRef.current?.setFieldsValue?.({ descr: nextValue });
+                }}
+                height={280}
+                preview="edit"
+              />
+            </div>
+          </Form.Item>
+          <Form.Item label="分析备注" field="comment">
+            <Input.TextArea placeholder="可选：记录分析说明" autoSize={{ minRows: 2 }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="需求评审"
+        visible={reviewModalVisible}
+        onOk={handleReviewConfirm}
+        onCancel={() => {
+          setReviewModalVisible(false);
+          setReviewDescr("");
+        }}
+        mountOnEnter
+        style={{ width: 900 }}
+      >
+        <Form ref={reviewFormRef} layout="vertical">
+          <Form.Item label="评审结论" field="decision" rules={[{ required: true }]} initialValue="TO_OPEN">
+            <Select placeholder="请选择评审结论">
+              <Option value="TO_OPEN">通过，转待处理</Option>
+              <Option value="TO_REVISION">打回，转待修订</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item label="需求描述 (Markdown)" field="descr">
+            <div data-color-mode="light" className="requirement-md-editor">
+              <MDEditor
+                value={reviewDescr}
+                onChange={(val) => {
+                  const nextValue = val || "";
+                  setReviewDescr(nextValue);
+                  reviewFormRef.current?.setFieldsValue?.({ descr: nextValue });
+                }}
+                height={280}
+                preview="edit"
+              />
+            </div>
+          </Form.Item>
+          <Form.Item label="评审备注" field="comment">
+            <Input.TextArea placeholder="可选：记录评审意见" autoSize={{ minRows: 2 }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`需求生命周期${currentRecord?.title ? ` - ${currentRecord.title}` : ""}`}
+        visible={lifecycleVisible}
+        footer={null}
+        onCancel={() => {
+          setLifecycleVisible(false);
+          setLifecycleLogs([]);
+        }}
+        style={{ width: 920 }}
+      >
+        <div className="requirement-lifecycle-wrap">
+          {lifecycleLoading ? (
+            <div className="requirement-lifecycle-loading">加载中...</div>
+          ) : lifecycleLogs.length === 0 ? (
+            <Empty description="暂无生命周期日志" />
+          ) : (
+            <div className="requirement-lifecycle-list">
+              {lifecycleLogs.map((log, idx) => (
+                <div key={log.id || `${log.createDate}-${idx}`} className="requirement-lifecycle-item">
+                  <div className="requirement-lifecycle-axis">
+                    <span className="requirement-lifecycle-dot" />
+                    {idx !== lifecycleLogs.length - 1 && <span className="requirement-lifecycle-line" />}
+                  </div>
+                  <div className="requirement-lifecycle-content">
+                    <div className="requirement-lifecycle-head">
+                      <span className="requirement-lifecycle-event">
+                        {EVENT_TEXT_MAP[log.eventType] || log.eventType}
+                      </span>
+                      <span className="requirement-lifecycle-meta">
+                        {(log.createUserName || log.createUser || "-") + " · " + (log.createDate ? renderDate(log.createDate) : "-")}
+                      </span>
+                    </div>
+                    {(log.fromStatus || log.toStatus) && (
+                      <div className="requirement-lifecycle-status">
+                        {log.fromStatus ? STATUS_TEXT_MAP[log.fromStatus] || log.fromStatus : "-"}
+                        <span className="arrow"> -> </span>
+                        {log.toStatus ? STATUS_TEXT_MAP[log.toStatus] || log.toStatus : "-"}
+                      </div>
+                    )}
+                    {log.remark && <div className="requirement-lifecycle-remark">备注：{log.remark}</div>}
+                    {log.afterDescr && (
+                      <div className="requirement-lifecycle-descr">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{log.afterDescr}</ReactMarkdown>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

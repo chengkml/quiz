@@ -1,12 +1,17 @@
 package com.ck.quiz.project.service;
 
 import com.ck.quiz.base.service.BaseService;
+import com.ck.quiz.project.dto.RequirementAnalyzeDto;
 import com.ck.quiz.project.dto.RequirementCreateDto;
 import com.ck.quiz.project.dto.RequirementDto;
 import com.ck.quiz.project.dto.RequirementHistoryOptionsDto;
+import com.ck.quiz.project.dto.RequirementLifecycleLogDto;
 import com.ck.quiz.project.dto.RequirementQueryDto;
+import com.ck.quiz.project.dto.RequirementReviewDto;
 import com.ck.quiz.project.dto.RequirementUpdateDto;
 import com.ck.quiz.project.entity.Requirement;
+
+import java.util.List;
 
 public interface RequirementService extends BaseService<RequirementCreateDto, RequirementUpdateDto, RequirementQueryDto, RequirementDto, Requirement> {
 
@@ -24,6 +29,21 @@ public interface RequirementService extends BaseService<RequirementCreateDto, Re
      * @param progressPercent 进度百分比(0-100)
      */
     void updateStatus(String id, String status, String resultMsg, Integer progressPercent);
+
+    /**
+     * 需求分析：修改需求描述并流转到待评审
+     */
+    RequirementDto analyze(String userId, String id, RequirementAnalyzeDto analyzeDto);
+
+    /**
+     * 需求评审：修改需求描述并流转到待处理或待修订
+     */
+    RequirementDto review(String userId, String id, RequirementReviewDto reviewDto);
+
+    /**
+     * 获取需求生命周期日志（时间轴）
+     */
+    List<RequirementLifecycleLogDto> getLifecycle(String userId, String requirementId);
 
     /**
      * 获取历史输入选项
