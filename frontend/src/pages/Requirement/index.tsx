@@ -12,6 +12,11 @@ import {
   Tag,
   Tooltip,
 } from "@arco-design/web-react";
+import MDEditor from "@uiw/react-md-editor";
+import "@uiw/react-md-editor/markdown-editor.css";
+import "@uiw/react-markdown-preview/markdown.css";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import DataManager from "@/components/DataManager";
 import FilterForm from "@/components/FilterForm";
 import { FormFieldConfig } from "@/components/types/types";
@@ -33,7 +38,6 @@ import {
   updateRequirement,
 } from "./api";
 
-const { TextArea } = Input;
 const { Option } = Select;
 
 function Requirement() {
@@ -63,6 +67,8 @@ function Requirement() {
   const [currentRecord, setCurrentRecord] = useState<any | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [addDescr, setAddDescr] = useState("");
+  const [editDescr, setEditDescr] = useState("");
   const [historyOptions, setHistoryOptions] = useState<{
     projectNames: string[];
     gitUrls: string[];
@@ -191,9 +197,13 @@ function Requirement() {
   // 新增
   const handleAdd = () => {
     setCurrentRecord(null);
+    setAddDescr("");
     fetchHistoryOptions();
     setAddModalVisible(true);
-    setTimeout(() => addFormRef.current?.resetFields?.(), 50);
+    setTimeout(() => {
+      addFormRef.current?.resetFields?.();
+      addFormRef.current?.setFieldsValue?.({ descr: "" });
+    }, 50);
   };
 
   const handleAddConfirm = async () => {
@@ -207,6 +217,7 @@ function Requirement() {
         await createRequirement(payload);
         Message.success("需求创建成功");
         setAddModalVisible(false);
+        setAddDescr("");
         addFormRef.current?.resetFields?.();
         fetchTableData();
       }
@@ -219,6 +230,7 @@ function Requirement() {
   // 编辑
   const handleEdit = (record: any) => {
     setCurrentRecord(record);
+    setEditDescr(record?.descr || "");
     fetchHistoryOptions();
     setEditModalVisible(true);
     setTimeout(() => {
@@ -244,6 +256,7 @@ function Requirement() {
         await updateRequirement(payload);
         Message.success("需求更新成功");
         setEditModalVisible(false);
+        setEditDescr("");
         editFormRef.current?.resetFields?.();
         fetchTableData();
       }
@@ -306,6 +319,19 @@ function Requirement() {
       title: "分支",
       dataIndex: "branch",
       width: 100,
+    },
+    {
+      title: "需求描述",
+      dataIndex: "descr",
+      width: 300,
+      render: (value: string) =>
+        value ? (
+          <div className="requirement-markdown-preview">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+          </div>
+        ) : (
+          "-"
+        ),
     },
     {
       title: "状态",
@@ -445,7 +471,7 @@ function Requirement() {
           filterContent,
           tableColumns: columns,
           tableProps: {
-            scroll: { x: 1200, y: tableScrollHeight },
+            scroll: { x: 1600, y: tableScrollHeight },
           },
         }}
         tableScrollHeight={tableScrollHeight}
@@ -457,14 +483,20 @@ function Requirement() {
           visible: addModalVisible,
           title: "新增需求",
           onOk: handleAddConfirm,
-          onCancel: () => setAddModalVisible(false),
+          onCancel: () => {
+            setAddModalVisible(false);
+            setAddDescr("");
+          },
           ref: addFormRef,
         },
         {
           visible: editModalVisible,
           title: "编辑需求",
           onOk: handleEditConfirm,
-          onCancel: () => setEditModalVisible(false),
+          onCancel: () => {
+            setEditModalVisible(false);
+            setEditDescr("");
+          },
           ref: editFormRef,
         },
       ].map((modal, index) => (
@@ -475,6 +507,7 @@ function Requirement() {
           onOk={modal.onOk}
           onCancel={modal.onCancel}
           mountOnEnter
+          style={{ width: 900 }}
         >
           <Form ref={modal.ref} layout="vertical">
             <Form.Item label="标题" field="title" rules={[{ required: true }]}>
@@ -510,8 +543,24 @@ function Requirement() {
                 {renderSelectOptions(branchOptions)}
               </Select>
             </Form.Item>
-            <Form.Item label="描述" field="descr">
-              <TextArea placeholder="请输入详细描述" autoSize={{ minRows: 3 }} />
+            <Form.Item label="描述 (Markdown)" field="descr">
+              <div data-color-mode="light" className="requirement-md-editor">
+                <MDEditor
+                  value={index === 0 ? addDescr : editDescr}
+                  onChange={(val) => {
+                    const nextValue = val || "";
+                    if (index === 0) {
+                      setAddDescr(nextValue);
+                      addFormRef.current?.setFieldsValue?.({ descr: nextValue });
+                    } else {
+                      setEditDescr(nextValue);
+                      editFormRef.current?.setFieldsValue?.({ descr: nextValue });
+                    }
+                  }}
+                  height={260}
+                  preview="edit"
+                />
+              </div>
             </Form.Item>
             {index === 0 && (
               <>
