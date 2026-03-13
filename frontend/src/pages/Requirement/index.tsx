@@ -515,19 +515,6 @@ function Requirement() {
       width: 100,
     },
     {
-      title: "需求描述",
-      dataIndex: "descr",
-      width: 300,
-      render: (value: string) =>
-        value ? (
-          <div className="requirement-markdown-preview">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
-          </div>
-        ) : (
-          "-"
-        ),
-    },
-    {
       title: "状态",
       dataIndex: "status",
       width: 110,
@@ -648,7 +635,7 @@ function Requirement() {
           filterContent,
           tableColumns: columns,
           tableProps: {
-            scroll: { x: 1850, y: tableScrollHeight },
+            scroll: { x: 1550, y: tableScrollHeight },
           },
         }}
         tableScrollHeight={tableScrollHeight}
