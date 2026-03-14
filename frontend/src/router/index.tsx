@@ -30,6 +30,7 @@ import JobManager from "@/pages/Job";
 import ExamHistoryManager from "@/pages/Exam/History";
 import StatisticsCenterPage from "@/pages/StatisticsCenter";
 import QuestionBankStatisticsPage from "@/pages/StatisticsCenter/themes/QuestionBank";
+import VocabularyProficiencyStatisticsPage from "@/pages/StatisticsCenter/themes/VocabularyProficiency";
 import NotFound from "@/pages/NotFound";
 import MindMapPage from "@/pages/MindMap";
 import MindMapEditPage from "@/pages/MindMap/Edit";
@@ -248,6 +249,11 @@ const protectedPages = [
     path: "statistics-center/question-bank",
     element: <QuestionBankStatisticsPage />,
     requiredPath: "statistics-center/question-bank",
+  },
+  {
+    path: "statistics-center/vocabulary-proficiency",
+    element: <VocabularyProficiencyStatisticsPage />,
+    requiredPath: "statistics-center/vocabulary-proficiency",
   },
   {
     path: "statistics",

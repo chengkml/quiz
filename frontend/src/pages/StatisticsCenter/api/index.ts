@@ -29,8 +29,30 @@ export interface QuestionBankDashboardData {
   questionCountByLastMonth: DateCountData;
 }
 
+export interface VocabularyProficiencyOverview {
+  totalWords: number;
+  activeWords: number;
+  archivedWords: number;
+  masteredWords: number;
+  dueTodayWords: number;
+  averageRepetition: number;
+  averageEasinessFactor: number;
+}
+
+export interface VocabularyProficiencyDashboardData {
+  overview: VocabularyProficiencyOverview;
+  proficiencyDistribution: SubjectCountData;
+  reviewScoreDistribution: SubjectCountData;
+  reviewCountByLastSevenDays: DateCountData;
+}
+
 export const getStatisticsThemes = () =>
   axios.get<StatisticsThemeDto[]>('/statistics/themes');
 
 export const getQuestionBankDashboard = () =>
   axios.get<QuestionBankDashboardData>('/statistics/themes/question-bank/dashboard');
+
+export const getVocabularyProficiencyDashboard = () =>
+  axios.get<VocabularyProficiencyDashboardData>(
+    '/statistics/themes/vocabulary-proficiency/dashboard',
+  );

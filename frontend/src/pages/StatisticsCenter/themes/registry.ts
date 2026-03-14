@@ -15,6 +15,12 @@ export const statisticsThemeRegistry: StatisticsThemeDefinition[] = [
     description: '查看题目规模、学科分布与新增趋势',
     routePath: 'statistics-center/question-bank',
   },
+  {
+    key: 'vocabulary-proficiency',
+    title: '单词熟练度统计',
+    description: '查看单词掌握分层、复习评分分布与近期复习趋势',
+    routePath: 'statistics-center/vocabulary-proficiency',
+  },
 ];
 
 export const statisticsThemeRegistryMap = new Map(
