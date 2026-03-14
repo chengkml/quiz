@@ -5,6 +5,7 @@ import com.ck.quiz.question.dto.QuestionGenerateDto;
 import com.ck.quiz.question.dto.QuestionQueryDto;
 import com.ck.quiz.question.dto.QuestionUpdateDto;
 import com.ck.quiz.question.service.QuestionService;
+import com.ck.quiz.statistics.service.QuestionBankStatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,9 @@ public class QuestionController {
 
     @Autowired
     private QuestionService questionService;
+
+    @Autowired
+    private QuestionBankStatisticsService questionBankStatisticsService;
 
     @Operation(summary = "创建题目", description = "创建新的题目")
     @PostMapping("/create")
@@ -115,18 +119,18 @@ public class QuestionController {
     @Operation(summary = "获取近七天题目增加量", description = "统计近七天每天新增的题目数量")
     @GetMapping("/statistics/last-seven-days")
     public ResponseEntity getQuestionCountByLastSevenDays() {
-        return ResponseEntity.ok(questionService.getQuestionCountByLastSevenDays());
+        return ResponseEntity.ok(questionBankStatisticsService.getQuestionCountByLastSevenDays());
     }
 
     @Operation(summary = "获取各学科题目量", description = "统计各学科下的题目数量")
     @GetMapping("/statistics/by-subject")
     public ResponseEntity getQuestionCountBySubject() {
-        return ResponseEntity.ok(questionService.getQuestionCountBySubject());
+        return ResponseEntity.ok(questionBankStatisticsService.getQuestionCountBySubject());
     }
 
     @Operation(summary = "获取近一个月题目增加量", description = "统计近一个月每天新增的题目数量")
     @GetMapping("/statistics/last-month")
     public ResponseEntity getQuestionCountByLastMonth() {
-        return ResponseEntity.ok(questionService.getQuestionCountByLastMonth());
+        return ResponseEntity.ok(questionBankStatisticsService.getQuestionCountByLastMonth());
     }
 }

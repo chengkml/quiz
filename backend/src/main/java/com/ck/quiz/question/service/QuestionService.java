@@ -9,131 +9,34 @@ import org.springframework.data.domain.Page;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 题目管理服务接口
- * <p>
- * 定义了题目相关的核心业务操作，包括增删改查、分页查询、统计等。
- * 实现类通常会调用数据库访问层（Repository）来完成具体逻辑。
  */
 public interface QuestionService {
 
-    /**
-     * 创建题目
-     *
-     * @param questionCreateDto 题目创建信息（包含题干、选项、答案等）
-     * @return 创建成功后的题目信息
-     */
     QuestionDto createQuestion(QuestionCreateDto questionCreateDto);
 
-    /**
-     * 更新题目
-     *
-     * @param questionUpdateDto 题目更新信息（包含题目ID和待更新字段）
-     * @return 更新后的题目信息
-     */
     QuestionDto updateQuestion(QuestionUpdateDto questionUpdateDto);
 
-    /**
-     * 删除题目
-     *
-     * @param questionId 题目ID
-     * @return 被删除的题目信息（可用于前端回显或确认）
-     */
     QuestionDto deleteQuestion(String questionId);
 
-    /**
-     * 根据ID获取题目信息
-     *
-     * @param questionId 题目ID
-     * @return 对应的题目信息，如果不存在可返回 null 或抛异常
-     */
     QuestionDto getQuestionById(String questionId);
 
-    /**
-     * 分页查询题目列表
-     *
-     * @param queryDto 查询条件（支持题目类型、难度、内容模糊查询、分页参数等）
-     * @return 分页封装的题目列表
-     */
     Page<QuestionDto> searchQuestions(QuestionQueryDto queryDto);
 
-    /**
-     * 将实体类对象转换为传输对象
-     *
-     * @param question 题目实体对象
-     * @return 题目DTO
-     */
     QuestionDto convertToDto(Question question);
 
-    /**
-     * 根据知识点描述生成题目
-     *
-     * @param knowledgeDescr
-     * @param num
-     * @return
-     */
     List<QuestionCreateDto> generateQuestions(String knowledgeDescr, int num, String modelName);
 
-    /**
-     * 流式生成题目
-     * @param knowledgeDescr 知识点描述（向后兼容）
-     * @param knowledgeTitle 知识点标题（新增）
-     * @param knowledgeContent 知识点内容（新增）
-     * @param num 生成题目数量
-     * @param modelName 模型名称
-     * @return
-     */
-    Flux<String> streamGenerateQuestions(String knowledgeDescr, String knowledgeTitle, String knowledgeContent, int num, String modelName);
+    Flux<String> streamGenerateQuestions(String knowledgeDescr, String knowledgeTitle, String knowledgeContent, int num,
+            String modelName);
 
-    /**
-     * 批量创建题目
-     *
-     * @param questionCreateDtos 题目创建信息列表
-     * @return 创建成功后的题目信息列表
-     */
     List<QuestionDto> createQuestions(List<QuestionCreateDto> questionCreateDtos);
 
-    /**
-     * 关联问题和知识点
-     *
-     * @param questionId 问题ID
-     * @param knowledgeIds 知识点ID列表
-     */
     void associateKnowledge(String questionId, List<String> knowledgeIds);
 
-    /**
-     * 取消问题和知识点的关联
-     *
-     * @param questionId 问题ID
-     * @param knowledgeIds 知识点ID列表
-     */
     void disassociateKnowledge(String questionId, List<String> knowledgeIds);
 
-    /**
-     * 获取问题关联的知识点
-     *
-     * @param questionId 问题ID
-     * @return 知识点列表
-     */
     List<com.ck.quiz.knowledge.dto.KnowledgeDto> getQuestionKnowledge(String questionId);
-
-    /**
-     * 获取近七天题目增加量统计
-     * @return 按日期分组的题目数量统计
-     */
-    Map<String, Long> getQuestionCountByLastSevenDays();
-
-    /**
-     * 获取各学科题目数量统计
-     * @return 按学科分组的题目数量统计
-     */
-    Map<String, Long> getQuestionCountBySubject();
-
-    /**
-     * 获取近一个月题目增加量统计
-     * @return 按日期分组的题目数量统计
-     */
-    Map<String, Long> getQuestionCountByLastMonth();
 }

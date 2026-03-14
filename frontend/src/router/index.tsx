@@ -28,7 +28,8 @@ import ScriptManagement from "@/pages/Script";
 import JobQueueManagement from "@/pages/JobQueue";
 import JobManager from "@/pages/Job";
 import ExamHistoryManager from "@/pages/Exam/History";
-import Statistics from "@/pages/Statistics";
+import StatisticsCenterPage from "@/pages/StatisticsCenter";
+import QuestionBankStatisticsPage from "@/pages/StatisticsCenter/themes/QuestionBank";
 import NotFound from "@/pages/NotFound";
 import MindMapPage from "@/pages/MindMap";
 import MindMapEditPage from "@/pages/MindMap/Edit";
@@ -238,7 +239,21 @@ const MenuPermissionRoute: React.FC<{
  * 需要登录访问的页面（不带Layout）
  */
 const protectedPages = [
-  { path: "statistics", element: <Statistics />, requiredPath: "statistics" },
+  {
+    path: "statistics-center",
+    element: <StatisticsCenterPage />,
+    requiredPath: "statistics-center/question-bank",
+  },
+  {
+    path: "statistics-center/question-bank",
+    element: <QuestionBankStatisticsPage />,
+    requiredPath: "statistics-center/question-bank",
+  },
+  {
+    path: "statistics",
+    element: <Navigate to="/frame/statistics-center/question-bank" replace />,
+    requiredPath: "statistics-center/question-bank",
+  },
   { path: "user", element: <UserManagement />, requiredPath: "user" },
   { path: "role", element: <RoleManagement />, requiredPath: "role" },
   { path: "menu", element: <MenuManagement />, requiredPath: "menu" },
