@@ -260,6 +260,11 @@ const protectedPages = [
     element: <Navigate to="/frame/statistics-center/question-bank" replace />,
     requiredPath: "statistics-center/question-bank",
   },
+  {
+    path: "question-statistics",
+    element: <Navigate to="/frame/statistics-center/question-bank" replace />,
+    requiredPath: "statistics-center/question-bank",
+  },
   { path: "user", element: <UserManagement />, requiredPath: "user" },
   { path: "role", element: <RoleManagement />, requiredPath: "role" },
   { path: "menu", element: <MenuManagement />, requiredPath: "menu" },

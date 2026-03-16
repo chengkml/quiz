@@ -351,6 +351,8 @@ function QuestionBankStatisticsPage() {
   return (
     <Layout className="question-bank-statistics-container">
       <Content className="question-bank-statistics-content">
+        <div className="question-bank-statistics-header">题库统计</div>
+
         <Row gutter={16} className="question-bank-stats-row">
           <Col span={6}>
             <Card className="question-bank-stat-card">
