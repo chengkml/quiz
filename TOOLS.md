@@ -1,40 +1,37 @@
-# TOOLS.md - Local Notes
+# TOOLS.md - Quiz 本地工具与命令速查
 
-Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
+仅记录本仓库可直接用的本地事实，不写通用废话。
 
-## What Goes Here
+## 环境事实
 
-Things like:
+- Workspace: `/root/.openclaw/workspace/quiz`
+- Java: `17`
+- Node: `>=22.22.0`（见 `frontend/package.json`）
+- 后端端口/上下文：`8089` + `/quiz`
+- 前端开发端口：默认 `3004`
+- API 代理：`/api -> http://localhost:8089/quiz`
 
-- Camera names and locations
-- SSH hosts and aliases
-- Preferred voices for TTS
-- Speaker/room names
-- Device nicknames
-- Anything environment-specific
+## 常用命令
 
-## Examples
+- 后端编译：`cd backend && gradle classes`
+- 后端测试：`cd backend && gradle test`
+- 后端运行（本地）：`cd backend && gradle bootRun`
+- 前端开发：`cd frontend && npm run start`
+- 前端构建：`cd frontend && npm run build`
 
-```markdown
-### Cameras
+## 联调检查
 
-- living-room → Main area, 180° wide angle
-- front-door → Entrance, motion-triggered
+- 后端健康：`curl -sS http://localhost:8089/quiz/actuator/health`
+- 查看需求接口（需登录态）：`/api/project/requirement/search`
+- 前端需求页路由：`/frame/requirement`
 
-### SSH
+## 检索习惯
 
-- home-server → 192.168.1.100, user: admin
+- 优先 `rg` / `rg --files`。
+- 若环境无 `rg`，使用 `grep -R` + `find` 兜底。
 
-### TTS
+## 部署脚本（服务器路径）
 
-- Preferred voice: "Nova" (warm, slightly British)
-- Default speaker: Kitchen HomePod
-```
-
-## Why Separate?
-
-Skills are shared. Your setup is yours. Keeping them apart means you can update skills without losing your notes, and share skills without leaking your infrastructure.
-
----
-
-Add whatever helps you do your job. This is your cheat sheet.
+- 启动脚本：`backend/start.sh`（默认 `/opt/quiz`）
+- 停止脚本：`backend/stop.sh`
+- 生产日志：`/opt/quiz/logs/quiz.log`
