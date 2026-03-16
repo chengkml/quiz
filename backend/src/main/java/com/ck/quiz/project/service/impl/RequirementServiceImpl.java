@@ -150,7 +150,7 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
 
         Requirement updated = repository.save(requirement);
         appendLifecycleLog(updated, RequirementLifecycleLog.EventType.ANALYZE, fromStatus, updated.getStatus(),
-                beforeDescr, updated.getDescr(), payload.getComment());
+                beforeDescr, updated.getDescr(), null);
         return convertToDto(updated, true);
     }
 

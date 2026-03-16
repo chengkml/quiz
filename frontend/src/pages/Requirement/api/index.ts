@@ -18,10 +18,9 @@ export const updateRequirement = (params: any) => axios.put('/project/requiremen
 // 删除需求
 export const deleteRequirement = (id: string) => axios.delete(`/project/requirement/delete/${id}`);
 
-// 需求分析
+// 需求分析（分析结果仅承载于 descr）
 export const analyzeRequirement = (id: string, params: {
   descr?: string;
-  comment?: string;
   progressPercent?: number;
 }) => axios.post(`/project/requirement/${id}/analyze`, params);
 

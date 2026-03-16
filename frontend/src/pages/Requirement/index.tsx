@@ -307,7 +307,6 @@ function Requirement() {
     setTimeout(() => {
       analyzeFormRef.current?.setFieldsValue?.({
         descr: record?.descr || "",
-        comment: "",
       });
     }, 50);
   };
@@ -390,7 +389,6 @@ function Requirement() {
       if (values && currentRecord) {
         await analyzeRequirement(currentRecord.id, {
           descr: analyzeDescr,
-          comment: values.comment,
         });
         Message.success("需求分析完成，已流转到待评审");
         setAnalyzeModalVisible(false);
@@ -798,9 +796,6 @@ function Requirement() {
                 preview="edit"
               />
             </div>
-          </Form.Item>
-          <Form.Item label="分析备注" field="comment">
-            <Input.TextArea placeholder="可选：记录分析说明" autoSize={{ minRows: 2 }} />
           </Form.Item>
         </Form>
       </Modal>
