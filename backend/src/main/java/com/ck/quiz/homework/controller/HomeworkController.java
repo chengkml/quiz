@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/homework")
+@RequestMapping({"/api/homework", "/homework"})
 public class HomeworkController
         extends BaseController<HomeworkCreateDto, HomeworkUpdateDto, HomeworkQueryDto, HomeworkDto> {
 
