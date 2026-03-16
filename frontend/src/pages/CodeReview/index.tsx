@@ -22,6 +22,7 @@ import {
     updateCodeReviewIssue,
     convertToRequirement,
 } from './api';
+import './style/index.less';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -92,7 +93,7 @@ function CodeReviewPage() {
 
     useEffect(() => {
         const calcHeight = () => {
-            const h = Math.max(320, window.innerHeight - 300);
+            const h = Math.max(320, window.innerHeight - 260);
             setTableScrollHeight(h);
         };
         calcHeight();
@@ -309,7 +310,7 @@ function CodeReviewPage() {
     );
 
     return (
-        <div>
+        <div className="code-review-page">
             <DataManager
                 data={tableData}
                 loading={tableLoading}
