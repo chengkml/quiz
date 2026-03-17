@@ -7,6 +7,11 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
 
 按“查询 -> 逐条读取 -> 开发推进 -> 状态流转 -> 完成”执行需求开发闭环。
 
+服务地址与认证默认值已统一为与 `requirement-query` 一致：
+- 默认 `base-url`: `https://www.quizck.cn`
+- 默认账号: `openclaw`
+- 默认密码: `12345678`
+
 ## 执行流程（必须）
 
 1. 登录：`POST /api/user/login`

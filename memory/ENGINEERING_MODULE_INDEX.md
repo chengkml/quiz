@@ -22,3 +22,15 @@
 
 - 密码查看验证码邮件
   - `backend/src/main/java/com/ck/quiz/password/service/PasswordService.java`（`sendViewSalt`）
+
+## 需求管理（Requirement）
+
+- 前端入口（需求列表页）
+  - `frontend/src/pages/Requirement/index.tsx`
+  - `frontend/src/pages/Requirement/api/index.ts`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/project/controller/RequirementController.java`
+- 后端数据契约（列表字段/优先级映射）
+  - `backend/src/main/java/com/ck/quiz/project/dto/RequirementDto.java`
+  - `backend/src/main/java/com/ck/quiz/project/dto/RequirementQueryDto.java`
+  - `backend/src/main/java/com/ck/quiz/project/entity/Requirement.java`

@@ -53,6 +53,8 @@ type RequirementStatus =
   | "COMPLETED"
   | "CLOSED";
 
+type RequirementPriority = "LOW" | "MEDIUM" | "HIGH";
+
 interface RequirementLifecycleLog {
   id: string;
   requirementId: string;
@@ -91,6 +93,12 @@ const EVENT_TEXT_MAP: Record<string, string> = {
   STATUS_CHANGE: "状态变更",
   ANALYZE: "需求分析",
   REVIEW: "需求评审",
+};
+
+const PRIORITY_TEXT_MAP: Record<RequirementPriority, string> = {
+  LOW: "低",
+  MEDIUM: "中",
+  HIGH: "高",
 };
 
 function Requirement() {
@@ -495,6 +503,19 @@ function Requirement() {
     );
   };
 
+  const priorityTag = (priority?: RequirementPriority) => {
+    if (!priority) {
+      return "-";
+    }
+    const map: Record<RequirementPriority, { color: string; text: string }> = {
+      LOW: { color: "green", text: PRIORITY_TEXT_MAP.LOW },
+      MEDIUM: { color: "orange", text: PRIORITY_TEXT_MAP.MEDIUM },
+      HIGH: { color: "red", text: PRIORITY_TEXT_MAP.HIGH },
+    };
+    const it = map[priority] || { color: "gray", text: priority };
+    return <Tag color={it.color}>{it.text}</Tag>;
+  };
+
   const columns = [
     {
       title: "标题",
@@ -517,6 +538,12 @@ function Requirement() {
       dataIndex: "status",
       width: 110,
       render: (status: RequirementStatus) => statusTag(status),
+    },
+    {
+      title: "优先级",
+      dataIndex: "priority",
+      width: 100,
+      render: (priority: RequirementPriority | undefined) => priorityTag(priority),
     },
     {
       title: "开发进度",
@@ -552,12 +579,6 @@ function Requirement() {
         ) : (
           "-"
         ),
-    },
-    {
-      title: "创建时间",
-      dataIndex: "createDate",
-      width: 170,
-      render: (value: string) => renderDate(value),
     },
     {
       title: "操作",
