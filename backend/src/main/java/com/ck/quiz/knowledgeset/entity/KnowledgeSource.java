@@ -30,15 +30,15 @@ public class KnowledgeSource extends Model {
     private String name;
 
     @Column(length = 32)
-    @Comment("来源类型：FILE, DB")
+    @Comment("来源类型：FILE, DB, MARKDOWN")
     private String type;
 
     @Column(length = 32)
     @Comment("状态：PENDING, PARSING, SUCCESS, FAILED")
     private String status;
 
-    @Column(length = 512)
-    @Comment("文件存储路径或连接串")
+    @Column(columnDefinition = "TEXT")
+    @Comment("文件路径/连接串/Markdown正文")
     private String content;
 
     @Column(columnDefinition = "TEXT")

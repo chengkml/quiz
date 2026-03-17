@@ -34,3 +34,21 @@
   - `backend/src/main/java/com/ck/quiz/project/dto/RequirementDto.java`
   - `backend/src/main/java/com/ck/quiz/project/dto/RequirementQueryDto.java`
   - `backend/src/main/java/com/ck/quiz/project/entity/Requirement.java`
+
+## 知识集与知识来源（KnowledgeSet / KnowledgeSource）
+
+- 前端入口（知识来源配置）
+  - `frontend/src/pages/KnowledgeSource/index.tsx`
+  - `frontend/src/pages/KnowledgeSource/components/AddEditKnowledgeSourceModal.tsx`
+  - `frontend/src/pages/KnowledgeSource/api/index.ts`
+- 前端入口（知识集管理）
+  - `frontend/src/pages/KnowledgeSet/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/knowledgeset/controller/KnowledgeSetController.java`
+  - `backend/src/main/java/com/ck/quiz/knowledgeset/controller/KnowledgeSourceController.java`
+  - `backend/src/main/java/com/ck/quiz/knowledgeset/controller/VectorController.java`
+- 后端核心实现（来源入库/任务编排/文档处理）
+  - `backend/src/main/java/com/ck/quiz/knowledgeset/entity/KnowledgeSource.java`
+  - `backend/src/main/java/com/ck/quiz/knowledgeset/service/impl/KnowledgeSourceServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/knowledgeset/job/KnowledgeProcessingJob.java`
+  - `backend/src/main/java/com/ck/quiz/knowledgeset/service/impl/VectorServiceImpl.java`

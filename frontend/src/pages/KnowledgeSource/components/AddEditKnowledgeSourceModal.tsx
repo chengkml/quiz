@@ -100,6 +100,7 @@ function AddEditKnowledgeSourceModal({ visible, record, onOk, onCancel, knowledg
                     <Select placeholder="请选择类型">
                         <Select.Option value="FILE">文件</Select.Option>
                         <Select.Option value="DB">数据库表</Select.Option>
+                        <Select.Option value="MARKDOWN">Markdown</Select.Option>
                     </Select>
                 </FormItem>
 
@@ -132,6 +133,14 @@ function AddEditKnowledgeSourceModal({ visible, record, onOk, onCancel, knowledg
                             <Button onClick={handleTestConnection} loading={testing}>测试连接</Button>
                         </FormItem>
                     </>
+                ) : type === 'MARKDOWN' ? (
+                    <FormItem
+                        label="Markdown 内容"
+                        field="content"
+                        rules={[{ required: true, message: '请输入 Markdown 内容' }]}
+                    >
+                        <Input.TextArea placeholder="请输入 Markdown 正文" autoSize={{ minRows: 8, maxRows: 16 }} />
+                    </FormItem>
                 ) : (
                     <FormItem label="内容/路径" field="content">
                         <Input.TextArea placeholder="请输入文件路径或连接串" />

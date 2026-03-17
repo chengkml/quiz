@@ -111,6 +111,10 @@ public class KnowledgeProcessingJob extends AbstractAsyncJob {
             throw new RuntimeException("文件路径或内容为空");
         }
 
+        if ("MARKDOWN".equals(source.getType())) {
+            return content;
+        }
+
         File file = new File(content);
         if (file.exists() && file.isFile()) {
             try (InputStream inputStream = new FileInputStream(file)) {

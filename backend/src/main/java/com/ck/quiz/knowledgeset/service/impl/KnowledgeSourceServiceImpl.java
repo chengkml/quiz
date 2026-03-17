@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class KnowledgeSourceServiceImpl extends
@@ -70,7 +71,7 @@ public class KnowledgeSourceServiceImpl extends
         KnowledgeSource saved = repository.save(model);
 
         // 创建文档处理任务
-        if ("FILE".equals(saved.getType())) {
+        if (shouldCreateProcessingJob(saved.getType())) {
             createDocumentProcessingJob(saved);
         }
 
@@ -94,31 +95,32 @@ public class KnowledgeSourceServiceImpl extends
         KnowledgeSource source = repository.findById(updateDto.getId())
                 .orElseThrow(() -> new RuntimeException("知识来源不存在"));
 
-        // 检查是否修改了可能影响向量的内容 (如重新上传了文件，或者修改了切分配置)
-        // 假设 UpdateDto 中如果包含 content 且不为空，则认为需要重新处理
-        // 或者如果 type 从 FILE 变更为其他（虽然通常 type 不变）
-
-        // 简单策略：如果状态重置为 PENDING 或者 content 发生变化，则触发重新处理
-        boolean needReprocess = false;
+        String oldType = source.getType();
+        String oldContent = source.getContent();
+        String oldMeta = source.getMeta();
 
         // 复制属性
         BeanUtils.copyProperties(updateDto, source);
+        source.setUpdateUser(userId);
 
-        // 如果显式设置状态为 PENDING，则重新触发任务
-        if ("PENDING".equals(updateDto.getStatus())) {
-            needReprocess = true;
+        // 内容/类型/meta 改动或显式重置 PENDING 时，触发重建
+        boolean needReprocess = "PENDING".equals(updateDto.getStatus())
+                || !Objects.equals(oldContent, source.getContent())
+                || !Objects.equals(oldType, source.getType())
+                || !Objects.equals(oldMeta, source.getMeta());
+
+        if (needReprocess) {
+            source.setStatus("PENDING");
         }
 
         // 保存更新
         KnowledgeSource saved = repository.save(source);
 
-        if (needReprocess) {
+        if (needReprocess && shouldCreateProcessingJob(saved.getType())) {
             // 先清理旧数据
             vectorService.deleteBySourceId(updateDto.getId());
             // 重新创建任务
-            if ("FILE".equals(saved.getType())) {
-                createDocumentProcessingJob(saved);
-            }
+            createDocumentProcessingJob(saved);
         }
 
         return convertToDto(saved, true);
@@ -134,7 +136,7 @@ public class KnowledgeSourceServiceImpl extends
 
             Map<String, Object> params = new HashMap<>();
             params.put("sourceId", source.getId());
-            params.put("splitMethod", "TOKEN"); // 默认切分方式，可根据 meta 或其他字段配置
+            params.put("splitMethod", resolveSplitMethod(source.getType()));
             params.put("chunkSize", 500);
             params.put("overlap", 50);
 
@@ -144,6 +146,17 @@ public class KnowledgeSourceServiceImpl extends
         } catch (Exception e) {
             throw new RuntimeException("创建文档处理任务失败", e);
         }
+    }
+
+    private boolean shouldCreateProcessingJob(String type) {
+        return "FILE".equals(type) || "MARKDOWN".equals(type);
+    }
+
+    private String resolveSplitMethod(String type) {
+        if ("MARKDOWN".equals(type)) {
+            return "MARKDOWN";
+        }
+        return "TOKEN";
     }
 
     @Override

@@ -55,6 +55,7 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
             render: (text: string) => {
                 if (text === 'FILE') return <Tag icon={<IconFile />} bordered>文件</Tag>;
                 if (text === 'DB') return <Tag icon={<IconStorage />} bordered>数据库表</Tag>;
+                if (text === 'MARKDOWN') return <Tag bordered>Markdown</Tag>;
                 return <Tag bordered>{text}</Tag>;
             }
         },
@@ -110,6 +111,7 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
             options: [
                 { label: '文件', value: 'FILE' },
                 { label: '数据库表', value: 'DB' },
+                { label: 'Markdown', value: 'MARKDOWN' },
                 { label: '思维导图', value: 'MIND_MAP' },
                 { label: '流程图', value: 'MERMAID' },
             ],
@@ -287,7 +289,11 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
             >
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <div style={{ marginBottom: 12 }}>
-                        {item.type === 'FILE' ? <Tag icon={<IconFile />} bordered>文件</Tag> : (item.type === 'DB' ? <Tag icon={<IconStorage />} bordered>数据库表</Tag> : <Tag bordered>{item.type}</Tag>)}
+                        {item.type === 'FILE'
+                            ? <Tag icon={<IconFile />} bordered>文件</Tag>
+                            : (item.type === 'DB'
+                                ? <Tag icon={<IconStorage />} bordered>数据库表</Tag>
+                                : (item.type === 'MARKDOWN' ? <Tag bordered>Markdown</Tag> : <Tag bordered>{item.type}</Tag>))}
                     </div>
                     <Typography.Paragraph
                         style={{ marginBottom: 12, color: 'var(--color-text-2)', fontSize: 14, minHeight: 42 }}
