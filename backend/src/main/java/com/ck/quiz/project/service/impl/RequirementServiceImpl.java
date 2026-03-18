@@ -235,9 +235,6 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
         Specification<Requirement> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (StringUtils.hasText(userId)) {
-                predicates.add(cb.equal(root.get("createUser"), userId));
-            }
             if (StringUtils.hasText(queryDto.getTitle())) {
                 predicates.add(cb.like(root.get("title"), "%" + queryDto.getTitle() + "%"));
             }
