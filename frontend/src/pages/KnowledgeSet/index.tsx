@@ -1,11 +1,35 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import UserAvatar from '@/components/UserAvatar';
-import { Button, Card, Drawer, Dropdown, Layout, Menu, Message, Modal, Popconfirm, Space, Tag, Tooltip, Typography } from '@arco-design/web-react';
-import { IconDelete, IconEdit, IconList, IconSearch, IconStorage } from '@arco-design/web-react/icon';
-import { DataManager } from '@/components/DataManager';
-import FilterForm from '@/components/FilterForm';
-import { FormFieldConfig } from '@/components/types/types';
+import {
+    Button,
+    Card,
+    Drawer,
+    Empty,
+    Input,
+    Layout,
+    Message,
+    Modal,
+    Popconfirm,
+    Result,
+    Select,
+    Space,
+    Spin,
+    Tag,
+    Tooltip,
+    Typography,
+    Pagination,
+    Grid,
+} from '@arco-design/web-react';
+import {
+    IconDelete,
+    IconEdit,
+    IconFilter,
+    IconPlus,
+    IconRefresh,
+    IconSearch,
+    IconStorage,
+} from '@arco-design/web-react/icon';
 import AddEditKnowledgeSetModal from './components/AddEditKnowledgeSetModal';
 import SearchDrawer from './components/SearchDrawer';
 import KnowledgeSourceManager from '../KnowledgeSource';
@@ -14,249 +38,123 @@ import renderDate from '@/utils/timeUtil';
 import './style/index.less';
 
 const { Content } = Layout;
+const { useBreakpoint } = Grid;
+
+type StatusType = 'ENABLED' | 'DISABLED' | undefined;
+type VisibilityType = 'PUBLIC' | 'PRIVATE' | undefined;
+
+interface QueryFilters {
+    keyWord?: string;
+    status?: StatusType;
+    visibility?: VisibilityType;
+}
+
+const DEFAULT_PAGE_SIZE = 10;
 
 function KnowledgeSetManager() {
-    const navigate = useNavigate();
-    // State
-    const [tableData, setTableData] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [tableScrollHeight, setTableScrollHeight] = useState(200);
-    
-    // Modal state
-    const [modalVisible, setModalVisible] = useState(false);
-    const [currentRecord, setCurrentRecord] = useState(null);
+    const breakpoints = useBreakpoint();
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    // Source drawer state
+    const [tableData, setTableData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [errorText, setErrorText] = useState<string>('');
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [currentRecord, setCurrentRecord] = useState<any>(null);
+
     const [sourceDrawerVisible, setSourceDrawerVisible] = useState(false);
     const [drawerKnowledgeSetId, setDrawerKnowledgeSetId] = useState<string | null>(null);
 
-    // Search drawer state
     const [searchDrawerVisible, setSearchDrawerVisible] = useState(false);
     const [searchKnowledgeSetId, setSearchKnowledgeSetId] = useState<string | null>(null);
 
-    // Form ref
-    const filterFormRef = useRef<any>();
+    const [advancedFilterVisible, setAdvancedFilterVisible] = useState(false);
 
-    // Pagination
+    const [queryFilters, setQueryFilters] = useState<QueryFilters>({
+        keyWord: '',
+        status: undefined,
+        visibility: undefined,
+    });
+
     const [pagination, setPagination] = useState({
         current: 1,
-        pageSize: 10,
+        pageSize: DEFAULT_PAGE_SIZE,
         total: 0,
         showTotal: true,
         showJumper: true,
         showPageSize: true,
     });
 
-    // Time format
-    // Time format
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const renderTimeText = (value: string) => {
-        return renderDate(value);
+    const parseParams = () => {
+        const keyWord = searchParams.get('keyWord') || '';
+        const status = (searchParams.get('status') as StatusType) || undefined;
+        const visibility = (searchParams.get('visibility') as VisibilityType) || undefined;
+        const current = Number(searchParams.get('page') || 1);
+        const pageSize = Number(searchParams.get('pageSize') || DEFAULT_PAGE_SIZE);
+
+        return {
+            filters: { keyWord, status, visibility },
+            paging: {
+                current: Number.isNaN(current) ? 1 : current,
+                pageSize: Number.isNaN(pageSize) ? DEFAULT_PAGE_SIZE : pageSize,
+            },
+        };
     };
 
-    // Detail modal state
-    const [detailModalVisible, setDetailModalVisible] = useState(false);
-    const [detailRecord, setDetailRecord] = useState<any | null>(null);
-
-    // Columns
-    const tableColumns = [
-        {
-            title: '名称',
-            dataIndex: 'name',
-            width: 150,
-        },
-        {
-            title: '描述',
-            dataIndex: 'descr',
-            width: 200,
-            render: (text: string) => text || '--',
-        },
-        {
-            title: '标签',
-            dataIndex: 'tags',
-            width: 150,
-            render: (text: string) => text ? text.split(',').map((tag: string) => <Tag key={tag} style={{marginRight: 4}} bordered>{tag}</Tag>) : '--',
-        },
-        {
-            title: '可见性',
-            dataIndex: 'visibility',
-            width: 100,
-            render: (text: string) => text === 'PUBLIC' ? <Tag color="green" bordered>公开</Tag> : <Tag color="red" bordered>私有</Tag>,
-        },
-        {
-            title: '状态',
-            dataIndex: 'status',
-            width: 100,
-            render: (text: string) => text === 'ENABLED' ? <Tag color="green" bordered>启用</Tag> : <Tag color="red" bordered>禁用</Tag>,
-        },
-        {
-            title: '创建人',
-            dataIndex: 'createUserName',
-            width: 100,
-            render: (text: string, record: any) => (
-                <UserAvatar name={text || (record?.createUser ?? '')} showName />
-            ),
-        },
-        {
-            title: '创建时间',
-            dataIndex: 'createDate',
-            width: 170,
-            render: (text: string) => renderDate(text),
-        },
-        {
-            title: '操作',
-            dataIndex: 'operation',
-            width: 180,
-            fixed: 'right' as const,
-            render: (_: any, record: any) => (
-                <Space size="small">
-                    <Tooltip content="来源">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconStorage />}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenSourceDrawer(record.id);
-                            }}
-                        />
-                    </Tooltip>
-                    <Tooltip content="编辑">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconEdit />}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(record);
-                            }}
-                        />
-                    </Tooltip>
-                    <Tooltip content="检索测试">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconSearch />}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenSearchDrawer(record.id);
-                            }}
-                        />
-                    </Tooltip>
-                    <Popconfirm
-                        title="确认删除该知识集吗?"
-                        onOk={() => handleDelete(record)}
-                    >
-                        <Tooltip content="删除">
-                            <Button
-                                type="text"
-                                size="small"
-                                status="danger"
-                                icon={<IconDelete />}
-                                onClick={(e) => e.stopPropagation()}
-                            />
-                        </Tooltip>
-                    </Popconfirm>
-                </Space>
-            ),
-        },
-    ];
-
-    // Handle detail
-    const handleDetail = (record: any) => {
-        setDetailRecord(record);
-        setDetailModalVisible(true);
+    const syncToUrl = (filters: QueryFilters, current: number, pageSize: number) => {
+        const params = new URLSearchParams();
+        if (filters.keyWord) params.set('keyWord', filters.keyWord);
+        if (filters.status) params.set('status', filters.status);
+        if (filters.visibility) params.set('visibility', filters.visibility);
+        if (current > 1) params.set('page', String(current));
+        if (pageSize !== DEFAULT_PAGE_SIZE) params.set('pageSize', String(pageSize));
+        setSearchParams(params, { replace: true });
     };
 
-    // Search fields
-    const searchFormFields: FormFieldConfig[] = [
-        {
-            label: '名称',
-            field: 'keyWord',
-            type: 'input',
-            placeholder: '请输入名称',
-        },
-        {
-            label: '状态',
-            field: 'status',
-            type: 'select',
-            placeholder: '请选择状态',
-            options: [
-                { label: '启用', value: 'ENABLED' },
-                { label: '禁用', value: 'DISABLED' },
-            ],
-        },
-        {
-            label: '可见性',
-            field: 'visibility',
-            type: 'select',
-            placeholder: '请选择可见性',
-            options: [
-                { label: '公开', value: 'PUBLIC' },
-                { label: '私有', value: 'PRIVATE' },
-            ],
-        },
-    ];
-
-    // Fetch data
-    const fetchTableData = async (params = {}, page?: number, pageSize?: number) => {
+    const fetchTableData = async (filters: QueryFilters, page: number, pageSize: number) => {
         setLoading(true);
+        setErrorText('');
         try {
             const queryParams = {
-                pageNum: (page ?? pagination.current) - 1,
-                pageSize: pageSize ?? pagination.pageSize,
-                ...params,
+                pageNum: page - 1,
+                pageSize,
+                keyWord: filters.keyWord?.trim() || undefined,
+                status: filters.status,
+                visibility: filters.visibility,
             };
 
             const response = await getKnowledgeSetList(queryParams);
             const { content = [], totalElements = 0 } = response.data || {};
 
             setTableData(content);
-            setPagination(prev => ({
+            setPagination((prev) => ({
                 ...prev,
-                current: (queryParams.pageNum || 0) + 1,
-                pageSize: queryParams.pageSize || prev.pageSize,
+                current: page,
+                pageSize,
                 total: totalElements,
             }));
-        } catch (error) {
-            console.error('获取列表失败:', error);
-            Message.error('获取列表失败');
+        } catch (error: any) {
+            const message = error?.response?.data?.message || error?.message || '获取列表失败';
+            setErrorText(message);
+            setTableData([]);
+            Message.error(message);
         } finally {
             setLoading(false);
         }
     };
 
-    // Init
     useEffect(() => {
-        fetchTableData();
+        const { filters, paging } = parseParams();
+        setQueryFilters(filters);
+        setPagination((prev) => ({ ...prev, current: paging.current, pageSize: paging.pageSize }));
+        fetchTableData(filters, paging.current, paging.pageSize);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Resize
-    useEffect(() => {
-        const calculateTableHeight = () => {
-            const windowHeight = window.innerHeight;
-            const otherElementsHeight = 250;
-            setTableScrollHeight(Math.max(200, windowHeight - otherElementsHeight));
-        };
-        calculateTableHeight();
-        window.addEventListener('resize', calculateTableHeight);
-        return () => window.removeEventListener('resize', calculateTableHeight);
-    }, []);
-
-    // Handlers
-    const handleAdd = () => {
-        setCurrentRecord(null);
-        setModalVisible(true);
-    };
-
-    const handleEdit = async (record: any) => {
-        try {
-            const response = await getKnowledgeSetById(record.id);
-            setCurrentRecord(response.data);
-            setModalVisible(true);
-        } catch (error) {
-            Message.error('获取详情失败');
-        }
+    const applyFilters = (nextFilters: QueryFilters, nextPage = 1, nextPageSize = pagination.pageSize) => {
+        setQueryFilters(nextFilters);
+        syncToUrl(nextFilters, nextPage, nextPageSize);
+        fetchTableData(nextFilters, nextPage, nextPageSize);
     };
 
     const handleDelete = (record: any) => {
@@ -267,294 +165,365 @@ function KnowledgeSetManager() {
                 try {
                     await deleteKnowledgeSet(record.id);
                     Message.success('删除成功');
-                    const values = filterFormRef.current?.getFilterValues?.() || {};
-                    fetchTableData(values);
-                } catch (error) {
+                    fetchTableData(queryFilters, pagination.current, pagination.pageSize);
+                } catch {
                     Message.error('删除失败');
                 }
             },
         });
     };
 
-    const handlePaginationChange = (p: any) => {
-        setPagination(p);
-        const values = filterFormRef.current?.getFilterValues?.() || {};
-        fetchTableData(values, p.current, p.pageSize);
+    const handleEdit = async (record: any) => {
+        try {
+            const response = await getKnowledgeSetById(record.id);
+            setCurrentRecord(response.data);
+            setModalVisible(true);
+        } catch {
+            Message.error('获取详情失败');
+        }
+    };
+
+    const handleAdd = () => {
+        setCurrentRecord(null);
+        setModalVisible(true);
     };
 
     const handleModalSuccess = () => {
         setModalVisible(false);
         setCurrentRecord(null);
-        const values = filterFormRef.current?.getFilterValues?.() || {};
-        fetchTableData(values);
+        fetchTableData(queryFilters, pagination.current, pagination.pageSize);
     };
 
-    const handleModalCancel = () => {
-        setModalVisible(false);
-        setCurrentRecord(null);
+    const handleQuickStatus = (value?: StatusType) => {
+        applyFilters({ ...queryFilters, status: value }, 1);
     };
 
-    const handleOpenSourceDrawer = (id: string) => {
-        setDrawerKnowledgeSetId(id);
-        setSourceDrawerVisible(true);
+    const handleQuickVisibility = (value?: VisibilityType) => {
+        applyFilters({ ...queryFilters, visibility: value }, 1);
     };
 
-    const handleCloseSourceDrawer = () => {
-        setSourceDrawerVisible(false);
-        setDrawerKnowledgeSetId(null);
+    const handleClearAll = () => {
+        const resetFilters: QueryFilters = { keyWord: '', status: undefined, visibility: undefined };
+        applyFilters(resetFilters, 1, DEFAULT_PAGE_SIZE);
     };
 
-    const handleOpenSearchDrawer = (id: string) => {
-        setSearchKnowledgeSetId(id);
-        setSearchDrawerVisible(true);
-    };
+    const activeChips = useMemo(() => {
+        const chips: Array<{ key: string; label: string; onRemove: () => void }> = [];
+        if (queryFilters.keyWord) {
+            chips.push({
+                key: 'keyWord',
+                label: `关键词: ${queryFilters.keyWord}`,
+                onRemove: () => applyFilters({ ...queryFilters, keyWord: '' }, 1),
+            });
+        }
+        if (queryFilters.status) {
+            chips.push({
+                key: 'status',
+                label: `状态: ${queryFilters.status === 'ENABLED' ? '启用' : '禁用'}`,
+                onRemove: () => applyFilters({ ...queryFilters, status: undefined }, 1),
+            });
+        }
+        if (queryFilters.visibility) {
+            chips.push({
+                key: 'visibility',
+                label: `可见性: ${queryFilters.visibility === 'PUBLIC' ? '公开' : '私有'}`,
+                onRemove: () => applyFilters({ ...queryFilters, visibility: undefined }, 1),
+            });
+        }
+        return chips;
+    }, [queryFilters]);
 
-    const handleCloseSearchDrawer = () => {
-        setSearchDrawerVisible(false);
-        setSearchKnowledgeSetId(null);
-    };
+    const isMobile = !breakpoints.md;
 
-    const filterContent = (
-        <FilterForm
-            ref={filterFormRef}
-            initialValues={{ keyWord: '', status: undefined, visibility: undefined }}
-            formFields={searchFormFields}
-            onSearch={(values) => fetchTableData(values, 1)}
-            onReset={() => fetchTableData({}, 1)}
-            min={3}
-        />
-    );
-
-    const renderShortCard = (item: any, index: number, actions: any) => {
-        return (
-            <Card
-                className="knowledge-card"
-                hoverable
-                style={{ cursor: 'pointer', height: '100%' }}
-                onClick={() => handleEdit(item)}
-                title={
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }} title={item.name}>
-                            {item.name}
-                        </div>
-                        <Space size={4}>
-                            {item.visibility === 'PUBLIC' ? <Tag color="green" size="small" bordered>公开</Tag> : <Tag color="red" size="small" bordered>私有</Tag>}
-                            {item.status === 'ENABLE' ? <Tag color="green" size="small" bordered>启用</Tag> : <Tag color="red" size="small" bordered>禁用</Tag>}
-                        </Space>
-                    </div>
-                }
-                extra={
-                    <Dropdown
-                        droplist={
-                            <Menu onClickMenuItem={(key, e) => {
-                                e.stopPropagation();
-                                if (key === 'edit') {
-                                    actions.onEdit(item);
-                                } else if (key === 'delete') {
-                                    actions.onDelete(item);
-                                } else if (key === 'source') {
-                                    handleOpenSourceDrawer(item.id);
-                                } else if (key === 'search') {
-                                    handleOpenSearchDrawer(item.id);
-                                }
-                            }}>
-                                <Menu.Item key="source"><IconStorage style={{ marginRight: 8 }} />知识来源</Menu.Item>
-                                <Menu.Item key="search"><IconList style={{ marginRight: 8 }} />检索测试</Menu.Item>
-                                <Menu.Item key="edit"><IconEdit style={{ marginRight: 8 }} />编辑</Menu.Item>
-                                <Menu.Item key="delete"><IconDelete style={{ marginRight: 8 }} />删除</Menu.Item>
-                            </Menu>
-                        }
-                    >
-                        <Button type="text" icon={<IconList />} size="mini" onClick={(e) => e.stopPropagation()} />
-                    </Dropdown>
-                }
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Typography.Paragraph
-                        style={{ marginBottom: 12, color: 'var(--color-text-2)', fontSize: 14, minHeight: 42 }}
-                        ellipsis={{ rows: 2, showTooltip: true }}
-                    >
-                        {item.descr || '暂无描述'}
-                    </Typography.Paragraph>
-                    
-                    <div style={{ marginBottom: 12, height: 24, overflow: 'hidden' }}>
-                        {item.tags ? (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                {item.tags.split(',').slice(0, 3).map((tag: string) => (
-                                    <Tag key={tag} size="small" bordered>{tag}</Tag>
-                                ))}
-                                {item.tags.split(',').length > 3 && <Tag size="small" bordered>...</Tag>}
-                            </div>
-                        ) : (
-                            <span style={{ color: 'var(--color-text-3)', fontSize: 12 }}>无标签</span>
-                        )}
-                    </div>
-                    
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 12, borderTop: '1px solid var(--color-border)' }}>
-                        <UserAvatar name={item.createUserName || item.createUser} showName />
-                        <span style={{ fontSize: 12, color: 'var(--color-text-3)' }}>{renderTimeText(item.createDate)}</span>
-                    </div>
+    const renderContentState = () => {
+        if (loading) {
+            return (
+                <div className="knowledge-set-content-state">
+                    <Spin tip="加载中..." />
                 </div>
-            </Card>
+            );
+        }
+
+        if (errorText) {
+            return (
+                <Result
+                    status="error"
+                    title="加载失败"
+                    subTitle={errorText}
+                    extra={
+                        <Button type="primary" icon={<IconRefresh />} onClick={() => fetchTableData(queryFilters, pagination.current, pagination.pageSize)}>
+                            重新加载
+                        </Button>
+                    }
+                />
+            );
+        }
+
+        if (!tableData.length) {
+            return <Empty description="暂无知识集数据" />;
+        }
+
+        return (
+            <div className="knowledge-set-card-grid">
+                {tableData.map((item) => (
+                    <Card
+                        key={item.id}
+                        className="knowledge-set-card"
+                        hoverable
+                        title={
+                            <div className="knowledge-set-card-title" title={item.name}>
+                                <span>{item.name}</span>
+                            </div>
+                        }
+                        extra={
+                            <Space size={4}>
+                                <Tooltip content="来源">
+                                    <Button
+                                        type="text"
+                                        size="mini"
+                                        icon={<IconStorage />}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDrawerKnowledgeSetId(item.id);
+                                            setSourceDrawerVisible(true);
+                                        }}
+                                    />
+                                </Tooltip>
+                                <Tooltip content="检索测试">
+                                    <Button
+                                        type="text"
+                                        size="mini"
+                                        icon={<IconSearch />}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSearchKnowledgeSetId(item.id);
+                                            setSearchDrawerVisible(true);
+                                        }}
+                                    />
+                                </Tooltip>
+                                <Tooltip content="编辑">
+                                    <Button
+                                        type="text"
+                                        size="mini"
+                                        icon={<IconEdit />}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEdit(item);
+                                        }}
+                                    />
+                                </Tooltip>
+                                <Popconfirm title="确认删除该知识集吗?" onOk={() => handleDelete(item)}>
+                                    <Tooltip content="删除">
+                                        <Button
+                                            type="text"
+                                            size="mini"
+                                            status="danger"
+                                            icon={<IconDelete />}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </Tooltip>
+                                </Popconfirm>
+                            </Space>
+                        }
+                        onClick={() => handleEdit(item)}
+                    >
+                        <div className="knowledge-set-card-tags">
+                            {item.visibility === 'PUBLIC' ? <Tag color="green" bordered>公开</Tag> : <Tag color="red" bordered>私有</Tag>}
+                            {item.status === 'ENABLED' ? <Tag color="green" bordered>启用</Tag> : <Tag color="red" bordered>禁用</Tag>}
+                            {item.tags
+                                ? item.tags.split(',').slice(0, 2).map((tag: string) => (
+                                      <Tag key={tag} bordered>{tag}</Tag>
+                                  ))
+                                : null}
+                        </div>
+                        <Typography.Paragraph ellipsis={{ rows: 2, showTooltip: true }} className="knowledge-set-card-desc">
+                            {item.descr || '暂无描述'}
+                        </Typography.Paragraph>
+                        <div className="knowledge-set-card-footer">
+                            <UserAvatar name={item.createUserName || item.createUser || ''} showName />
+                            <span>{renderDate(item.createDate)}</span>
+                        </div>
+                    </Card>
+                ))}
+            </div>
         );
     };
 
     return (
         <Layout className="knowledge-set-manager">
             <Content>
-                <DataManager
-                    data={tableData}
-                    loading={loading}
-                    pagination={pagination}
-                    onPaginationChange={handlePaginationChange}
-                    actions={{
-                        onAdd: handleAdd,
-                        onEdit: handleEdit,
-                        onDelete: handleDelete,
-                    }}
-                    config={{
-                        displayMode: 'shortCard',
-                        filterContent,
-                        tableColumns: tableColumns,
-                        showModeToggle: false,
-                        renderShortCard,
-                        cardColumns: 4,
-                        cardGutter: 16,
-                        tableProps: {
-                            onRow: (record: any) => ({
-                                onClick: () => handleDetail(record),
-                                style: { cursor: 'pointer' }
-                            })
-                        }
-                    }}
-                    tableScrollHeight={tableScrollHeight}
-                />
+                <div className="knowledge-set-page">
+                    <div className="knowledge-set-toolbar-layer">
+                        <div className="toolbar-main-row">
+                            <Input.Search
+                                value={queryFilters.keyWord}
+                                onChange={(value) => setQueryFilters((prev) => ({ ...prev, keyWord: value }))}
+                                onSearch={() => applyFilters({ ...queryFilters }, 1)}
+                                placeholder="搜索知识集名称或描述"
+                                allowClear
+                                className="knowledge-set-search-input"
+                            />
+                            <Space wrap>
+                                <Button type="primary" icon={<IconSearch />} onClick={() => applyFilters({ ...queryFilters }, 1)}>
+                                    搜索
+                                </Button>
+                                <Button icon={<IconFilter />} onClick={() => setAdvancedFilterVisible(true)}>
+                                    高级筛选
+                                </Button>
+                                <Button icon={<IconPlus />} onClick={handleAdd}>
+                                    新建知识集
+                                </Button>
+                            </Space>
+                        </div>
+
+                        <div className="toolbar-quick-row">
+                            <Space wrap>
+                                <span className="quick-label">状态:</span>
+                                <Button size="small" type={!queryFilters.status ? 'primary' : 'secondary'} onClick={() => handleQuickStatus(undefined)}>全部</Button>
+                                <Button size="small" type={queryFilters.status === 'ENABLED' ? 'primary' : 'secondary'} onClick={() => handleQuickStatus('ENABLED')}>启用</Button>
+                                <Button size="small" type={queryFilters.status === 'DISABLED' ? 'primary' : 'secondary'} onClick={() => handleQuickStatus('DISABLED')}>禁用</Button>
+                            </Space>
+                            <Space wrap>
+                                <span className="quick-label">可见性:</span>
+                                <Button size="small" type={!queryFilters.visibility ? 'primary' : 'secondary'} onClick={() => handleQuickVisibility(undefined)}>全部</Button>
+                                <Button size="small" type={queryFilters.visibility === 'PUBLIC' ? 'primary' : 'secondary'} onClick={() => handleQuickVisibility('PUBLIC')}>公开</Button>
+                                <Button size="small" type={queryFilters.visibility === 'PRIVATE' ? 'primary' : 'secondary'} onClick={() => handleQuickVisibility('PRIVATE')}>私有</Button>
+                            </Space>
+                        </div>
+
+                        <div className="toolbar-chip-row">
+                            <Space wrap>
+                                {activeChips.length > 0 ? (
+                                    activeChips.map((chip) => (
+                                        <Tag key={chip.key} closable onClose={chip.onRemove}>
+                                            {chip.label}
+                                        </Tag>
+                                    ))
+                                ) : (
+                                    <span className="no-chip-text">当前未选择筛选条件</span>
+                                )}
+                            </Space>
+                            <Button size="small" type="text" onClick={handleClearAll} disabled={activeChips.length === 0 && pagination.current === 1 && pagination.pageSize === DEFAULT_PAGE_SIZE}>
+                                一键清空
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="knowledge-set-result-layer">
+                        <div className="result-meta">
+                            <Typography.Text type="secondary">
+                                共 {pagination.total} 条结果
+                            </Typography.Text>
+                        </div>
+                        <Pagination
+                            {...pagination}
+                            size={isMobile ? 'small' : 'default'}
+                            onChange={(page, pageSize) => {
+                                const nextPageSize = pageSize || pagination.pageSize;
+                                setPagination((prev) => ({ ...prev, current: page, pageSize: nextPageSize }));
+                                syncToUrl(queryFilters, page, nextPageSize);
+                                fetchTableData(queryFilters, page, nextPageSize);
+                            }}
+                            onPageSizeChange={(pageSize) => {
+                                setPagination((prev) => ({ ...prev, current: 1, pageSize }));
+                                syncToUrl(queryFilters, 1, pageSize);
+                                fetchTableData(queryFilters, 1, pageSize);
+                            }}
+                        />
+                    </div>
+
+                    <div className="knowledge-set-content-layer">
+                        {renderContentState()}
+                    </div>
+                </div>
+
                 <AddEditKnowledgeSetModal
                     visible={modalVisible}
                     currentRecord={currentRecord}
-                    onCancel={handleModalCancel}
+                    onCancel={() => {
+                        setModalVisible(false);
+                        setCurrentRecord(null);
+                    }}
                     onSuccess={handleModalSuccess}
                 />
+
                 <Drawer
-                    width="50%"
+                    width={isMobile ? '100%' : '50%'}
                     title="知识来源"
                     visible={sourceDrawerVisible}
-                    onOk={handleCloseSourceDrawer}
-                    onCancel={handleCloseSourceDrawer}
+                    onCancel={() => {
+                        setSourceDrawerVisible(false);
+                        setDrawerKnowledgeSetId(null);
+                    }}
                     footer={null}
                     unmountOnClose
                 >
                     {drawerKnowledgeSetId && <KnowledgeSourceManager knowledgeSetId={drawerKnowledgeSetId} />}
                 </Drawer>
+
                 <SearchDrawer
                     visible={searchDrawerVisible}
                     knowledgeSetId={searchKnowledgeSetId}
-                    onCancel={handleCloseSearchDrawer}
+                    onCancel={() => {
+                        setSearchDrawerVisible(false);
+                        setSearchKnowledgeSetId(null);
+                    }}
                 />
 
-                {/* 详情查看对话框 */}
-                {detailModalVisible && detailRecord && (
-                    <Modal
-                        title="知识库详情"
-                        visible={detailModalVisible}
-                        onCancel={() => setDetailModalVisible(false)}
-                        footer={null}
-                        style={{ maxWidth: 600 }}
-                    >
-                        <div style={{ paddingTop: 16 }}>
-                            {/* 状态和可见性标签 */}
-                            <div style={{ marginBottom: 16 }}>
-                                <div style={{ display: "flex", gap: 16 }}>
-                                    {detailRecord.status === 'ENABLED' ? <Tag color="green" bordered>启用</Tag> : <Tag color="red" bordered>禁用</Tag>}
-                                    {detailRecord.visibility === 'PUBLIC' ? <Tag color="green" bordered>公开</Tag> : <Tag color="red" bordered>私有</Tag>}
-                                </div>
-                            </div>
-
-                            {/* 名称 */}
-                            <div style={{ marginBottom: 16 }}>
-                                <strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
-                                    名称:
-                                </strong>
-                                <div
-                                    style={{
-                                        padding: "12px 16px",
-                                        backgroundColor: "var(--color-info-light-1)",
-                                        borderRadius: 6,
-                                        color: "var(--color-text-3)",
-                                        lineHeight: 1.6,
-                                    }}
-                                >
-                                    {detailRecord.name}
-                                </div>
-                            </div>
-
-                            {/* 描述 */}
-                            {detailRecord.descr && (
-                                <div style={{ marginBottom: 16 }}>
-                                    <strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
-                                        描述:
-                                    </strong>
-                                    <div
-                                        style={{
-                                            padding: "12px 16px",
-                                            backgroundColor: "var(--color-fill-2)",
-                                            borderRadius: 6,
-                                            color: "var(--color-text-3)",
-                                            lineHeight: 1.6,
-                                            whiteSpace: "pre-wrap",
-                                        }}
-                                    >
-                                        {detailRecord.descr}
-                                    </div>
-                                </div>
-                            )}
-
-                             {/* 标签 */}
-                             {detailRecord.tags && (
-                                <div style={{ marginBottom: 16 }}>
-                                    <strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
-                                        标签:
-                                    </strong>
-                                    <div>
-                                        {detailRecord.tags.split(',').map((tag: string) => (
-                                            <Tag key={tag} style={{marginRight: 4}} bordered>{tag}</Tag>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 创建信息 */}
-                            <div
-                                style={{
-                                    marginTop: 16,
-                                    paddingTop: 16,
-                                    borderTop: "1px solid var(--color-border-2)",
+                <Drawer
+                    width={isMobile ? '100%' : 420}
+                    title="高级筛选"
+                    visible={advancedFilterVisible}
+                    onCancel={() => setAdvancedFilterVisible(false)}
+                    unmountOnClose
+                    footer={
+                        <Space>
+                            <Button
+                                onClick={() => {
+                                    setQueryFilters((prev) => ({ ...prev, status: undefined, visibility: undefined }));
                                 }}
                             >
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        color: "var(--color-text-2)",
-                                        fontSize: 14,
-                                    }}
-                                >
-                                    <div>
-                                        <span style={{ fontWeight: 500 }}>创建人：</span>
-                                        <UserAvatar
-                                            name={detailRecord.createUserName || detailRecord.createUser || ""}
-                                            showName
-                                        />
-                                    </div>
-                                    <div>
-                                        <span style={{ fontWeight: 500 }}>创建时间：</span>
-                                        {renderDate(detailRecord.createDate)}
-                                    </div>
-                                </div>
-                            </div>
+                                重置
+                            </Button>
+                            <Button
+                                type="primary"
+                                onClick={() => {
+                                    applyFilters(queryFilters, 1);
+                                    setAdvancedFilterVisible(false);
+                                }}
+                            >
+                                应用
+                            </Button>
+                        </Space>
+                    }
+                >
+                    <div className="knowledge-set-advanced-filter">
+                        <div className="filter-item">
+                            <div className="filter-label">状态</div>
+                            <Select
+                                allowClear
+                                placeholder="全部状态"
+                                value={queryFilters.status}
+                                onChange={(value) => setQueryFilters((prev) => ({ ...prev, status: value as StatusType }))}
+                            >
+                                <Select.Option value="ENABLED">启用</Select.Option>
+                                <Select.Option value="DISABLED">禁用</Select.Option>
+                            </Select>
                         </div>
-                    </Modal>
-                )}
+                        <div className="filter-item">
+                            <div className="filter-label">可见性</div>
+                            <Select
+                                allowClear
+                                placeholder="全部可见性"
+                                value={queryFilters.visibility}
+                                onChange={(value) => setQueryFilters((prev) => ({ ...prev, visibility: value as VisibilityType }))}
+                            >
+                                <Select.Option value="PUBLIC">公开</Select.Option>
+                                <Select.Option value="PRIVATE">私有</Select.Option>
+                            </Select>
+                        </div>
+                    </div>
+                </Drawer>
             </Content>
         </Layout>
     );
