@@ -38,7 +38,6 @@ import renderDate from '@/utils/timeUtil';
 import './style/index.less';
 
 const { Content } = Layout;
-const { useBreakpoint } = Grid;
 
 type StatusType = 'ENABLED' | 'DISABLED' | undefined;
 type VisibilityType = 'PUBLIC' | 'PRIVATE' | undefined;
@@ -52,7 +51,7 @@ interface QueryFilters {
 const DEFAULT_PAGE_SIZE = 10;
 
 function KnowledgeSetManager() {
-    const breakpoints = useBreakpoint();
+    const breakpoints = (Grid as any).useBreakpoint?.() || {};
     const [searchParams, setSearchParams] = useSearchParams();
 
     const [tableData, setTableData] = useState<any[]>([]);

@@ -89,6 +89,7 @@ const ExamHistoryDetailPage: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [result, setResult] = useState<ExamResultDto | null>(null);
     const [currentIndex, setCurrentIndex] = useState<number>(0);
+    const [onlyWrong, setOnlyWrong] = useState<boolean>(false);
     const questionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
     useEffect(() => {
@@ -107,8 +108,17 @@ const ExamHistoryDetailPage: React.FC = () => {
         fetchResult();
     }, [id]);
 
-    const scrollToIndex = (index: number) => {
+    const displayAnswers = useMemo(() => {
         const list = result?.answers || [];
+        return onlyWrong ? list.filter((item) => !item.correct) : list;
+    }, [result, onlyWrong]);
+
+    useEffect(() => {
+        setCurrentIndex(0);
+    }, [onlyWrong, result?.resultId]);
+
+    const scrollToIndex = (index: number) => {
+        const list = displayAnswers;
         if (index < 0 || index >= list.length) return;
         setCurrentIndex(index);
         const targetId = String(list[index].question.id);
@@ -120,6 +130,8 @@ const ExamHistoryDetailPage: React.FC = () => {
 
     const goPrev = () => scrollToIndex(currentIndex - 1);
     const goNext = () => scrollToIndex(currentIndex + 1);
+
+    const wrongCount = useMemo(() => (result?.answers || []).filter((item) => !item.correct).length, [result]);
 
     const header = useMemo(() => (
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
@@ -182,8 +194,14 @@ const ExamHistoryDetailPage: React.FC = () => {
                             </div>
 
                             {/* 中间滚动区域：题目列表 */}
-                            <Form layout='vertical' style={{height: 'calc(100% - 60px)', overflow: 'auto'}}>
-                                {(result?.answers || []).map((a, idx) => {
+                            <div style={{ marginBottom: 8 }}>
+                                <Space>
+                                    <Checkbox checked={onlyWrong} onChange={setOnlyWrong}>只看错题</Checkbox>
+                                    <Tag bordered color='red'>错题 {wrongCount}</Tag>
+                                </Space>
+                            </div>
+                            <Form layout='vertical' style={{height: 'calc(100% - 96px)', overflow: 'auto'}}>
+                                {displayAnswers.map((a, idx) => {
                                     const q = a.question;
                                     const eqId = q.id as string;
                                     const type = q.type;
@@ -213,7 +231,10 @@ const ExamHistoryDetailPage: React.FC = () => {
                                                 marginBottom: 8
                                             }}>
                                                 <Space>
-                                                    <span style={{fontWeight: 600}}>{idx + 1}.</span>
+                                                    <span style={{fontWeight: 600}}>{(() => {
+                                                        const sourceIndex = (result?.answers || []).findIndex((item) => String(item.question.id) === String(eqId));
+                                                        return sourceIndex >= 0 ? sourceIndex + 1 : idx + 1;
+                                                    })()}.</span>
                                                     <Tag bordered
                                                          color={type === 'SINGLE' ? 'blue' : type === 'MULTIPLE' ? 'purple' : type === 'BLANK' ? 'green' : 'orange'}>
                                                         {type === 'SINGLE' ? '单选题' : type === 'MULTIPLE' ? '多选题' : type === 'BLANK' ? '填空题' : '简答题'}
@@ -292,7 +313,7 @@ const ExamHistoryDetailPage: React.FC = () => {
                                             )}
 
                                             {/* 题目解析和正确答案 */}
-                                            {((q?.explanation || '').trim() || correctAnswers.length > 0) && (
+                                            {((q?.explanation || '').trim() || correctAnswers.length > 0 || (q as any)?.knowledgePoints?.length > 0) && (
                                                 <div style={{
                                                     marginTop: 16,
                                                     padding: 12,
@@ -301,21 +322,35 @@ const ExamHistoryDetailPage: React.FC = () => {
                                                     borderRadius: 4
                                                 }}>
                                                     {/* 正确答案 */}
-                                                    <div>
-                                                        <div style={{fontWeight: 600, color: '#389e0d', marginBottom: 4}}>正确答案：</div>
-                                                        <div style={{color: '#333', lineHeight: 1.6, marginBottom: 8}}>
-                                                            {correctAnswers.map(ans => {
-                                                                const correctOpt = opts.find(opt => opt.key === ans);
-                                                                return correctOpt ? correctOpt.text : ans;
-                                                            }).join(', ')}
+                                                    {correctAnswers.length > 0 && (
+                                                        <div>
+                                                            <div style={{fontWeight: 600, color: '#389e0d', marginBottom: 4}}>正确答案：</div>
+                                                            <div style={{color: '#333', lineHeight: 1.6, marginBottom: 8}}>
+                                                                {correctAnswers.map(ans => {
+                                                                    const correctOpt = opts.find(opt => opt.key === ans);
+                                                                    return correctOpt ? correctOpt.text : ans;
+                                                                }).join(', ')}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    
+                                                    )}
+
                                                     {/* 解析 */}
                                                     {(q?.explanation || '').trim() && (
                                                         <div>
                                                             <div style={{fontWeight: 600, color: '#389e0d', marginBottom: 4}}>解析：</div>
                                                             <div style={{color: '#333', lineHeight: 1.6}}>{q.explanation}</div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 关联知识点 */}
+                                                    {Array.isArray((q as any)?.knowledgePoints) && (q as any).knowledgePoints.length > 0 && (
+                                                        <div style={{ marginTop: 8 }}>
+                                                            <div style={{fontWeight: 600, color: '#389e0d', marginBottom: 6}}>关联知识点：</div>
+                                                            <Space wrap>
+                                                                {(q as any).knowledgePoints.map((kp: string) => (
+                                                                    <Tag key={kp} color='arcoblue' bordered>{kp}</Tag>
+                                                                ))}
+                                                            </Space>
                                                         </div>
                                                     )}
                                                 </div>
@@ -340,20 +375,22 @@ const ExamHistoryDetailPage: React.FC = () => {
                                 }}>
                                     <Space>
                                         <Tag color='arcoblue' bordered>题目导航</Tag>
-                                        <Tag bordered>共 {result?.answers?.length || 0} 题</Tag>
+                                        <Tag bordered>{onlyWrong ? '错题' : '共'} {displayAnswers.length} 题</Tag>
                                     </Space>
                                 </div>
 
                                 <div style={{maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', marginBottom: 16}}>
                                     <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px'}}>
-                                        {(result?.answers || []).map((a, idx) => {
+                                        {displayAnswers.map((a, idx) => {
                                             const q = a.question;
                                             const eqId = String(q.id);
                                             const type = q.type;
                                             const correct = isCorrect(eqId);
+                                            const sourceIndex = (result?.answers || []).findIndex((item) => String(item.question.id) === eqId);
+                                            const displayNo = sourceIndex >= 0 ? sourceIndex + 1 : idx + 1;
                                             return (
                                                 <Tooltip key={eqId}
-                                                         content={`第${idx + 1}题（${type || '未知类型'}）${correct ? ' - 正确' : ' - 错误'}`}>
+                                                         content={`第${displayNo}题（${type || '未知类型'}）${correct ? ' - 正确' : ' - 错误'}`}>
                                                     <Button
                                                         size='mini'
                                                         type={currentIndex === idx ? 'primary' : 'outline'}
@@ -366,7 +403,7 @@ const ExamHistoryDetailPage: React.FC = () => {
                                                             fontSize: '12px'
                                                         }}
                                                     >
-                                                        {idx + 1}
+                                                        {displayNo}
                                                     </Button>
                                                 </Tooltip>
                                             );

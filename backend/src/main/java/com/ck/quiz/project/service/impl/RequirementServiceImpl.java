@@ -18,6 +18,7 @@ import com.ck.quiz.project.service.RequirementService;
 import com.ck.quiz.user.dto.UserDto;
 import com.ck.quiz.utils.IdHelper;
 import jakarta.persistence.criteria.Predicate;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -64,17 +65,16 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
     @Override
     @Transactional
     public RequirementDto update(String userId, RequirementUpdateDto updateDto) {
-        Requirement before = getRequirementForUser(userId, updateDto.getId());
+        Requirement before = getRequirementById(updateDto.getId());
         Status fromStatus = before.getStatus();
         String beforeDescr = before.getDescr();
 
-        RequirementDto dto = super.update(userId, updateDto);
-        Requirement updated = repository.findById(dto.getId())
-                .orElseThrow(() -> new RuntimeException("Requirement not found: " + dto.getId()));
+        BeanUtils.copyProperties(updateDto, before, "id", "createDate", "createUser", "updateDate", "updateUser");
+        Requirement updated = repository.save(before);
 
         appendLifecycleLog(updated, RequirementLifecycleLog.EventType.EDIT, fromStatus, updated.getStatus(),
                 beforeDescr, updated.getDescr(), "更新需求");
-        return dto;
+        return convertToDto(updated, true);
     }
 
     @Override
@@ -131,7 +131,7 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
     @Override
     @Transactional
     public RequirementDto analyze(String userId, String id, RequirementAnalyzeDto analyzeDto) {
-        Requirement requirement = getRequirementForUser(userId, id);
+        Requirement requirement = getRequirementById(id);
         RequirementAnalyzeDto payload = analyzeDto == null ? new RequirementAnalyzeDto() : analyzeDto;
 
         Status fromStatus = requirement.getStatus();
@@ -157,7 +157,7 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
     @Override
     @Transactional
     public RequirementDto review(String userId, String id, RequirementReviewDto reviewDto) {
-        Requirement requirement = getRequirementForUser(userId, id);
+        Requirement requirement = getRequirementById(id);
         if (reviewDto == null || reviewDto.getDecision() == null) {
             throw new RuntimeException("Review decision is required");
         }
@@ -186,7 +186,7 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
     @Override
     @Transactional(readOnly = true)
     public List<RequirementLifecycleLogDto> getLifecycle(String userId, String requirementId) {
-        getRequirementForUser(userId, requirementId);
+        getRequirementById(requirementId);
 
         List<RequirementLifecycleLog> logs = requirementLifecycleLogRepository
                 .findByRequirementIdOrderByCreateDateAsc(requirementId);
@@ -290,16 +290,26 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
         return dto;
     }
 
-    private Requirement getRequirementForUser(String userId, String requirementId) {
-        Requirement requirement = repository.findById(requirementId)
-                .orElseThrow(() -> new RuntimeException("Requirement not found: " + requirementId));
+    @Override
+    @Transactional(readOnly = true)
+    public RequirementDto get(String userId, String id) {
+        Requirement requirement = getRequirementById(id);
+        return convertToDto(requirement, true);
+    }
 
-        if (StringUtils.hasText(userId)
-                && StringUtils.hasText(requirement.getCreateUser())
-                && !userId.equals(requirement.getCreateUser())) {
-            throw new RuntimeException("No permission to access requirement: " + requirementId);
-        }
-        return requirement;
+    @Override
+    @Transactional
+    public void delete(String userId, String id) {
+        Requirement requirement = getRequirementById(id);
+        requirementLifecycleLogRepository.deleteAll(
+                requirementLifecycleLogRepository.findByRequirementIdOrderByCreateDateAsc(id)
+        );
+        repository.delete(requirement);
+    }
+
+    private Requirement getRequirementById(String requirementId) {
+        return repository.findById(requirementId)
+                .orElseThrow(() -> new RuntimeException("Requirement not found: " + requirementId));
     }
 
     private void appendLifecycleLog(Requirement requirement,

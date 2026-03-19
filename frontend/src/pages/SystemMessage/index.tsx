@@ -333,21 +333,21 @@ function SystemMessageManager() {
           onView: handleView,
           onDelete: handleDelete,
         }}
+        actionButtons={
+          <Button
+            type="primary"
+            status="success"
+            icon={<IconCheck />}
+            onClick={handleMarkAllAsRead}
+          >
+            全部标为已读
+          </Button>
+        }
         config={{
           showModeToggle: false,
           displayMode: "table",
           filterContent,
           tableColumns,
-          actionButtons: (
-            <Button
-              type="primary"
-              status="success"
-              icon={<IconCheck />}
-              onClick={handleMarkAllAsRead}
-            >
-              全部标为已读
-            </Button>
-          ),
         }}
         tableScrollHeight={tableScrollHeight}
       />

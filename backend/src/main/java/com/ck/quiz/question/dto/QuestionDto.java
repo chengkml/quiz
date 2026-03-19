@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 题目信息 DTO（Data Transfer Object）
@@ -78,4 +79,9 @@ public class QuestionDto {
     private String categoryId;
 
     private String categoryName;
+
+    /**
+     * 关联知识点名称列表
+     */
+    private List<String> knowledgePoints;
 }

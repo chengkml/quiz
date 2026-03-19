@@ -28,6 +28,7 @@ import {
   IconDelete,
   IconEdit,
   IconLoading,
+  IconSearch,
 } from "@arco-design/web-react/icon";
 import renderDate from "@/utils/timeUtil";
 import "./style/index.less";
@@ -143,6 +144,8 @@ function Requirement() {
   const [editDescr, setEditDescr] = useState("");
   const [analyzeDescr, setAnalyzeDescr] = useState("");
   const [reviewDescr, setReviewDescr] = useState("");
+  const [addStatus, setAddStatus] = useState<RequirementStatus>("PENDING_ANALYSIS");
+  const [editStatus, setEditStatus] = useState<RequirementStatus>("PENDING_ANALYSIS");
 
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
   const [lifecycleLogs, setLifecycleLogs] = useState<RequirementLifecycleLog[]>([]);
@@ -282,6 +285,7 @@ function Requirement() {
   const handleAdd = () => {
     setCurrentRecord(null);
     setAddDescr("");
+    setAddStatus("PENDING_ANALYSIS");
     fetchHistoryOptions();
     setAddModalVisible(true);
     setTimeout(() => {
@@ -299,6 +303,7 @@ function Requirement() {
   const handleEdit = (record: any) => {
     setCurrentRecord(record);
     setEditDescr(record?.descr || "");
+    setEditStatus((record?.status as RequirementStatus) || "PENDING_ANALYSIS");
     fetchHistoryOptions();
     setEditModalVisible(true);
     setTimeout(() => {
@@ -529,11 +534,6 @@ function Requirement() {
       width: 120,
     },
     {
-      title: "分支",
-      dataIndex: "branch",
-      width: 100,
-    },
-    {
       title: "状态",
       dataIndex: "status",
       width: 110,
@@ -590,19 +590,13 @@ function Requirement() {
             <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEdit(record)} />
           </Tooltip>
           <Tooltip content="分析">
-            <Button type="text" size="small" onClick={() => handleAnalyze(record)}>
-              分析
-            </Button>
+            <Button type="text" size="small" icon={<IconSearch />} onClick={() => handleAnalyze(record)} />
           </Tooltip>
           <Tooltip content="评审">
-            <Button type="text" size="small" onClick={() => handleReview(record)}>
-              评审
-            </Button>
+            <Button type="text" size="small" icon={<IconCheckCircle />} onClick={() => handleReview(record)} />
           </Tooltip>
           <Tooltip content="生命周期">
-            <Button type="text" size="small" onClick={() => handleViewLifecycle(record)}>
-              生命周期
-            </Button>
+            <Button type="text" size="small" icon={<IconClockCircle />} onClick={() => handleViewLifecycle(record)} />
           </Tooltip>
           <Popconfirm title="确认删除该需求吗？" onOk={() => handleDelete(record)}>
             <Tooltip content="删除">
@@ -654,7 +648,7 @@ function Requirement() {
           filterContent,
           tableColumns: columns,
           tableProps: {
-            scroll: { x: 1550, y: tableScrollHeight },
+            scroll: { x: 1450, y: tableScrollHeight },
           },
         }}
         tableScrollHeight={tableScrollHeight}
@@ -667,9 +661,11 @@ function Requirement() {
         onCancel={() => {
           setAddModalVisible(false);
           setAddDescr("");
+          setAddStatus("PENDING_ANALYSIS");
         }}
         mountOnEnter
         style={{ width: 900 }}
+        bodyStyle={{ maxHeight: "70vh", overflowY: "auto" }}
       >
         <Form ref={addFormRef} layout="vertical">
           <Form.Item label="标题" field="title" rules={[{ required: true }]}>
@@ -705,7 +701,10 @@ function Requirement() {
             </div>
           </Form.Item>
           <Form.Item label="状态" field="status" initialValue="PENDING_ANALYSIS">
-            <Select placeholder="请选择状态">
+            <Select
+              placeholder="请选择状态"
+              onChange={(value) => setAddStatus((value as RequirementStatus) || "PENDING_ANALYSIS")}
+            >
               {STATUS_OPTIONS.map((opt) => (
                 <Option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -713,9 +712,11 @@ function Requirement() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item label="开发进度(%)" field="progressPercent" initialValue={0}>
-            <InputNumber min={0} max={100} precision={0} placeholder="0-100" style={{ width: "100%" }} />
-          </Form.Item>
+          {addStatus === "IN_PROGRESS" && (
+            <Form.Item label="开发进度(%)" field="progressPercent" initialValue={0}>
+              <InputNumber min={0} max={100} precision={0} placeholder="0-100" style={{ width: "100%" }} />
+            </Form.Item>
+          )}
           <Form.Item label="优先级" field="priority" initialValue="MEDIUM">
             <Select placeholder="请选择优先级">
               <Option value="LOW">低</Option>
@@ -733,9 +734,11 @@ function Requirement() {
         onCancel={() => {
           setEditModalVisible(false);
           setEditDescr("");
+          setEditStatus("PENDING_ANALYSIS");
         }}
         mountOnEnter
         style={{ width: 900 }}
+        bodyStyle={{ maxHeight: "70vh", overflowY: "auto" }}
       >
         <Form ref={editFormRef} layout="vertical">
           <Form.Item label="标题" field="title" rules={[{ required: true }]}>
@@ -771,7 +774,10 @@ function Requirement() {
             </div>
           </Form.Item>
           <Form.Item label="状态" field="status">
-            <Select placeholder="请选择状态">
+            <Select
+              placeholder="请选择状态"
+              onChange={(value) => setEditStatus((value as RequirementStatus) || "PENDING_ANALYSIS")}
+            >
               {STATUS_OPTIONS.map((opt) => (
                 <Option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -779,9 +785,11 @@ function Requirement() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item label="开发进度(%)" field="progressPercent">
-            <InputNumber min={0} max={100} precision={0} placeholder="0-100" style={{ width: "100%" }} />
-          </Form.Item>
+          {editStatus === "IN_PROGRESS" && (
+            <Form.Item label="开发进度(%)" field="progressPercent">
+              <InputNumber min={0} max={100} precision={0} placeholder="0-100" style={{ width: "100%" }} />
+            </Form.Item>
+          )}
           <Form.Item label="优先级" field="priority">
             <Select placeholder="请选择优先级">
               <Option value="LOW">低</Option>
@@ -899,7 +907,7 @@ function Requirement() {
                       </div>
                     )}
                     {log.remark && <div className="requirement-lifecycle-remark">备注：{log.remark}</div>}
-                    {log.afterDescr && (
+                    {log.afterDescr && log.afterDescr !== log.beforeDescr && (
                       <div className="requirement-lifecycle-descr">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{log.afterDescr}</ReactMarkdown>
                       </div>

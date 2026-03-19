@@ -1,102 +1,137 @@
 ---
 name: quiz-requirement-analyze
-description: 通过 JWT 链路执行“先查询后分析再写回”需求流程（login -> jwt -> requirement search -> requirement analyze）。当用户要求批量分析 quiz 项目待分析/待修订需求、写回需求描述、推进到待评审时使用。
+description: 通过 JWT 链路执行“先查询后分析再写回”需求流程（login -> jwt -> requirement search/get/lifecycle -> requirement analyze）。当用户要求分析 quiz 项目待分析/待修订需求并回写到待评审时使用。脚本只做接口调用与数据编排；需求方案必须由大模型结合真实工程代码阅读后生成。
 ---
 
 # Quiz Requirement Analyze
 
-按“查询 -> 分析 -> 写回”执行需求分析，主字段只写 `descr`，不再使用 `comment/analysisRemark`。
+## 核心原则（强制）
 
-## 执行流程（必须）
+1. **脚本只负责接口调用**：登录、JWT、查询、详情、生命周期、analyze 回写。
+2. **需求方案由大模型生成**：不得在 Python 脚本里写模板化方案生成逻辑。
+3. **必须读代码再分析**：先根据需求定位并阅读相关工程代码，再输出分析内容。
+4. **代码检索默认使用 `grep/find/read`**：将其作为通用检索手段；不要依赖 `rg`（环境不保证存在），除非先确认已安装。
+5. `PENDING_REVISION` 必须纳入评审备注（`resultMsg` + 最新 `lifecycle.REVIEW.remark`）后再回写。
 
-1. 登录：`POST /api/user/login`
-2. 生成 JWT：`POST /api/jwt/generate?userId=...`
-3. 查询待处理需求：`POST /api/project/requirement/search`
-   - 默认查询 `projectName=quiz`
-   - 默认状态：`PENDING_ANALYSIS`、`PENDING_REVISION`
-4. 逐条处理（批量串行）：
-   - 读取需求详情：`GET /api/project/requirement/get/{id}`
-   - **若状态是 `PENDING_REVISION`，必须先读取评审备注来源**：
-     - `requirement.resultMsg`
-     - `GET /api/project/requirement/{id}/lifecycle` 中最新 `REVIEW` 事件的 `remark`
-5. 生成/修订 `descr`（见下方模板）
-6. 写回分析：`POST /api/project/requirement/{id}/analyze`
-   - Body: `{"descr":"...", "progressPercent": ...}`（进度可省略）
-   - 目标状态流转：`PENDING_REVIEW`
+---
 
-> 查询与 JWT 链路与 requirement-query 保持一致：统一使用登录态 + Bearer token 调用需求接口。
+## 执行流程（推荐）
 
-## 状态处理规则
+### A. 拉取需求数据（脚本）
 
-- `PENDING_ANALYSIS`：基于“标题 + 当前描述 + 代码结构理解”扩充描述。
-- `PENDING_REVISION`：基于“标题 + 当前描述 + 代码结构理解 + 评审备注（必读）”修订描述。
+```bash
+python3 skills/quiz-requirement-analyze/scripts/analyze_requirement.py \
+  --action query \
+  --project-name quiz \
+  --status PENDING_ANALYSIS,PENDING_REVISION \
+  --with-review-remark
+```
 
-## 分析输出模板（写入 descr）
+必要时读取单条详情/生命周期：
 
-至少包含以下段落：
+```bash
+python3 skills/quiz-requirement-analyze/scripts/analyze_requirement.py \
+  --action get \
+  --requirement-id <REQ_ID> \
+  --with-lifecycle
+```
 
-1. `改造目标`
-2. `定位链路`（页面/API/后端模块定位）
-3. `实施步骤`
+### B. 代码定位与阅读（大模型必须执行）
 
-## 脚本
+按需求主题在工程中检索并阅读真实代码（前端页面、API 调用、后端 controller/service/repository、权限判断、DTO 字段）。
+优先使用 `grep/find/read` 完成检索与阅读（兼容性更高），避免把 `rg` 作为前置依赖。
+
+最低要求：
+- 给出**具体文件路径**（必要时函数/代码块）
+- 说明**现在是怎么实现的**
+- 说明**要改哪里、怎么改**
+- 说明**影响范围与风险**
+
+> 禁止只给固定“定位链路模板”而不读实际代码。
+
+### C. 生成并回写分析（脚本仅回写）
+
+把大模型生成的分析文本作为 `descr` 回写：
+
+```bash
+python3 skills/quiz-requirement-analyze/scripts/analyze_requirement.py \
+  --action analyze \
+  --requirement-id <REQ_ID> \
+  --descr "<模型生成的分析文本>"
+```
+
+批量回写（建议）：准备 JSON 数组文件（每项含 `requirementId`,`descr`，可选 `progressPercent`）后执行：
+
+```bash
+python3 skills/quiz-requirement-analyze/scripts/analyze_requirement.py \
+  --action batch-analyze \
+  --batch-file /tmp/requirement-analyze-items.json
+```
+
+---
+
+## 分析内容规范（由大模型生成）
+
+### 简单 bug / 小需求
+
+`descr` 保持简洁，至少包含：
+1. 代码位置
+2. 怎么改（最小改动）
+3. 影响范围
+
+### 复杂功能
+
+可输出详细方案，至少包含：
+1. 目标与现状
+2. 代码定位与当前实现
+3. 方案与步骤
+4. 影响/风险/回滚
+5. 验收点
+
+---
+
+## 脚本参数（接口适配）
 
 脚本：`scripts/analyze_requirement.py`
 
-### 常用参数
+### 通用
+- `--action`：`query|get|lifecycle|analyze|batch-analyze`（必填）
+- `--base-url` / `--user-id` / `--user-pwd` / `--timeout`
 
-- `--auto-query`：启用“先查询后逐条处理”批量流程
-- `--status`：查询状态（可重复或逗号分隔），默认 `PENDING_ANALYSIS,PENDING_REVISION`
-- `--project-name`：项目名过滤，默认 `quiz`
-- `--list-only`：只查询与生成预览，不执行 analyze 写回
-- `--requirement-id`：单条模式需求 ID（不启用 `--auto-query` 时必填）
-- `--descr`：自定义描述（可选；不传时脚本自动生成模板描述）
-- `--progress-percent`：可选进度百分比（0-100）
-- `--dry-run`：仅校验并输出执行计划（包含“评审备注读取步骤”）
+### query
+- `--project-name`（默认 `quiz`）
+- `--status`（可重复或逗号分隔，默认 `PENDING_ANALYSIS,PENDING_REVISION`）
+- `--page-size` / `--max-items`
+- `--with-review-remark`（对 `PENDING_REVISION` 补充评审备注）
 
-### 输出字段（关键）
+### get / lifecycle
+- `--requirement-id`（必填）
+- `--with-lifecycle`（仅 get 时可用）
 
-- `mode`: `single` / `auto-query`
-- `queryTrace`: 查询轨迹（按状态和分页）
-- `items[]`: 每条需求处理结果
-  - `requirementId`, `status`, `title`
-  - `reviewRemarkRequired`: 是否必须读取评审备注
-  - `reviewRemarkSources`: 评审备注来源（如 `requirement.resultMsg`, `lifecycle.REVIEW.remark`）
-  - `reviewRemark`: 汇总后的评审意见文本
-  - `payloadPreview` / `payload`: 实际将写回的 `descr`（可选 `progressPercent`）
+### analyze
+- `--requirement-id`（必填）
+- `--descr`（必填，来自模型分析）
+- `--progress-percent`（可选）
 
-## 示例命令
+### batch-analyze
+- `--batch-file` 或 `--batch-json`（二选一，JSON 数组）
 
-### 1) 只查询待处理列表（不写回）
+---
 
-```bash
-python3 skills/quiz-requirement-analyze/scripts/analyze_requirement.py \
-  --auto-query \
-  --status PENDING_ANALYSIS \
-  --status PENDING_REVISION \
-  --list-only \
-  --max-items 20
-```
+## 输出字段（关键）
 
-### 2) 批量逐条分析并写回
+- `query`：`count`、`statusCount`、`processingOrderRule`、`queryTrace`、`items[]`
+- `get`：`requirement`（可选 `lifecycle`）
+- `lifecycle`：`logs[]`
+- `analyze`：`writebackSuccess`、`statusAfterWriteback`、`payload`
+- `batch-analyze`：`total/success/failed`、`items[].writebackSuccess`
 
-```bash
-python3 skills/quiz-requirement-analyze/scripts/analyze_requirement.py \
-  --auto-query \
-  --status PENDING_ANALYSIS,PENDING_REVISION \
-  --max-items 20
-```
-
-### 3) 单条安全校验（dry-run）
-
-```bash
-python3 skills/quiz-requirement-analyze/scripts/analyze_requirement.py \
-  --requirement-id <REQ_ID> \
-  --dry-run
-```
+---
 
 ## 约束
 
-- 需求分析写回时只使用 `descr`。
+- 回写分析只使用 `descr`（可选 `progressPercent`）。
 - 不使用 `comment` / `analysisRemark`。
-- `PENDING_REVISION` 必须读取并纳入评审备注后再分析写回。
+- 脚本内禁止内置“需求方案模板自动生成”。
+- 分析必须基于真实代码阅读结果，不得只复述需求描述。
+- 代码检索与定位默认使用 `grep/find/read`；若使用 `rg`，需先确认环境可用。

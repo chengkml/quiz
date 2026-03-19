@@ -40,6 +40,13 @@ ALLOWED_STATUSES = {
     "CLOSED",
 }
 
+PRIORITY_ORDER = {
+    "HIGH": 0,
+    "MEDIUM": 1,
+    "LOW": 2,
+    "UNKNOWN": 3,
+}
+
 
 def print_json(data: Dict[str, Any], exit_code: int = 0) -> None:
     sys.stdout.write(json.dumps(data, ensure_ascii=False) + "\n")
@@ -57,6 +64,29 @@ def normalize_text(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def normalize_priority(value: Any) -> str:
+    text = normalize_text(value).upper()
+    if not text:
+        return "UNKNOWN"
+    if text in {"HIGH", "MEDIUM", "LOW"}:
+        return text
+    return "UNKNOWN"
+
+
+def sort_requirements_for_processing(requirements: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    indexed = list(enumerate(requirements))
+
+    def sort_key(item: Tuple[int, Dict[str, Any]]) -> Tuple[int, str, str, int]:
+        idx, req = item
+        priority = normalize_priority(req.get("priority"))
+        create_date = normalize_text(req.get("createDate")) or "9999-99-99T99:99:99"
+        req_id = normalize_text(req.get("id")) or "~"
+        return (PRIORITY_ORDER.get(priority, PRIORITY_ORDER["UNKNOWN"]), create_date, req_id, idx)
+
+    indexed.sort(key=sort_key)
+    return [req for _, req in indexed]
 
 
 def normalize_base_url(raw: str) -> str:
@@ -394,6 +424,8 @@ def execute_for_requirement(
     start_progress: int,
     timeout: int,
     dry_run: bool,
+    process_order: Optional[int] = None,
+    force_complete_if_already_completed: bool = False,
 ) -> Dict[str, Any]:
     requirement = fetch_requirement_detail(
         opener,
@@ -408,23 +440,19 @@ def execute_for_requirement(
     plan = build_development_plan(requirement)
     transitions = build_transition_plan(action, milestones, start_progress)
 
+    if force_complete_if_already_completed and current_status == "COMPLETED":
+        transitions = [
+            {
+                "phase": "complete",
+                "targetStatus": "COMPLETED",
+                "progressPercent": 100,
+                "resultMsg": "开发完成：状态置为 COMPLETED",
+            }
+        ]
+
     trajectory: List[Dict[str, Any]] = []
 
     for step in transitions:
-        # 安全保护：已完成需求默认不再回写
-        if current_status == "COMPLETED":
-            trajectory.append(
-                {
-                    "phase": step["phase"],
-                    "skipped": True,
-                    "reason": "当前状态已是 COMPLETED，跳过后续状态更新",
-                    "target": {
-                        "status": step["targetStatus"],
-                        "progressPercent": step["progressPercent"],
-                    },
-                }
-            )
-            continue
 
         if dry_run:
             trajectory.append(
@@ -461,9 +489,12 @@ def execute_for_requirement(
         )
 
     return {
+        "processOrder": process_order,
         "requirementId": requirement_id,
         "title": title,
         "initialStatus": normalize_text(requirement.get("status")),
+        "priority": normalize_priority(requirement.get("priority")),
+        "createDate": normalize_text(requirement.get("createDate")),
         "finalStatusPlanned": current_status,
         "developmentPlan": plan,
         "transitionPlan": transitions,
@@ -513,6 +544,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout", type=int, default=15, help="HTTP 超时秒数，默认 15")
 
     parser.add_argument("--dry-run", action="store_true", help="执行查询与计划，但不执行状态更新")
+    parser.add_argument(
+        "--force-complete-if-already-completed",
+        action="store_true",
+        help="当需求已是 COMPLETED 时，complete/full 仍执行一次 COMPLETED(100) 写回",
+    )
     return parser
 
 
@@ -533,6 +569,7 @@ def validate_args(args: argparse.Namespace) -> Dict[str, Any]:
             "user_pwd": args.user_pwd or "",
             "timeout": args.timeout,
             "dry_run": bool(args.dry_run),
+            "force_complete_if_already_completed": bool(args.force_complete_if_already_completed),
         }
 
         if not cfg["auto_query"] and not cfg["requirement_id"]:
@@ -590,24 +627,28 @@ def main() -> None:
             max_items=cfg["max_items"],
             timeout=cfg["timeout"],
         )
+        ordered = sort_requirements_for_processing(queried)
 
-        for req in queried:
+        for process_order, req in enumerate(ordered, start=1):
             rid = normalize_text(req.get("id"))
             if not rid:
                 continue
-            items.append(
-                execute_for_requirement(
-                    opener,
-                    base_url=cfg["base_url"],
-                    token=token,
-                    requirement_id=rid,
-                    action=cfg["action"],
-                    milestones=cfg["milestones"],
-                    start_progress=cfg["start_progress"],
-                    timeout=cfg["timeout"],
-                    dry_run=cfg["dry_run"],
-                )
+            item = execute_for_requirement(
+                opener,
+                base_url=cfg["base_url"],
+                token=token,
+                requirement_id=rid,
+                action=cfg["action"],
+                milestones=cfg["milestones"],
+                start_progress=cfg["start_progress"],
+                timeout=cfg["timeout"],
+                dry_run=cfg["dry_run"],
+                process_order=process_order,
+                force_complete_if_already_completed=cfg["force_complete_if_already_completed"],
             )
+            if not item.get("priority"):
+                item["priority"] = normalize_priority(req.get("priority"))
+            items.append(item)
     else:
         items.append(
             execute_for_requirement(
@@ -620,6 +661,7 @@ def main() -> None:
                 start_progress=cfg["start_progress"],
                 timeout=cfg["timeout"],
                 dry_run=cfg["dry_run"],
+                force_complete_if_already_completed=cfg["force_complete_if_already_completed"],
             )
         )
 
@@ -631,6 +673,11 @@ def main() -> None:
             "dryRun": cfg["dry_run"],
             "projectName": cfg["project_name"],
             "statuses": cfg["statuses"],
+            "processingOrderRule": "priority(HIGH>MEDIUM>LOW) then createDate then id" if cfg["auto_query"] else None,
+            "priorityProcessingRule": {
+                "order": ["HIGH", "MEDIUM", "LOW", "UNKNOWN"],
+                "stableWithinPriority": "createDate asc, id asc, fallback query order",
+            } if cfg["auto_query"] else None,
             "queryTrace": query_trace,
             "count": len(items),
             "items": items,

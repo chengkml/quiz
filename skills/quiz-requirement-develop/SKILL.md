@@ -72,13 +72,24 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
 - `--dry-run`：只做登录/查询/详情/计划输出，不写状态
 - `--base-url --user-id --user-pwd --timeout`：连接与认证参数
 
+### 优先级处理规则（批量）
+
+- `--auto-query` 批量模式下，需求处理顺序固定为：`HIGH -> MEDIUM -> LOW`。
+- 同优先级内保持稳定顺序：按 `createDate`，再按 `id`。
+- 输出中会返回：
+  - `processingOrderRule`
+  - `items[].processOrder`
+  - `items[].priority`
+
 ### 输出结构（JSON）
 
 - `mode`: `single` / `auto-query`
 - `action`: 当前执行动作
+- `processingOrderRule`: 批量模式的优先级排序规则说明
 - `queryTrace`: 查询轨迹（状态、页码、返回量）
 - `items[]`: 每条需求的执行轨迹
   - `requirementId/title/initialStatus/finalStatusPlanned`
+  - `priority/processOrder/createDate`
   - `developmentPlan`：基于 `descr` 的开发计划摘要
   - `transitionPlan`：计划中的状态与进度步骤
   - `trajectory[]`：每次实际（或 dry-run 计划）状态更新记录

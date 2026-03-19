@@ -347,6 +347,15 @@ public class QuestionServiceImpl implements QuestionService {
     public QuestionDto convertToDto(Question question) {
         QuestionDto dto = new QuestionDto();
         BeanUtils.copyProperties(question, dto);
+        if (question.getKnowledgePoints() != null && !question.getKnowledgePoints().isEmpty()) {
+            dto.setKnowledgePoints(
+                    question.getKnowledgePoints().stream()
+                            .map(Knowledge::getName)
+                            .filter(StringUtils::hasText)
+                            .distinct()
+                            .collect(Collectors.toList())
+            );
+        }
         return dto;
     }
 
