@@ -9,6 +9,7 @@ import com.ck.quiz.cron.exec.AbstractJob;
 import com.ck.quiz.cron.exec.LocalScriptExecJob;
 import com.ck.quiz.cron.exec.NotificationJob;
 import com.ck.quiz.cron.exec.RemoteScriptExecJob;
+import com.ck.quiz.knowledgeset.job.KnowledgeProcessingJob;
 import com.ck.quiz.cron.repository.JobRepository;
 import com.ck.quiz.cron.repository.PendingJobRepository;
 import com.ck.quiz.seq.service.SeqService;
@@ -343,7 +344,7 @@ public class JobService {
     }
 
     public List<Map<String, Object>> getJobOptions() {
-        return Arrays.stream(new Class[] { NotificationJob.class, LocalScriptExecJob.class, RemoteScriptExecJob.class, com.ck.quiz.crawler.job.WebMagicCrawlerJob.class })
+        return Arrays.stream(new Class[] { NotificationJob.class, LocalScriptExecJob.class, RemoteScriptExecJob.class, com.ck.quiz.crawler.job.WebMagicCrawlerJob.class, KnowledgeProcessingJob.class })
                 .filter(clazz -> AbstractJob.class.isAssignableFrom(clazz)
                         || AbstractAsyncJob.class.isAssignableFrom(clazz)) // 必须继承 AbstractJob
                 .filter(clazz -> !Modifier.isAbstract(clazz.getModifiers())) // 排除抽象类
