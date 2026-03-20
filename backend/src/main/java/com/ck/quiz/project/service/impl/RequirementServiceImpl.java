@@ -263,11 +263,8 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
     @Transactional(readOnly = true)
     public RequirementHistoryOptionsDto getHistoryOptions(String userId) {
         RequirementHistoryOptionsDto dto = new RequirementHistoryOptionsDto();
-        if (!StringUtils.hasText(userId)) {
-            return dto;
-        }
 
-        List<Requirement> requirements = repository.findTop200ByCreateUserOrderByCreateDateDesc(userId);
+        List<Requirement> requirements = repository.findTop200ByOrderByCreateDateDesc();
         Set<String> projectNames = new LinkedHashSet<>();
         Set<String> gitUrls = new LinkedHashSet<>();
         Set<String> branches = new LinkedHashSet<>();

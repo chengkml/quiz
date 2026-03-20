@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface RequirementRepository extends BaseRepository<Requirement> {
 
-	List<Requirement> findTop200ByCreateUserOrderByCreateDateDesc(String createUser);
+	List<Requirement> findTop200ByOrderByCreateDateDesc();
 }

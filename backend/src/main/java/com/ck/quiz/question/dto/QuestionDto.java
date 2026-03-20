@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.ck.quiz.knowledge.dto.KnowledgeDto;
+
 /**
  * 题目信息 DTO（Data Transfer Object）
  * 用于在服务层与前端或其他系统交互时传输题目详细信息
@@ -84,4 +86,9 @@ public class QuestionDto {
      * 关联知识点名称列表
      */
     private List<String> knowledgePoints;
+
+    /**
+     * 关联知识点详情（名称 + 内容）
+     */
+    private List<KnowledgeDto> knowledges;
 }

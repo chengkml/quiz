@@ -49,6 +49,7 @@ const getMessageTypeMeta = (type: string) =>
 
 function SystemMessageManager() {
   const filterFormRef = useRef<any>(null);
+  const pageRef = useRef<HTMLDivElement | null>(null);
 
   const [items, setItems] = useState<SystemMessageItem[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -121,16 +122,40 @@ function SystemMessageManager() {
     fetchMessages({ page: 0, size: pagination.pageSize });
   }, []);
 
-  useEffect(() => {
-    const onResize = () => {
-      const height = window.innerHeight;
-      const header = 260;
-      setTableScrollHeight(Math.max(320, height - header));
-    };
-    onResize();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+  const calculateTableScrollHeight = useCallback(() => {
+    const container = pageRef.current;
+    if (!container) {
+      return;
+    }
+    const header = container.querySelector(".data-manager-header") as HTMLElement | null;
+    const footer = container.querySelector(".data-manager-footer") as HTMLElement | null;
+    const occupiedHeight = (header?.offsetHeight || 0) + (footer?.offsetHeight || 0) + 28;
+    const nextHeight = Math.max(260, container.clientHeight - occupiedHeight);
+    setTableScrollHeight((prev) => (prev === nextHeight ? prev : nextHeight));
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => calculateTableScrollHeight(), 0);
+    const onResize = () => calculateTableScrollHeight();
+    window.addEventListener("resize", onResize);
+
+    let observer: ResizeObserver | null = null;
+    if (pageRef.current && "ResizeObserver" in window) {
+      observer = new ResizeObserver(() => calculateTableScrollHeight());
+      observer.observe(pageRef.current);
+    }
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", onResize);
+      observer?.disconnect();
+    };
+  }, [calculateTableScrollHeight]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => calculateTableScrollHeight(), 0);
+    return () => window.clearTimeout(timer);
+  }, [items.length, pagination.current, pagination.pageSize, calculateTableScrollHeight]);
 
   const searchFormFields: FormFieldConfig[] = [
     {
@@ -319,7 +344,7 @@ function SystemMessageManager() {
   };
 
   return (
-    <div className="system-message-manager">
+    <div className="system-message-manager" ref={pageRef}>
       <DataManager
         data={items}
         loading={searchLoading}

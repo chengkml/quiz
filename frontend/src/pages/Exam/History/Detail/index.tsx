@@ -1,8 +1,10 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
-import {Button, Checkbox, Form, Input, Layout, Message, Radio, Space, Spin, Tag, Tooltip} from '@arco-design/web-react';
+import {Button, Checkbox, Collapse, Form, Input, Layout, Message, Radio, Space, Spin, Tag, Tooltip} from '@arco-design/web-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {getExamHistoryDetail} from '../api';
-import {ExamResultDto} from '../types';
+import {ExamResultDto} from '../../types';
 
 const {Content} = Layout;
 const {TextArea} = Input;
@@ -313,7 +315,7 @@ const ExamHistoryDetailPage: React.FC = () => {
                                             )}
 
                                             {/* 题目解析和正确答案 */}
-                                            {((q?.explanation || '').trim() || correctAnswers.length > 0 || (q as any)?.knowledgePoints?.length > 0) && (
+                                            {((q?.explanation || '').trim() || correctAnswers.length > 0 || (q as any)?.knowledgePoints?.length > 0 || (q as any)?.knowledges?.length > 0) && (
                                                 <div style={{
                                                     marginTop: 16,
                                                     padding: 12,
@@ -342,15 +344,63 @@ const ExamHistoryDetailPage: React.FC = () => {
                                                         </div>
                                                     )}
 
-                                                    {/* 关联知识点 */}
-                                                    {Array.isArray((q as any)?.knowledgePoints) && (q as any).knowledgePoints.length > 0 && (
+                                                    {/* 关联知识点（默认收起） */}
+                                                    {(Array.isArray((q as any)?.knowledges) && (q as any).knowledges.length > 0) && (
                                                         <div style={{ marginTop: 8 }}>
                                                             <div style={{fontWeight: 600, color: '#389e0d', marginBottom: 6}}>关联知识点：</div>
-                                                            <Space wrap>
-                                                                {(q as any).knowledgePoints.map((kp: string) => (
-                                                                    <Tag key={kp} color='arcoblue' bordered>{kp}</Tag>
+                                                            <Collapse bordered={false} defaultActiveKey={[]}>
+                                                                {(q as any).knowledges.map((kp: any, kpIdx: number) => {
+                                                                    const title = kp?.name || `知识点${kpIdx + 1}`;
+                                                                    const rawContent = (kp?.content || '').trim();
+                                                                    const isMarkdownLike = /[#`*>\-\n]|\[(.*?)\]\((.*?)\)/.test(rawContent);
+                                                                    const displayContent = rawContent || title;
+                                                                    return (
+                                                                        <Collapse.Item
+                                                                            key={`${q.id}-${kp?.id || kpIdx}`}
+                                                                            name={`${q.id}-${kp?.id || kpIdx}`}
+                                                                            header={
+                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                                                    <Tag color='arcoblue' bordered>{title}</Tag>
+                                                                                </div>
+                                                                            }
+                                                                        >
+                                                                            <div style={{
+                                                                                padding: '8px 12px',
+                                                                                background: '#fff',
+                                                                                borderRadius: 4,
+                                                                                border: '1px solid var(--color-border-2)',
+                                                                                wordBreak: 'break-word',
+                                                                                overflowWrap: 'anywhere'
+                                                                            }}>
+                                                                                {isMarkdownLike ? (
+                                                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
+                                                                                ) : (
+                                                                                    <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{displayContent}</div>
+                                                                                )}
+                                                                            </div>
+                                                                        </Collapse.Item>
+                                                                    );
+                                                                })}
+                                                            </Collapse>
+                                                        </div>
+                                                    )}
+
+                                                    {(Array.isArray((q as any)?.knowledgePoints) && (q as any).knowledgePoints.length > 0 && (!Array.isArray((q as any)?.knowledges) || (q as any).knowledges.length === 0)) && (
+                                                        <div style={{ marginTop: 8 }}>
+                                                            <div style={{fontWeight: 600, color: '#389e0d', marginBottom: 6}}>关联知识点：</div>
+                                                            <Collapse bordered={false} defaultActiveKey={[]}>
+                                                                {(q as any).knowledgePoints.map((kp: string, kpIdx: number) => (
+                                                                    <Collapse.Item
+                                                                        key={`${q.id}-name-${kpIdx}`}
+                                                                        name={`${q.id}-name-${kpIdx}`}
+                                                                        header={<Tag color='arcoblue' bordered>{kp}</Tag>}
+                                                                    >
+                                                                        <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.7 }}>
+                                                                            {kp}
+                                                                        </div>
+                                                                    </Collapse.Item>
                                                                 ))}
-                                                            </Space>
+                                                            </Collapse>
                                                         </div>
                                                     )}
                                                 </div>

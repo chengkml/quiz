@@ -355,6 +355,18 @@ public class QuestionServiceImpl implements QuestionService {
                             .distinct()
                             .collect(Collectors.toList())
             );
+            dto.setKnowledges(
+                    question.getKnowledgePoints().stream()
+                            .filter(Objects::nonNull)
+                            .map(knowledge -> {
+                                com.ck.quiz.knowledge.dto.KnowledgeDto knowledgeDto = new com.ck.quiz.knowledge.dto.KnowledgeDto();
+                                knowledgeDto.setId(knowledge.getId());
+                                knowledgeDto.setName(knowledge.getName());
+                                knowledgeDto.setContent(knowledge.getContent());
+                                return knowledgeDto;
+                            })
+                            .collect(Collectors.toList())
+            );
         }
         return dto;
     }

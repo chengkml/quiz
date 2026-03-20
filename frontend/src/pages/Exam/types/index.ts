@@ -183,12 +183,30 @@ export interface ExamSubmitDto {
 }
 
 // 考试结果-题目级别DTO
+export interface ExamQuestionKnowledgeDto {
+  id?: string;
+  name: string;
+  content?: string;
+}
+
+export interface ExamQuestionDetailDto {
+  id: string;
+  type: 'SINGLE' | 'MULTIPLE' | 'BLANK' | 'SHORT_ANSWER' | string;
+  content: string;
+  options?: string;
+  answer?: string;
+  explanation?: string;
+  knowledgePoints?: string[];
+  knowledges?: ExamQuestionKnowledgeDto[];
+}
+
 export interface ExamResultAnswerDto {
   examQuestionId: string;
   correct: boolean;
   score: number;
   userAnswers: string[];
   standardAnswers?: string[];
+  question: ExamQuestionDetailDto;
 }
 
 // 考试结果DTO
@@ -196,6 +214,7 @@ export interface ExamResultDto {
   resultId?: string;
   examId?: string;
   userId?: string;
+  examName?: string;
   totalScore: number;
   correctCount: number;
   submitTime: string;
