@@ -63,7 +63,10 @@ public abstract class AbstractAsyncJob {
         }
 
         Map<String, Object> job = list.get(0);
-        LocalDateTime startTime = (LocalDateTime) job.get("startTime");
+        Object startTimeObj = job.get("startTime");
+        LocalDateTime startTime = startTimeObj instanceof java.sql.Timestamp
+                ? ((java.sql.Timestamp) startTimeObj).toLocalDateTime()
+                : (LocalDateTime) startTimeObj;
 
         String taskParamsStr = MapUtils.getString(job, "taskParams");
         Map<String, Object> taskParams = new HashMap<>();
