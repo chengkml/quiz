@@ -2831,18 +2831,18 @@ ckeditor4-integrations-common@^1.0.0:
   resolved "https://registry.npmmirror.com/ckeditor4-integrations-common/-/ckeditor4-integrations-common-1.0.0.tgz"
   integrity sha512-OAoQT/gYrHkg0qgzf6MS/rndYhq3SScLVQ3rtXQeuCE8ju7nFHg3qZ7WGA2XpFxcZzsMP6hhugXqdel5vbcC3g==
 
-ckeditor4-react@^5.2.1:
-  version "5.2.1"
-  resolved "https://registry.npmmirror.com/ckeditor4-react/-/ckeditor4-react-5.2.1.tgz"
-  integrity sha512-wDyyEw1KsDPDCpFl1PwzTiI33Cfc7j5dPlaXFV4ZyOQRvRstE7xrR7sgLOKSV827se5esNJl7/Ff8h/1hvbTFw==
+ckeditor4-react@4.3.0:
+  version "4.3.0"
+  resolved "https://registry.npmjs.org/ckeditor4-react/-/ckeditor4-react-4.3.0.tgz"
+  integrity sha512-pLeh39AHj8jfhQ2SsVy29tklAnwaaSdw5UYZ4HECNTHb1M4dGgTKa6Uy2fqceMnmX5c2G8Ewz9X9tMCLpgZ70w==
   dependencies:
     ckeditor4-integrations-common "^1.0.0"
     prop-types "^15.8.1"
 
-ckeditor4@^4.25.1:
-  version "4.25.1"
-  resolved "https://registry.npmjs.org/ckeditor4/-/ckeditor4-4.25.1.tgz"
-  integrity sha512-azUTe02NzSDfMX1UGWDdkhEdTdB/Ivn9uPyIRpygkCc4jmP/l8KOiK1nCfhSAb3KofD7gl+K+oee1WG0MZnwuQ==
+ckeditor4@^4.22.1, ckeditor4@4.22.1:
+  version "4.22.1"
+  resolved "https://registry.npmjs.org/ckeditor4/-/ckeditor4-4.22.1.tgz"
+  integrity sha512-Yj4vTHX5YxHwc48gNqUqTm+KLkRr9tuyb4O2VIABu4oKHWRNVIdLdy6vUNe/XNx+RiTavMejfA1MVOU/MxLjqQ==
 
 classcat@^5.0.3, classcat@^5.0.4:
   version "5.0.5"
