@@ -37,7 +37,7 @@ public class KnowledgeSource extends Model {
     @Comment("状态：PENDING, PARSING, SUCCESS, FAILED")
     private String status;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 2048)
     @Comment("文件路径/连接串/Markdown正文")
     private String content;
 

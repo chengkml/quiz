@@ -28,7 +28,7 @@ public class KnowledgeChunk extends Model {
     @Comment("切片内容")
     private String content;
 
-    @Column(length = 1024)
+    @Column(length = 2048)
     @Comment("元数据(JSON)")
     private String meta;
 

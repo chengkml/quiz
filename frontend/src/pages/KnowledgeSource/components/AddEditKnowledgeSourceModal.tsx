@@ -139,11 +139,20 @@ function AddEditKnowledgeSourceModal({ visible, record, onOk, onCancel, knowledg
                         field="content"
                         rules={[{ required: true, message: '请输入 Markdown 内容' }]}
                     >
-                        <Input.TextArea placeholder="请输入 Markdown 正文" autoSize={{ minRows: 8, maxRows: 16 }} />
+                        <Input.TextArea
+                            placeholder="请输入 Markdown 正文"
+                            maxLength={2048}
+                            showWordLimit
+                            autoSize={{ minRows: 8, maxRows: 16 }}
+                        />
                     </FormItem>
                 ) : (
                     <FormItem label="内容/路径" field="content">
-                        <Input.TextArea placeholder="请输入文件路径或连接串" />
+                        <Input.TextArea
+                            placeholder="请输入文件路径或连接串"
+                            maxLength={2048}
+                            showWordLimit
+                        />
                     </FormItem>
                 )}
 
