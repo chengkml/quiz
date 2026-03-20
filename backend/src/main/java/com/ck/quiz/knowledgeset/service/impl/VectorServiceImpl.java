@@ -10,6 +10,7 @@ import com.ck.quiz.knowledgeset.repository.KnowledgeVectorRepository;
 import com.ck.quiz.knowledgeset.repository.VectorSearchProjection;
 import com.ck.quiz.knowledgeset.service.VectorService;
 import com.ck.quiz.llmmodel.service.LLMModelService;
+import com.ck.quiz.utils.IdHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -41,6 +42,12 @@ public class VectorServiceImpl implements VectorService {
         }
 
         EmbeddingModel embeddingModel = llmModelService.getEmbeddingModel(modelName);
+
+        for (KnowledgeChunk chunk : chunks) {
+            if (!StringUtils.hasText(chunk.getId())) {
+                chunk.setId(IdHelper.genUuid());
+            }
+        }
 
         List<KnowledgeChunk> savedChunks = chunkRepository.saveAll(chunks);
         log.info("Saved {} chunks", savedChunks.size());

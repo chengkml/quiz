@@ -35,6 +35,16 @@
   - `backend/src/main/java/com/ck/quiz/project/dto/RequirementQueryDto.java`
   - `backend/src/main/java/com/ck/quiz/project/entity/Requirement.java`
 
+## 需求开发技能（quiz-requirement-develop）
+
+- 技能入口
+  - `skills/quiz-requirement-develop/SKILL.md`
+- 脚本实现
+  - `skills/quiz-requirement-develop/scripts/develop_requirement.py`
+- 依赖接口
+  - `backend/src/main/java/com/ck/quiz/project/controller/RequirementController.java`
+  - `backend/src/main/java/com/ck/quiz/project/service/impl/RequirementServiceImpl.java`
+
 ## 知识集与知识来源（KnowledgeSet / KnowledgeSource）
 
 - 前端入口（知识来源配置）

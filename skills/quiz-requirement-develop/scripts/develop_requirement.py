@@ -9,7 +9,6 @@ quiz 需求开发执行脚本（最小闭环版）
 4) 状态流转：开始前置为 IN_PROGRESS -> 关键阶段更新 progressPercent -> 完成置为 COMPLETED
 
 说明：
-- --dry-run 会执行登录/查询/详情读取，但不会调用状态更新接口。
 - 结构化 JSON 输出每条需求的执行轨迹 trajectory。
 """
 
@@ -133,7 +132,6 @@ def parse_progress_milestones(raw: Optional[str]) -> List[int]:
         except ValueError:
             raise ValueError(f"progress-milestones 非整数: {part}")
 
-        # 中间里程碑仅允许 1~99，100 由 completed 阶段写入
         if num < 1 or num > 99:
             raise ValueError("progress-milestones 取值范围必须是 1-99")
 
@@ -190,7 +188,6 @@ def http_json(
 
 
 def extract_data_body(body: Any) -> Any:
-    # 兼容可能存在的统一包装：{data: ...}
     if isinstance(body, dict) and body.get("data") is not None:
         return body.get("data")
     return body
@@ -423,7 +420,6 @@ def execute_for_requirement(
     milestones: Sequence[int],
     start_progress: int,
     timeout: int,
-    dry_run: bool,
     process_order: Optional[int] = None,
     force_complete_if_already_completed: bool = False,
 ) -> Dict[str, Any]:
@@ -453,22 +449,6 @@ def execute_for_requirement(
     trajectory: List[Dict[str, Any]] = []
 
     for step in transitions:
-
-        if dry_run:
-            trajectory.append(
-                {
-                    "phase": step["phase"],
-                    "dryRun": True,
-                    "planned": {
-                        "status": step["targetStatus"],
-                        "progressPercent": step["progressPercent"],
-                        "resultMsg": step["resultMsg"],
-                    },
-                }
-            )
-            current_status = step["targetStatus"]
-            continue
-
         exec_result = update_status(
             opener,
             base_url=base_url,
@@ -483,7 +463,6 @@ def execute_for_requirement(
         trajectory.append(
             {
                 "phase": step["phase"],
-                "dryRun": False,
                 **exec_result,
             }
         )
@@ -543,7 +522,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--user-pwd", default=DEFAULT_USER_PWD, help="登录密码，默认 12345678")
     parser.add_argument("--timeout", type=int, default=15, help="HTTP 超时秒数，默认 15")
 
-    parser.add_argument("--dry-run", action="store_true", help="执行查询与计划，但不执行状态更新")
     parser.add_argument(
         "--force-complete-if-already-completed",
         action="store_true",
@@ -568,7 +546,6 @@ def validate_args(args: argparse.Namespace) -> Dict[str, Any]:
             "user_id": normalize_text(args.user_id),
             "user_pwd": args.user_pwd or "",
             "timeout": args.timeout,
-            "dry_run": bool(args.dry_run),
             "force_complete_if_already_completed": bool(args.force_complete_if_already_completed),
         }
 
@@ -642,7 +619,6 @@ def main() -> None:
                 milestones=cfg["milestones"],
                 start_progress=cfg["start_progress"],
                 timeout=cfg["timeout"],
-                dry_run=cfg["dry_run"],
                 process_order=process_order,
                 force_complete_if_already_completed=cfg["force_complete_if_already_completed"],
             )
@@ -660,7 +636,6 @@ def main() -> None:
                 milestones=cfg["milestones"],
                 start_progress=cfg["start_progress"],
                 timeout=cfg["timeout"],
-                dry_run=cfg["dry_run"],
                 force_complete_if_already_completed=cfg["force_complete_if_already_completed"],
             )
         )
@@ -670,7 +645,6 @@ def main() -> None:
             "ok": True,
             "mode": "auto-query" if cfg["auto_query"] else "single",
             "action": cfg["action"],
-            "dryRun": cfg["dry_run"],
             "projectName": cfg["project_name"],
             "statuses": cfg["statuses"],
             "processingOrderRule": "priority(HIGH>MEDIUM>LOW) then createDate then id" if cfg["auto_query"] else None,

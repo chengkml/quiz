@@ -69,7 +69,6 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
 - `--page-size`：分页大小，默认 `50`
 - `--progress-milestones`：关键进度里程碑，默认 `30,60,90`
 - `--start-progress`：start 阶段进度值，默认 `0`
-- `--dry-run`：只做登录/查询/详情/计划输出，不写状态
 - `--base-url --user-id --user-pwd --timeout`：连接与认证参数
 
 ### 优先级处理规则（批量）
@@ -92,19 +91,18 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
   - `priority/processOrder/createDate`
   - `developmentPlan`：基于 `descr` 的开发计划摘要
   - `transitionPlan`：计划中的状态与进度步骤
-  - `trajectory[]`：每次实际（或 dry-run 计划）状态更新记录
+  - `trajectory[]`：每次实际状态更新记录
 
 ## 示例命令
 
-### 1) 查询待处理需求（不写回）
+### 1) 查询待处理需求（仅查询）
 
 ```bash
 python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
   --auto-query \
   --action query \
   --status OPEN,IN_PROGRESS \
-  --max-items 20 \
-  --dry-run
+  --max-items 20
 ```
 
 ### 2) 开始开发并持续更新进度（批量）
