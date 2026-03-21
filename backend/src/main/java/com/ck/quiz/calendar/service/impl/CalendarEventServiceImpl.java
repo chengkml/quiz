@@ -29,6 +29,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
@@ -88,6 +89,7 @@ public class CalendarEventServiceImpl
             todoDto.setIsSync(true); // 标记为同步
             todoDto.setStartTime(createDto.getStartTime());
             todoDto.setDueDate(createDto.getEndTime());
+            todoDto.setExpireTime(createDto.getExpireTime());
             todoDto.setStatus(Todo.Status.SCHEDULED);
             todoDto.setPriority(Todo.Priority.MEDIUM);
             todoDto.setCalendarEventId(dto.getId()); // 设置关联的日程ID
@@ -103,6 +105,20 @@ public class CalendarEventServiceImpl
             }
         } catch (Exception e) {
             log.error("Failed to sync schedule to todo: {}", e.getMessage());
+        }
+
+        return dto;
+    }
+
+    @Override
+    public CalendarEventDto update(String userId, CalendarEventUpdateDto updateDto) {
+        CalendarEventDto dto = super.update(userId, updateDto);
+
+        if (StringUtils.hasText(dto.getTodoId())) {
+            todoRepository.findById(dto.getTodoId()).ifPresent(todo -> {
+                todo.setExpireTime(updateDto.getExpireTime());
+                todoRepository.save(todo);
+            });
         }
 
         return dto;
@@ -181,10 +197,14 @@ public class CalendarEventServiceImpl
             event.setDescr(rs.getString("descr"));
             event.setStatus(
                     rs.getString("status") != null ? CalendarEvent.Status.valueOf(rs.getString("status")) : null);
+            event.setPriority(
+                    rs.getString("priority") != null ? CalendarEvent.Priority.valueOf(rs.getString("priority")) : null);
             event.setStartTime(
                     rs.getTimestamp("start_time") != null ? rs.getTimestamp("start_time").toLocalDateTime() : null);
             event.setEndTime(
                     rs.getTimestamp("end_time") != null ? rs.getTimestamp("end_time").toLocalDateTime() : null);
+            event.setExpireTime(
+                    rs.getTimestamp("expire_time") != null ? rs.getTimestamp("expire_time").toLocalDateTime() : null);
             event.setAllDay(rs.getObject("all_day") != null ? rs.getBoolean("all_day") : null);
             event.setCompletedAt(
                     rs.getTimestamp("completed_at") != null ? rs.getTimestamp("completed_at").toLocalDateTime() : null);

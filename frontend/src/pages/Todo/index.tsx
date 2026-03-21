@@ -37,6 +37,14 @@ import dayjs from "dayjs";
 const { TextArea } = Input;
 const { Option } = Select;
 
+const statusTagMap: Record<string, { color: string; text: string }> = {
+  SCHEDULED: { color: "gray", text: "已计划" },
+  IN_PROGRESS: { color: "blue", text: "处理中" },
+  COMPLETED: { color: "green", text: "已完成" },
+  CANCELLED: { color: "red", text: "已取消" },
+  EXPIRED: { color: "orange", text: "已过期" },
+};
+
 function TodoManager() {
   const navigate = useNavigate();
 
@@ -80,7 +88,11 @@ function TodoManager() {
     { label: "处理中", value: "IN_PROGRESS" },
     { label: "已完成", value: "COMPLETED" },
     { label: "已取消", value: "CANCELLED" },
+    { label: "已过期", value: "EXPIRED" },
   ];
+  const editStatusOptions = statusOptions.map((option) =>
+    option.value === "EXPIRED" ? { ...option, disabled: true } : option
+  );
   const priorityOptions = [
     { label: "低", value: "LOW" },
     { label: "中", value: "MEDIUM" },
@@ -199,6 +211,9 @@ function TodoManager() {
           dueDate: values.dueDate
             ? dayjs(values.dueDate).format("YYYY-MM-DDTHH:mm:ss")
             : null,
+          expireTime: values.expireTime
+            ? dayjs(values.expireTime).format("YYYY-MM-DDTHH:mm:ss")
+            : null,
         };
         await createTodo(payload);
         Message.success("待办创建成功");
@@ -225,6 +240,7 @@ function TodoManager() {
         priority: record.priority,
         startTime: record.startTime ? dayjs(record.startTime) : null,
         dueDate: record.dueDate ? dayjs(record.dueDate) : null,
+        expireTime: record.expireTime ? dayjs(record.expireTime) : null,
       });
     }, 50);
   };
@@ -244,6 +260,9 @@ function TodoManager() {
             : null,
           dueDate: values.dueDate
             ? dayjs(values.dueDate).format("YYYY-MM-DDTHH:mm:ss")
+            : null,
+          expireTime: values.expireTime
+            ? dayjs(values.expireTime).format("YYYY-MM-DDTHH:mm:ss")
             : null,
         };
         await updateTodo(payload);
@@ -316,7 +335,7 @@ function TodoManager() {
       render: (text: string, record: any) => (
         <Link 
           onClick={() => {
-            if (record.status === 'COMPLETED') {
+            if (record.status === "COMPLETED" || record.status === "EXPIRED") {
               handleDetail(record);
             } else {
               handleEdit(record);
@@ -334,12 +353,7 @@ function TodoManager() {
       align: "center",
       width: 120,
       render: (status: string) => {
-        const map: Record<string, any> = {
-          SCHEDULED: { color: "gray", text: "已计划" },
-          IN_PROGRESS: { color: "blue", text: "处理中" },
-          COMPLETED: { color: "green", text: "已完成" },
-        };
-        const it = map[status] || { color: "arcoblue", text: status };
+        const it = statusTagMap[status] || { color: "arcoblue", text: status };
         return (
           <Tag color={it.color} bordered>
             {it.text}
@@ -392,12 +406,12 @@ function TodoManager() {
             />
           </Tooltip>
 
-          {record.status === "COMPLETED" ? (
-            <Tooltip content="待办已完成">
+          {record.status === "COMPLETED" || record.status === "EXPIRED" ? (
+            <Tooltip content={record.status === "EXPIRED" ? "待办已过期" : "待办已完成"}>
               <Button
                 type="text"
                 size="small"
-                status="success"
+                status={record.status === "EXPIRED" ? "warning" : "success"}
                 icon={<IconCheck />}
                 disabled
               />
@@ -526,8 +540,8 @@ function TodoManager() {
             </Form.Item>
             <Form.Item label="状态" field="status">
               <Select placeholder="请选择状态" allowClear>
-                {statusOptions.map((opt) => (
-                  <Option key={opt.value} value={opt.value}>
+                {editStatusOptions.map((opt) => (
+                  <Option key={opt.value} value={opt.value} disabled={opt.disabled}>
                     {opt.label}
                   </Option>
                 ))}
@@ -546,6 +560,9 @@ function TodoManager() {
               <DatePicker showTime style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item label="截止时间" field="dueDate">
+              <DatePicker showTime style={{ width: "100%" }} />
+            </Form.Item>
+            <Form.Item label="过期时间" field="expireTime">
               <DatePicker showTime style={{ width: "100%" }} />
             </Form.Item>
           </Form>
@@ -582,8 +599,8 @@ function TodoManager() {
             </Form.Item>
             <Form.Item label="状态" field="status">
               <Select placeholder="请选择状态" allowClear>
-                {statusOptions.map((opt) => (
-                  <Option key={opt.value} value={opt.value}>
+                {editStatusOptions.map((opt) => (
+                  <Option key={opt.value} value={opt.value} disabled={opt.disabled}>
                     {opt.label}
                   </Option>
                 ))}
@@ -602,6 +619,9 @@ function TodoManager() {
               <DatePicker showTime style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item label="截止时间" field="dueDate">
+              <DatePicker showTime style={{ width: "100%" }} />
+            </Form.Item>
+            <Form.Item label="过期时间" field="expireTime">
               <DatePicker showTime style={{ width: "100%" }} />
             </Form.Item>
           </Form>
@@ -635,13 +655,7 @@ function TodoManager() {
                   label: "状态",
                   value: (() => {
                     const status = currentRecord.status;
-                    const map: Record<string, any> = {
-                      SCHEDULED: { color: "gray", text: "已计划" },
-                      IN_PROGRESS: { color: "blue", text: "处理中" },
-                      COMPLETED: { color: "green", text: "已完成" },
-                      CANCELLED: { color: "red", text: "已取消" },
-                    };
-                    const it = map[status] || {
+                    const it = statusTagMap[status] || {
                       color: "arcoblue",
                       text: status,
                     };
@@ -674,6 +688,12 @@ function TodoManager() {
                   label: "截止时间",
                   value: currentRecord.dueDate
                     ? renderDate(currentRecord.dueDate)
+                    : "-",
+                },
+                {
+                  label: "过期时间",
+                  value: currentRecord.expireTime
+                    ? renderDate(currentRecord.expireTime)
                     : "-",
                 },
               ]}

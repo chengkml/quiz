@@ -21,6 +21,7 @@ interface ScheduleItem {
     descr: string;
     startTime: string;
     endTime: string;
+    expireTime?: string;
     allDay?: boolean;
     color?: string;
     status: string;
@@ -45,6 +46,7 @@ const statusColorMap: Record<string, string> = {
     IN_PROGRESS: '#165dff',
     COMPLETED: '#52c41a',
     CANCELLED: '#f5222d',
+    EXPIRED: '#fa8c16',
 };
 
 const statusLabelMap: Record<string, string> = {
@@ -52,13 +54,15 @@ const statusLabelMap: Record<string, string> = {
     IN_PROGRESS: '处理中',
     COMPLETED: '完成',
     CANCELLED: '取消',
+    EXPIRED: '已过期',
 };
 
-const statusBadgeColorMap: Record<string, 'blue' | 'green' | 'red' | 'arcoblue'> = {
+const statusBadgeColorMap: Record<string, 'blue' | 'green' | 'red' | 'arcoblue' | 'orange'> = {
     SCHEDULED: 'blue',
     IN_PROGRESS: 'arcoblue',
     COMPLETED: 'green',
     CANCELLED: 'red',
+    EXPIRED: 'orange',
 };
 
 const toScheduleItem = (event: any): ScheduleItem => ({
@@ -67,6 +71,7 @@ const toScheduleItem = (event: any): ScheduleItem => ({
     descr: event.descr,
     startTime: event.startTime,
     endTime: event.endTime,
+    expireTime: event.expireTime,
     allDay: event.allDay,
     status: event.status,
     priority: event.priority || 'MEDIUM',
@@ -261,6 +266,7 @@ function ScheduleManager() {
                     descr: schedule.descr,
                     startTime: dayjs(schedule.startTime),
                     endTime: dayjs(schedule.endTime),
+                    expireTime: schedule.expireTime ? dayjs(schedule.expireTime) : null,
                     status: schedule.status,
                     priority: schedule.priority || 'MEDIUM',
                     allDay: schedule.allDay ?? false,
@@ -422,6 +428,9 @@ function ScheduleManager() {
         if (eventData.endTime) {
             formData.endTime = dayjs(eventData.endTime);
         }
+        if (eventData.expireTime) {
+            formData.expireTime = dayjs(eventData.expireTime);
+        }
         if (eventData.status) {
             formData.status = eventData.status;
         }
@@ -492,6 +501,9 @@ function ScheduleManager() {
                     priority: values.priority || 'MEDIUM',
                     startTime: dayjs(values.startTime).format('YYYY-MM-DDTHH:mm:ss'),
                     endTime: dayjs(values.endTime).format('YYYY-MM-DDTHH:mm:ss'),
+                    expireTime: values.expireTime
+                        ? dayjs(values.expireTime).format('YYYY-MM-DDTHH:mm:ss')
+                        : null,
                     allDay: values.allDay ?? false,
                 };
 
@@ -631,13 +643,14 @@ function ScheduleManager() {
                         </div>
                     )}
                     <div style={{maxHeight: '55px', overflow: 'auto', display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'flex-start', marginTop: '8px'}}>
-                        {['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].map(status => {
+                        {['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED'].map(status => {
                             const count = daySchedules.filter(s => s.status === status).length;
                             const iconMap = {
                                 SCHEDULED: <IconClockCircle style={{fontSize: '13px'}} />,
                                 IN_PROGRESS: <IconClockCircle style={{fontSize: '13px', color: '#165dff'}} />,
                                 COMPLETED: <IconCheckCircle style={{fontSize: '13px'}} />,
-                                CANCELLED: <IconCloseCircle style={{fontSize: '13px'}} />
+                                CANCELLED: <IconCloseCircle style={{fontSize: '13px'}} />,
+                                EXPIRED: <IconClockCircle style={{fontSize: '13px', color: '#fa8c16'}} />
                             };
                             return count > 0 ? (
                                 <Tag
@@ -735,7 +748,8 @@ function ScheduleManager() {
                                     SCHEDULED: { bg: 'linear-gradient(135deg, #e6f4ff 0%, #bae0ff 100%)', border: '#91caff', text: '#0050b3' },
                                     IN_PROGRESS: { bg: 'linear-gradient(135deg, #e6f7ff 0%, #91caff 100%)', border: '#1890ff', text: '#096dd9' },
                                     COMPLETED: { bg: 'linear-gradient(135deg, #f0f9ff 0%, #bae6fd 100%)', border: '#7dd3fc', text: '#0369a1' },
-                                    CANCELLED: { bg: 'linear-gradient(135deg, #fff1f0 0%, #ffccc7 100%)', border: '#ffa39e', text: '#cf1322' }
+                                    CANCELLED: { bg: 'linear-gradient(135deg, #fff1f0 0%, #ffccc7 100%)', border: '#ffa39e', text: '#cf1322' },
+                                    EXPIRED: { bg: 'linear-gradient(135deg, #fff7e6 0%, #ffd591 100%)', border: '#ffbb96', text: '#d46b08' }
                                 };
                                 const colorScheme = statusColors[schedule.status as keyof typeof statusColors] || statusColors.SCHEDULED;
                                 
@@ -805,6 +819,11 @@ function ScheduleManager() {
                                         {schedule.completedAt && (
                                             <div style={{fontSize: '11px', opacity: 0.7, marginTop: '4px'}}>
                                                 ✅ 完成于: {dayjs(schedule.completedAt).format('YYYY-MM-DD HH:mm')}
+                                            </div>
+                                        )}
+                                        {schedule.status === 'EXPIRED' && schedule.expireTime && (
+                                            <div style={{fontSize: '11px', opacity: 0.7, marginTop: '4px'}}>
+                                                ⏰ 过期于: {dayjs(schedule.expireTime).format('YYYY-MM-DD HH:mm')}
                                             </div>
                                         )}
                                     </div>
@@ -1203,6 +1222,12 @@ function ScheduleManager() {
                     >
                         <DatePicker showTime placeholder="请选择结束时间"/>
                     </Form.Item>
+                    <Form.Item
+                        label="过期时间"
+                        field="expireTime"
+                    >
+                        <DatePicker showTime placeholder="请选择过期时间"/>
+                    </Form.Item>
                     <Form.Item label="全天" field="allDay" triggerPropName="checked">
                         <Switch />
                     </Form.Item>
@@ -1216,6 +1241,7 @@ function ScheduleManager() {
                             <Option value="IN_PROGRESS">处理中</Option>
                             <Option value="COMPLETED">已完成</Option>
                             <Option value="CANCELLED">已取消</Option>
+                            <Option value="EXPIRED" disabled>已过期</Option>
                         </Select>
                     </Form.Item>
                     <Form.Item
@@ -1234,6 +1260,13 @@ function ScheduleManager() {
                         <Form.Item label="完成时间">
                             <div style={{color: 'var(--color-text-2)'}}>
                                 {dayjs(currentSchedule.completedAt).format('YYYY-MM-DD HH:mm:ss')}
+                            </div>
+                        </Form.Item>
+                    )}
+                    {isEditMode && currentSchedule?.expireTime && (
+                        <Form.Item label="当前过期时间">
+                            <div style={{color: 'var(--color-text-2)'}}>
+                                {dayjs(currentSchedule.expireTime).format('YYYY-MM-DD HH:mm:ss')}
                             </div>
                         </Form.Item>
                     )}

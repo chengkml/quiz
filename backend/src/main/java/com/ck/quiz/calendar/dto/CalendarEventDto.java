@@ -23,6 +23,8 @@ public class CalendarEventDto extends Dto {
 
     private LocalDateTime endTime;
 
+    private LocalDateTime expireTime;
+
     private Boolean allDay;
 
     private LocalDateTime completedAt;

@@ -17,4 +17,6 @@ public class TodoUpdateDto extends UpdateDto {
     private LocalDateTime startTime;
 
     private LocalDateTime dueDate;
+
+    private LocalDateTime expireTime;
 }

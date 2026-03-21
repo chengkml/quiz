@@ -16,7 +16,8 @@ import java.time.LocalDateTime;
         @Index(name = "idx_calendar_event_status", columnList = "status"),
         @Index(name = "idx_calendar_event_priority", columnList = "priority"),
         @Index(name = "idx_calendar_event_start", columnList = "start_time"),
-        @Index(name = "idx_calendar_event_end", columnList = "end_time")
+        @Index(name = "idx_calendar_event_end", columnList = "end_time"),
+        @Index(name = "idx_calendar_event_expire_time", columnList = "expire_time")
 })
 public class CalendarEvent extends Model {
 
@@ -30,7 +31,7 @@ public class CalendarEvent extends Model {
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
-    @Comment("状态：SCHEDULED, COMPLETED, CANCELLED")
+    @Comment("状态：SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED, EXPIRED")
     private Status status = Status.SCHEDULED;
 
     @Enumerated(EnumType.STRING)
@@ -46,6 +47,9 @@ public class CalendarEvent extends Model {
     @Comment("结束时间")
     private LocalDateTime endTime;
 
+    @Comment("过期时间")
+    private LocalDateTime expireTime;
+
     @Comment("是否全天")
     private Boolean allDay = Boolean.FALSE;
 
@@ -60,7 +64,8 @@ public class CalendarEvent extends Model {
         SCHEDULED,
         IN_PROGRESS,
         COMPLETED,
-        CANCELLED
+        CANCELLED,
+        EXPIRED
     }
 
     public enum Priority {

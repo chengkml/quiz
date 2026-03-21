@@ -27,6 +27,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.util.FileCopyUtils;
 
 import java.io.InputStreamReader;
@@ -104,6 +105,7 @@ public class TodoServiceImpl
 
             eventDto.setStartTime(start);
             eventDto.setEndTime(start.plusHours(1)); // 默认持续1小时
+            eventDto.setExpireTime(createDto.getExpireTime());
             eventDto.setAllDay(false);
             eventDto.setStatus(CalendarEvent.Status.SCHEDULED);
 
@@ -119,6 +121,20 @@ public class TodoServiceImpl
         } catch (Exception e) {
             // 同步失败不影响主流程，仅记录日志
             log.error("Failed to sync todo to schedule: {}", e.getMessage());
+        }
+
+        return dto;
+    }
+
+    @Override
+    public TodoDto update(String userId, TodoUpdateDto updateDto) {
+        TodoDto dto = super.update(userId, updateDto);
+
+        if (StringUtils.hasText(dto.getCalendarEventId())) {
+            calendarEventRepository.findById(dto.getCalendarEventId()).ifPresent(event -> {
+                event.setExpireTime(updateDto.getExpireTime());
+                calendarEventRepository.save(event);
+            });
         }
 
         return dto;
@@ -190,7 +206,11 @@ public class TodoServiceImpl
             todo.setDescr(rs.getString("descr"));
             todo.setStatus(rs.getString("status") != null ? Todo.Status.valueOf(rs.getString("status")) : null);
             todo.setPriority(rs.getString("priority") != null ? Todo.Priority.valueOf(rs.getString("priority")) : null);
+            todo.setStartTime(
+                    rs.getTimestamp("start_time") != null ? rs.getTimestamp("start_time").toLocalDateTime() : null);
             todo.setDueDate(rs.getTimestamp("due_date") != null ? rs.getTimestamp("due_date").toLocalDateTime() : null);
+            todo.setExpireTime(
+                    rs.getTimestamp("expire_time") != null ? rs.getTimestamp("expire_time").toLocalDateTime() : null);
             todo.setCalendarEventId(rs.getString("calendar_event_id"));
             todo.setCreateDate(
                     rs.getTimestamp("create_date") != null ? rs.getTimestamp("create_date").toLocalDateTime() : null);

@@ -14,7 +14,8 @@ import java.time.LocalDateTime;
 @Table(name = "todo", indexes = {
         @Index(name = "idx_todo_status", columnList = "status"),
         @Index(name = "idx_todo_priority", columnList = "priority"),
-        @Index(name = "idx_todo_due_date", columnList = "due_date")
+        @Index(name = "idx_todo_due_date", columnList = "due_date"),
+        @Index(name = "idx_todo_expire_time", columnList = "expire_time")
 })
 public class Todo extends Model {
 
@@ -42,6 +43,9 @@ public class Todo extends Model {
     @Comment("截止时间")
     private LocalDateTime dueDate;
 
+    @Comment("过期时间")
+    private LocalDateTime expireTime;
+
     @Comment("关联的日程ID")
     @Column(length = 32)
     private String calendarEventId;
@@ -50,7 +54,8 @@ public class Todo extends Model {
         SCHEDULED,
         IN_PROGRESS,
         COMPLETED,
-        CANCELLED
+        CANCELLED,
+        EXPIRED
     }
 
     public enum Priority {

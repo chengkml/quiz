@@ -18,5 +18,7 @@ public class TodoDto extends Dto {
 
     private LocalDateTime dueDate;
 
+    private LocalDateTime expireTime;
+
     private String calendarEventId;
 }

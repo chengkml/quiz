@@ -63,6 +63,34 @@
   - `backend/src/main/java/com/ck/quiz/knowledgeset/job/KnowledgeProcessingJob.java`
   - `backend/src/main/java/com/ck/quiz/knowledgeset/service/impl/VectorServiceImpl.java`
 
+## 待办与日程管理（Todo / Calendar）
+
+- 前端入口（待办页）
+  - `frontend/src/pages/Todo/index.tsx`
+  - `frontend/src/pages/Todo/api/index.ts`
+- 前端入口（日程页）
+  - `frontend/src/pages/Schedule/index.tsx`
+  - `frontend/src/pages/Schedule/api/index.ts`
+- 路由入口
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/todo/controller/TodoController.java`
+  - `backend/src/main/java/com/ck/quiz/calendar/controller/CalendarController.java`
+- 后端核心实现（查询/同步/完成）
+  - `backend/src/main/java/com/ck/quiz/todo/service/impl/TodoServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/calendar/service/impl/CalendarEventServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/todo/repository/TodoRepository.java`
+  - `backend/src/main/java/com/ck/quiz/calendar/repository/CalendarEventRepository.java`
+  - `backend/src/main/java/com/ck/quiz/todo/entity/Todo.java`
+  - `backend/src/main/java/com/ck/quiz/calendar/entity/CalendarEvent.java`
+- 过期扫描任务
+  - `backend/src/main/java/com/ck/quiz/cron/service/TodoScheduleExpireService.java`
+  - `backend/src/main/java/com/ck/quiz/cron/exec/TodoScheduleExpireScanTask.java`
+  - `backend/src/main/java/com/ck/quiz/cron/exec/TodoScheduleExpireScanJob.java`
+  - `backend/src/main/java/com/ck/quiz/cron/service/JobService.java`
+- 数据库迁移
+  - `backend/src/main/resources/db/migration/V202603211000__add_expire_time_to_todo_and_calendar_event.sql`
+
 ## 单词本（Vocabulary）
 
 - 前端入口（单词本列表/复习页）

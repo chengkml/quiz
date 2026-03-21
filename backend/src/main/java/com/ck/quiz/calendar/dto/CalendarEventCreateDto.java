@@ -31,6 +31,8 @@ public class CalendarEventCreateDto extends CreateDto {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endTime;
 
+    private LocalDateTime expireTime;
+
     private Boolean allDay = Boolean.FALSE;
 
     /**
