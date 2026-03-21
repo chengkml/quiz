@@ -62,3 +62,68 @@
   - `backend/src/main/java/com/ck/quiz/knowledgeset/service/impl/KnowledgeSourceServiceImpl.java`
   - `backend/src/main/java/com/ck/quiz/knowledgeset/job/KnowledgeProcessingJob.java`
   - `backend/src/main/java/com/ck/quiz/knowledgeset/service/impl/VectorServiceImpl.java`
+
+## 单词本（Vocabulary）
+
+- 前端入口（单词本列表/复习页）
+  - `frontend/src/pages/Vocabulary/index.tsx`
+  - `frontend/src/pages/Vocabulary/Review.tsx`
+  - `frontend/src/pages/Vocabulary/components/AddEditModal.tsx`
+  - `frontend/src/pages/Vocabulary/api/index.ts`
+- 路由入口
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/vocabulary/controller/VocabularyCardController.java`
+- 后端核心实现（查询/操作/复习）
+  - `backend/src/main/java/com/ck/quiz/vocabulary/service/impl/VocabularyCardServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/vocabulary/repository/VocabularyCardRepository.java`
+  - `backend/src/main/java/com/ck/quiz/vocabulary/entity/VocabularyCard.java`
+  - `backend/src/main/java/com/ck/quiz/vocabulary/dto/VocabularyCardQueryDto.java`
+
+## 家庭作业（Homework）
+
+- 前端入口（作业列表页）
+  - `frontend/src/pages/Homework/index.tsx`
+  - `frontend/src/pages/Homework/api/index.ts`
+- 路由入口
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/homework/controller/HomeworkController.java`
+- 后端核心实现（查询/详情/更新/删除/待办生成）
+  - `backend/src/main/java/com/ck/quiz/homework/service/impl/HomeworkServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/homework/repository/HomeworkRepository.java`
+  - `backend/src/main/java/com/ck/quiz/homework/entity/Homework.java`
+  - `backend/src/main/java/com/ck/quiz/homework/dto/HomeworkQueryDto.java`
+
+## 生字本（Character）
+
+- 前端入口（生字列表/复习页）
+  - `frontend/src/pages/Character/index.tsx`
+  - `frontend/src/pages/Character/Review.tsx`
+  - `frontend/src/pages/Character/components/AddEditModal.tsx`
+  - `frontend/src/pages/Character/api/index.ts`
+- 路由入口
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/character/controller/CharacterCardController.java`
+- 后端核心实现（查询/操作/复习）
+  - `backend/src/main/java/com/ck/quiz/character/service/impl/CharacterCardServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/character/repository/CharacterCardRepository.java`
+  - `backend/src/main/java/com/ck/quiz/character/entity/CharacterCard.java`
+  - `backend/src/main/java/com/ck/quiz/character/dto/CharacterCardQueryDto.java`
+
+## 诗词本（Poetry）
+
+- 前端入口（诗词列表页）
+  - `frontend/src/pages/Poetry/index.tsx`
+  - `frontend/src/pages/Poetry/components/AddEditModal.tsx`
+  - `frontend/src/pages/Poetry/api/index.ts`
+- 路由入口
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/poetry/controller/PoetryCardController.java`
+- 后端核心实现（查询/操作/复习）
+  - `backend/src/main/java/com/ck/quiz/poetry/service/impl/PoetryCardServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/poetry/repository/PoetryCardRepository.java`
+  - `backend/src/main/java/com/ck/quiz/poetry/entity/PoetryCard.java`
+  - `backend/src/main/java/com/ck/quiz/poetry/dto/PoetryCardQueryDto.java`

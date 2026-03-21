@@ -1,6 +1,9 @@
 package com.ck.quiz.vocabulary.service.impl;
 
-import com.ck.quiz.base.service.impl.BaseServiceImpl;
+import com.ck.quiz.base.dto.ReviewLogDto;
+import com.ck.quiz.base.dto.ReviewRequestDto;
+import com.ck.quiz.base.dto.ReviewResultDto;
+import com.ck.quiz.base.entity.ReviewLog;
 import com.ck.quiz.base.service.impl.ReviewBaseServiceImpl;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.prompt.dto.PromptTemplateDto;
@@ -25,7 +28,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.*;
 
 import java.time.LocalDate;
@@ -51,6 +53,9 @@ public class VocabularyCardServiceImpl
     @Autowired
     private PromptTemplateService promptTemplateService;
 
+    @Autowired
+    private ReviewLogRepository reviewLogRepository;
+
     @Override
     protected VocabularyCardDto newDto() {
         return new VocabularyCardDto();
@@ -64,11 +69,8 @@ public class VocabularyCardServiceImpl
     @Override
     @Transactional
     public VocabularyCardDto create(VocabularyCardCreateDto createDto) {
-        // 获取当前用户ID
-        String userId = getCurrentUserId();
-        
         // 检查单词是否已存在
-        Optional<VocabularyCard> existing = vocabularyCardRepository.findByWordAndUser(createDto.getWord(), userId);
+        Optional<VocabularyCard> existing = vocabularyCardRepository.findByWord(createDto.getWord());
         if (existing.isPresent()) {
             throw new RuntimeException("单词已存在: " + createDto.getWord());
         }
@@ -95,10 +97,6 @@ public class VocabularyCardServiceImpl
         VocabularyCard card = vocabularyCardRepository.findById(updateDto.getId())
                 .orElseThrow(() -> new RuntimeException("单词不存在"));
 
-        if (!card.getCreateUser().equals(userId)) {
-            throw new RuntimeException("无权限操作此单词");
-        }
-
         BeanUtils.copyProperties(updateDto, card);
 
         VocabularyCard saved = vocabularyCardRepository.save(card);
@@ -120,9 +118,6 @@ public class VocabularyCardServiceImpl
 
         Page<VocabularyCard> pageResult = vocabularyCardRepository.findAll((root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-
-            // 用户过滤
-            predicates.add(cb.equal(root.get("createUser"), userId));
 
             // 关键词搜索
             if (queryDto.getKeyword() != null && !queryDto.getKeyword().trim().isEmpty()) {
@@ -172,6 +167,149 @@ public class VocabularyCardServiceImpl
         return new org.springframework.data.domain.PageImpl<>(dtos, pageable, pageResult.getTotalElements());
     }
 
+    @Override
+    @Transactional
+    public void delete(String userId, String id) {
+        VocabularyCard card = vocabularyCardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("单词不存在"));
+
+        groupObjRelaRepository.deleteByObjId(id);
+        tagObjRelaRepository.deleteByObjId(id);
+        vocabularyCardRepository.delete(card);
+    }
+
+    @Override
+    public VocabularyCardDto get(String userId, String id) {
+        VocabularyCard card = vocabularyCardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("单词不存在"));
+        return convertToDto(card, true);
+    }
+
+    @Override
+    public List<VocabularyCardDto> list(String userId) {
+        return convertToDtos(vocabularyCardRepository.findAll());
+    }
+
+    @Override
+    @Transactional
+    public void archive(String userId, String id, boolean archived) {
+        VocabularyCard card = vocabularyCardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("单词不存在"));
+
+        card.setArchived(archived);
+        vocabularyCardRepository.save(card);
+    }
+
+    @Override
+    @Transactional
+    public void reset(String userId, String id) {
+        VocabularyCard card = vocabularyCardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("单词不存在"));
+
+        card.setEasinessFactor(2.5);
+        card.setInterval(0);
+        card.setRepetition(0);
+        card.setNextReviewDate(LocalDateTime.now().plusDays(1));
+        card.setLastScore(null);
+
+        vocabularyCardRepository.save(card);
+        log.info("单词 {} 已重置学习状态", card.getId());
+    }
+
+    @Override
+    public List<VocabularyCardDto> getDueToday(String userId) {
+        LocalDateTime now = LocalDateTime.now();
+        return vocabularyCardRepository.findDueToday(now).stream()
+                .map(card -> convertToDto(card, true))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public ReviewResultDto review(String userId, ReviewRequestDto dto) {
+        VocabularyCard card = vocabularyCardRepository.findById(dto.getId())
+                .orElseThrow(() -> new RuntimeException("单词不存在"));
+
+        if (dto.getScore() < 0 || dto.getScore() > 5) {
+            throw new RuntimeException("评分必须在 0-5 之间");
+        }
+
+        Double efBefore = card.getEasinessFactor();
+        LocalDateTime reviewTime = LocalDateTime.now();
+
+        double newEF = card.getEasinessFactor() +
+                (0.1 - (5 - dto.getScore()) * (0.08 + (5 - dto.getScore()) * 0.02));
+        newEF = Math.max(1.3, newEF);
+        card.setEasinessFactor(newEF);
+
+        int newInterval;
+        int newRepetition;
+        String message;
+
+        if (dto.getScore() < 3) {
+            newRepetition = 0;
+            newInterval = 1;
+            message = "继续加油！明天再来复习这个单词";
+        } else {
+            newRepetition = card.getRepetition() + 1;
+
+            if (newRepetition == 1) {
+                newInterval = 1;
+                message = "不错！明天再来巩固一次";
+            } else if (newRepetition == 2) {
+                newInterval = 6;
+                message = "很好！6天后再复习";
+            } else {
+                newInterval = (int) Math.ceil(card.getInterval() * newEF);
+                message = String.format("太棒了！%d天后再复习", newInterval);
+            }
+        }
+
+        card.setRepetition(newRepetition);
+        card.setInterval(newInterval);
+
+        LocalDateTime nextReview = reviewTime.plusDays(newInterval);
+        card.setNextReviewDate(nextReview);
+        card.setTotalReviewCount(card.getTotalReviewCount() + 1);
+        card.setLastScore(dto.getScore());
+
+        ReviewLog reviewLog = new ReviewLog();
+        reviewLog.setId(IdHelper.genUuid());
+        reviewLog.setObjId(card.getId());
+        reviewLog.setReviewDate(LocalDateTime.now());
+        reviewLog.setScore(dto.getScore());
+        reviewLog.setEfBefore(efBefore);
+        reviewLog.setEfAfter(newEF);
+        reviewLog.setNextIntervalDays(newInterval);
+        reviewLogRepository.save(reviewLog);
+
+        VocabularyCard saved = vocabularyCardRepository.save(card);
+
+        ReviewResultDto result = new ReviewResultDto();
+        result.setId(saved.getId());
+        result.setScore(dto.getScore());
+        result.setNewEasinessFactor(newEF);
+        result.setNewInterval(newInterval);
+        result.setNewRepetition(newRepetition);
+        result.setNextReviewDate(nextReview);
+        result.setMessage(message);
+
+        log.info("完成单词复习: 评分={}, 新EF={}, 新间隔={}天, 下次复习={}",
+                dto.getScore(), newEF, newInterval, nextReview);
+
+        return result;
+    }
+
+    @Override
+    public List<ReviewLogDto> getReviewHistory(String userId, String cardId) {
+        VocabularyCard card = vocabularyCardRepository.findById(cardId)
+                .orElseThrow(() -> new RuntimeException("单词不存在"));
+
+        return reviewLogRepository.findByObjId(card.getId()).stream()
+                .map(this::convertToReviewLogDto)
+                .collect(Collectors.toList());
+    }
+
     private String buildDefinitionPrompt(String word) {
         PromptTemplateDto promptTemplateDto = promptTemplateService.getByName("vocabularyDefinitionGenerate");
         String targetPrompt = promptTemplateDto.getContent().replace("{{word}}", word);
@@ -203,18 +341,6 @@ public class VocabularyCardServiceImpl
     // ========== 辅助方法 ==========
 
     /**
-     * 获取当前用户ID
-     */
-    private String getCurrentUserId() {
-        org.springframework.security.core.Authentication authentication = 
-            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return "anonymous";
-        }
-        return authentication.getName();
-    }
-
-    /**
      * 重写convertToDto，增强单词本特有字段的映射
      */
     @Override
@@ -231,6 +357,18 @@ public class VocabularyCardServiceImpl
         dto.setTotalReviewCount(card.getTotalReviewCount());
         dto.setLastScore(card.getLastScore());
         
+        return dto;
+    }
+
+    private ReviewLogDto convertToReviewLogDto(ReviewLog reviewLog) {
+        ReviewLogDto dto = new ReviewLogDto();
+        dto.setId(reviewLog.getId());
+        dto.setObjId(reviewLog.getObjId());
+        dto.setReviewDate(reviewLog.getReviewDate());
+        dto.setScore(reviewLog.getScore());
+        dto.setEfBefore(reviewLog.getEfBefore());
+        dto.setEfAfter(reviewLog.getEfAfter());
+        dto.setNextIntervalDays(reviewLog.getNextIntervalDays());
         return dto;
     }
 

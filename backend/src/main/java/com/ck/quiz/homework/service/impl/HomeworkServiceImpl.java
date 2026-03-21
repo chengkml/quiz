@@ -1,6 +1,8 @@
 package com.ck.quiz.homework.service.impl;
 
 import com.ck.quiz.base.service.impl.BaseServiceImpl;
+import com.ck.quiz.group.entity.Group;
+import com.ck.quiz.group_obj.entity.GroupObjRela;
 import com.ck.quiz.homework.dto.HomeworkCreateDto;
 import com.ck.quiz.homework.dto.HomeworkDto;
 import com.ck.quiz.homework.dto.HomeworkQueryDto;
@@ -11,6 +13,7 @@ import com.ck.quiz.homework.service.HomeworkService;
 import com.ck.quiz.todo.dto.TodoCreateDto;
 import com.ck.quiz.todo.entity.Todo;
 import com.ck.quiz.todo.service.TodoService;
+import com.ck.quiz.utils.IdHelper;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -19,10 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -68,12 +71,6 @@ public class HomeworkServiceImpl extends
         JdbcQueryHelper.lowerLike("titleKey", queryDto.getTitle(), " AND LOWER(h.title) LIKE :titleKey ", params,
                 namedParameterJdbcTemplate, sql, countSql);
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            JdbcQueryHelper.equals("createUser", authentication.getName(), " AND h.create_user = :createUser ", params,
-                    sql, countSql);
-        }
-
         JdbcQueryHelper.order("h.create_date", "desc", sql);
 
         String pageSql = JdbcQueryHelper.getLimitSql(namedParameterJdbcTemplate, sql.toString(), queryDto.getPageNum(),
@@ -96,6 +93,64 @@ public class HomeworkServiceImpl extends
 
         return (Page<HomeworkDto>) JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params, list,
                 queryDto.getPageNum(), queryDto.getPageSize());
+    }
+
+    @Override
+    @Transactional
+    public HomeworkDto update(String userId, HomeworkUpdateDto updateDto) {
+        Homework model = homeworkRepository.findById(updateDto.getId())
+                .orElseThrow(() -> new RuntimeException("作业不存在"));
+
+        BeanUtils.copyProperties(updateDto, model);
+        Homework updatedModel = homeworkRepository.save(model);
+
+        if (updateDto.getGroup() != null) {
+            groupObjRelaRepository.deleteByObjId(updatedModel.getId());
+
+            if (StringUtils.hasText(updateDto.getGroup())) {
+                String createUser = updatedModel.getCreateUser();
+                List<Group> groups = groupRepository.findByCreateUserAndName(createUser, updateDto.getGroup());
+                if (!groups.isEmpty()) {
+                    GroupObjRela rela = new GroupObjRela();
+                    rela.setRelaId(IdHelper.genUuid());
+                    rela.setGroupId(groups.get(0).getId());
+                    rela.setObjId(updatedModel.getId());
+                    groupObjRelaRepository.save(rela);
+                } else {
+                    throw new IllegalArgumentException("Group not found: " + updateDto.getGroup());
+                }
+            }
+        }
+
+        if (updateDto.getTags() != null) {
+            tagObjRelaRepository.deleteByObjId(updatedModel.getId());
+            saveTags(updatedModel.getId(), updateDto.getTags(), updatedModel.getCreateUser());
+        }
+
+        return convertToDto(updatedModel, true);
+    }
+
+    @Override
+    @Transactional
+    public void delete(String userId, String id) {
+        Homework model = homeworkRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("作业不存在"));
+
+        groupObjRelaRepository.deleteByObjId(id);
+        tagObjRelaRepository.deleteByObjId(id);
+        homeworkRepository.delete(model);
+    }
+
+    @Override
+    public HomeworkDto get(String userId, String id) {
+        Homework model = homeworkRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("作业不存在"));
+        return convertToDto(model, true);
+    }
+
+    @Override
+    public List<HomeworkDto> list(String userId) {
+        return convertToDtos(homeworkRepository.findAll());
     }
 
     @Override
