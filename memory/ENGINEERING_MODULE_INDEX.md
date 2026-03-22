@@ -45,6 +45,23 @@
   - `backend/src/main/java/com/ck/quiz/project/controller/RequirementController.java`
   - `backend/src/main/java/com/ck/quiz/project/service/impl/RequirementServiceImpl.java`
 
+## AI 助手与对话（Chat / GlobalAssistant）
+
+- 前端入口（全局助手）
+  - `frontend/src/components/Layout/index.tsx`
+  - `frontend/src/components/GlobalAssistant/index.tsx`
+- 前端入口（独立对话页）
+  - `frontend/src/pages/Chat/index.tsx`
+  - `frontend/src/pages/Chat/api/index.ts`
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/chat/controller/ChatController.java`
+- 后端核心实现（会话/消息/流式输出/RAG 钩子）
+  - `backend/src/main/java/com/ck/quiz/chat/service/impl/ChatServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/chat/dto/ChatCompletionRequest.java`
+  - `backend/src/main/java/com/ck/quiz/chat/entity/ChatSession.java`
+  - `backend/src/main/java/com/ck/quiz/chat/entity/ChatMessage.java`
+
 ## 知识集与知识来源（KnowledgeSet / KnowledgeSource）
 
 - 前端入口（知识来源配置）

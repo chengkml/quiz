@@ -7,18 +7,20 @@ import com.ck.quiz.knowledgeset.entity.KnowledgeChunk;
 import com.ck.quiz.knowledgeset.entity.KnowledgeVector;
 import com.ck.quiz.knowledgeset.repository.KnowledgeChunkRepository;
 import com.ck.quiz.knowledgeset.repository.KnowledgeVectorRepository;
-import com.ck.quiz.knowledgeset.repository.VectorSearchProjection;
 import com.ck.quiz.knowledgeset.service.VectorService;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.utils.IdHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +34,7 @@ public class VectorServiceImpl implements VectorService {
     private final KnowledgeChunkRepository chunkRepository;
     private final KnowledgeVectorRepository vectorRepository;
     private final LLMModelService llmModelService;
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     private final VectorConverter vectorConverter = new VectorConverter();
 
     @Override
@@ -95,8 +98,14 @@ public class VectorServiceImpl implements VectorService {
 
     @Override
     public List<VectorSearchResultDto> search(String queryText, int limit, String modelName, VectorSearchFilter filter) {
+        List<String> knowledgeSetIds = normalizeKnowledgeSetIds(filter != null ? filter.getKnowledgeSetIds() : null);
+        String knowledgeSetId = knowledgeSetIds.isEmpty()
+                ? normalizeBlank(filter != null ? filter.getKnowledgeSetId() : null)
+                : null;
+        String knowledgeSourceId = normalizeBlank(filter != null ? filter.getKnowledgeSourceId() : null);
+
         if (filter != null && "TEXT".equalsIgnoreCase(filter.getSearchType())) {
-            return searchByText(queryText, limit, filter.getKnowledgeSetId());
+            return searchByText(queryText, limit, knowledgeSetId, knowledgeSetIds);
         }
 
         EmbeddingModel embeddingModel = llmModelService.getEmbeddingModel(modelName);
@@ -108,25 +117,18 @@ public class VectorServiceImpl implements VectorService {
         }
 
         String vectorStr = vectorConverter.convertToDatabaseColumn(queryVector);
-        String knowledgeSetId = normalizeBlank(filter != null ? filter.getKnowledgeSetId() : null);
-        String knowledgeSourceId = normalizeBlank(filter != null ? filter.getKnowledgeSourceId() : null);
         String normalizedModelName = normalizeBlank(modelName);
         int topK = limit <= 0 ? 5 : limit;
 
-        List<VectorSearchProjection> rows = vectorRepository.searchSimilarWithDistance(
-                vectorStr,
-                topK,
-                queryVector.size(),
-                normalizedModelName,
-                knowledgeSetId,
-                knowledgeSourceId);
+        List<VectorRow> rows = searchVectorRows(vectorStr, topK, queryVector.size(), normalizedModelName, knowledgeSetId,
+                knowledgeSetIds, knowledgeSourceId);
 
         if (rows.isEmpty()) {
             return new ArrayList<>();
         }
 
         List<String> chunkIds = rows.stream()
-                .map(VectorSearchProjection::getKnowledgeChunkId)
+                .map(VectorRow::getKnowledgeChunkId)
                 .distinct()
                 .collect(Collectors.toList());
 
@@ -135,7 +137,7 @@ public class VectorServiceImpl implements VectorService {
 
         Double minScore = filter != null ? filter.getMinScore() : null;
         List<VectorSearchResultDto> results = new ArrayList<>();
-        for (VectorSearchProjection row : rows) {
+        for (VectorRow row : rows) {
             KnowledgeChunk chunk = chunkMap.get(row.getKnowledgeChunkId());
             if (chunk == null) {
                 continue;
@@ -185,16 +187,119 @@ public class VectorServiceImpl implements VectorService {
         log.info("Deleted {} chunks and their vectors for sourceId {}", chunkIds.size(), sourceId);
     }
 
-    private List<VectorSearchResultDto> searchByText(String queryText, int limit, String knowledgeSetId) {
-        List<KnowledgeChunk> chunks = chunkRepository.searchByText(queryText, knowledgeSetId,
-                org.springframework.data.domain.PageRequest.of(0, limit));
+    private List<VectorSearchResultDto> searchByText(String queryText, int limit, String knowledgeSetId,
+            List<String> knowledgeSetIds) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT c.id, c.knowledge_source_id, c.content, c.meta, c.chunk_index, c.token_count " +
+                        "FROM knowledge_chunk c " +
+                        "JOIN knowledge_source s ON c.knowledge_source_id = s.id " +
+                        "WHERE c.content LIKE CONCAT('%', :keyword, '%')");
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("keyword", queryText)
+                .addValue("limit", limit <= 0 ? 5 : limit);
+
+        if (!knowledgeSetIds.isEmpty()) {
+            sql.append(" AND s.knowledge_set_id IN (:knowledgeSetIds)");
+            params.addValue("knowledgeSetIds", knowledgeSetIds);
+        } else if (knowledgeSetId != null) {
+            sql.append(" AND s.knowledge_set_id = :knowledgeSetId");
+            params.addValue("knowledgeSetId", knowledgeSetId);
+        }
+
+        sql.append(" ORDER BY c.create_date DESC LIMIT :limit");
+
+        List<KnowledgeChunk> chunks = namedParameterJdbcTemplate.query(sql.toString(), params, (rs, rowNum) -> {
+            KnowledgeChunk chunk = new KnowledgeChunk();
+            chunk.setId(rs.getString("id"));
+            chunk.setKnowledgeSourceId(rs.getString("knowledge_source_id"));
+            chunk.setContent(rs.getString("content"));
+            chunk.setMeta(rs.getString("meta"));
+
+            int chunkIndex = rs.getInt("chunk_index");
+            if (!rs.wasNull()) {
+                chunk.setChunkIndex(chunkIndex);
+            }
+
+            int tokenCount = rs.getInt("token_count");
+            if (!rs.wasNull()) {
+                chunk.setTokenCount(tokenCount);
+            }
+            return chunk;
+        });
 
         return chunks.stream()
                 .map(chunk -> new VectorSearchResultDto(chunk, 0.0))
                 .collect(Collectors.toList());
     }
 
+    private List<VectorRow> searchVectorRows(String vectorStr, int limit, int dimension, String modelName,
+            String knowledgeSetId, List<String> knowledgeSetIds, String knowledgeSourceId) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT v.knowledge_chunk_id, (v.embedding <=> cast(:vectorStr as vector)) as distance " +
+                        "FROM knowledge_vector v " +
+                        "JOIN knowledge_chunk c ON v.knowledge_chunk_id = c.id " +
+                        "JOIN knowledge_source s ON c.knowledge_source_id = s.id " +
+                        "WHERE v.dimension = :dimension");
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("vectorStr", vectorStr)
+                .addValue("dimension", dimension)
+                .addValue("limit", limit <= 0 ? 5 : limit);
+
+        if (modelName != null) {
+            sql.append(" AND v.model = :modelName");
+            params.addValue("modelName", modelName);
+        }
+
+        if (!knowledgeSetIds.isEmpty()) {
+            sql.append(" AND s.knowledge_set_id IN (:knowledgeSetIds)");
+            params.addValue("knowledgeSetIds", knowledgeSetIds);
+        } else if (knowledgeSetId != null) {
+            sql.append(" AND s.knowledge_set_id = :knowledgeSetId");
+            params.addValue("knowledgeSetId", knowledgeSetId);
+        }
+
+        if (knowledgeSourceId != null) {
+            sql.append(" AND c.knowledge_source_id = :knowledgeSourceId");
+            params.addValue("knowledgeSourceId", knowledgeSourceId);
+        }
+
+        sql.append(" ORDER BY distance ASC LIMIT :limit");
+
+        return namedParameterJdbcTemplate.query(sql.toString(), params, (rs, rowNum) -> new VectorRow(
+                rs.getString("knowledge_chunk_id"),
+                rs.getDouble("distance")));
+    }
+
+    private List<String> normalizeKnowledgeSetIds(List<String> knowledgeSetIds) {
+        if (knowledgeSetIds == null || knowledgeSetIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return knowledgeSetIds.stream()
+                .filter(StringUtils::hasText)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
     private String normalizeBlank(String value) {
         return StringUtils.hasText(value) ? value : null;
+    }
+
+    private static class VectorRow {
+        private final String knowledgeChunkId;
+        private final Double distance;
+
+        private VectorRow(String knowledgeChunkId, Double distance) {
+            this.knowledgeChunkId = knowledgeChunkId;
+            this.distance = distance;
+        }
+
+        public String getKnowledgeChunkId() {
+            return knowledgeChunkId;
+        }
+
+        public Double getDistance() {
+            return distance;
+        }
     }
 }

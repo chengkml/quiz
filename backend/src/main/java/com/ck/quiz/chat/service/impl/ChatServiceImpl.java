@@ -12,6 +12,7 @@ import com.ck.quiz.chat.repository.ChatSessionRepository;
 import com.ck.quiz.chat.service.ChatService;
 import com.ck.quiz.knowledgeset.dto.VectorSearchFilter;
 import com.ck.quiz.knowledgeset.dto.VectorSearchResultDto;
+import com.ck.quiz.knowledgeset.repository.KnowledgeSetRepository;
 import com.ck.quiz.knowledgeset.service.VectorService;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.utils.IdHelper;
@@ -50,12 +51,18 @@ public class ChatServiceImpl implements ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final LLMModelService llmModelService;
     private final VectorService vectorService;
+    private final KnowledgeSetRepository knowledgeSetRepository;
     private final com.ck.quiz.tokenusage.service.TokenUsageService tokenUsageService;
 
     @Value("${chat.max-history-messages:20}")
     private int maxHistoryMessages;
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final String KNOWLEDGE_SCOPE_ALL_ACCESSIBLE = "ALL_ACCESSIBLE";
+    private static final String KNOWLEDGE_SCOPE_KNOWLEDGE_SET = "KNOWLEDGE_SET";
+    private static final int DEFAULT_RAG_TOP_K = 5;
+    private static final String NO_ACCESSIBLE_KNOWLEDGE_MESSAGE = "当前没有可用于问答的知识集，请先创建或加入启用中的知识集。";
+    private static final String NO_KNOWLEDGE_HIT_MESSAGE = "未在当前知识范围内检索到相关内容，请换个问法，或切换知识集后再试。";
 
     @Override
     public ChatCompletionResponse chat(String userId, ChatCompletionRequest request) {
@@ -71,11 +78,15 @@ public class ChatServiceImpl implements ChatService {
         ChatMessage userMessage = saveUserMessage(session.getId(), payload.getContent(), history);
         history.add(userMessage);
 
-        // Retrieve Context (RAG)
-        String context = retrieveContext(payload.getContent(), request.getKnowledgeSetId(), session.getModelName());
+        RetrievedContext retrievedContext = retrieveContext(userId, payload.getContent(), request);
+        if (retrievedContext.shouldReplyDirectly()) {
+            saveAssistantMessage(session, retrievedContext.getDirectReply(), userMessage.getSeq() + 1);
+            updateSession(session, userMessage.getContent());
+            return buildResponse(session);
+        }
 
         // Build Prompt
-        Prompt prompt = buildPrompt(history, context);
+        Prompt prompt = buildPrompt(history, retrievedContext);
 
         // Call LLM
         OpenAiChatModel chatModel = llmModelService.getChatModel(session.getModelName());
@@ -124,34 +135,41 @@ public class ChatServiceImpl implements ChatService {
         ChatMessage userMessage = saveUserMessage(session.getId(), payload.getContent(), history);
         history.add(userMessage);
 
-        // Retrieve Context (RAG)
-        String context = retrieveContext(payload.getContent(), request.getKnowledgeSetId(), session.getModelName());
-
-        // Build Prompt
-        Prompt prompt = buildPrompt(history, context);
-
+        RetrievedContext retrievedContext = retrieveContext(userId, payload.getContent(), request);
         String assistantMessageId = IdHelper.genUuid();
         int assistantSeq = userMessage.getSeq() + 1;
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+
+        if (retrievedContext.shouldReplyDirectly()) {
+            final String responseJson;
+            try {
+                responseJson = buildStreamResponse(objectMapper, session.getSessionUuid(), assistantMessageId,
+                        retrievedContext.getDirectReply());
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                log.error("JSON serialize error", e);
+                return Flux.error(e);
+            }
+            return Flux.just(responseJson)
+                    .doOnComplete(() -> {
+                        saveAssistantMessageWithId(session, retrievedContext.getDirectReply(), assistantSeq,
+                                assistantMessageId);
+                        updateSession(session, userMessage.getContent());
+                    });
+        }
+
+        // Build Prompt
+        Prompt prompt = buildPrompt(history, retrievedContext);
+
         StringBuilder contentBuilder = new StringBuilder();
 
         OpenAiChatModel chatModel = llmModelService.getChatModel(session.getModelName());
         ChatClient client = ChatClient.builder(chatModel).build();
-        
-        // 浣跨敤 ObjectMapper 鎵嬪姩搴忓垪鍖栵紝纭繚娴佸紡杈撳嚭
-        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
         return client.prompt(prompt).stream().content()
                 .map(content -> {
                     contentBuilder.append(content);
-                    ChatCompletionResponse response = new ChatCompletionResponse();
-                    response.setSessionId(session.getSessionUuid());
-                    ChatMessageDto msgDto = new ChatMessageDto();
-                    msgDto.setId(assistantMessageId);
-                    msgDto.setRole("ASSISTANT");
-                    msgDto.setContent(content);
-                    response.setMessages(Collections.singletonList(msgDto));
                     try {
-                        return objectMapper.writeValueAsString(response);
+                        return buildStreamResponse(objectMapper, session.getSessionUuid(), assistantMessageId, content);
                     } catch (Exception e) {
                         log.error("JSON serialize error", e);
                         return "";
@@ -235,46 +253,47 @@ public class ChatServiceImpl implements ChatService {
         return response;
     }
 
-    private String retrieveContext(String query, String knowledgeSetId, String modelName) {
-        if (!StringUtils.hasText(knowledgeSetId)) {
-            return "";
+    private RetrievedContext retrieveContext(String userId, String query, ChatCompletionRequest request) {
+        if (!isKnowledgeMode(request)) {
+            return RetrievedContext.general();
+        }
+
+        ResolvedKnowledgeScope scope = resolveKnowledgeScope(userId, request);
+        if (scope.getKnowledgeSetIds().isEmpty()) {
+            return RetrievedContext.knowledgeReplyOnly(NO_ACCESSIBLE_KNOWLEDGE_MESSAGE);
         }
 
         VectorSearchFilter filter = VectorSearchFilter.builder()
-                .knowledgeSetId(knowledgeSetId)
+                .knowledgeSetIds(scope.getKnowledgeSetIds())
                 .build();
 
-        List<VectorSearchResultDto> results = vectorService.search(query, 3, null, filter);
+        List<VectorSearchResultDto> results = vectorService.search(query, DEFAULT_RAG_TOP_K, null, filter);
 
         if (results == null || results.isEmpty()) {
-            return "";
+            return RetrievedContext.knowledgeReplyOnly(NO_KNOWLEDGE_HIT_MESSAGE);
         }
 
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < results.size(); i++) {
             VectorSearchResultDto result = results.get(i);
-            sb.append(i + 1).append(". ").append(result.getChunk().getContent()).append("\n");
+            sb.append("[知识片段 ").append(i + 1).append("]\n")
+                    .append(result.getChunk().getContent())
+                    .append("\n\n");
         }
-        return sb.toString();
+        return RetrievedContext.knowledgeContext(sb.toString().trim());
     }
 
-    private Prompt buildPrompt(List<ChatMessage> history, String ragContext) {
+    private Prompt buildPrompt(List<ChatMessage> history, RetrievedContext retrievedContext) {
         List<ChatMessage> trimmed = trimHistory(history, maxHistoryMessages);
         List<org.springframework.ai.chat.messages.Message> messages = new ArrayList<>();
 
-        // System Prompt
         String systemText = "You are a helpful assistant.";
-
-        // Attempt to load system prompt from template if configured in session
-        // (assuming session might have promptTemplateId)
-        // Or if simple logic: if it's the global assistant (no ID in request, new
-        // session), maybe check a global setting?
-        // For now, let's keep it simple but allow extension.
-        // We can add a "systemPrompt" field to ChatConfig or ChatSession later.
-
-        if (StringUtils.hasText(ragContext)) {
-            systemText += "\n\nPlease answer the user's question based on the following context:\n" + ragContext +
-                    "\n\nIf the context does not contain the answer, please answer based on your own knowledge.";
+        if (retrievedContext.isKnowledgeMode()) {
+            systemText = "你是知识库问答助手。请严格基于提供的知识上下文回答问题。"
+                    + "如果上下文不足以回答，请明确说明“未在当前知识范围内检索到足够信息”，不要编造内容，也不要使用未提供的外部知识。";
+            if (StringUtils.hasText(retrievedContext.getRagContext())) {
+                systemText += "\n\n以下是可用的知识上下文：\n" + retrievedContext.getRagContext();
+            }
         }
         messages.add(new org.springframework.ai.chat.messages.SystemMessage(systemText));
 
@@ -288,6 +307,64 @@ public class ChatServiceImpl implements ChatService {
             }
         }
         return new Prompt(messages);
+    }
+
+    private ResolvedKnowledgeScope resolveKnowledgeScope(String userId, ChatCompletionRequest request) {
+        String normalizedScopeType = normalizeKnowledgeScopeType(request);
+        String normalizedUserId = userId == null ? "" : userId;
+
+        if (KNOWLEDGE_SCOPE_ALL_ACCESSIBLE.equals(normalizedScopeType)) {
+            return new ResolvedKnowledgeScope(knowledgeSetRepository.findAccessibleEnabledIds(normalizedUserId));
+        }
+
+        if (KNOWLEDGE_SCOPE_KNOWLEDGE_SET.equals(normalizedScopeType)) {
+            String knowledgeSetId = normalizeBlank(request.getKnowledgeSetId());
+            if (!StringUtils.hasText(knowledgeSetId)) {
+                throw new IllegalArgumentException("knowledgeSetId cannot be empty when knowledgeScopeType is KNOWLEDGE_SET");
+            }
+            if (knowledgeSetRepository.countAccessibleEnabledById(knowledgeSetId, normalizedUserId) <= 0) {
+                throw new IllegalArgumentException("当前知识集不存在、未启用或无权限访问");
+            }
+            return new ResolvedKnowledgeScope(Collections.singletonList(knowledgeSetId));
+        }
+
+        return new ResolvedKnowledgeScope(Collections.emptyList());
+    }
+
+    private boolean isKnowledgeMode(ChatCompletionRequest request) {
+        return StringUtils.hasText(request.getKnowledgeScopeType()) || StringUtils.hasText(request.getKnowledgeSetId());
+    }
+
+    private String normalizeKnowledgeScopeType(ChatCompletionRequest request) {
+        String knowledgeScopeType = normalizeBlank(request.getKnowledgeScopeType());
+        if (!StringUtils.hasText(knowledgeScopeType)) {
+            return StringUtils.hasText(request.getKnowledgeSetId()) ? KNOWLEDGE_SCOPE_KNOWLEDGE_SET : null;
+        }
+
+        if (KNOWLEDGE_SCOPE_ALL_ACCESSIBLE.equalsIgnoreCase(knowledgeScopeType)) {
+            return KNOWLEDGE_SCOPE_ALL_ACCESSIBLE;
+        }
+        if (KNOWLEDGE_SCOPE_KNOWLEDGE_SET.equalsIgnoreCase(knowledgeScopeType)) {
+            return KNOWLEDGE_SCOPE_KNOWLEDGE_SET;
+        }
+        throw new IllegalArgumentException("unsupported knowledgeScopeType: " + knowledgeScopeType);
+    }
+
+    private String normalizeBlank(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private String buildStreamResponse(com.fasterxml.jackson.databind.ObjectMapper objectMapper, String sessionId,
+            String assistantMessageId, String content) throws com.fasterxml.jackson.core.JsonProcessingException {
+        ChatCompletionResponse response = new ChatCompletionResponse();
+        response.setSessionId(sessionId);
+
+        ChatMessageDto msgDto = new ChatMessageDto();
+        msgDto.setId(assistantMessageId);
+        msgDto.setRole("ASSISTANT");
+        msgDto.setContent(content);
+        response.setMessages(Collections.singletonList(msgDto));
+        return objectMapper.writeValueAsString(response);
     }
 
     @Override
@@ -403,5 +480,56 @@ public class ChatServiceImpl implements ChatService {
         
         log.info("浼氳瘽宸插垹闄わ紝sessionUuid: {}, userId: {}", sessionUuid, userId);
     }
-}
 
+    private static class RetrievedContext {
+        private final boolean knowledgeMode;
+        private final String ragContext;
+        private final String directReply;
+
+        private RetrievedContext(boolean knowledgeMode, String ragContext, String directReply) {
+            this.knowledgeMode = knowledgeMode;
+            this.ragContext = ragContext;
+            this.directReply = directReply;
+        }
+
+        private static RetrievedContext general() {
+            return new RetrievedContext(false, null, null);
+        }
+
+        private static RetrievedContext knowledgeContext(String ragContext) {
+            return new RetrievedContext(true, ragContext, null);
+        }
+
+        private static RetrievedContext knowledgeReplyOnly(String directReply) {
+            return new RetrievedContext(true, null, directReply);
+        }
+
+        private boolean isKnowledgeMode() {
+            return knowledgeMode;
+        }
+
+        private String getRagContext() {
+            return ragContext;
+        }
+
+        private String getDirectReply() {
+            return directReply;
+        }
+
+        private boolean shouldReplyDirectly() {
+            return StringUtils.hasText(directReply);
+        }
+    }
+
+    private static class ResolvedKnowledgeScope {
+        private final List<String> knowledgeSetIds;
+
+        private ResolvedKnowledgeScope(List<String> knowledgeSetIds) {
+            this.knowledgeSetIds = knowledgeSetIds;
+        }
+
+        private List<String> getKnowledgeSetIds() {
+            return knowledgeSetIds;
+        }
+    }
+}

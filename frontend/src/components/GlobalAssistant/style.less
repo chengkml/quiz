@@ -81,9 +81,29 @@
                 padding: 8px 12px;
                 font-size: 14px;
                 line-height: 1.5;
+                white-space: pre-wrap;
                 word-break: break-word;
                 box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
             }
+        }
+    }
+
+    .scope-toolbar {
+        padding: 12px;
+        border-bottom: 1px solid @border-color;
+        background-color: @bg-color;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex-shrink: 0;
+
+        .scope-select {
+            width: 100%;
+        }
+
+        .scope-hint {
+            font-size: 12px;
+            color: var(--color-text-3);
         }
     }
 
