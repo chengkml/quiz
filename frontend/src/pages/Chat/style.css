@@ -253,6 +253,17 @@
   border-top-left-radius: 2px;
 }
 
+.chat-control-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.chat-control-select {
+  min-width: 160px;
+}
+
 /* Adjust markdown styles for user bubble (dark background) */
 .message-item.user .message-bubble .markdown-body code {
   background: rgba(255, 255, 255, 0.2);

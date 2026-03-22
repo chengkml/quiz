@@ -12,5 +12,8 @@ public class ChatSessionDto {
     private String modelName;
 
     private String updatedAt;
-}
 
+    private String knowledgeScopeType;
+
+    private String knowledgeSetId;
+}

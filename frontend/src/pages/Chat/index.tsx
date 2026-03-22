@@ -12,34 +12,43 @@ import {
   Typography,
 } from '@arco-design/web-react';
 import {
+  IconDelete,
   IconPlus,
   IconRefresh,
+  IconRobot,
   IconSend,
   IconUser,
-  IconRobot,
-  IconDelete,
 } from '@arco-design/web-react/icon';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import ChatReferenceList, { ChatReference } from '@/components/ChatReferenceList';
+import {
+  ALL_SCOPE_VALUE,
+  buildKnowledgeScopePayload,
+  getAccessibleKnowledgeSetOptions,
+  getKnowledgeScopeLabel,
+  KnowledgeSetOption,
+} from '@/services/knowledgeScopeService';
 import './style.css';
 import {
+  deleteSession,
+  fetchStream,
   getChatMessages,
   getChatSessions,
-  sendChatCompletion,
-  fetchStream,
   getLLMModelsByType,
-  deleteSession,
 } from './api';
 
 const { Sider, Content } = Layout;
 const { TextArea } = Input;
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 interface ChatSession {
   sessionId: string;
   title?: string;
   modelName?: string;
   updatedAt?: string;
+  knowledgeScopeType?: string;
+  knowledgeSetId?: string;
 }
 
 interface ChatMessage {
@@ -47,6 +56,7 @@ interface ChatMessage {
   role: string;
   content: string;
   createdAt?: string;
+  references?: ChatReference[];
 }
 
 interface LLMModel {
@@ -55,7 +65,7 @@ interface LLMModel {
   isDefault: string;
 }
 
-const ChatPage: React.FC = () => {
+const ChatPage = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsPage, setSessionsPage] = useState(0);
@@ -67,15 +77,34 @@ const ChatPage: React.FC = () => {
   const [messagesLoading, setMessagesLoading] = useState(false);
 
   const [models, setModels] = useState<LLMModel[]>([]);
-  const [currentModel, setCurrentModel] = useState<string>('');
+  const [currentModel, setCurrentModel] = useState('');
+
+  const [knowledgeSetOptions, setKnowledgeSetOptions] = useState<KnowledgeSetOption[]>([]);
+  const [scopeLoading, setScopeLoading] = useState(false);
+  const [selectedScopeValue, setSelectedScopeValue] = useState(ALL_SCOPE_VALUE);
 
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const currentScopeLabel = getKnowledgeScopeLabel(selectedScopeValue, knowledgeSetOptions);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const resolveScopeValue = (session?: ChatSession) => {
+    if (session?.knowledgeScopeType === 'KNOWLEDGE_SET' && session.knowledgeSetId) {
+      return session.knowledgeSetId;
+    }
+    return ALL_SCOPE_VALUE;
+  };
+
+  const resetCurrentConversation = () => {
+    setCurrentSessionId(null);
+    setMessages([]);
+    setInputValue('');
   };
 
   useEffect(() => {
@@ -96,6 +125,7 @@ const ChatPage: React.FC = () => {
         setSessionsTotal(data.totalElements || data.content.length);
       }
     } catch (error) {
+      console.error(error);
       Message.error('获取会话列表失败');
     } finally {
       setSessionsLoading(false);
@@ -113,60 +143,97 @@ const ChatPage: React.FC = () => {
         setMessages([]);
       }
     } catch (error) {
+      console.error(error);
       Message.error('获取会话消息失败');
     } finally {
       setMessagesLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadSessions(0);
-    loadModels();
-  }, []);
-
   const loadModels = async () => {
     try {
       const res = await getLLMModelsByType('TEXT');
-      if (res.data) {
+      if (Array.isArray(res.data)) {
         setModels(res.data);
-        const defaultModel = res.data.find((m: any) => m.isDefault === '1');
-        if (defaultModel) setCurrentModel(defaultModel.name);
-        else if (res.data.length > 0) setCurrentModel(res.data[0].name);
+        const defaultModel = res.data.find((item: LLMModel) => item.isDefault === '1');
+        if (defaultModel) {
+          setCurrentModel(defaultModel.name);
+        } else if (res.data.length > 0) {
+          setCurrentModel(res.data[0].name);
+        }
       }
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
+      Message.error('获取模型列表失败');
     }
   };
 
+  const loadKnowledgeSets = async () => {
+    setScopeLoading(true);
+    try {
+      const nextOptions = await getAccessibleKnowledgeSetOptions();
+      setKnowledgeSetOptions(nextOptions);
+
+      if (
+        selectedScopeValue !== ALL_SCOPE_VALUE &&
+        !nextOptions.some((item) => item.id === selectedScopeValue)
+      ) {
+        setSelectedScopeValue(ALL_SCOPE_VALUE);
+        resetCurrentConversation();
+      }
+    } catch (error) {
+      console.error(error);
+      Message.error('获取知识集列表失败');
+    } finally {
+      setScopeLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSessions(0);
+    loadModels();
+    loadKnowledgeSets();
+  }, []);
+
   const handleSelectSession = (session: ChatSession) => {
     setCurrentSessionId(session.sessionId);
-    loadMessages(session.sessionId);
+    setSelectedScopeValue(resolveScopeValue(session));
+    void loadMessages(session.sessionId);
     if (session.modelName) {
       setCurrentModel(session.modelName);
     }
   };
 
   const handleNewSession = () => {
-    setCurrentSessionId(null);
-    setMessages([]);
-    setInputValue('');
-    const defaultModel = models.find((m) => m.isDefault === '1');
-    if (defaultModel) setCurrentModel(defaultModel.name);
-    else if (models.length > 0) setCurrentModel(models[0].name);
+    resetCurrentConversation();
+    const defaultModel = models.find((item) => item.isDefault === '1');
+    if (defaultModel) {
+      setCurrentModel(defaultModel.name);
+    } else if (models.length > 0) {
+      setCurrentModel(models[0].name);
+    }
   };
 
-  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleScopeChange = (value: string) => {
+    if (value === selectedScopeValue) {
+      return;
+    }
+    setSelectedScopeValue(value);
+    resetCurrentConversation();
+    Message.info(`已切换到“${getKnowledgeScopeLabel(value, knowledgeSetOptions)}”，并开启新会话`);
+  };
+
+  const handleDeleteSession = async (sessionId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
     try {
       await deleteSession(sessionId);
       Message.success('会话已删除');
-      // If the deleted session was the current one, reset to new session
       if (currentSessionId === sessionId) {
         handleNewSession();
       }
-      // Reload sessions list
-      loadSessions(sessionsPage);
+      void loadSessions(sessionsPage);
     } catch (error) {
+      console.error(error);
       Message.error('删除会话失败');
     }
   };
@@ -177,104 +244,106 @@ const ChatPage: React.FC = () => {
       Message.warning('请输入要发送的内容');
       return;
     }
+    if (!currentModel) {
+      Message.warning('请先选择模型');
+      return;
+    }
+
     setSending(true);
 
-    // 乐观更新：先显示用户的消息
     const tempUserMsgId = Date.now().toString();
     const tempUserMsg: ChatMessage = {
       id: tempUserMsgId,
       role: 'USER',
-      content: content,
+      content,
       createdAt: new Date().toLocaleString(),
     };
 
-    // 预先创建一个空的 Assistant 消息用于流式显示
     const tempAssistantMsgId = (Date.now() + 1).toString();
     const tempAssistantMsg: ChatMessage = {
       id: tempAssistantMsgId,
       role: 'ASSISTANT',
       content: '',
-      createdAt: new Date().toLocaleString(), // 初始时间
+      createdAt: new Date().toLocaleString(),
+      references: [],
     };
 
     setMessages((prev) => [...prev, tempUserMsg, tempAssistantMsg]);
     setInputValue('');
 
     try {
-        const payload = {
-          sessionId: currentSessionId || undefined,
-          message: {
-            role: 'USER',
-            content,
-          },
-          config: {
-            modelName: currentModel,
-          },
-        };
+      const payload = {
+        sessionId: currentSessionId || undefined,
+        ...buildKnowledgeScopePayload(selectedScopeValue),
+        message: {
+          role: 'USER',
+          content,
+        },
+        config: {
+          modelName: currentModel,
+        },
+      };
 
-        // Track assistant message id through the stream so subsequent chunks still match
-        let assistantMsgId = tempAssistantMsgId;
-
-        // 使用 ref 来追踪当前的 sessionId，避免闭包问题
-      // 但这里我们简单处理，因为流过程中 sessionId 应该是一致的（由后端返回）
+      let assistantMsgId = tempAssistantMsgId;
 
       await fetchStream(
         '/chat/stream',
         payload,
         (delta, response) => {
-          console.log('[Chat] onMessage called, delta:', delta);
-          // 如果是新会话，后端会在响应中返回 sessionId
-          if (response.sessionId) {
-             // 这里不能直接依赖 currentSessionId 闭包变量判断，因为它是旧的
-             // 但我们可以直接 set，因为如果是同一个 id也没关系
-             setCurrentSessionId(response.sessionId);
+          if (response?.sessionId) {
+            setCurrentSessionId((prev) => prev || response.sessionId);
           }
 
+          const references = response?.references || response?.messages?.[0]?.references || [];
+
           setMessages((prev) => {
-            console.log('[Chat] setMessages called, prev length:', prev.length);
-            const newMessages = [...prev];
-            const messageIdFromServer = response.messages?.[0]?.id;
-            const targetMsgIndex = newMessages.findIndex(
-              (m) =>
-                m.id === assistantMsgId ||
-                (messageIdFromServer && m.id === messageIdFromServer)
+            const nextMessages = [...prev];
+            const messageIdFromServer = response?.messages?.[0]?.id;
+            const targetMsgIndex = nextMessages.findIndex(
+              (item) =>
+                item.id === assistantMsgId ||
+                (messageIdFromServer && item.id === messageIdFromServer)
             );
-            if (targetMsgIndex !== -1) {
-              const targetMsg = newMessages[targetMsgIndex];
-              const nextId = messageIdFromServer || targetMsg.id;
-              newMessages[targetMsgIndex] = {
-                ...targetMsg,
-                id: nextId,
-                content: targetMsg.content + delta,
-                createdAt: response.messages?.[0]?.createdAt || targetMsg.createdAt,
-              };
-              assistantMsgId = nextId; // ensure later chunks still find the message
+
+            if (targetMsgIndex === -1) {
+              return prev;
             }
-            return newMessages;
+
+            const targetMsg = nextMessages[targetMsgIndex];
+            const nextId = messageIdFromServer || targetMsg.id;
+            nextMessages[targetMsgIndex] = {
+              ...targetMsg,
+              id: nextId,
+              content: targetMsg.content + delta,
+              createdAt: response?.messages?.[0]?.createdAt || targetMsg.createdAt,
+              references,
+            };
+            assistantMsgId = nextId;
+            return nextMessages;
           });
         },
         () => {
           setSending(false);
-          loadSessions(sessionsPage);
+          void loadSessions(sessionsPage);
         },
-        (err) => {
-          console.error(err);
+        (error) => {
+          console.error(error);
           Message.error('发送消息失败');
           setSending(false);
-          // 可以考虑移除临时的错误消息或标记为错误
         }
       );
     } catch (error) {
+      console.error(error);
       Message.error('发送消息失败');
       setSending(false);
     }
   };
 
-  const handleInputKeyDown = (event: any) => {
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (!sending) {
-        handleSend();
+        void handleSend();
       }
     }
   };
@@ -300,6 +369,7 @@ const ChatPage: React.FC = () => {
             <div className="markdown-body">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content}</ReactMarkdown>
             </div>
+            {!isUser && <ChatReferenceList references={item.references} />}
           </div>
         </div>
       </div>
@@ -307,7 +377,7 @@ const ChatPage: React.FC = () => {
   };
 
   const currentSessionTitle =
-    sessions.find((s) => s.sessionId === currentSessionId)?.title ||
+    sessions.find((item) => item.sessionId === currentSessionId)?.title ||
     (currentSessionId ? currentSessionId : '新会话');
 
   return (
@@ -315,39 +385,25 @@ const ChatPage: React.FC = () => {
       <Sider width={280} className="chat-sidebar">
         <div className="sidebar-header">
           <Space>
-            <Button
-              type="primary"
-              icon={<IconPlus />}
-              onClick={handleNewSession}
-            >
+            <Button type="primary" icon={<IconPlus />} onClick={handleNewSession}>
               新建会话
             </Button>
-            <Button
-              icon={<IconRefresh />}
-              onClick={() => loadSessions(0)}
-            />
+            <Button icon={<IconRefresh />} onClick={() => loadSessions(0)} />
           </Space>
         </div>
         <div className="session-list-container">
           <Spin loading={sessionsLoading} style={{ display: 'block', minHeight: 100 }}>
             {sessions.length === 0 ? (
-              <Empty
-                style={{ marginTop: 80 }}
-                description="暂无会话"
-              />
+              <Empty style={{ marginTop: 80 }} description="暂无会话" />
             ) : (
               sessions.map((item) => (
                 <div
                   key={item.sessionId}
-                  className={`session-item ${
-                    item.sessionId === currentSessionId ? 'active' : ''
-                  }`}
+                  className={`session-item ${item.sessionId === currentSessionId ? 'active' : ''}`}
                   onClick={() => handleSelectSession(item)}
                 >
                   <div className="session-info">
-                    <div className="session-title">
-                      {item.title || item.sessionId}
-                    </div>
+                    <div className="session-title">{item.title || item.sessionId}</div>
                     <div className="session-time">{item.updatedAt || '-'}</div>
                   </div>
                   <Button
@@ -355,7 +411,7 @@ const ChatPage: React.FC = () => {
                     size="mini"
                     icon={<IconDelete />}
                     className="session-delete-btn"
-                    onClick={(e) => handleDeleteSession(item.sessionId, e)}
+                    onClick={(event) => handleDeleteSession(item.sessionId, event)}
                   />
                 </div>
               ))
@@ -363,25 +419,28 @@ const ChatPage: React.FC = () => {
           </Spin>
         </div>
         {sessionsTotal > sessionsPageSize && (
-          <div className="session-footer">
-            共 {sessionsTotal} 条会话
-          </div>
+          <div className="session-footer">共 {sessionsTotal} 条会话</div>
         )}
       </Sider>
       <Layout>
         <Content className="chat-main-content">
           <div className="chat-header">
-            <Title heading={6} style={{ margin: 0, fontSize: 16 }}>
-              {currentSessionTitle}
-            </Title>
+            <div>
+              <Title heading={6} style={{ margin: 0, fontSize: 16 }}>
+                {currentSessionTitle}
+              </Title>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                当前知识范围：{currentScopeLabel}
+              </Text>
+            </div>
           </div>
-          
+
           <div className="chat-messages-container">
             <Spin loading={messagesLoading} style={{ display: 'block', minHeight: 100 }}>
               {messages.length === 0 ? (
                 <Empty description="暂无消息，输入内容开始对话" style={{ marginTop: 100 }} />
               ) : (
-                messages.map((m) => renderMessageItem(m))
+                messages.map((item) => renderMessageItem(item))
               )}
               <div ref={messagesEndRef} />
             </Spin>
@@ -389,7 +448,7 @@ const ChatPage: React.FC = () => {
 
           <div className="input-area-wrapper">
             <div className="input-card">
-              <div style={{ marginBottom: 8 }}>
+              <div className="chat-control-row">
                 <Select
                   bordered={false}
                   triggerProps={{
@@ -397,13 +456,35 @@ const ChatPage: React.FC = () => {
                     autoAlignPopupMinWidth: true,
                     position: 'tl',
                   }}
-                  style={{ width: 'auto', minWidth: 120, paddingLeft: 0 }}
+                  className="chat-control-select"
                   placeholder="请选择模型"
                   value={currentModel}
                   onChange={(value) => setCurrentModel(value)}
+                  disabled={sending}
                 >
                   {models.map((option) => (
                     <Select.Option key={option.id} value={option.name}>
+                      {option.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+                <Select
+                  bordered={false}
+                  triggerProps={{
+                    autoAlignPopupWidth: false,
+                    autoAlignPopupMinWidth: true,
+                    position: 'tl',
+                  }}
+                  className="chat-control-select"
+                  placeholder="请选择知识范围"
+                  value={selectedScopeValue}
+                  onChange={(value) => handleScopeChange(value as string)}
+                  loading={scopeLoading}
+                  disabled={sending}
+                >
+                  <Select.Option value={ALL_SCOPE_VALUE}>全部知识集</Select.Option>
+                  {knowledgeSetOptions.map((option) => (
+                    <Select.Option key={option.id} value={option.id}>
                       {option.name}
                     </Select.Option>
                   ))}
@@ -423,7 +504,7 @@ const ChatPage: React.FC = () => {
                 <Button
                   type="primary"
                   icon={<IconSend />}
-                  onClick={handleSend}
+                  onClick={() => void handleSend()}
                   loading={sending}
                   size="small"
                 >

@@ -4,18 +4,25 @@ import com.ck.quiz.chat.dto.ChatCompletionRequest;
 import com.ck.quiz.chat.dto.ChatCompletionResponse;
 import com.ck.quiz.chat.dto.ChatMessageDto;
 import com.ck.quiz.chat.dto.ChatMessagePayload;
+import com.ck.quiz.chat.dto.ChatReferenceDto;
 import com.ck.quiz.chat.dto.ChatSessionDto;
+import com.ck.quiz.chat.dto.ChatSessionExtraConfigDto;
 import com.ck.quiz.chat.entity.ChatMessage;
 import com.ck.quiz.chat.entity.ChatSession;
 import com.ck.quiz.chat.repository.ChatMessageRepository;
 import com.ck.quiz.chat.repository.ChatSessionRepository;
 import com.ck.quiz.chat.service.ChatService;
+import com.ck.quiz.knowledgeset.entity.KnowledgeSet;
+import com.ck.quiz.knowledgeset.entity.KnowledgeSource;
 import com.ck.quiz.knowledgeset.dto.VectorSearchFilter;
 import com.ck.quiz.knowledgeset.dto.VectorSearchResultDto;
 import com.ck.quiz.knowledgeset.repository.KnowledgeSetRepository;
+import com.ck.quiz.knowledgeset.repository.KnowledgeSourceRepository;
 import com.ck.quiz.knowledgeset.service.VectorService;
 import com.ck.quiz.llmmodel.service.LLMModelService;
 import com.ck.quiz.utils.IdHelper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -37,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -52,7 +60,9 @@ public class ChatServiceImpl implements ChatService {
     private final LLMModelService llmModelService;
     private final VectorService vectorService;
     private final KnowledgeSetRepository knowledgeSetRepository;
+    private final KnowledgeSourceRepository knowledgeSourceRepository;
     private final com.ck.quiz.tokenusage.service.TokenUsageService tokenUsageService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${chat.max-history-messages:20}")
     private int maxHistoryMessages;
@@ -80,7 +90,8 @@ public class ChatServiceImpl implements ChatService {
 
         RetrievedContext retrievedContext = retrieveContext(userId, payload.getContent(), request);
         if (retrievedContext.shouldReplyDirectly()) {
-            saveAssistantMessage(session, retrievedContext.getDirectReply(), userMessage.getSeq() + 1);
+            saveAssistantMessage(session, retrievedContext.getDirectReply(), userMessage.getSeq() + 1,
+                    retrievedContext.getReferences());
             updateSession(session, userMessage.getContent());
             return buildResponse(session);
         }
@@ -111,7 +122,7 @@ public class ChatServiceImpl implements ChatService {
         }
 
         // Save Assistant Message
-        saveAssistantMessage(session, answer, userMessage.getSeq() + 1);
+        saveAssistantMessage(session, answer, userMessage.getSeq() + 1, retrievedContext.getReferences());
 
         // Update Session
         updateSession(session, userMessage.getContent());
@@ -138,21 +149,19 @@ public class ChatServiceImpl implements ChatService {
         RetrievedContext retrievedContext = retrieveContext(userId, payload.getContent(), request);
         String assistantMessageId = IdHelper.genUuid();
         int assistantSeq = userMessage.getSeq() + 1;
-        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-
         if (retrievedContext.shouldReplyDirectly()) {
             final String responseJson;
             try {
-                responseJson = buildStreamResponse(objectMapper, session.getSessionUuid(), assistantMessageId,
-                        retrievedContext.getDirectReply());
-            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                responseJson = buildStreamResponse(session.getSessionUuid(), assistantMessageId,
+                        retrievedContext.getDirectReply(), retrievedContext.getReferences());
+            } catch (Exception e) {
                 log.error("JSON serialize error", e);
                 return Flux.error(e);
             }
             return Flux.just(responseJson)
                     .doOnComplete(() -> {
                         saveAssistantMessageWithId(session, retrievedContext.getDirectReply(), assistantSeq,
-                                assistantMessageId);
+                                assistantMessageId, retrievedContext.getReferences());
                         updateSession(session, userMessage.getContent());
                     });
         }
@@ -169,7 +178,8 @@ public class ChatServiceImpl implements ChatService {
                 .map(content -> {
                     contentBuilder.append(content);
                     try {
-                        return buildStreamResponse(objectMapper, session.getSessionUuid(), assistantMessageId, content);
+                        return buildStreamResponse(session.getSessionUuid(), assistantMessageId, content,
+                                retrievedContext.getReferences());
                     } catch (Exception e) {
                         log.error("JSON serialize error", e);
                         return "";
@@ -178,7 +188,8 @@ public class ChatServiceImpl implements ChatService {
                 .filter(s -> !s.isEmpty())
                 .doOnComplete(() -> {
                     String fullContent = contentBuilder.toString();
-                    saveAssistantMessageWithId(session, fullContent, assistantSeq, assistantMessageId);
+                    saveAssistantMessageWithId(session, fullContent, assistantSeq, assistantMessageId,
+                            retrievedContext.getReferences());
                     updateSession(session, userMessage.getContent());
                 });
     }
@@ -194,11 +205,13 @@ public class ChatServiceImpl implements ChatService {
         return chatMessageRepository.save(userMessage);
     }
 
-    private void saveAssistantMessage(ChatSession session, String content, int seq) {
-        saveAssistantMessageWithId(session, content, seq, IdHelper.genUuid());
+    private void saveAssistantMessage(ChatSession session, String content, int seq,
+            List<ChatReferenceDto> references) {
+        saveAssistantMessageWithId(session, content, seq, IdHelper.genUuid(), references);
     }
 
-    private void saveAssistantMessageWithId(ChatSession session, String content, int seq, String id) {
+    private void saveAssistantMessageWithId(ChatSession session, String content, int seq, String id,
+            List<ChatReferenceDto> references) {
         ChatMessage assistantMessage = new ChatMessage();
         assistantMessage.setId(id);
         assistantMessage.setSessionId(session.getId());
@@ -206,6 +219,7 @@ public class ChatServiceImpl implements ChatService {
         assistantMessage.setContent(content);
         assistantMessage.setSeq(seq);
         assistantMessage.setErrorFlag(Boolean.FALSE);
+        assistantMessage.setMeta(writeReferences(references));
         chatMessageRepository.save(assistantMessage);
     }
 
@@ -220,7 +234,9 @@ public class ChatServiceImpl implements ChatService {
         List<ChatMessage> trimmed = trimHistory(latestMessages, maxHistoryMessages);
         ChatCompletionResponse response = new ChatCompletionResponse();
         response.setSessionId(session.getSessionUuid());
-        response.setMessages(trimmed.stream().map(this::toMessageDto).collect(Collectors.toList()));
+        List<ChatMessageDto> messageDtos = trimmed.stream().map(this::toMessageDto).collect(Collectors.toList());
+        response.setMessages(messageDtos);
+        response.setReferences(resolveLatestAssistantReferences(messageDtos));
 
         // Calculate total usage for this session
         try {
@@ -273,6 +289,8 @@ public class ChatServiceImpl implements ChatService {
             return RetrievedContext.knowledgeReplyOnly(NO_KNOWLEDGE_HIT_MESSAGE);
         }
 
+        List<ChatReferenceDto> references = buildReferences(results);
+
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < results.size(); i++) {
             VectorSearchResultDto result = results.get(i);
@@ -280,7 +298,7 @@ public class ChatServiceImpl implements ChatService {
                     .append(result.getChunk().getContent())
                     .append("\n\n");
         }
-        return RetrievedContext.knowledgeContext(sb.toString().trim());
+        return RetrievedContext.knowledgeContext(sb.toString().trim(), references);
     }
 
     private Prompt buildPrompt(List<ChatMessage> history, RetrievedContext retrievedContext) {
@@ -354,15 +372,17 @@ public class ChatServiceImpl implements ChatService {
         return StringUtils.hasText(value) ? value.trim() : null;
     }
 
-    private String buildStreamResponse(com.fasterxml.jackson.databind.ObjectMapper objectMapper, String sessionId,
-            String assistantMessageId, String content) throws com.fasterxml.jackson.core.JsonProcessingException {
+    private String buildStreamResponse(String sessionId, String assistantMessageId, String content,
+            List<ChatReferenceDto> references) throws com.fasterxml.jackson.core.JsonProcessingException {
         ChatCompletionResponse response = new ChatCompletionResponse();
         response.setSessionId(sessionId);
+        response.setReferences(references);
 
         ChatMessageDto msgDto = new ChatMessageDto();
         msgDto.setId(assistantMessageId);
         msgDto.setRole("ASSISTANT");
         msgDto.setContent(content);
+        msgDto.setReferences(references);
         response.setMessages(Collections.singletonList(msgDto));
         return objectMapper.writeValueAsString(response);
     }
@@ -399,6 +419,20 @@ public class ChatServiceImpl implements ChatService {
             if (session.getCreateUser() != null && !session.getCreateUser().equals(userId)) {
                 throw new IllegalArgumentException("no permission to access session");
             }
+            boolean changed = false;
+            String modelName = request.getConfig() != null ? request.getConfig().getModelName() : null;
+            if (StringUtils.hasText(modelName) && !Objects.equals(session.getModelName(), modelName)) {
+                session.setModelName(modelName);
+                changed = true;
+            }
+            String extraConfig = writeSessionExtraConfig(request);
+            if (!Objects.equals(session.getExtraConfig(), extraConfig)) {
+                session.setExtraConfig(extraConfig);
+                changed = true;
+            }
+            if (changed) {
+                session = chatSessionRepository.save(session);
+            }
             return session;
         }
         ChatSession session = new ChatSession();
@@ -409,6 +443,7 @@ public class ChatServiceImpl implements ChatService {
         session.setMaxTokens(request.getConfig() != null ? request.getConfig().getMaxTokens() : null);
         session.setStatus("ACTIVE");
         session.setCreateUser(userId); // Ensure user is set
+        session.setExtraConfig(writeSessionExtraConfig(request));
         return chatSessionRepository.save(session);
     }
 
@@ -429,6 +464,7 @@ public class ChatServiceImpl implements ChatService {
         dto.setId(message.getId());
         dto.setRole(message.getRole());
         dto.setContent(message.getContent());
+        dto.setReferences(readReferences(message.getMeta()));
         if (message.getCreateDate() != null) {
             dto.setCreatedAt(message.getCreateDate().format(DATE_TIME_FORMATTER));
         }
@@ -440,6 +476,9 @@ public class ChatServiceImpl implements ChatService {
         dto.setSessionId(session.getSessionUuid());
         dto.setTitle(session.getTitle());
         dto.setModelName(session.getModelName());
+        ChatSessionExtraConfigDto extraConfig = readSessionExtraConfig(session.getExtraConfig());
+        dto.setKnowledgeScopeType(extraConfig != null ? extraConfig.getKnowledgeScopeType() : null);
+        dto.setKnowledgeSetId(extraConfig != null ? extraConfig.getKnowledgeSetId() : null);
         if (session.getUpdateDate() != null) {
             dto.setUpdatedAt(session.getUpdateDate().format(DATE_TIME_FORMATTER));
         } else if (session.getCreateDate() != null) {
@@ -481,27 +520,142 @@ public class ChatServiceImpl implements ChatService {
         log.info("浼氳瘽宸插垹闄わ紝sessionUuid: {}, userId: {}", sessionUuid, userId);
     }
 
+    private List<ChatReferenceDto> buildReferences(List<VectorSearchResultDto> results) {
+        if (results == null || results.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> sourceIds = results.stream()
+                .map(result -> result.getChunk() != null ? result.getChunk().getKnowledgeSourceId() : null)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .collect(Collectors.toList());
+
+        java.util.Map<String, KnowledgeSource> sourceMap = knowledgeSourceRepository.findAllById(sourceIds).stream()
+                .collect(Collectors.toMap(KnowledgeSource::getId, source -> source));
+        List<String> knowledgeSetIds = sourceMap.values().stream()
+                .map(KnowledgeSource::getKnowledgeSetId)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .collect(Collectors.toList());
+        java.util.Map<String, KnowledgeSet> knowledgeSetMap = knowledgeSetRepository.findAllById(knowledgeSetIds).stream()
+                .collect(Collectors.toMap(KnowledgeSet::getId, knowledgeSet -> knowledgeSet));
+
+        List<ChatReferenceDto> references = new ArrayList<>();
+        for (VectorSearchResultDto result : results) {
+            if (result.getChunk() == null) {
+                continue;
+            }
+
+            KnowledgeSource source = sourceMap.get(result.getChunk().getKnowledgeSourceId());
+            if (source == null) {
+                continue;
+            }
+
+            KnowledgeSet knowledgeSet = knowledgeSetMap.get(source.getKnowledgeSetId());
+            ChatReferenceDto reference = new ChatReferenceDto();
+            reference.setKnowledgeSetId(source.getKnowledgeSetId());
+            reference.setKnowledgeSetName(knowledgeSet != null ? knowledgeSet.getName() : null);
+            reference.setKnowledgeSourceId(source.getId());
+            reference.setKnowledgeSourceName(source.getName());
+            reference.setChunkIndex(result.getChunk().getChunkIndex());
+            reference.setDistance(result.getDistance());
+            references.add(reference);
+        }
+        return references;
+    }
+
+    private String writeReferences(List<ChatReferenceDto> references) {
+        if (references == null || references.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(references);
+        } catch (Exception e) {
+            log.warn("serialize chat references failed", e);
+            return null;
+        }
+    }
+
+    private List<ChatReferenceDto> readReferences(String meta) {
+        if (!StringUtils.hasText(meta)) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(meta, new TypeReference<List<ChatReferenceDto>>() {
+            });
+        } catch (Exception e) {
+            log.warn("parse chat references failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    private ChatSessionExtraConfigDto readSessionExtraConfig(String extraConfig) {
+        if (!StringUtils.hasText(extraConfig)) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(extraConfig, ChatSessionExtraConfigDto.class);
+        } catch (Exception e) {
+            log.warn("parse chat session extra config failed", e);
+            return null;
+        }
+    }
+
+    private String writeSessionExtraConfig(ChatCompletionRequest request) {
+        if (!isKnowledgeMode(request)) {
+            return null;
+        }
+
+        ChatSessionExtraConfigDto extraConfig = new ChatSessionExtraConfigDto();
+        extraConfig.setKnowledgeScopeType(normalizeKnowledgeScopeType(request));
+        extraConfig.setKnowledgeSetId(normalizeBlank(request.getKnowledgeSetId()));
+        try {
+            return objectMapper.writeValueAsString(extraConfig);
+        } catch (Exception e) {
+            log.warn("serialize chat session extra config failed", e);
+            return null;
+        }
+    }
+
+    private List<ChatReferenceDto> resolveLatestAssistantReferences(List<ChatMessageDto> messages) {
+        if (messages == null || messages.isEmpty()) {
+            return Collections.emptyList();
+        }
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            ChatMessageDto message = messages.get(i);
+            if ("ASSISTANT".equalsIgnoreCase(message.getRole()) && message.getReferences() != null
+                    && !message.getReferences().isEmpty()) {
+                return message.getReferences();
+            }
+        }
+        return Collections.emptyList();
+    }
+
     private static class RetrievedContext {
         private final boolean knowledgeMode;
         private final String ragContext;
         private final String directReply;
+        private final List<ChatReferenceDto> references;
 
-        private RetrievedContext(boolean knowledgeMode, String ragContext, String directReply) {
+        private RetrievedContext(boolean knowledgeMode, String ragContext, String directReply,
+                List<ChatReferenceDto> references) {
             this.knowledgeMode = knowledgeMode;
             this.ragContext = ragContext;
             this.directReply = directReply;
+            this.references = references == null ? Collections.emptyList() : references;
         }
 
         private static RetrievedContext general() {
-            return new RetrievedContext(false, null, null);
+            return new RetrievedContext(false, null, null, Collections.emptyList());
         }
 
-        private static RetrievedContext knowledgeContext(String ragContext) {
-            return new RetrievedContext(true, ragContext, null);
+        private static RetrievedContext knowledgeContext(String ragContext, List<ChatReferenceDto> references) {
+            return new RetrievedContext(true, ragContext, null, references);
         }
 
         private static RetrievedContext knowledgeReplyOnly(String directReply) {
-            return new RetrievedContext(true, null, directReply);
+            return new RetrievedContext(true, null, directReply, Collections.emptyList());
         }
 
         private boolean isKnowledgeMode() {
@@ -514,6 +668,10 @@ public class ChatServiceImpl implements ChatService {
 
         private String getDirectReply() {
             return directReply;
+        }
+
+        private List<ChatReferenceDto> getReferences() {
+            return references;
         }
 
         private boolean shouldReplyDirectly() {

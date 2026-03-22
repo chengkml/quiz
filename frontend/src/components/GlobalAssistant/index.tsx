@@ -2,27 +2,25 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Avatar, Button, Input, Message, Select, Tooltip } from '@arco-design/web-react';
 import { IconClose, IconRefresh, IconRobot, IconSend, IconUser } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
+import ChatReferenceList, { ChatReference } from '@/components/ChatReferenceList';
 import { fetchStream } from '@/pages/Chat/api';
 import {
-  getMyCreatedKnowledgeSets,
-  getMyJoinedKnowledgeSets,
-} from '@/pages/KnowledgeSet/api';
+  ALL_SCOPE_VALUE,
+  buildKnowledgeScopePayload,
+  getAccessibleKnowledgeSetOptions,
+  getKnowledgeScopeLabel,
+  KnowledgeSetOption,
+} from '@/services/knowledgeScopeService';
 import './style.less';
 
 const { TextArea } = Input;
-
-const ALL_SCOPE_VALUE = '__ALL_ACCESSIBLE__';
 
 interface AssistantMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
-}
-
-interface KnowledgeSetOption {
-  id: string;
-  name: string;
+  references?: ChatReference[];
 }
 
 const createWelcomeMessage = (scopeLabel: string): AssistantMessage => ({
@@ -49,13 +47,6 @@ const GlobalAssistant: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const getScopeLabel = (scopeValue: string) => {
-    if (scopeValue === ALL_SCOPE_VALUE) {
-      return '全部知识集';
-    }
-    return knowledgeSetOptions.find((item) => item.id === scopeValue)?.name || '指定知识集';
-  };
-
   const resetConversation = (scopeLabel: string) => {
     currentAssistantMessageRef.current = '';
     setSessionId('');
@@ -67,32 +58,7 @@ const GlobalAssistant: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const loadKnowledgeSets = async () => {
     setOptionsLoading(true);
     try {
-      const params = {
-        pageNum: 0,
-        pageSize: 200,
-        status: 'ENABLED',
-      };
-      const [createdRes, joinedRes] = await Promise.all([
-        getMyCreatedKnowledgeSets(params),
-        getMyJoinedKnowledgeSets(params),
-      ]);
-
-      const merged = new Map<string, KnowledgeSetOption>();
-      const appendOptions = (items: any[] = []) => {
-        items.forEach((item) => {
-          if (item?.id && item?.name && !merged.has(item.id)) {
-            merged.set(item.id, {
-              id: item.id,
-              name: item.name,
-            });
-          }
-        });
-      };
-
-      appendOptions(createdRes.data?.content || []);
-      appendOptions(joinedRes.data?.content || []);
-
-      const nextOptions = Array.from(merged.values());
+      const nextOptions = await getAccessibleKnowledgeSetOptions();
       setKnowledgeSetOptions(nextOptions);
 
       if (
@@ -122,7 +88,7 @@ const GlobalAssistant: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     if (value === selectedScopeValue) {
       return;
     }
-    const scopeLabel = getScopeLabel(value);
+    const scopeLabel = getKnowledgeScopeLabel(value, knowledgeSetOptions);
     setSelectedScopeValue(value);
     resetConversation(scopeLabel);
     Message.info(`已切换到“${scopeLabel}”，并开启新会话`);
@@ -159,10 +125,7 @@ const GlobalAssistant: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         '/chat/stream',
         {
           sessionId: sessionId || undefined,
-          knowledgeScopeType:
-            selectedScopeValue === ALL_SCOPE_VALUE ? 'ALL_ACCESSIBLE' : 'KNOWLEDGE_SET',
-          knowledgeSetId:
-            selectedScopeValue === ALL_SCOPE_VALUE ? undefined : selectedScopeValue,
+          ...buildKnowledgeScopePayload(selectedScopeValue),
           message: {
             role: 'user',
             content,
@@ -174,10 +137,11 @@ const GlobalAssistant: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
           }
 
           currentAssistantMessageRef.current += delta;
+          const references = response?.references || response?.messages?.[0]?.references || [];
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMsgId
-                ? { ...msg, content: currentAssistantMessageRef.current }
+                ? { ...msg, content: currentAssistantMessageRef.current, references }
                 : msg
             )
           );
@@ -276,6 +240,7 @@ const GlobalAssistant: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                 msg.id === messages[messages.length - 1]?.id && (
                   <span className="typing-cursor">|</span>
                 )}
+              {msg.role === 'assistant' && <ChatReferenceList references={msg.references} />}
             </div>
             {msg.role === 'user' && (
               <Avatar size={32} className="avatar" style={{ backgroundColor: '#ff7d00' }}>

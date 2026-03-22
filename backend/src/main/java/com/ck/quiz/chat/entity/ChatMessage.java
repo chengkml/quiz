@@ -41,5 +41,8 @@ public class ChatMessage extends Model {
     @Column(name = "error_flag")
     @Comment("是否异常消息")
     private Boolean errorFlag;
-}
 
+    @Column(name = "meta", columnDefinition = "TEXT")
+    @Comment("扩展信息(JSON)")
+    private String meta;
+}

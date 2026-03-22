@@ -12,5 +12,6 @@ public class ChatMessageDto {
     private String content;
 
     private String createdAt;
-}
 
+    private java.util.List<ChatReferenceDto> references;
+}

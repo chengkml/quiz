@@ -12,5 +12,6 @@ public class ChatCompletionResponse {
     private List<ChatMessageDto> messages;
 
     private ChatUsageDto usage;
-}
 
+    private List<ChatReferenceDto> references;
+}
