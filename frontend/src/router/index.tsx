@@ -29,6 +29,7 @@ import JobQueueManagement from "@/pages/JobQueue";
 import JobManager from "@/pages/Job";
 import ExamHistoryManager from "@/pages/Exam/History";
 import QuestionBankStatisticsPage from "@/pages/StatisticsCenter/themes/QuestionBank";
+import VocabularyProficiencyStatisticsPage from "@/pages/StatisticsCenter/themes/VocabularyProficiency";
 
 import NotFound from "@/pages/NotFound";
 import MindMapPage from "@/pages/MindMap";

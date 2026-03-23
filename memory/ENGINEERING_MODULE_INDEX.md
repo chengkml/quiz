@@ -130,6 +130,22 @@
   - `backend/src/main/java/com/ck/quiz/vocabulary/entity/VocabularyCard.java`
   - `backend/src/main/java/com/ck/quiz/vocabulary/dto/VocabularyCardQueryDto.java`
 
+## 统计中心（StatisticsCenter）
+
+- 前端入口（路由/主题注册/统计页）
+  - `frontend/src/router/index.tsx`
+  - `frontend/src/pages/StatisticsCenter/index.tsx`
+  - `frontend/src/pages/StatisticsCenter/themes/registry.ts`
+  - `frontend/src/pages/StatisticsCenter/themes/QuestionBank/index.tsx`
+  - `frontend/src/pages/StatisticsCenter/themes/VocabularyProficiency/index.tsx`
+  - `frontend/src/pages/StatisticsCenter/api/index.ts`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/statistics/controller/StatisticsController.java`
+- 后端核心实现（主题注册/统计仪表盘）
+  - `backend/src/main/java/com/ck/quiz/statistics/service/StatisticsThemeRegistry.java`
+  - `backend/src/main/java/com/ck/quiz/statistics/service/impl/QuestionBankStatisticsServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/statistics/service/impl/VocabularyProficiencyStatisticsServiceImpl.java`
+
 ## 家庭作业（Homework）
 
 - 前端入口（作业列表页）
