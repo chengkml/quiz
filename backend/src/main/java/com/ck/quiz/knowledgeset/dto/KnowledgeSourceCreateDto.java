@@ -18,5 +18,4 @@ public class KnowledgeSourceCreateDto extends CreateDto {
     private String content;
     private String meta;
     private String descr;
-    private String language;
 }

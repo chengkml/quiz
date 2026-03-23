@@ -15,5 +15,4 @@ public class KnowledgeSourceUpdateDto extends UpdateDto {
     private String content;
     private String meta;
     private String descr;
-    private String language;
 }

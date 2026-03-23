@@ -21,7 +21,6 @@ type KnowledgeSourceRecord = {
     status?: string;
     content?: string;
     descr?: string;
-    language?: string;
     createUser?: string;
     createUserName?: string;
     createDate?: string;
@@ -101,6 +100,10 @@ const renderTypeTag = (type?: string) => {
 };
 
 const renderStatusTag = (status?: string) => {
+    if (status === 'SUCCESS' || status === 'FAILED') {
+        return null;
+    }
+
     const config = SOURCE_STATUS_CONFIG[status || ''];
     if (!config) {
         return (
@@ -292,11 +295,6 @@ function KnowledgeSourceManager({
                         <div className='knowledge-source-card__tags'>
                             {renderTypeTag(item.type)}
                             {renderStatusTag(item.status)}
-                            {item.language && (
-                                <Tag size='small' bordered color='arcoblue'>
-                                    {item.language}
-                                </Tag>
-                            )}
                         </div>
                     </div>
                 }
@@ -379,7 +377,7 @@ function KnowledgeSourceManager({
                             renderShortCard: renderShortCard,
                             filterContent: filterContent,
                         }}
-                        cardColumns={isEmbedded ? 2 : 3}
+                        cardColumns={1}
                         cardGutter={16}
                         cardSize='medium'
                     />

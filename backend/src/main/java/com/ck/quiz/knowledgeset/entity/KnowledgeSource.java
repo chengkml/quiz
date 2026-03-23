@@ -53,7 +53,4 @@ public class KnowledgeSource extends Model {
     @Comment("标签")
     private String tags;
 
-    @Column(length = 32)
-    @Comment("语言")
-    private String language;
 }

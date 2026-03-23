@@ -162,9 +162,6 @@ function AddEditKnowledgeSourceModal({ visible, record, onOk, onCancel, knowledg
                 <FormItem label="标签" field="tags">
                     <Input placeholder="请输入标签，逗号分隔" />
                 </FormItem>
-                <FormItem label="语言" field="language">
-                    <Input placeholder="请输入语言 (如: zh-CN)" />
-                </FormItem>
             </Form>
         </Modal>
     );
