@@ -26,16 +26,29 @@ import { deleteKnowledgeSet, getKnowledgeSetById, getKnowledgeSetList } from './
 import renderDate from '@/utils/timeUtil';
 import './style/index.less';
 
+type KnowledgeSetRecord = {
+    id: string;
+    name: string;
+    descr?: string;
+    visibility?: string;
+    status?: string;
+    isSystem?: boolean;
+    createUser?: string;
+    createUserName?: string;
+    createDate?: string;
+};
+
 function KnowledgeSetManager() {
-    const [tableData, setTableData] = useState<any[]>([]);
+    const [tableData, setTableData] = useState<KnowledgeSetRecord[]>([]);
     const [loading, setLoading] = useState(false);
     const [tableScrollHeight, setTableScrollHeight] = useState(420);
 
     const [modalVisible, setModalVisible] = useState(false);
-    const [currentRecord, setCurrentRecord] = useState<any>(null);
+    const [currentRecord, setCurrentRecord] = useState<KnowledgeSetRecord | null>(null);
 
     const [sourceDrawerVisible, setSourceDrawerVisible] = useState(false);
     const [drawerKnowledgeSetId, setDrawerKnowledgeSetId] = useState<string | null>(null);
+    const [drawerReadonly, setDrawerReadonly] = useState(false);
 
     const [searchDrawerVisible, setSearchDrawerVisible] = useState(false);
     const [searchKnowledgeSetId, setSearchKnowledgeSetId] = useState<string | null>(null);
@@ -107,6 +120,14 @@ function KnowledgeSetManager() {
                 value === 'ENABLED' ? <Tag color='green' bordered>启用</Tag> : <Tag color='red' bordered>禁用</Tag>,
         },
         {
+            title: '系统内置',
+            dataIndex: 'isSystem',
+            align: 'center',
+            width: 110,
+            render: (value: boolean) =>
+                value ? <Tag color='arcoblue' bordered>内置</Tag> : <Tag bordered>自定义</Tag>,
+        },
+        {
             title: '创建人',
             dataIndex: 'createUserName',
             width: 170,
@@ -125,9 +146,9 @@ function KnowledgeSetManager() {
             width: 180,
             align: 'center',
             fixed: 'right',
-            render: (_: any, record: any) => (
+            render: (_: any, record: KnowledgeSetRecord) => (
                 <div className='table-btn-group'>
-                    <Tooltip content='来源'>
+                    <Tooltip content={record.isSystem ? '查看来源' : '来源'}>
                         <Button
                             type='text'
                             size='small'
@@ -135,44 +156,56 @@ function KnowledgeSetManager() {
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setDrawerKnowledgeSetId(record.id);
+                                setDrawerReadonly(Boolean(record.isSystem));
                                 setSourceDrawerVisible(true);
                             }}
                         />
                     </Tooltip>
-                    <Tooltip content='检索测试'>
-                        <Button
-                            type='text'
-                            size='small'
-                            icon={<IconSearch />}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setSearchKnowledgeSetId(record.id);
-                                setSearchDrawerVisible(true);
-                            }}
-                        />
-                    </Tooltip>
-                    <Tooltip content='编辑'>
-                        <Button
-                            type='text'
-                            size='small'
-                            icon={<IconEdit />}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(record);
-                            }}
-                        />
-                    </Tooltip>
-                    <Popconfirm title='确认删除该知识集吗？' onOk={() => handleDelete(record)}>
-                        <Tooltip content='删除'>
+                    {!record.isSystem && (
+                        <Tooltip content='检索测试'>
                             <Button
                                 type='text'
                                 size='small'
-                                status='danger'
-                                icon={<IconDelete />}
-                                onClick={(e) => e.stopPropagation()}
+                                icon={<IconSearch />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSearchKnowledgeSetId(record.id);
+                                    setSearchDrawerVisible(true);
+                                }}
                             />
                         </Tooltip>
-                    </Popconfirm>
+                    )}
+                    {!record.isSystem && (
+                        <Tooltip content='编辑'>
+                            <Button
+                                type='text'
+                                size='small'
+                                icon={<IconEdit />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEdit(record);
+                                }}
+                            />
+                        </Tooltip>
+                    )}
+                    {!record.isSystem && (
+                        <Popconfirm title='确认删除该知识集吗？' onOk={() => handleDelete(record)}>
+                            <Tooltip content='删除'>
+                                <Button
+                                    type='text'
+                                    size='small'
+                                    status='danger'
+                                    icon={<IconDelete />}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </Tooltip>
+                        </Popconfirm>
+                    )}
+                    {record.isSystem && (
+                        <Tag size='small' color='arcoblue' bordered>
+                            仅查看
+                        </Tag>
+                    )}
                 </div>
             ),
         },
@@ -231,7 +264,7 @@ function KnowledgeSetManager() {
         setModalVisible(true);
     };
 
-    const handleEdit = async (record: any) => {
+    const handleEdit = async (record: KnowledgeSetRecord) => {
         try {
             const response = await getKnowledgeSetById(record.id);
             setCurrentRecord(response.data);
@@ -241,7 +274,7 @@ function KnowledgeSetManager() {
         }
     };
 
-    const handleDelete = async (record: any) => {
+    const handleDelete = async (record: KnowledgeSetRecord) => {
         try {
             await deleteKnowledgeSet(record.id);
             Message.success('删除成功');
@@ -321,11 +354,14 @@ function KnowledgeSetManager() {
                 onCancel={() => {
                     setSourceDrawerVisible(false);
                     setDrawerKnowledgeSetId(null);
+                    setDrawerReadonly(false);
                 }}
                 footer={null}
                 unmountOnClose
             >
-                {drawerKnowledgeSetId && <KnowledgeSourceManager knowledgeSetId={drawerKnowledgeSetId} />}
+                {drawerKnowledgeSetId && (
+                    <KnowledgeSourceManager knowledgeSetId={drawerKnowledgeSetId} readOnly={drawerReadonly} />
+                )}
             </Drawer>
 
             <SearchDrawer

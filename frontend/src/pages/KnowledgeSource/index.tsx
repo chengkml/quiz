@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import UserAvatar from '@/components/UserAvatar';
-import { Button, Card, Layout, Message, Modal, Popconfirm, Space, Tag, Tooltip, Typography } from '@arco-design/web-react';
+import { Button, Card, Layout, Message, Modal, Space, Tag, Tooltip, Typography } from '@arco-design/web-react';
 import { IconDelete, IconEdit, IconFile, IconStorage } from '@arco-design/web-react/icon';
 import { DataManager } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
@@ -12,24 +12,129 @@ import renderDate from '@/utils/timeUtil';
 import './style/index.less';
 
 const { Content } = Layout;
+const { Text, Paragraph } = Typography;
 
-function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string }) {
+type KnowledgeSourceRecord = {
+    id: string;
+    name: string;
+    type?: string;
+    status?: string;
+    content?: string;
+    descr?: string;
+    language?: string;
+    createUser?: string;
+    createUserName?: string;
+    createDate?: string;
+};
+
+const SOURCE_TYPE_CONFIG: Record<string, { label: string; icon?: React.ReactNode }> = {
+    FILE: { label: '文件', icon: <IconFile /> },
+    DB: { label: '数据库表', icon: <IconStorage /> },
+    MARKDOWN: { label: 'Markdown' },
+    MIND_MAP: { label: '思维导图' },
+    MERMAID: { label: '流程图' },
+};
+
+const SOURCE_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+    PENDING: { label: '等待中', color: 'gold' },
+    PARSING: { label: '解析中', color: 'arcoblue' },
+    SUCCESS: { label: '成功', color: 'green' },
+    FAILED: { label: '失败', color: 'red' },
+    ENABLED: { label: '启用', color: 'green' },
+    DISABLED: { label: '禁用', color: 'gray' },
+};
+
+const normalizePreviewText = (text?: string) =>
+    (text || '')
+        .replace(/[#>*`[\]()!_-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const getSourceSummaryLabel = (type?: string) => {
+    if (type === 'FILE') {
+        return '文件路径';
+    }
+    if (type === 'DB') {
+        return '连接信息';
+    }
+    if (type === 'MARKDOWN') {
+        return '内容摘要';
+    }
+    return '内容概览';
+};
+
+const getSourceSummary = (record: KnowledgeSourceRecord) => {
+    if (record.type === 'DB') {
+        try {
+            const config = JSON.parse(record.content || '{}');
+            const driver = config.driver || '数据库';
+            const database = config.database || '未配置库名';
+            const host = config.host || '未配置主机';
+            const port = config.port ? `:${config.port}` : '';
+            return `${driver} · ${database} @ ${host}${port}`;
+        } catch {
+            return '数据库连接配置';
+        }
+    }
+
+    const preview = normalizePreviewText(record.content);
+    if (!preview) {
+        if (record.type === 'FILE') {
+            return '未配置文件路径';
+        }
+        if (record.type === 'MARKDOWN') {
+            return '暂无 Markdown 内容';
+        }
+        return '暂无内容';
+    }
+
+    return preview;
+};
+
+const renderTypeTag = (type?: string) => {
+    const config = SOURCE_TYPE_CONFIG[type || ''] || { label: type || '未知类型' };
+    return (
+        <Tag size='small' bordered icon={config.icon}>
+            {config.label}
+        </Tag>
+    );
+};
+
+const renderStatusTag = (status?: string) => {
+    const config = SOURCE_STATUS_CONFIG[status || ''];
+    if (!config) {
+        return (
+            <Tag size='small' bordered>
+                {status || '未知状态'}
+            </Tag>
+        );
+    }
+
+    return (
+        <Tag size='small' color={config.color} bordered>
+            {config.label}
+        </Tag>
+    );
+};
+
+function KnowledgeSourceManager({
+    knowledgeSetId,
+    readOnly = false,
+}: {
+    knowledgeSetId?: string;
+    readOnly?: boolean;
+}) {
     const { id } = useParams<{ id: string }>();
     const effectiveKnowledgeSetId = knowledgeSetId || id;
+    const isEmbedded = Boolean(knowledgeSetId);
 
-    // State
-    const [tableData, setTableData] = useState([]);
+    const [tableData, setTableData] = useState<KnowledgeSourceRecord[]>([]);
     const [loading, setLoading] = useState(false);
-    const [tableScrollHeight, setTableScrollHeight] = useState(200);
-    
-    // Modal state
     const [modalVisible, setModalVisible] = useState(false);
-    const [currentRecord, setCurrentRecord] = useState(null);
+    const [currentRecord, setCurrentRecord] = useState<KnowledgeSourceRecord | null>(null);
 
-    // Form ref
     const filterFormRef = useRef<any>();
 
-    // Pagination
     const [pagination, setPagination] = useState({
         current: 1,
         pageSize: 10,
@@ -39,63 +144,6 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
         showPageSize: true,
     });
 
-
-
-    // Columns
-    const tableColumns = [
-        {
-            title: '名称',
-            dataIndex: 'name',
-            width: 150,
-        },
-        {
-            title: '类型',
-            dataIndex: 'type',
-            width: 100,
-            render: (text: string) => {
-                if (text === 'FILE') return <Tag icon={<IconFile />} bordered>文件</Tag>;
-                if (text === 'DB') return <Tag icon={<IconStorage />} bordered>数据库表</Tag>;
-                if (text === 'MARKDOWN') return <Tag bordered>Markdown</Tag>;
-                return <Tag bordered>{text}</Tag>;
-            }
-        },
-        {
-            title: '创建时间',
-            dataIndex: 'createDate',
-            width: 170,
-            render: (text: string) => renderDate(text),
-        },
-        {
-            title: '操作',
-            dataIndex: 'action',
-            width: 120,
-            align: 'center',
-            fixed: 'right',
-            render: (_, record) => (
-                <Space size="large">
-                    <Tooltip content="编辑">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconEdit />}
-                            onClick={() => handleEdit(record)}
-                        />
-                    </Tooltip>
-                    <Tooltip content="删除">
-                        <Button
-                            type="text"
-                            size="small"
-                            status="danger"
-                            icon={<IconDelete />}
-                            onClick={() => handleDelete(record)}
-                        />
-                    </Tooltip>
-                </Space>
-            ),
-        },
-    ];
-
-    // Search fields
     const searchFormFields: FormFieldConfig[] = [
         {
             label: '名称',
@@ -132,14 +180,13 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
         },
     ];
 
-    // Fetch data
     const fetchTableData = async (params = {}, page?: number, pageSize?: number) => {
         setLoading(true);
         try {
             const queryParams = {
                 pageNum: (page ?? pagination.current) - 1,
                 pageSize: pageSize ?? pagination.pageSize,
-                knowledgeSetId: effectiveKnowledgeSetId, // Add knowledgeSetId filter
+                knowledgeSetId: effectiveKnowledgeSetId,
                 ...params,
             };
 
@@ -153,48 +200,39 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
                 pageSize: queryParams.pageSize || prev.pageSize,
                 total: totalElements,
             }));
-        } catch (error) {
-            console.error('获取列表失败:', error);
+        } catch {
             Message.error('获取列表失败');
         } finally {
             setLoading(false);
         }
     };
 
-    // Init
     useEffect(() => {
         fetchTableData();
-    }, [effectiveKnowledgeSetId]); // Reload when knowledgeSetId changes
+    }, [effectiveKnowledgeSetId]);
 
-    // Resize
-    useEffect(() => {
-        const calculateTableHeight = () => {
-            const windowHeight = window.innerHeight;
-            const otherElementsHeight = 250;
-            setTableScrollHeight(Math.max(200, windowHeight - otherElementsHeight));
-        };
-        calculateTableHeight();
-        window.addEventListener('resize', calculateTableHeight);
-        return () => window.removeEventListener('resize', calculateTableHeight);
-    }, []);
-
-    // Handlers
     const handleAdd = () => {
+        if (readOnly) {
+            return;
+        }
         setCurrentRecord(null);
         setModalVisible(true);
     };
 
-    const handleEdit = async (record: any) => {
+    const handleEdit = async (record: KnowledgeSourceRecord) => {
+        if (readOnly) {
+            return;
+        }
         try {
             const response = await getKnowledgeSourceById(record.id);
             setCurrentRecord(response.data);
             setModalVisible(true);
-        } catch (error) {
+        } catch {
             Message.error('获取详情失败');
         }
     };
 
-    const handleDelete = (record: any) => {
+    const handleDelete = (record: KnowledgeSourceRecord) => {
         Modal.confirm({
             title: '确认删除',
             content: `确定要删除 "${record.name}" 吗？`,
@@ -204,7 +242,7 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
                     Message.success('删除成功');
                     const values = filterFormRef.current?.getFilterValues?.() || {};
                     fetchTableData(values);
-                } catch (error) {
+                } catch {
                     Message.error('删除失败');
                 }
             },
@@ -240,71 +278,85 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
         />
     );
 
-    const renderShortCard = (item: any, index: number, actions: any) => {
+    const renderShortCard = (item: KnowledgeSourceRecord) => {
         return (
             <Card
-                className="knowledge-card"
-                hoverable
-                style={{ cursor: 'pointer', height: '100%' }}
+                className={`knowledge-source-card${readOnly ? ' knowledge-source-card--readonly' : ''}`}
+                hoverable={!readOnly}
                 onClick={() => handleEdit(item)}
                 title={
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }} title={item.name}>
+                    <div className='knowledge-source-card__header'>
+                        <Text className='knowledge-source-card__title' ellipsis={{ showTooltip: true }}>
                             {item.name}
+                        </Text>
+                        <div className='knowledge-source-card__tags'>
+                            {renderTypeTag(item.type)}
+                            {renderStatusTag(item.status)}
+                            {item.language && (
+                                <Tag size='small' bordered color='arcoblue'>
+                                    {item.language}
+                                </Tag>
+                            )}
                         </div>
-                        <Space size={4}>
-                            {item.status === 'ENABLE' ? <Tag color="green" size="small" bordered>启用</Tag> : <Tag size="small" bordered>{item.status}</Tag>}
-                        </Space>
                     </div>
                 }
                 extra={
-                    <Space size="small">
-                        <Tooltip content="编辑">
-                            <Button
-                                type="text"
-                                size="small"
-                                icon={<IconEdit />}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEdit(item);
-                                }}
-                            />
-                        </Tooltip>
-                        <Popconfirm
-                            title="确认删除该来源吗？"
-                            onOk={() => handleDelete(item)}
-                        >
-                            <Tooltip content="删除">
+                    readOnly ? null : (
+                        <Space size='small'>
+                            <Tooltip content='编辑'>
                                 <Button
-                                    type="text"
-                                    size="small"
-                                    status="danger"
-                                    icon={<IconDelete />}
-                                    onClick={(e) => e.stopPropagation()}
+                                    type='text'
+                                    size='small'
+                                    icon={<IconEdit />}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEdit(item);
+                                    }}
                                 />
                             </Tooltip>
-                        </Popconfirm>
-                    </Space>
+                            <Tooltip content='删除'>
+                                <Button
+                                    type='text'
+                                    size='small'
+                                    status='danger'
+                                    icon={<IconDelete />}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(item);
+                                    }}
+                                />
+                            </Tooltip>
+                        </Space>
+                    )
                 }
             >
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <div style={{ marginBottom: 12 }}>
-                        {item.type === 'FILE'
-                            ? <Tag icon={<IconFile />} bordered>文件</Tag>
-                            : (item.type === 'DB'
-                                ? <Tag icon={<IconStorage />} bordered>数据库表</Tag>
-                                : (item.type === 'MARKDOWN' ? <Tag bordered>Markdown</Tag> : <Tag bordered>{item.type}</Tag>))}
+                <div className='knowledge-source-card__body'>
+                    <div className='knowledge-source-card__section'>
+                        <div className='knowledge-source-card__label'>描述</div>
+                        <Paragraph
+                            className='knowledge-source-card__description'
+                            ellipsis={{ rows: 2, showTooltip: true }}
+                        >
+                            {item.descr || '暂无描述'}
+                        </Paragraph>
                     </div>
-                    <Typography.Paragraph
-                        style={{ marginBottom: 12, color: 'var(--color-text-2)', fontSize: 14, minHeight: 42 }}
-                        ellipsis={{ rows: 2, showTooltip: true }}
-                    >
-                        {item.descr || '暂无描述'}
-                    </Typography.Paragraph>
-                    
-                    <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--color-text-3)' }}>
-                        <UserAvatar name={item.createUserName || item.createUser} size={20} showName />
-                        <span>{renderDate(item.createDate)}</span>
+
+                    <div className='knowledge-source-card__section knowledge-source-card__section--summary'>
+                        <div className='knowledge-source-card__label'>{getSourceSummaryLabel(item.type)}</div>
+                        <Paragraph
+                            className='knowledge-source-card__summary'
+                            ellipsis={{ rows: 3, showTooltip: true }}
+                        >
+                            {getSourceSummary(item)}
+                        </Paragraph>
+                    </div>
+
+                    <div className='knowledge-source-card__footer'>
+                        <UserAvatar name={item.createUserName || item.createUser || '未知用户'} size={20} showName />
+                        <div className='knowledge-source-card__time'>
+                            <span>创建于</span>
+                            <span>{renderDate(item.createDate)}</span>
+                        </div>
                     </div>
                 </div>
             </Card>
@@ -312,7 +364,7 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
     };
 
     return (
-        <div className="knowledge-source-manager">
+        <div className={`knowledge-source-manager${isEmbedded ? ' knowledge-source-manager--embedded' : ''}`}>
             <Layout>
                 <Content>
                     <DataManager
@@ -320,20 +372,16 @@ function KnowledgeSourceManager({ knowledgeSetId }: { knowledgeSetId?: string })
                         loading={loading}
                         pagination={pagination}
                         onPaginationChange={handlePaginationChange}
-                        actions={{
-                            onAdd: handleAdd,
-                        }}
+                        actions={readOnly ? {} : { onAdd: handleAdd }}
                         config={{
-                            displayMode: 'table',
+                            displayMode: 'shortCard',
                             showModeToggle: false,
-                            tableColumns: tableColumns,
                             renderShortCard: renderShortCard,
-                            showFilterForm: true,
                             filterContent: filterContent,
                         }}
-                        tableScrollHeight={tableScrollHeight}
-                        cardColumns={4}
+                        cardColumns={isEmbedded ? 2 : 3}
                         cardGutter={16}
+                        cardSize='medium'
                     />
                 </Content>
             </Layout>

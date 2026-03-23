@@ -17,5 +17,6 @@ public class KnowledgeSetDto extends Dto {
     private String defaultLanguage;
 
     private String status;
-}
 
+    private Boolean isSystem;
+}

@@ -55,6 +55,7 @@ public class KnowledgeSetServiceImpl extends
         model.setId(com.ck.quiz.utils.IdHelper.genUuid());
         BeanUtils.copyProperties(createDto, model);
         model.setCreateUser(userId);
+        model.setIsSystem(Boolean.FALSE);
         KnowledgeSet saved = repository.save(model);
         return convertToDto(saved, true);
     }
@@ -63,6 +64,9 @@ public class KnowledgeSetServiceImpl extends
     public KnowledgeSetDto update(String userId, KnowledgeSetUpdateDto updateDto) {
         KnowledgeSet model = repository.findById(updateDto.getId())
                 .orElseThrow(() -> new IllegalArgumentException("知识集不存在"));
+        if (Boolean.TRUE.equals(model.getIsSystem())) {
+            throw new IllegalArgumentException("系统内置知识集不允许更新");
+        }
         if (model.getCreateUser() != null && !model.getCreateUser().equals(userId)) {
             throw new IllegalArgumentException("无权更新该知识集");
         }
@@ -98,6 +102,7 @@ public class KnowledgeSetServiceImpl extends
             dto.setVisibility(rs.getString("visibility"));
             dto.setDefaultLanguage(rs.getString("default_language"));
             dto.setStatus(rs.getString("status"));
+            dto.setIsSystem(rs.getObject("is_system") != null && rs.getBoolean("is_system"));
             java.sql.Timestamp createTime = rs.getTimestamp("create_date");
             if (createTime != null) {
                 dto.setCreateDate(createTime.toLocalDateTime());
@@ -157,6 +162,7 @@ public class KnowledgeSetServiceImpl extends
             dto.setVisibility(rs.getString("visibility"));
             dto.setDefaultLanguage(rs.getString("default_language"));
             dto.setStatus(rs.getString("status"));
+            dto.setIsSystem(rs.getObject("is_system") != null && rs.getBoolean("is_system"));
             java.sql.Timestamp createTime = rs.getTimestamp("create_date");
             if (createTime != null) {
                 dto.setCreateDate(createTime.toLocalDateTime());
