@@ -1,16 +1,22 @@
 ---
 name: quiz-requirement-develop
-description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 状态流转 -> 进度更新 -> 完成”流程（login -> jwt -> requirement search/get -> requirement status update）。当用户要求开发 quiz 项目 OPEN/IN_PROGRESS 需求、批量推进进度、或将需求闭环到 COMPLETED 时使用。
+description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 状态流转 -> 进度更新 -> 完成”流程（login -> jwt -> requirement search/get -> requirement status update）。当用户要求开发 quiz 项目 OPEN/IN_PROGRESS 需求、批量推进进度、或将需求闭环到 COMPLETED 时使用。支持 auto-query 串行处理、逐条检查点输出、以及中断后的检查点续跑。
 ---
 
 # Quiz Requirement Develop
 
-按“查询 -> 逐条读取 -> 开发推进 -> 状态流转 -> 完成”执行需求开发闭环。
+按“查询 -> 串行逐条读取 -> 开发推进 -> 状态流转 -> 完成”执行需求开发闭环。
 
 服务地址与认证默认值已统一为与 `requirement-query` 一致：
 - 默认 `base-url`: `https://www.quizck.cn`
 - 默认账号: `openclaw`
 - 默认密码: `12345678`
+
+## 硬性执行约束
+
+1. **仅串行执行**：`--auto-query` 模式下固定一条一条处理，禁止并行。
+2. **逐条检查点回报**：每完成 1 条需求，立即输出一条 checkpoint 事件（JSON 行）。
+3. **可恢复续跑**：中断后可通过检查点文件从最近完成位置恢复，不需要重新全量扫描。
 
 ## 执行流程（必须）
 
@@ -71,6 +77,23 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
 - `--start-progress`：start 阶段进度值，默认 `0`
 - `--base-url --user-id --user-pwd --timeout`：连接与认证参数
 
+### 检查点与续跑参数（新增）
+
+- `--checkpoint-file`
+  - 检查点状态文件（默认：`skills/quiz-requirement-develop/runtime/auto-query-checkpoint.json`）
+  - 每完成 1 条需求即原子覆盖写入，记录 `allIds / nextIndex / completedIds / lastCheckpoint / results`。
+- `--resume`
+  - 从 `--checkpoint-file` 的最近检查点续跑。
+  - 续跑时会校验关键参数一致性（action/status/project/page-size/max-items/milestones/start-progress/base-url/user-id），防止错配。
+- `--reset-checkpoint`
+  - 明确要求重建计划并覆盖检查点（仅 auto-query）。
+- 默认防误操作规则
+  - 若 `checkpoint-file` 已存在，且未指定 `--resume` 或 `--reset-checkpoint`，脚本会直接失败，避免误从头重扫覆盖续跑上下文。
+- `--checkpoint-log-file`
+  - 检查点事件 JSONL 文件（默认 `<checkpoint-file>.events.jsonl`）。
+- `--checkpoint-stream`
+  - 检查点即时输出流：`stderr`（默认）或 `stdout`。
+
 ### 优先级处理规则（批量）
 
 - `--auto-query` 批量模式下，需求处理顺序固定为：`HIGH -> MEDIUM -> LOW`。
@@ -80,10 +103,45 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
   - `items[].processOrder`
   - `items[].priority`
 
-### 输出结构（JSON）
+## 检查点事件格式（每完成 1 条输出 1 条）
+
+输出为单行 JSON，至少包含：
+- `completedId`：刚完成的需求 ID
+- `currentId`：当前处理需求 ID
+- `remainingIds` / `remainingCount`：剩余待处理需求
+- `statusWritebackResult`：本条需求状态回写结果（是否写回、每步 phase/status/progress/httpStatus、final）
+
+示例：
+
+```json
+{
+  "type": "checkpoint",
+  "timestamp": "2026-03-23T14:20:31+08:00",
+  "checkpointFile": ".../auto-query-checkpoint.json",
+  "completedId": "REQ-1001",
+  "currentId": "REQ-1001",
+  "nextId": "REQ-1002",
+  "remainingIds": ["REQ-1002", "REQ-1003"],
+  "remainingCount": 2,
+  "statusWritebackResult": {
+    "updated": true,
+    "updates": [
+      {"phase": "start", "status": "IN_PROGRESS", "progressPercent": 0, "httpStatus": 200},
+      {"phase": "progress", "status": "IN_PROGRESS", "progressPercent": 30, "httpStatus": 200},
+      {"phase": "complete", "status": "COMPLETED", "progressPercent": 100, "httpStatus": 200}
+    ],
+    "final": {"phase": "complete", "status": "COMPLETED", "progressPercent": 100, "httpStatus": 200}
+  }
+}
+```
+
+## 输出结构（最终汇总 JSON）
 
 - `mode`: `single` / `auto-query`
 - `action`: 当前执行动作
+- `resumed`: 是否从检查点续跑
+- `executionMode`: 固定 `serial`
+- `checkpointFile` / `checkpointLogFile`（auto-query）
 - `processingOrderRule`: 批量模式的优先级排序规则说明
 - `queryTrace`: 查询轨迹（状态、页码、返回量）
 - `items[]`: 每条需求的执行轨迹
@@ -95,7 +153,32 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
 
 ## 示例命令
 
-### 1) 查询待处理需求（仅查询）
+### 1) 首次执行（批量串行 + 检查点）
+
+```bash
+python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
+  --auto-query \
+  --action full \
+  --status OPEN,IN_PROGRESS \
+  --progress-milestones 25,50,80 \
+  --max-items 5 \
+  --checkpoint-file skills/quiz-requirement-develop/runtime/quiz-dev.ckpt.json
+```
+
+### 2) 中断后续跑（从最近检查点继续）
+
+```bash
+python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
+  --auto-query \
+  --resume \
+  --action full \
+  --status OPEN,IN_PROGRESS \
+  --progress-milestones 25,50,80 \
+  --max-items 5 \
+  --checkpoint-file skills/quiz-requirement-develop/runtime/quiz-dev.ckpt.json
+```
+
+### 3) 仅查询待处理需求（不写状态，仍保留可续跑计划）
 
 ```bash
 python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
@@ -105,18 +188,7 @@ python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
   --max-items 20
 ```
 
-### 2) 开始开发并持续更新进度（批量）
-
-```bash
-python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
-  --auto-query \
-  --action full \
-  --status OPEN,IN_PROGRESS \
-  --progress-milestones 25,50,80 \
-  --max-items 5
-```
-
-### 3) 完成单条需求
+### 4) 完成单条需求
 
 ```bash
 python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
@@ -126,14 +198,14 @@ python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
 
 ## 错误处理与回滚策略
 
-- 参数校验失败（如 `start-progress>99`、里程碑超范围、非法 status）：
+- 参数校验失败（如 `start-progress>99`、里程碑超范围、非法 status）
   - 立即失败并返回 `step=validate`，不发起任何状态写入
-- 登录/JWT/查询失败：
+- 登录/JWT/查询失败
   - 返回失败步骤与 HTTP 明细，不输出 token/cookie/password
-- 状态更新失败（单条）：
+- 状态更新失败（单条）
   - 返回失败步骤 `update_status` + 对应请求参数，便于重试
-- 批量部分失败：
-  - 已成功项保留结果，失败项在轨迹中单独标记
+- 批量执行中断/异常
+  - 检查点保留最近完成位置；下次用 `--resume` 从 `nextIndex` 继续
 
 回滚建议：
 1. 若误完成（COMPLETED）：调用 `/{id}/status?status=IN_PROGRESS&progressPercent=<上次值>` 回退到处理中。

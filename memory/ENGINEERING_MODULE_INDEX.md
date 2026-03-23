@@ -41,6 +41,9 @@
   - `skills/quiz-requirement-develop/SKILL.md`
 - 脚本实现
   - `skills/quiz-requirement-develop/scripts/develop_requirement.py`
+- 运行时检查点
+  - `skills/quiz-requirement-develop/runtime/auto-query-checkpoint.json`（默认检查点状态文件，可通过 `--checkpoint-file` 覆盖）
+  - `skills/quiz-requirement-develop/runtime/*.events.jsonl`（检查点事件日志）
 - 依赖接口
   - `backend/src/main/java/com/ck/quiz/project/controller/RequirementController.java`
   - `backend/src/main/java/com/ck/quiz/project/service/impl/RequirementServiceImpl.java`
@@ -50,6 +53,8 @@
 - 前端入口（全局助手）
   - `frontend/src/components/Layout/index.tsx`
   - `frontend/src/components/GlobalAssistant/index.tsx`
+  - `frontend/src/components/GlobalAssistant/style.less`
+  - `frontend/src/components/ChatReferenceList/index.tsx`
 - 前端入口（独立对话页）
   - `frontend/src/pages/Chat/index.tsx`
   - `frontend/src/pages/Chat/api/index.ts`

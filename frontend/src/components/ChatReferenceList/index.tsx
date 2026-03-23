@@ -39,7 +39,12 @@ const ChatReferenceList = ({ references }: { references?: ChatReference[] }) => 
               : '';
 
           return (
-            <Tag key={`${reference.knowledgeSourceId || 'source'}-${index}`} size="small" bordered>
+            <Tag
+              key={`${reference.knowledgeSourceId || 'source'}-${index}`}
+              size="small"
+              bordered
+              style={{ maxWidth: '100%', whiteSpace: 'normal', wordBreak: 'break-all' }}
+            >
               {labelParts.join(' / ')}
               {distanceLabel}
             </Tag>

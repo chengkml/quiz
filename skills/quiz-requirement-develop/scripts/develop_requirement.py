@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-quiz 需求开发执行脚本（最小闭环版）
+quiz 需求开发执行脚本（串行 + 检查点 + 可恢复）
 
 流程：
 1) login -> jwt
@@ -8,15 +8,19 @@ quiz 需求开发执行脚本（最小闭环版）
 3) 逐条读取需求详情（/get/{id}）并基于描述生成开发执行计划
 4) 状态流转：开始前置为 IN_PROGRESS -> 关键阶段更新 progressPercent -> 完成置为 COMPLETED
 
-说明：
-- 结构化 JSON 输出每条需求的执行轨迹 trajectory。
+关键能力：
+- auto-query 模式固定串行逐条执行（禁止并行）。
+- 每完成 1 条需求立即输出检查点（JSON 行，默认 stderr）。
+- 检查点状态持久化到本地文件，支持 --resume 从最近检查点续跑。
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 from urllib import error, parse, request
 
@@ -28,6 +32,11 @@ DEFAULT_STATUSES = ["OPEN", "IN_PROGRESS"]
 DEFAULT_PAGE_SIZE = 50
 DEFAULT_MAX_ITEMS = 20
 DEFAULT_PROGRESS_MILESTONES = [30, 60, 90]
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_CHECKPOINT_FILE = os.path.abspath(
+    os.path.join(SCRIPT_DIR, "..", "runtime", "auto-query-checkpoint.json")
+)
 
 ALLOWED_STATUSES = {
     "PENDING_ANALYSIS",
@@ -57,6 +66,10 @@ def fail(step: str, error_msg: str, details: Any = None, exit_code: int = 1) -> 
     if details is not None:
         payload["details"] = details
     print_json(payload, exit_code=exit_code)
+
+
+def now_iso() -> str:
+    return datetime.now().astimezone().isoformat(timespec="seconds")
 
 
 def normalize_text(value: Any) -> str:
@@ -146,6 +159,86 @@ def parse_progress_milestones(raw: Optional[str]) -> List[int]:
     return vals
 
 
+def ensure_parent_dir(file_path: str) -> None:
+    parent = os.path.dirname(os.path.abspath(file_path))
+    if parent and not os.path.exists(parent):
+        os.makedirs(parent, exist_ok=True)
+
+
+def atomic_write_json(file_path: str, payload: Dict[str, Any]) -> None:
+    ensure_parent_dir(file_path)
+    tmp_file = f"{file_path}.tmp.{os.getpid()}"
+    with open(tmp_file, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    os.replace(tmp_file, file_path)
+
+
+def load_json_file(file_path: str) -> Dict[str, Any]:
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        fail("resume", "检查点文件不存在，无法续跑", {"checkpointFile": file_path})
+    except json.JSONDecodeError as e:
+        fail("resume", "检查点文件损坏（JSON 解析失败）", {"checkpointFile": file_path, "error": str(e)})
+    except OSError as e:
+        fail("resume", "读取检查点文件失败", {"checkpointFile": file_path, "error": str(e)})
+
+    if not isinstance(data, dict):
+        fail("resume", "检查点文件格式非法", {"checkpointFile": file_path})
+    return data
+
+
+def append_jsonl_line(file_path: str, payload: Dict[str, Any]) -> None:
+    ensure_parent_dir(file_path)
+    with open(file_path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+
+
+def emit_checkpoint_event(payload: Dict[str, Any], stream: str, checkpoint_log_file: Optional[str]) -> None:
+    line = json.dumps(payload, ensure_ascii=False)
+    if stream == "stdout":
+        sys.stdout.write(line + "\n")
+        sys.stdout.flush()
+    else:
+        sys.stderr.write(line + "\n")
+        sys.stderr.flush()
+
+    if checkpoint_log_file:
+        try:
+            append_jsonl_line(checkpoint_log_file, payload)
+        except OSError as e:
+            # 检查点文件已落盘，不因日志写失败中断主流程。
+            sys.stderr.write(
+                json.dumps(
+                    {
+                        "type": "checkpoint-log-warning",
+                        "timestamp": now_iso(),
+                        "message": "写入 checkpoint-log-file 失败，已忽略",
+                        "checkpointLogFile": checkpoint_log_file,
+                        "error": str(e),
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+            sys.stderr.flush()
+
+
+def ensure_2xx(step: str, resp: Dict[str, Any], error_msg: str) -> Any:
+    status = int(resp.get("status", 0) or 0)
+    if 200 <= status < 300:
+        return extract_data_body(resp.get("body"))
+    fail(step, error_msg, {"status": status, "body": resp.get("body")})
+
+
+def extract_data_body(body: Any) -> Any:
+    if isinstance(body, dict) and body.get("data") is not None:
+        return body.get("data")
+    return body
+
+
 def http_json(
     opener: request.OpenerDirector,
     method: str,
@@ -185,19 +278,6 @@ def http_json(
         except Exception:
             pass
         return {"status": e.code, "body": err_body, "http_error": True}
-
-
-def extract_data_body(body: Any) -> Any:
-    if isinstance(body, dict) and body.get("data") is not None:
-        return body.get("data")
-    return body
-
-
-def ensure_2xx(step: str, resp: Dict[str, Any], error_msg: str) -> Any:
-    status = int(resp.get("status", 0) or 0)
-    if 200 <= status < 300:
-        return extract_data_body(resp.get("body"))
-    fail(step, error_msg, {"status": status, "body": resp.get("body")})
 
 
 def auth_headers(token: str) -> Dict[str, str]:
@@ -481,6 +561,212 @@ def execute_for_requirement(
     }
 
 
+def build_status_writeback_result(item: Dict[str, Any]) -> Dict[str, Any]:
+    trajectory = item.get("trajectory")
+    if not isinstance(trajectory, list):
+        trajectory = []
+
+    updates: List[Dict[str, Any]] = []
+    for tr in trajectory:
+        if not isinstance(tr, dict):
+            continue
+        req = tr.get("request")
+        if not isinstance(req, dict):
+            req = {}
+        updates.append(
+            {
+                "phase": tr.get("phase"),
+                "status": req.get("status"),
+                "progressPercent": req.get("progressPercent"),
+                "httpStatus": tr.get("httpStatus"),
+            }
+        )
+
+    if not updates:
+        return {
+            "updated": False,
+            "updates": [],
+            "final": None,
+            "note": "当前 action 未发生状态写回",
+        }
+
+    return {
+        "updated": True,
+        "updates": updates,
+        "final": updates[-1],
+    }
+
+
+def build_checkpoint_event(
+    *,
+    state: Dict[str, Any],
+    current_id: str,
+    completed_item: Dict[str, Any],
+    checkpoint_file: str,
+) -> Dict[str, Any]:
+    plan = state.get("plan")
+    if not isinstance(plan, dict):
+        plan = {}
+
+    all_ids = plan.get("allIds")
+    if not isinstance(all_ids, list):
+        all_ids = []
+
+    cursor = state.get("cursor")
+    if not isinstance(cursor, dict):
+        cursor = {}
+
+    next_index = cursor.get("nextIndex")
+    if not isinstance(next_index, int) or next_index < 0:
+        next_index = 0
+    if next_index > len(all_ids):
+        next_index = len(all_ids)
+
+    remaining_ids = all_ids[next_index:]
+
+    return {
+        "type": "checkpoint",
+        "timestamp": now_iso(),
+        "checkpointFile": checkpoint_file,
+        "completedId": normalize_text(completed_item.get("requirementId")),
+        "currentId": current_id,
+        "nextId": remaining_ids[0] if remaining_ids else None,
+        "remainingIds": remaining_ids,
+        "remainingCount": len(remaining_ids),
+        "statusWritebackResult": build_status_writeback_result(completed_item),
+    }
+
+
+def init_auto_query_state(
+    *,
+    cfg: Dict[str, Any],
+    query_trace: Sequence[Dict[str, Any]],
+    requirement_ids: Sequence[str],
+) -> Dict[str, Any]:
+    ts = now_iso()
+    return {
+        "version": 1,
+        "mode": "auto-query",
+        "runStatus": "running",
+        "createdAt": ts,
+        "updatedAt": ts,
+        "config": {
+            "action": cfg["action"],
+            "projectName": cfg["project_name"],
+            "statuses": list(cfg["statuses"]),
+            "pageSize": cfg["page_size"],
+            "maxItems": cfg["max_items"],
+            "milestones": list(cfg["milestones"]),
+            "startProgress": cfg["start_progress"],
+            "baseUrl": cfg["base_url"],
+            "userId": cfg["user_id"],
+        },
+        "queryTrace": list(query_trace),
+        "plan": {
+            "allIds": list(requirement_ids),
+            "total": len(requirement_ids),
+            "processingOrderRule": "priority(HIGH>MEDIUM>LOW) then createDate then id",
+        },
+        "cursor": {
+            "nextIndex": 0,
+            "completedIds": [],
+        },
+        "results": [],
+        "lastCheckpoint": None,
+        "lastError": None,
+    }
+
+
+def extract_auto_query_state(state: Dict[str, Any]) -> Tuple[List[str], int, List[Dict[str, Any]], List[Dict[str, Any]]]:
+    plan = state.get("plan")
+    if not isinstance(plan, dict):
+        fail("resume", "检查点缺少 plan 信息", state)
+
+    all_ids = plan.get("allIds")
+    if not isinstance(all_ids, list):
+        fail("resume", "检查点缺少 allIds 信息", state)
+
+    normalized_ids = [normalize_text(x) for x in all_ids if normalize_text(x)]
+
+    cursor = state.get("cursor")
+    if not isinstance(cursor, dict):
+        fail("resume", "检查点缺少 cursor 信息", state)
+
+    next_index = cursor.get("nextIndex")
+    if not isinstance(next_index, int):
+        fail("resume", "检查点 nextIndex 非法", state)
+
+    if next_index < 0:
+        next_index = 0
+    if next_index > len(normalized_ids):
+        next_index = len(normalized_ids)
+
+    results_raw = state.get("results")
+    results: List[Dict[str, Any]] = []
+    if isinstance(results_raw, list):
+        results = [x for x in results_raw if isinstance(x, dict)]
+
+    trace_raw = state.get("queryTrace")
+    query_trace: List[Dict[str, Any]] = []
+    if isinstance(trace_raw, list):
+        query_trace = [x for x in trace_raw if isinstance(x, dict)]
+
+    return normalized_ids, next_index, results, query_trace
+
+
+def validate_resume_compatibility(cfg: Dict[str, Any], state: Dict[str, Any]) -> None:
+    if normalize_text(state.get("mode")) != "auto-query":
+        fail("resume", "检查点不是 auto-query 模式，不能续跑", {"mode": state.get("mode")})
+
+    sc = state.get("config")
+    if not isinstance(sc, dict):
+        fail("resume", "检查点缺少 config，不能校验续跑参数")
+
+    checks = [
+        ("action", cfg.get("action"), sc.get("action")),
+        ("projectName", cfg.get("project_name"), sc.get("projectName")),
+        ("statuses", list(cfg.get("statuses", [])), sc.get("statuses")),
+        ("pageSize", cfg.get("page_size"), sc.get("pageSize")),
+        ("maxItems", cfg.get("max_items"), sc.get("maxItems")),
+        ("milestones", list(cfg.get("milestones", [])), sc.get("milestones")),
+        ("startProgress", cfg.get("start_progress"), sc.get("startProgress")),
+        ("baseUrl", cfg.get("base_url"), sc.get("baseUrl")),
+        ("userId", cfg.get("user_id"), sc.get("userId")),
+    ]
+
+    mismatches = []
+    for key, expected, actual in checks:
+        if expected != actual:
+            mismatches.append({"field": key, "expected": expected, "actual": actual})
+
+    if mismatches:
+        fail(
+            "resume",
+            "续跑参数与检查点不一致；请使用相同参数续跑，或用 --reset-checkpoint 重建计划",
+            {"mismatches": mismatches},
+        )
+
+
+def refresh_completed_ids_from_results(state: Dict[str, Any]) -> None:
+    results = state.get("results")
+    if not isinstance(results, list):
+        state["cursor"]["completedIds"] = []
+        return
+
+    completed_ids = []
+    for item in results:
+        if not isinstance(item, dict):
+            continue
+        rid = normalize_text(item.get("requirementId"))
+        if rid:
+            completed_ids.append(rid)
+    cursor = state.get("cursor")
+    if not isinstance(cursor, dict):
+        cursor = {}
+        state["cursor"] = cursor
+    cursor["completedIds"] = completed_ids
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="quiz 需求开发执行：login -> jwt -> query/get -> status progress update",
@@ -527,11 +813,42 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="当需求已是 COMPLETED 时，complete/full 仍执行一次 COMPLETED(100) 写回",
     )
+
+    parser.add_argument(
+        "--checkpoint-file",
+        default=DEFAULT_CHECKPOINT_FILE,
+        help=f"检查点状态文件路径（默认 {DEFAULT_CHECKPOINT_FILE}）",
+    )
+    parser.add_argument("--resume", action="store_true", help="从 checkpoint-file 续跑（仅 auto-query）")
+    parser.add_argument(
+        "--reset-checkpoint",
+        action="store_true",
+        help="忽略旧检查点，重新查询并覆盖 checkpoint-file（仅 auto-query）",
+    )
+    parser.add_argument(
+        "--checkpoint-log-file",
+        default="",
+        help="检查点事件日志文件（JSONL，默认 <checkpoint-file>.events.jsonl）",
+    )
+    parser.add_argument(
+        "--checkpoint-stream",
+        choices=["stderr", "stdout"],
+        default="stderr",
+        help="检查点即时输出流，默认 stderr",
+    )
+
     return parser
 
 
 def validate_args(args: argparse.Namespace) -> Dict[str, Any]:
     try:
+        checkpoint_file = os.path.abspath(normalize_text(args.checkpoint_file) or DEFAULT_CHECKPOINT_FILE)
+        checkpoint_log_file = normalize_text(args.checkpoint_log_file)
+        if checkpoint_log_file:
+            checkpoint_log_file = os.path.abspath(checkpoint_log_file)
+        else:
+            checkpoint_log_file = f"{checkpoint_file}.events.jsonl"
+
         cfg = {
             "action": args.action,
             "auto_query": bool(args.auto_query),
@@ -547,10 +864,22 @@ def validate_args(args: argparse.Namespace) -> Dict[str, Any]:
             "user_pwd": args.user_pwd or "",
             "timeout": args.timeout,
             "force_complete_if_already_completed": bool(args.force_complete_if_already_completed),
+            "checkpoint_file": checkpoint_file,
+            "resume": bool(args.resume),
+            "reset_checkpoint": bool(args.reset_checkpoint),
+            "checkpoint_log_file": checkpoint_log_file,
+            "checkpoint_stream": args.checkpoint_stream,
         }
 
         if not cfg["auto_query"] and not cfg["requirement_id"]:
             raise ValueError("非 auto-query 模式下 requirement-id 不能为空")
+
+        if cfg["resume"] and cfg["reset_checkpoint"]:
+            raise ValueError("--resume 与 --reset-checkpoint 不能同时使用")
+        if cfg["resume"] and not cfg["auto_query"]:
+            raise ValueError("--resume 仅支持 --auto-query 模式")
+        if cfg["reset_checkpoint"] and not cfg["auto_query"]:
+            raise ValueError("--reset-checkpoint 仅支持 --auto-query 模式")
 
         if not cfg["user_id"]:
             raise ValueError("user-id 不能为空")
@@ -566,9 +895,6 @@ def validate_args(args: argparse.Namespace) -> Dict[str, Any]:
 
         if cfg["start_progress"] < 0 or cfg["start_progress"] > 99:
             raise ValueError("start-progress 必须在 0-99 之间")
-
-        if cfg["action"] == "query" and not cfg["auto_query"] and not cfg["requirement_id"]:
-            raise ValueError("query 单条模式下 requirement-id 不能为空")
 
         return cfg
     except ValueError as e:
@@ -592,39 +918,165 @@ def main() -> None:
 
     items: List[Dict[str, Any]] = []
     query_trace: List[Dict[str, Any]] = []
+    resumed = False
+    checkpoint_file = cfg["checkpoint_file"]
 
     if cfg["auto_query"]:
-        queried, query_trace = query_requirements_by_status(
-            opener,
-            base_url=cfg["base_url"],
-            token=token,
-            project_name=cfg["project_name"],
-            statuses=cfg["statuses"],
-            page_size=cfg["page_size"],
-            max_items=cfg["max_items"],
-            timeout=cfg["timeout"],
-        )
-        ordered = sort_requirements_for_processing(queried)
+        if cfg["resume"]:
+            state = load_json_file(checkpoint_file)
+            validate_resume_compatibility(cfg, state)
+            all_ids, next_index, items, query_trace = extract_auto_query_state(state)
+            resumed = True
+        else:
+            if os.path.exists(checkpoint_file) and not cfg["reset_checkpoint"]:
+                fail(
+                    "checkpoint",
+                    "检测到已存在检查点文件。请使用 --resume 续跑，或使用 --reset-checkpoint 重建执行计划。",
+                    {"checkpointFile": checkpoint_file},
+                )
 
-        for process_order, req in enumerate(ordered, start=1):
-            rid = normalize_text(req.get("id"))
-            if not rid:
-                continue
-            item = execute_for_requirement(
+            queried, query_trace = query_requirements_by_status(
                 opener,
                 base_url=cfg["base_url"],
                 token=token,
-                requirement_id=rid,
-                action=cfg["action"],
-                milestones=cfg["milestones"],
-                start_progress=cfg["start_progress"],
+                project_name=cfg["project_name"],
+                statuses=cfg["statuses"],
+                page_size=cfg["page_size"],
+                max_items=cfg["max_items"],
                 timeout=cfg["timeout"],
-                process_order=process_order,
-                force_complete_if_already_completed=cfg["force_complete_if_already_completed"],
             )
-            if not item.get("priority"):
-                item["priority"] = normalize_priority(req.get("priority"))
+            ordered = sort_requirements_for_processing(queried)
+            all_ids = []
+            for req in ordered:
+                rid = normalize_text(req.get("id"))
+                if rid:
+                    all_ids.append(rid)
+
+            state = init_auto_query_state(cfg=cfg, query_trace=query_trace, requirement_ids=all_ids)
+            atomic_write_json(checkpoint_file, state)
+            next_index = 0
+
+        if next_index >= len(all_ids):
+            state["runStatus"] = "completed"
+            state["updatedAt"] = now_iso()
+            state["lastError"] = None
+            atomic_write_json(checkpoint_file, state)
+            print_json(
+                {
+                    "ok": True,
+                    "mode": "auto-query",
+                    "action": cfg["action"],
+                    "projectName": cfg["project_name"],
+                    "statuses": cfg["statuses"],
+                    "processingOrderRule": "priority(HIGH>MEDIUM>LOW) then createDate then id",
+                    "priorityProcessingRule": {
+                        "order": ["HIGH", "MEDIUM", "LOW", "UNKNOWN"],
+                        "stableWithinPriority": "createDate asc, id asc, fallback query order",
+                    },
+                    "queryTrace": query_trace,
+                    "count": len(items),
+                    "items": items,
+                    "resumed": resumed,
+                    "executionMode": "serial",
+                    "checkpointFile": checkpoint_file,
+                    "checkpointLogFile": cfg["checkpoint_log_file"],
+                    "nextIndex": next_index,
+                    "remainingCount": 0,
+                    "lastCheckpoint": state.get("lastCheckpoint"),
+                }
+            )
+
+        for idx in range(next_index, len(all_ids)):
+            rid = all_ids[idx]
+            try:
+                item = execute_for_requirement(
+                    opener,
+                    base_url=cfg["base_url"],
+                    token=token,
+                    requirement_id=rid,
+                    action=cfg["action"],
+                    milestones=cfg["milestones"],
+                    start_progress=cfg["start_progress"],
+                    timeout=cfg["timeout"],
+                    process_order=idx + 1,
+                    force_complete_if_already_completed=cfg["force_complete_if_already_completed"],
+                )
+            except SystemExit as ex:
+                state["runStatus"] = "aborted"
+                state["updatedAt"] = now_iso()
+                state["lastError"] = {
+                    "timestamp": now_iso(),
+                    "currentId": rid,
+                    "message": "执行中断（SystemExit）",
+                    "exitCode": ex.code,
+                }
+                atomic_write_json(checkpoint_file, state)
+                raise
+            except Exception as ex:
+                state["runStatus"] = "aborted"
+                state["updatedAt"] = now_iso()
+                state["lastError"] = {
+                    "timestamp": now_iso(),
+                    "currentId": rid,
+                    "message": "执行异常",
+                    "error": str(ex),
+                }
+                atomic_write_json(checkpoint_file, state)
+                fail("execute_requirement", "执行需求时发生异常", {"requirementId": rid, "error": str(ex)})
+
             items.append(item)
+            state["results"] = items
+            state["cursor"]["nextIndex"] = idx + 1
+            refresh_completed_ids_from_results(state)
+            state["runStatus"] = "running"
+            state["updatedAt"] = now_iso()
+            state["lastError"] = None
+
+            checkpoint_event = build_checkpoint_event(
+                state=state,
+                current_id=rid,
+                completed_item=item,
+                checkpoint_file=checkpoint_file,
+            )
+            state["lastCheckpoint"] = checkpoint_event
+            atomic_write_json(checkpoint_file, state)
+
+            emit_checkpoint_event(
+                checkpoint_event,
+                stream=cfg["checkpoint_stream"],
+                checkpoint_log_file=cfg["checkpoint_log_file"],
+            )
+
+        state["runStatus"] = "completed"
+        state["updatedAt"] = now_iso()
+        state["lastError"] = None
+        atomic_write_json(checkpoint_file, state)
+
+        print_json(
+            {
+                "ok": True,
+                "mode": "auto-query",
+                "action": cfg["action"],
+                "projectName": cfg["project_name"],
+                "statuses": cfg["statuses"],
+                "processingOrderRule": "priority(HIGH>MEDIUM>LOW) then createDate then id",
+                "priorityProcessingRule": {
+                    "order": ["HIGH", "MEDIUM", "LOW", "UNKNOWN"],
+                    "stableWithinPriority": "createDate asc, id asc, fallback query order",
+                },
+                "queryTrace": query_trace,
+                "count": len(items),
+                "items": items,
+                "resumed": resumed,
+                "executionMode": "serial",
+                "checkpointFile": checkpoint_file,
+                "checkpointLogFile": cfg["checkpoint_log_file"],
+                "nextIndex": state["cursor"].get("nextIndex"),
+                "remainingCount": 0,
+                "lastCheckpoint": state.get("lastCheckpoint"),
+            }
+        )
+
     else:
         items.append(
             execute_for_requirement(
@@ -640,23 +1092,22 @@ def main() -> None:
             )
         )
 
-    print_json(
-        {
-            "ok": True,
-            "mode": "auto-query" if cfg["auto_query"] else "single",
-            "action": cfg["action"],
-            "projectName": cfg["project_name"],
-            "statuses": cfg["statuses"],
-            "processingOrderRule": "priority(HIGH>MEDIUM>LOW) then createDate then id" if cfg["auto_query"] else None,
-            "priorityProcessingRule": {
-                "order": ["HIGH", "MEDIUM", "LOW", "UNKNOWN"],
-                "stableWithinPriority": "createDate asc, id asc, fallback query order",
-            } if cfg["auto_query"] else None,
-            "queryTrace": query_trace,
-            "count": len(items),
-            "items": items,
-        }
-    )
+        print_json(
+            {
+                "ok": True,
+                "mode": "single",
+                "action": cfg["action"],
+                "projectName": cfg["project_name"],
+                "statuses": cfg["statuses"],
+                "processingOrderRule": None,
+                "priorityProcessingRule": None,
+                "queryTrace": query_trace,
+                "count": len(items),
+                "items": items,
+                "resumed": False,
+                "executionMode": "serial",
+            }
+        )
 
 
 if __name__ == "__main__":

@@ -28,9 +28,8 @@ import ScriptManagement from "@/pages/Script";
 import JobQueueManagement from "@/pages/JobQueue";
 import JobManager from "@/pages/Job";
 import ExamHistoryManager from "@/pages/Exam/History";
-import StatisticsCenterPage from "@/pages/StatisticsCenter";
 import QuestionBankStatisticsPage from "@/pages/StatisticsCenter/themes/QuestionBank";
-import VocabularyProficiencyStatisticsPage from "@/pages/StatisticsCenter/themes/VocabularyProficiency";
+
 import NotFound from "@/pages/NotFound";
 import MindMapPage from "@/pages/MindMap";
 import MindMapEditPage from "@/pages/MindMap/Edit";
@@ -242,7 +241,7 @@ const MenuPermissionRoute: React.FC<{
 const protectedPages = [
   {
     path: "statistics-center",
-    element: <StatisticsCenterPage />,
+    element: <Navigate to="/frame/statistics-center/question-bank" replace />,
     requiredPath: "statistics-center/question-bank",
   },
   {

@@ -14,7 +14,6 @@ import {
   IconEdit,
   IconEye,
   IconPlayArrow,
-  IconPlus,
 } from "@arco-design/web-react/icon";
 import "./index.less";
 import { DataManager } from "@/components/DataManager";
@@ -66,11 +65,13 @@ function OrchestrationManager() {
     showPageSize: true,
     pageSizeOptions: [10, 20, 50, 100],
   });
+  const [tableScrollHeight, setTableScrollHeight] = useState(420);
 
-  const [searchParams, setSearchParams] = useState({
+  const buildDefaultSearchParams = () => ({
     keyWord: "",
     status: undefined as WorkflowStatus | undefined,
   });
+  const [searchParams, setSearchParams] = useState(buildDefaultSearchParams);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -192,21 +193,26 @@ function OrchestrationManager() {
     },
   ];
 
-  const fetchWorkflows = async (extra?: Partial<typeof searchParams>) => {
+  const fetchWorkflows = async (
+    params: typeof searchParams = searchParams,
+    pageSize: number = pagination.pageSize,
+    current: number = pagination.current
+  ) => {
     setLoading(true);
     try {
-      const merged = { ...searchParams, ...(extra || {}) };
-      const params: OrchestrationWorkflowQueryParams = {
-        keyWord: merged.keyWord || "",
-        status: merged.status,
-        pageNum: pagination.current - 1,
-        pageSize: pagination.pageSize,
+      const requestParams: OrchestrationWorkflowQueryParams = {
+        keyWord: params.keyWord || "",
+        status: params.status,
+        pageNum: current - 1,
+        pageSize,
       };
-      const res = await searchWorkflows(params);
+      const res = await searchWorkflows(requestParams);
       const { content, totalElements } = res.data;
       setData(content || []);
       setPagination((prev) => ({
         ...prev,
+        current,
+        pageSize,
         total: totalElements || 0,
       }));
     } catch (e) {
@@ -218,20 +224,39 @@ function OrchestrationManager() {
 
   const handleSearch = (values: any) => {
     const filtered = Object.fromEntries(
-      Object.entries(values).filter(([_, v]) => v !== "" && v !== undefined)
+      Object.entries(values).filter(([_, v]) => v !== "" && v !== undefined && v !== null)
     );
-    const merged = { ...searchParams, ...filtered };
-    setSearchParams(merged);
+    const nextParams = {
+      ...buildDefaultSearchParams(),
+      ...filtered,
+    };
+    setSearchParams(nextParams);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchWorkflows(merged);
+  };
+
+  const handleReset = () => {
+    const nextParams = buildDefaultSearchParams();
+    setSearchParams(nextParams);
+    setPagination((prev) => ({ ...prev, current: 1 }));
+    fetchWorkflows(nextParams, pagination.pageSize, 1);
+    filterFormRef.current?.setFieldsValue?.(nextParams);
+  };
+
+  const handlePaginationChange = (nextPagination: any) => {
+    fetchWorkflows(
+      searchParams,
+      nextPagination.pageSize,
+      nextPagination.current
+    );
   };
 
   const filterContent = (
     <FilterForm
       ref={filterFormRef}
-      initialValues={searchParams}
+      initialValues={buildDefaultSearchParams()}
       formFields={searchFormFields}
       onSearch={handleSearch}
+      onReset={handleReset}
     />
   );
 
@@ -310,12 +335,21 @@ function OrchestrationManager() {
   };
 
   useEffect(() => {
-    fetchWorkflows();
+    const calculateTableHeight = () => {
+      const windowHeight = window.innerHeight;
+      const otherElementsHeight = 330;
+      const newHeight = Math.max(120, windowHeight - otherElementsHeight);
+      setTableScrollHeight((prev) => (prev === newHeight ? prev : newHeight));
+    };
+
+    calculateTableHeight();
+    window.addEventListener("resize", calculateTableHeight);
+    return () => window.removeEventListener("resize", calculateTableHeight);
   }, []);
 
   useEffect(() => {
-    fetchWorkflows();
-  }, [pagination.current, pagination.pageSize]);
+    fetchWorkflows(searchParams, pagination.pageSize, pagination.current);
+  }, [searchParams, pagination.current, pagination.pageSize]);
 
   return (
     <div className="orchestration-manager">
@@ -323,9 +357,7 @@ function OrchestrationManager() {
         data={data}
         loading={loading}
         pagination={pagination}
-        onPaginationChange={(nextPagination: any) =>
-          setPagination((prev) => ({ ...prev, ...nextPagination }))
-        }
+        onPaginationChange={handlePaginationChange}
         actions={{
           onAdd: handleAdd,
         }}
@@ -335,7 +367,7 @@ function OrchestrationManager() {
           filterContent,
           tableColumns: columns,
         }}
-        tableScrollHeight={500}
+        tableScrollHeight={tableScrollHeight}
       />
 
       <Modal

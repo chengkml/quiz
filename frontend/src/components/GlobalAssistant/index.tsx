@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Avatar, Button, Input, Message, Select, Tooltip } from '@arco-design/web-react';
 import { IconClose, IconRefresh, IconRobot, IconSend, IconUser } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import ChatReferenceList, { ChatReference } from '@/components/ChatReferenceList';
 import { fetchStream } from '@/pages/Chat/api';
 import {
@@ -234,7 +236,9 @@ const GlobalAssistant: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
               </Avatar>
             )}
             <div className="message-bubble">
-              {msg.content}
+              <div className="markdown-body">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+              </div>
               {msg.role === 'assistant' &&
                 isLoading &&
                 msg.id === messages[messages.length - 1]?.id && (

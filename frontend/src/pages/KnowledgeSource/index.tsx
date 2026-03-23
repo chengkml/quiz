@@ -12,7 +12,7 @@ import renderDate from '@/utils/timeUtil';
 import './style/index.less';
 
 const { Content } = Layout;
-const { Text, Paragraph } = Typography;
+const { Paragraph } = Typography;
 
 type KnowledgeSourceRecord = {
     id: string;
@@ -289,9 +289,9 @@ function KnowledgeSourceManager({
                 onClick={() => handleEdit(item)}
                 title={
                     <div className='knowledge-source-card__header'>
-                        <Text className='knowledge-source-card__title' ellipsis={{ showTooltip: true }}>
+                        <div className='knowledge-source-card__title' title={item.name}>
                             {item.name}
-                        </Text>
+                        </div>
                         <div className='knowledge-source-card__tags'>
                             {renderTypeTag(item.type)}
                             {renderStatusTag(item.status)}
@@ -329,16 +329,6 @@ function KnowledgeSourceManager({
                 }
             >
                 <div className='knowledge-source-card__body'>
-                    <div className='knowledge-source-card__section'>
-                        <div className='knowledge-source-card__label'>描述</div>
-                        <Paragraph
-                            className='knowledge-source-card__description'
-                            ellipsis={{ rows: 2, showTooltip: true }}
-                        >
-                            {item.descr || '暂无描述'}
-                        </Paragraph>
-                    </div>
-
                     <div className='knowledge-source-card__section knowledge-source-card__section--summary'>
                         <div className='knowledge-source-card__label'>{getSourceSummaryLabel(item.type)}</div>
                         <Paragraph

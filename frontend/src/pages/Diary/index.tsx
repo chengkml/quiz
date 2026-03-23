@@ -64,7 +64,8 @@ function DiaryPage() {
     showPageSize: true,
   });
 
-  const [searchParams, setSearchParams] = useState<any>({});
+  const buildDefaultSearchParams = () => ({});
+  const [searchParams, setSearchParams] = useState<any>(buildDefaultSearchParams);
 
   const [currentRecord, setCurrentRecord] = useState<DiaryDto | null>(null);
   const [detailVisible, setDetailVisible] = useState(false);
@@ -171,9 +172,11 @@ function DiaryPage() {
   };
 
   const handleReset = () => {
-    setSearchParams({});
+    const nextParams = buildDefaultSearchParams();
+    setSearchParams(nextParams);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    filterFormRef.current?.resetForm?.();
+    fetchTableData(nextParams, pagination.pageSize, 1);
+    filterFormRef.current?.setFieldsValue?.(nextParams);
   };
 
   const handlePaginationChange = (nextPagination: any) => {
@@ -401,6 +404,8 @@ function DiaryPage() {
     };
 
     calculateTableHeight();
+    window.addEventListener('resize', calculateTableHeight);
+    return () => window.removeEventListener('resize', calculateTableHeight);
   }, []);
 
   useEffect(() => {
@@ -410,6 +415,7 @@ function DiaryPage() {
   const filterContent = (
     <FilterForm
       ref={filterFormRef}
+      initialValues={buildDefaultSearchParams()}
       formFields={searchFormFields}
       onSearch={handleSearch}
       onReset={handleReset}

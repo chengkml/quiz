@@ -57,11 +57,16 @@
 
 .knowledge-source-card__header {
     min-width: 0;
+    overflow: hidden;
 }
 
 .knowledge-source-card__title {
     display: block;
     margin-bottom: 10px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 16px;
     font-weight: 600;
     color: var(--color-text-1);
@@ -69,15 +74,16 @@
 
 .knowledge-source-card__tags {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
+    overflow: hidden;
 }
 
 .knowledge-source-card__body {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    min-height: 220px;
+    gap: 12px;
+    min-height: 168px;
 }
 
 .knowledge-source-card__section {
@@ -98,7 +104,6 @@
     color: #86909c;
 }
 
-.knowledge-source-card__description,
 .knowledge-source-card__summary {
     margin-bottom: 0;
     color: var(--color-text-2);

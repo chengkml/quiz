@@ -583,7 +583,7 @@ function Requirement() {
     },
     {
       title: "操作",
-      width: 220,
+      width: 170,
       fixed: "right",
       render: (_: any, record: any) => (
         <div style={{ display: "flex", gap: 4 }}>
@@ -627,10 +627,20 @@ function Requirement() {
     if (!container) {
       return;
     }
-    const header = container.querySelector(".data-manager-header") as HTMLElement | null;
-    const footer = container.querySelector(".data-manager-footer") as HTMLElement | null;
-    const occupiedHeight = (header?.offsetHeight || 0) + (footer?.offsetHeight || 0) + 28;
-    const nextHeight = Math.max(260, container.clientHeight - occupiedHeight);
+
+    const content = container.querySelector(".data-manager-content") as HTMLElement | null;
+    let nextHeight = 420;
+
+    if (content && content.clientHeight > 0) {
+      // 基于 DataManager 内容区实际高度计算，避免分页栏被挤出可视区
+      nextHeight = Math.max(260, content.clientHeight - 20);
+    } else {
+      const header = container.querySelector(".data-manager-header") as HTMLElement | null;
+      const footer = container.querySelector(".data-manager-footer") as HTMLElement | null;
+      const occupiedHeight = (header?.offsetHeight || 0) + (footer?.offsetHeight || 0) + 28;
+      nextHeight = Math.max(260, container.clientHeight - occupiedHeight);
+    }
+
     setTableScrollHeight((prev) => (prev === nextHeight ? prev : nextHeight));
   }, []);
 

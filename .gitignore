@@ -17,3 +17,5 @@
 .vscode/settings.json
 .vscode/launch.json
 /backend/src/main/resources/application-dev.yml
+/skills/quiz-requirement-develop/runtime/
+
