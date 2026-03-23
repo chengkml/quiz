@@ -123,9 +123,16 @@ function KnowledgeSetManager() {
             title: '系统内置',
             dataIndex: 'isSystem',
             align: 'center',
-            width: 110,
+            width: 160,
             render: (value: boolean) =>
-                value ? <Tag color='arcoblue' bordered>内置</Tag> : <Tag bordered>自定义</Tag>,
+                value ? (
+                    <Space size='mini' wrap>
+                        <Tag color='arcoblue' bordered>内置</Tag>
+                        <Tag color='gold' bordered>仅查看</Tag>
+                    </Space>
+                ) : (
+                    <Tag bordered>自定义</Tag>
+                ),
         },
         {
             title: '创建人',
@@ -200,11 +207,6 @@ function KnowledgeSetManager() {
                                 />
                             </Tooltip>
                         </Popconfirm>
-                    )}
-                    {record.isSystem && (
-                        <Tag size='small' color='arcoblue' bordered>
-                            仅查看
-                        </Tag>
                     )}
                 </div>
             ),
