@@ -17,9 +17,13 @@ quiz 需求开发执行脚本（串行 + 检查点 + 可恢复）
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import re
+import subprocess
 import sys
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 from urllib import error, parse, request
@@ -450,42 +454,240 @@ def build_development_plan(requirement: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def build_transition_plan(action: str, milestones: Sequence[int], start_progress: int) -> List[Dict[str, Any]]:
-    plan: List[Dict[str, Any]] = []
+def is_under_path(path: str, root: str) -> bool:
+    try:
+        path_abs = os.path.abspath(path)
+        root_abs = os.path.abspath(root)
+        return os.path.commonpath([path_abs, root_abs]) == root_abs
+    except Exception:
+        return False
 
-    if action == "query":
-        return plan
 
-    if action in {"start", "full"}:
+def detect_repo_root() -> str:
+    """从 skills/quiz-requirement-develop/scripts 向上定位到 quiz 仓库根目录。"""
+    p = os.path.abspath(SCRIPT_DIR)
+    for _ in range(8):
+        candidate = p
+        if os.path.isdir(os.path.join(candidate, ".git")) and os.path.isdir(os.path.join(candidate, "frontend")):
+            return candidate
+        p = os.path.dirname(p)
+    fail("validate", "无法定位 quiz 仓库根目录（需要包含 .git 与 frontend）")
+    raise RuntimeError("unreachable")
+
+
+def run_shell(command: str, cwd: str, timeout: int) -> Dict[str, Any]:
+    start = time.time()
+    completed = subprocess.run(
+        ["bash", "-lc", command],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=False,
+    )
+    duration_ms = int((time.time() - start) * 1000)
+    return {
+        "command": command,
+        "cwd": cwd,
+        "exitCode": completed.returncode,
+        "durationMs": duration_ms,
+        "stdout": (completed.stdout or "")[-8000:],
+        "stderr": (completed.stderr or "")[-8000:],
+    }
+
+
+def list_changed_files(repo_root: str) -> List[str]:
+    result = run_shell("git status --short", cwd=repo_root, timeout=60)
+    if result["exitCode"] != 0:
+        fail("develop", "获取 git 变更失败", result)
+    files: List[str] = []
+    for line in (result.get("stdout") or "").splitlines():
+        if not line.strip():
+            continue
+        # 兼容 ' M path' / '?? path'
+        file_part = line[3:] if len(line) > 3 else line
+        file_part = file_part.strip()
+        if file_part and not file_part.startswith("skills/quiz-requirement-develop/"):
+            files.append(file_part)
+    return sorted(set(files))
+
+
+def file_sha256(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(1024 * 1024)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def snapshot_tree_hashes(repo_root: str, roots: Sequence[str]) -> Dict[str, str]:
+    snapshot: Dict[str, str] = {}
+    for rel_root in roots:
+        abs_root = os.path.join(repo_root, rel_root)
+        if not os.path.exists(abs_root):
+            continue
+        for base, _, files in os.walk(abs_root):
+            for name in files:
+                abs_path = os.path.join(base, name)
+                rel_path = os.path.relpath(abs_path, repo_root)
+                # 过滤明显的构建产物，避免噪音
+                if "/build/" in rel_path or "/dist/" in rel_path or "node_modules/" in rel_path:
+                    continue
+                try:
+                    snapshot[rel_path] = file_sha256(abs_path)
+                except Exception:
+                    continue
+    return snapshot
+
+
+def diff_hash_snapshots(before: Dict[str, str], after: Dict[str, str]) -> List[str]:
+    changed = []
+    keys = set(before.keys()) | set(after.keys())
+    for k in sorted(keys):
+        if before.get(k) != after.get(k):
+            changed.append(k)
+    return changed
+
+
+def parse_requirement_paths(requirement: Dict[str, Any]) -> List[str]:
+    descr = normalize_text(requirement.get("descr"))
+    if not descr:
+        return []
+    # 匹配 Markdown 反引号中的路径，如 frontend/src/.. 或 backend/src/..
+    candidates = re.findall(r"`((?:frontend|backend)/[^`\n]+)`", descr)
+    unique = []
+    seen = set()
+    for c in candidates:
+        c = c.strip()
+        # 兼容 `path#method`、`path:line` 这类定位写法，回落到文件路径
+        c = re.split(r"[#:]", c, maxsplit=1)[0].strip()
+        c = c.rstrip(".,;)")
+        if c and c not in seen:
+            seen.add(c)
+            unique.append(c)
+    return unique
+
+
+def execute_development(
+    *,
+    repo_root: str,
+    requirement: Dict[str, Any],
+    build_timeout: int,
+) -> Dict[str, Any]:
+    """真实开发阶段：要求代码有变化，且构建通过，才允许进入状态回写。"""
+    req_id = normalize_text(requirement.get("id"))
+    requirement_paths = parse_requirement_paths(requirement)
+
+    # 快照前
+    before = snapshot_tree_hashes(repo_root, ["frontend/src", "backend/src"])
+
+    # 判断是否已有可归因的代码变更（支持“先手改好再跑脚本”）
+    changed_files = list_changed_files(repo_root)
+    relevant_changed = []
+    if requirement_paths:
+        for f in changed_files:
+            if any(f.startswith(p) for p in requirement_paths):
+                relevant_changed.append(f)
+    else:
+        # 无路径线索时，至少要求有 frontend/src 或 backend/src 的改动
+        for f in changed_files:
+            if f.startswith("frontend/src/") or f.startswith("backend/src/"):
+                relevant_changed.append(f)
+
+    # 若当前无改动，再做一次源码哈希差异兜底（应对部分 git 状态不可见情况）
+    after = snapshot_tree_hashes(repo_root, ["frontend/src", "backend/src"])
+    hash_changed = diff_hash_snapshots(before, after)
+
+    effective_changes = sorted(set(relevant_changed or hash_changed))
+
+    if not effective_changes:
+        fail(
+            "develop",
+            "检测不到本需求的代码改动，拒绝继续状态回写",
+            {
+                "requirementId": req_id,
+                "hint": "请先完成代码修改（frontend/src 或 backend/src），再执行技能。",
+                "requirementPaths": requirement_paths,
+                "gitChanged": changed_files,
+            },
+        )
+
+    # 构建验证（按用户偏好：仅构建/编译，不做回归测试）
+    build_results: List[Dict[str, Any]] = []
+
+    if any(f.startswith("frontend/") for f in effective_changes):
+        frontend_dir = os.path.join(repo_root, "frontend")
+        if os.path.isdir(frontend_dir):
+            build_results.append(run_shell("npm run build", cwd=frontend_dir, timeout=build_timeout))
+
+    if any(f.startswith("backend/") for f in effective_changes):
+        backend_dir = os.path.join(repo_root, "backend")
+        if os.path.isdir(backend_dir):
+            # 按约定仅编译验证，不跑回归
+            build_results.append(run_shell("gradle classes", cwd=backend_dir, timeout=build_timeout))
+
+    if not build_results:
+        fail(
+            "develop",
+            "未命中可执行的构建校验（frontend/backend），拒绝状态回写",
+            {
+                "requirementId": req_id,
+                "changedFiles": effective_changes,
+            },
+        )
+
+    failed_builds = [b for b in build_results if b.get("exitCode") != 0]
+    if failed_builds:
+        fail(
+            "develop",
+            "构建/编译验证失败，拒绝状态回写",
+            {
+                "requirementId": req_id,
+                "changedFiles": effective_changes,
+                "buildResults": failed_builds,
+            },
+        )
+
+    return {
+        "requirementId": req_id,
+        "requirementPaths": requirement_paths,
+        "changedFiles": effective_changes,
+        "buildResults": build_results,
+    }
+
+
+def build_transition_plan(milestones: Sequence[int], start_progress: int) -> List[Dict[str, Any]]:
+    """仅保留完整开发闭环：start -> progress milestones -> complete。"""
+    plan: List[Dict[str, Any]] = [
+        {
+            "phase": "start",
+            "targetStatus": "IN_PROGRESS",
+            "progressPercent": start_progress,
+            "resultMsg": "开始开发：状态置为 IN_PROGRESS",
+        }
+    ]
+
+    for p in milestones:
         plan.append(
             {
-                "phase": "start",
+                "phase": "progress",
                 "targetStatus": "IN_PROGRESS",
-                "progressPercent": start_progress,
-                "resultMsg": "开始开发：状态置为 IN_PROGRESS",
+                "progressPercent": p,
+                "resultMsg": f"开发进度更新：{p}%",
             }
         )
 
-    if action in {"progress", "full"}:
-        for p in milestones:
-            plan.append(
-                {
-                    "phase": "progress",
-                    "targetStatus": "IN_PROGRESS",
-                    "progressPercent": p,
-                    "resultMsg": f"开发进度更新：{p}%",
-                }
-            )
-
-    if action in {"complete", "full"}:
-        plan.append(
-            {
-                "phase": "complete",
-                "targetStatus": "COMPLETED",
-                "progressPercent": 100,
-                "resultMsg": "开发完成：状态置为 COMPLETED",
-            }
-        )
+    plan.append(
+        {
+            "phase": "complete",
+            "targetStatus": "COMPLETED",
+            "progressPercent": 100,
+            "resultMsg": "开发完成：状态置为 COMPLETED",
+        }
+    )
 
     return plan
 
@@ -493,13 +695,14 @@ def build_transition_plan(action: str, milestones: Sequence[int], start_progress
 def execute_for_requirement(
     opener: request.OpenerDirector,
     *,
+    repo_root: str,
     base_url: str,
     token: str,
     requirement_id: str,
-    action: str,
     milestones: Sequence[int],
     start_progress: int,
     timeout: int,
+    build_timeout: int,
     process_order: Optional[int] = None,
     force_complete_if_already_completed: bool = False,
 ) -> Dict[str, Any]:
@@ -514,7 +717,15 @@ def execute_for_requirement(
     current_status = normalize_text(requirement.get("status")).upper()
     title = normalize_text(requirement.get("title"))
     plan = build_development_plan(requirement)
-    transitions = build_transition_plan(action, milestones, start_progress)
+
+    # 先开发（含代码改动校验 + 构建校验）
+    development_result = execute_development(
+        repo_root=repo_root,
+        requirement=requirement,
+        build_timeout=build_timeout,
+    )
+
+    transitions = build_transition_plan(milestones, start_progress)
 
     if force_complete_if_already_completed and current_status == "COMPLETED":
         transitions = [
@@ -556,6 +767,7 @@ def execute_for_requirement(
         "createDate": normalize_text(requirement.get("createDate")),
         "finalStatusPlanned": current_status,
         "developmentPlan": plan,
+        "developmentExecution": development_result,
         "transitionPlan": transitions,
         "trajectory": trajectory,
     }
@@ -660,6 +872,7 @@ def init_auto_query_state(
             "startProgress": cfg["start_progress"],
             "baseUrl": cfg["base_url"],
             "userId": cfg["user_id"],
+            "buildTimeout": cfg["build_timeout"],
         },
         "queryTrace": list(query_trace),
         "plan": {
@@ -732,6 +945,7 @@ def validate_resume_compatibility(cfg: Dict[str, Any], state: Dict[str, Any]) ->
         ("startProgress", cfg.get("start_progress"), sc.get("startProgress")),
         ("baseUrl", cfg.get("base_url"), sc.get("baseUrl")),
         ("userId", cfg.get("user_id"), sc.get("userId")),
+        ("buildTimeout", cfg.get("build_timeout"), sc.get("buildTimeout")),
     ]
 
     mismatches = []
@@ -769,14 +983,14 @@ def refresh_completed_ids_from_results(state: Dict[str, Any]) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="quiz 需求开发执行：login -> jwt -> query/get -> status progress update",
+        description="quiz 需求开发执行（仅支持完整闭环 full）：login -> jwt -> query/get -> status progress update",
     )
 
     parser.add_argument(
         "--action",
-        choices=["query", "start", "progress", "complete", "full"],
+        choices=["full"],
         default="full",
-        help="执行动作：query(仅查询) / start / progress / complete / full(默认完整流程)",
+        help="仅支持 full（完整流程：start -> progress -> complete）",
     )
 
     parser.add_argument("--auto-query", action="store_true", help="批量模式：先查询再逐条处理")
@@ -807,11 +1021,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--user-id", default=DEFAULT_USER_ID, help="登录账号，默认 openclaw")
     parser.add_argument("--user-pwd", default=DEFAULT_USER_PWD, help="登录密码，默认 12345678")
     parser.add_argument("--timeout", type=int, default=15, help="HTTP 超时秒数，默认 15")
+    parser.add_argument("--build-timeout", type=int, default=600, help="构建/编译命令超时秒数，默认 600")
 
     parser.add_argument(
         "--force-complete-if-already-completed",
         action="store_true",
-        help="当需求已是 COMPLETED 时，complete/full 仍执行一次 COMPLETED(100) 写回",
+        help="当需求已是 COMPLETED 时，full 仍执行一次 COMPLETED(100) 写回",
     )
 
     parser.add_argument(
@@ -850,7 +1065,7 @@ def validate_args(args: argparse.Namespace) -> Dict[str, Any]:
             checkpoint_log_file = f"{checkpoint_file}.events.jsonl"
 
         cfg = {
-            "action": args.action,
+            "action": "full",
             "auto_query": bool(args.auto_query),
             "requirement_id": normalize_text(args.requirement_id),
             "statuses": parse_statuses(args.status),
@@ -864,6 +1079,7 @@ def validate_args(args: argparse.Namespace) -> Dict[str, Any]:
             "user_pwd": args.user_pwd or "",
             "timeout": args.timeout,
             "force_complete_if_already_completed": bool(args.force_complete_if_already_completed),
+            "build_timeout": args.build_timeout,
             "checkpoint_file": checkpoint_file,
             "resume": bool(args.resume),
             "reset_checkpoint": bool(args.reset_checkpoint),
@@ -895,6 +1111,8 @@ def validate_args(args: argparse.Namespace) -> Dict[str, Any]:
 
         if cfg["start_progress"] < 0 or cfg["start_progress"] > 99:
             raise ValueError("start-progress 必须在 0-99 之间")
+        if cfg["build_timeout"] <= 0:
+            raise ValueError("build-timeout 必须大于 0")
 
         return cfg
     except ValueError as e:
@@ -905,6 +1123,8 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
     cfg = validate_args(args)
+
+    repo_root = detect_repo_root()
 
     opener = request.build_opener(request.HTTPCookieProcessor())
 
@@ -991,13 +1211,14 @@ def main() -> None:
             try:
                 item = execute_for_requirement(
                     opener,
+                    repo_root=repo_root,
                     base_url=cfg["base_url"],
                     token=token,
                     requirement_id=rid,
-                    action=cfg["action"],
                     milestones=cfg["milestones"],
                     start_progress=cfg["start_progress"],
                     timeout=cfg["timeout"],
+                    build_timeout=cfg["build_timeout"],
                     process_order=idx + 1,
                     force_complete_if_already_completed=cfg["force_complete_if_already_completed"],
                 )
@@ -1081,13 +1302,14 @@ def main() -> None:
         items.append(
             execute_for_requirement(
                 opener,
+                repo_root=repo_root,
                 base_url=cfg["base_url"],
                 token=token,
                 requirement_id=cfg["requirement_id"],
-                action=cfg["action"],
                 milestones=cfg["milestones"],
                 start_progress=cfg["start_progress"],
                 timeout=cfg["timeout"],
+                build_timeout=cfg["build_timeout"],
                 force_complete_if_already_completed=cfg["force_complete_if_already_completed"],
             )
         )

@@ -1,11 +1,11 @@
 ---
 name: quiz-requirement-develop
-description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 状态流转 -> 进度更新 -> 完成”流程（login -> jwt -> requirement search/get -> requirement status update）。当用户要求开发 quiz 项目 OPEN/IN_PROGRESS 需求、批量推进进度、或将需求闭环到 COMPLETED 时使用。支持 auto-query 串行处理、逐条检查点输出、以及中断后的检查点续跑。
+description: 通过 JWT 链路执行 quiz 需求开发完整闭环（仅 action=full）：查询待处理需求 -> 开发执行 -> 状态流转（IN_PROGRESS 里程碑）-> COMPLETED（login -> jwt -> requirement search/get -> requirement status update）。当用户要求开发 quiz 项目 OPEN/IN_PROGRESS 需求并闭环完成时使用。支持 auto-query 串行处理、逐条检查点输出、以及中断后的检查点续跑。
 ---
 
 # Quiz Requirement Develop
 
-按“查询 -> 串行逐条读取 -> 开发推进 -> 状态流转 -> 完成”执行需求开发闭环。
+按“查询 -> 串行逐条读取 -> 先开发（代码改动+构建验证） -> 再状态流转 -> 完成”执行需求开发闭环。
 
 服务地址与认证默认值已统一为与 `requirement-query` 一致：
 - 默认 `base-url`: `https://www.quizck.cn`
@@ -28,12 +28,16 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
 4. 逐条读取需求详情：`GET /api/project/requirement/get/{id}`
    - 读取 `title / descr / status / progressPercent`
    - 基于 `descr` 形成开发执行计划
-5. 开始开发前更新状态：`POST /api/project/requirement/{id}/status`
+5. **先执行真实开发（硬门禁）**
+   - 必须检测到与需求相关的代码改动（至少在 `frontend/src` 或 `backend/src`）
+   - 必须通过构建/编译验证（仅构建，不做回归）
+   - 任一条件不满足：直接失败，禁止状态回写
+6. 开始开发前更新状态：`POST /api/project/requirement/{id}/status`
    - `status=IN_PROGRESS`
-6. 关键阶段持续更新进度：`POST /api/project/requirement/{id}/status`
+7. 关键阶段持续更新进度：`POST /api/project/requirement/{id}/status`
    - `status=IN_PROGRESS`
    - `progressPercent` 按里程碑更新（默认 `30,60,90`）
-7. 完成时更新状态：`POST /api/project/requirement/{id}/status`
+8. 完成时更新状态：`POST /api/project/requirement/{id}/status`
    - `status=COMPLETED`
    - `progressPercent=100`
 
@@ -61,13 +65,10 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
 
 ### 参数说明
 
-- `--action`：`query|start|progress|complete|full`
-  - `query`：仅查询/读取，不更新状态
-  - `start`：仅执行“置为 IN_PROGRESS”
-  - `progress`：仅执行里程碑进度更新（保持 IN_PROGRESS）
-  - `complete`：仅执行完成（COMPLETED + 100）
-  - `full`：完整流程（默认）
-- `--auto-query`：批量模式（先查列表，再逐条执行）
+- `--action`：仅支持 `full`
+  - 固定执行完整流程：`start -> progress(里程碑) -> complete`
+  - 不再支持 `query/start/progress/complete` 单阶段动作
+- `--auto-query`：批量模式（先查列表，再逐条执行 full）
 - `--requirement-id`：单条模式需求 ID（未启用 `--auto-query` 时必填）
 - `--status`：查询状态（可重复或逗号分隔），默认 `OPEN,IN_PROGRESS`
 - `--project-name`：项目过滤，默认 `quiz`
@@ -76,6 +77,7 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
 - `--progress-milestones`：关键进度里程碑，默认 `30,60,90`
 - `--start-progress`：start 阶段进度值，默认 `0`
 - `--base-url --user-id --user-pwd --timeout`：连接与认证参数
+- `--build-timeout`：构建/编译命令超时秒数，默认 `600`
 
 ### 检查点与续跑参数（新增）
 
@@ -84,7 +86,7 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
   - 每完成 1 条需求即原子覆盖写入，记录 `allIds / nextIndex / completedIds / lastCheckpoint / results`。
 - `--resume`
   - 从 `--checkpoint-file` 的最近检查点续跑。
-  - 续跑时会校验关键参数一致性（action/status/project/page-size/max-items/milestones/start-progress/base-url/user-id），防止错配。
+  - 续跑时会校验关键参数一致性（full/status/project/page-size/max-items/milestones/start-progress/base-url/user-id），防止错配。
 - `--reset-checkpoint`
   - 明确要求重建计划并覆盖检查点（仅 auto-query）。
 - 默认防误操作规则
@@ -138,7 +140,7 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
 ## 输出结构（最终汇总 JSON）
 
 - `mode`: `single` / `auto-query`
-- `action`: 当前执行动作
+- `action`: 固定为 `full`
 - `resumed`: 是否从检查点续跑
 - `executionMode`: 固定 `serial`
 - `checkpointFile` / `checkpointLogFile`（auto-query）
@@ -148,6 +150,7 @@ description: 通过 JWT 链路执行“查询待处理需求 -> 开发执行 -> 
   - `requirementId/title/initialStatus/finalStatusPlanned`
   - `priority/processOrder/createDate`
   - `developmentPlan`：基于 `descr` 的开发计划摘要
+  - `developmentExecution`：真实开发执行结果（`changedFiles` + `buildResults`）
   - `transitionPlan`：计划中的状态与进度步骤
   - `trajectory[]`：每次实际状态更新记录
 
@@ -178,22 +181,12 @@ python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
   --checkpoint-file skills/quiz-requirement-develop/runtime/quiz-dev.ckpt.json
 ```
 
-### 3) 仅查询待处理需求（不写状态，仍保留可续跑计划）
-
-```bash
-python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
-  --auto-query \
-  --action query \
-  --status OPEN,IN_PROGRESS \
-  --max-items 20
-```
-
-### 4) 完成单条需求
+### 3) 单条需求执行 full（完整闭环）
 
 ```bash
 python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
   --requirement-id <REQ_ID> \
-  --action complete
+  --action full
 ```
 
 ## 错误处理与回滚策略
@@ -202,6 +195,9 @@ python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
   - 立即失败并返回 `step=validate`，不发起任何状态写入
 - 登录/JWT/查询失败
   - 返回失败步骤与 HTTP 明细，不输出 token/cookie/password
+- **开发门禁失败（新增）**
+  - `step=develop`：未检测到需求相关代码改动，或构建/编译失败
+  - 该场景下禁止进入状态回写，需求状态保持不变
 - 状态更新失败（单条）
   - 返回失败步骤 `update_status` + 对应请求参数，便于重试
 - 批量执行中断/异常

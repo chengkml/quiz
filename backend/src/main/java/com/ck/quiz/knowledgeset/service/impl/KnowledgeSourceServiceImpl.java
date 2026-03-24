@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class KnowledgeSourceServiceImpl extends
@@ -87,6 +88,33 @@ public class KnowledgeSourceServiceImpl extends
         vectorService.deleteBySourceId(id);
 
         super.delete(userId, id);
+    }
+
+    @Override
+    @Transactional
+    public void deleteByKnowledgeSetId(String userId, String knowledgeSetId) {
+        List<KnowledgeSource> sources = repository.findByKnowledgeSetId(knowledgeSetId);
+        if (sources == null || sources.isEmpty()) {
+            return;
+        }
+
+        for (KnowledgeSource source : sources) {
+            if (source == null || source.getId() == null) {
+                continue;
+            }
+            vectorService.deleteBySourceId(source.getId());
+        }
+
+        List<String> sourceIds = sources.stream()
+                .filter(Objects::nonNull)
+                .map(KnowledgeSource::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (sourceIds.isEmpty()) {
+            return;
+        }
+
+        repository.deleteAllByIdInBatch(sourceIds);
     }
 
     @Override

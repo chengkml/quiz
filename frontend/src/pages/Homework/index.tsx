@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Button,
     Drawer,
@@ -9,7 +9,6 @@ import {
     Popconfirm,
     Select,
     Space,
-    Table,
     Tag,
     Tooltip,
 } from '@arco-design/web-react';
@@ -17,14 +16,15 @@ import {
     IconDelete,
     IconEdit,
     IconRobot,
-    IconPlus,
-    IconSearch,
 } from '@arco-design/web-react/icon';
 import MDEditor from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import '@uiw/react-markdown-preview/markdown.css';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import DataManager from '@/components/DataManager';
+import FilterForm from '@/components/FilterForm';
+import { FormFieldConfig } from '@/components/types/types';
 import renderDate from '@/utils/timeUtil';
 import {
     createHomework,
@@ -70,14 +70,23 @@ const buildContentPreview = (content?: string) => {
 };
 
 const HomeworkPage: React.FC = () => {
+    const pageRef = useRef<HTMLDivElement | null>(null);
+
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<HomeworkDto[]>([]);
-    const [total, setTotal] = useState(0);
-    const [pageNum, setPageNum] = useState(0);
-    const [pageSize] = useState(20);
+    const [tableScrollHeight, setTableScrollHeight] = useState(420);
 
-    // Search
-    const [searchTitle, setSearchTitle] = useState('');
+    const [pagination, setPagination] = useState({
+        current: 1,
+        pageSize: 20,
+        total: 0,
+        showTotal: true,
+        showJumper: true,
+        showPageSize: true,
+    });
+
+    const [searchParams, setSearchParams] = useState<{ title?: string; status?: string }>({});
+    const filterFormRef = useRef<any>(null);
 
     // Edit / Create drawer
     const [drawerVisible, setDrawerVisible] = useState(false);
@@ -93,27 +102,47 @@ const HomeworkPage: React.FC = () => {
     // AI generate todos
     const [generatingId, setGeneratingId] = useState<string | null>(null);
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const res: any = await getHomeworkList({
-                title: searchTitle || undefined,
-                pageNum,
-                pageSize,
-            });
-            const page = res?.data || res;
-            setData(page?.content || []);
-            setTotal(page?.totalElements || 0);
-        } catch (e: any) {
-            Message.error(e?.message || '加载失败');
-        } finally {
-            setLoading(false);
-        }
-    }, [searchTitle, pageNum, pageSize]);
+    const fetchData = useCallback(
+        async (
+            params: { title?: string; status?: string } = searchParams,
+            pageSize: number = pagination.pageSize,
+            current: number = pagination.current
+        ) => {
+            setLoading(true);
+            try {
+                const query: any = {
+                    pageNum: current - 1,
+                    pageSize,
+                    ...params,
+                };
+                if (query.title === '') {
+                    delete query.title;
+                }
+                if (query.status === '') {
+                    delete query.status;
+                }
+
+                const res: any = await getHomeworkList(query);
+                const page = res?.data || res;
+                setData(page?.content || []);
+                setPagination((prev) => ({
+                    ...prev,
+                    current,
+                    pageSize,
+                    total: page?.totalElements || 0,
+                }));
+            } catch (e: any) {
+                Message.error(e?.message || '加载失败');
+            } finally {
+                setLoading(false);
+            }
+        },
+        [searchParams, pagination.current, pagination.pageSize]
+    );
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        fetchData(searchParams, pagination.pageSize, pagination.current);
+    }, []);
 
     const handleAdd = () => {
         setEditingItem(null);
@@ -183,6 +212,53 @@ const HomeworkPage: React.FC = () => {
         setDetailItem(record);
         setDetailVisible(true);
     };
+
+    const handleSearch = (values: { title?: string; status?: string }) => {
+        const cleaned = Object.fromEntries(
+            Object.entries(values).filter(([, value]) => value !== '' && value !== undefined && value !== null)
+        ) as { title?: string; status?: string };
+        setSearchParams(cleaned);
+        fetchData(cleaned, pagination.pageSize, 1);
+    };
+
+    const handleReset = () => {
+        const defaults = {};
+        setSearchParams(defaults);
+        fetchData(defaults, pagination.pageSize, 1);
+    };
+
+    const handlePaginationChange = (nextPagination: any) => {
+        fetchData(searchParams, nextPagination.pageSize, nextPagination.current);
+    };
+
+    const searchFormFields: FormFieldConfig[] = [
+        {
+            field: 'title',
+            label: '标题',
+            type: 'input',
+            placeholder: '请输入作业标题',
+            span: 8,
+        },
+        {
+            field: 'status',
+            label: '状态',
+            type: 'select',
+            options: STATUS_OPTIONS,
+            placeholder: '请选择状态',
+            span: 8,
+            allowClear: true,
+        },
+    ];
+
+    const filterContent = (
+        <FilterForm
+            ref={filterFormRef}
+            formFields={searchFormFields}
+            initialValues={{ title: '', status: '' }}
+            onSearch={handleSearch}
+            onReset={handleReset}
+        />
+    );
 
     const columns = [
         {
@@ -268,49 +344,75 @@ const HomeworkPage: React.FC = () => {
         },
     ];
 
-    return (
-        <div className="homework-manager" style={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* 搜索栏 */}
-            <div style={{ display: 'flex', gap: 8, background: '#fff', padding: '12px 16px', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                <Input
-                    style={{ width: 220 }}
-                    prefix={<IconSearch />}
-                    placeholder="搜索标题"
-                    value={searchTitle}
-                    onChange={setSearchTitle}
-                    onPressEnter={() => { setPageNum(0); fetchData(); }}
-                    allowClear
-                />
-                <Button type="primary" icon={<IconSearch />} onClick={() => { setPageNum(0); fetchData(); }}>
-                    搜索
-                </Button>
-                <div style={{ flex: 1 }} />
-                <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>
-                    新建作业
-                </Button>
-            </div>
+    const calculateTableScrollHeight = useCallback(() => {
+        const container = pageRef.current;
+        if (!container) {
+            return;
+        }
 
-            {/* 表格 */}
-            <div style={{ flex: 1, overflow: 'auto', background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                <Table
-                    loading={loading}
-                    columns={columns}
-                    data={data}
-                    rowKey="id"
-                    pagination={{
-                        total,
-                        current: pageNum + 1,
-                        pageSize,
-                        showTotal: true,
-                        onChange: (page) => setPageNum(page - 1),
-                    }}
-                    onRow={(record) => ({
-                        onClick: () => handleRowClick(record),
-                        style: { cursor: 'pointer' },
-                    })}
-                    scroll={{ x: 900 }}
-                />
-            </div>
+        const content = container.querySelector('.data-manager-content') as HTMLElement | null;
+        let nextHeight = 420;
+
+        if (content && content.clientHeight > 0) {
+            nextHeight = Math.max(260, content.clientHeight - 20);
+        } else {
+            const header = container.querySelector('.data-manager-header') as HTMLElement | null;
+            const footer = container.querySelector('.data-manager-footer') as HTMLElement | null;
+            const occupiedHeight = (header?.offsetHeight || 0) + (footer?.offsetHeight || 0) + 28;
+            nextHeight = Math.max(260, container.clientHeight - occupiedHeight);
+        }
+
+        setTableScrollHeight((prev) => (prev === nextHeight ? prev : nextHeight));
+    }, []);
+
+    useEffect(() => {
+        const timer = window.setTimeout(() => calculateTableScrollHeight(), 0);
+        const onResize = () => calculateTableScrollHeight();
+        window.addEventListener('resize', onResize);
+
+        let observer: ResizeObserver | null = null;
+        if (pageRef.current && 'ResizeObserver' in window) {
+            observer = new ResizeObserver(() => calculateTableScrollHeight());
+            observer.observe(pageRef.current);
+        }
+
+        return () => {
+            window.clearTimeout(timer);
+            window.removeEventListener('resize', onResize);
+            observer?.disconnect();
+        };
+    }, [calculateTableScrollHeight]);
+
+    useEffect(() => {
+        const timer = window.setTimeout(() => calculateTableScrollHeight(), 0);
+        return () => window.clearTimeout(timer);
+    }, [data.length, pagination.current, pagination.pageSize, calculateTableScrollHeight]);
+
+    return (
+        <div className="homework-manager" ref={pageRef}>
+            <DataManager
+                data={data}
+                loading={loading}
+                pagination={pagination}
+                onPaginationChange={handlePaginationChange}
+                actions={{
+                    onAdd: handleAdd,
+                }}
+                config={{
+                    showModeToggle: false,
+                    displayMode: 'table',
+                    filterContent,
+                    tableColumns: columns,
+                    tableProps: {
+                        onRow: (record: HomeworkDto) => ({
+                            onClick: () => handleRowClick(record),
+                            style: { cursor: 'pointer' },
+                        }),
+                        scroll: { x: 900, y: tableScrollHeight },
+                    },
+                }}
+                tableScrollHeight={tableScrollHeight}
+            />
 
             {/* 编辑/新建 Drawer */}
             <Drawer

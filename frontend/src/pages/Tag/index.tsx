@@ -114,25 +114,11 @@ function TagManager() {
 
     const searchFormFields: FormFieldConfig[] = [
         {
-            field: 'name',
-            label: '名称',
+            field: 'keyWord',
+            label: '关键词',
             type: 'input',
-            placeholder: '请输入标签名称',
-            span: 8,
-        },
-        {
-            field: 'label',
-            label: '显示名',
-            type: 'input',
-            placeholder: '请输入显示名',
-            span: 8,
-        },
-        {
-            field: 'type',
-            label: '类型',
-            type: 'input',
-            placeholder: '请输入分类',
-            span: 8,
+            placeholder: '请输入标签名称/显示名',
+            span: 12,
         },
     ];
 
@@ -234,11 +220,11 @@ function TagManager() {
     const filterContent = (
         <FilterForm
             ref={filterFormRef}
-            initialValues={{ name: '', label: '', type: '' }}
+            initialValues={{ keyWord: '' }}
             formFields={searchFormFields}
             onSearch={(values) => fetchTableData(values, 1)}
             onReset={() => fetchTableData({}, 1)}
-            min={3}
+            min={1}
         />
     );
 

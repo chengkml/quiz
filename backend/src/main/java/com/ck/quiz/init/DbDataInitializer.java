@@ -399,7 +399,7 @@ public class DbDataInitializer implements CommandLineRunner {
 
             String id = IdHelper.genUuid();
             batchArgs.add(new Object[] {
-                    id, name, descr, userId, userId, now, now, true, "ENABLED", "PUBLIC"
+                    id, name, descr, userId, userId, now, now, true, "ENABLED", "PRIVATE"
             });
         }
 
@@ -446,7 +446,7 @@ public class DbDataInitializer implements CommandLineRunner {
 
             String id = IdHelper.genUuid();
             batchArgs.add(new Object[] {
-                    id, name, descr, userId, userId, now, now, true, "ENABLED", "PUBLIC"
+                    id, name, descr, userId, userId, now, now, true, "ENABLED", "PRIVATE"
             });
         }
 

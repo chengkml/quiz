@@ -270,6 +270,7 @@ function Requirement() {
     setSearchParams(filterValues as any);
     setPagination((prev) => ({ ...prev, current: 1 }));
     fetchTableData(filterValues, pagination.pageSize, 1);
+    window.setTimeout(() => calculateTableScrollHeight(), 0);
   };
 
   const handleReset = () => {
@@ -277,6 +278,7 @@ function Requirement() {
     setSearchParams(defaultParams as any);
     setPagination((prev) => ({ ...prev, current: 1 }));
     fetchTableData(defaultParams, pagination.pageSize, 1);
+    window.setTimeout(() => calculateTableScrollHeight(), 0);
   };
 
   const handlePaginationChange = (nextPagination: any) => {

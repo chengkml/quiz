@@ -123,6 +123,16 @@ const ChatPage = () => {
         setSessions(data.content);
         setSessionsPage(page);
         setSessionsTotal(data.totalElements || data.content.length);
+
+        if (!currentSessionId && data.content.length > 0) {
+          const firstSession = data.content[0];
+          setCurrentSessionId(firstSession.sessionId);
+          setSelectedScopeValue(resolveScopeValue(firstSession));
+          void loadMessages(firstSession.sessionId);
+          if (firstSession.modelName) {
+            setCurrentModel(firstSession.modelName);
+          }
+        }
       }
     } catch (error) {
       console.error(error);

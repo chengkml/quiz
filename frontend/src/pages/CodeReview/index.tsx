@@ -194,8 +194,6 @@ function CodeReviewPage() {
 
     const columns = [
         { title: '标题', dataIndex: 'title', width: 220, ellipsis: true },
-        { title: '项目', dataIndex: 'projectName', width: 120 },
-        { title: '模块', dataIndex: 'moduleName', width: 120 },
         { title: '文件', dataIndex: 'filePath', width: 220, ellipsis: true },
         { title: '行号', dataIndex: 'lineNo', width: 80 },
         {
@@ -251,10 +249,8 @@ function CodeReviewPage() {
     ];
 
     const searchFormFields: FormFieldConfig[] = [
-        { field: 'keyWord', label: '关键词', type: 'input', placeholder: '标题/项目/模块/文件', span: 8 },
-        { field: 'projectName', label: '项目', type: 'input', placeholder: '项目名', span: 6 },
-        { field: 'moduleName', label: '模块', type: 'input', placeholder: '模块名', span: 6 },
-        { field: 'status', label: '状态', type: 'select', options: statusOptions, span: 4, allowClear: true },
+        { field: 'keyWord', label: '关键词', type: 'input', placeholder: '标题/文件', span: 10 },
+        { field: 'status', label: '状态', type: 'select', options: statusOptions, span: 6, allowClear: true },
     ];
 
     const filterContent = (

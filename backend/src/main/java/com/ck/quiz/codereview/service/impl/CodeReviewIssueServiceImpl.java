@@ -52,8 +52,6 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
                 " and (lower(c.title) like :keyWord or lower(c.project_name) like :keyWord or lower(c.module_name) like :keyWord or lower(c.file_path) like :keyWord) ",
                 params, namedParameterJdbcTemplate, sql, countSql);
 
-        JdbcQueryHelper.equals("projectName", queryDto.getProjectName(), " and c.project_name = :projectName ", params, sql, countSql);
-        JdbcQueryHelper.equals("moduleName", queryDto.getModuleName(), " and c.module_name = :moduleName ", params, sql, countSql);
         JdbcQueryHelper.equals("source", queryDto.getSource(), " and c.source = :source ", params, sql, countSql);
 
         if (queryDto.getStatus() != null) {

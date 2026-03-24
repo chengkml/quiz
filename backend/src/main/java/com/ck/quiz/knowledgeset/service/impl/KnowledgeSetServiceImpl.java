@@ -8,6 +8,7 @@ import com.ck.quiz.knowledgeset.dto.KnowledgeSetUpdateDto;
 import com.ck.quiz.knowledgeset.entity.KnowledgeSet;
 import com.ck.quiz.knowledgeset.repository.KnowledgeSetRepository;
 import com.ck.quiz.knowledgeset.service.KnowledgeSetService;
+import com.ck.quiz.knowledgeset.service.KnowledgeSourceService;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,6 +31,9 @@ public class KnowledgeSetServiceImpl extends
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private KnowledgeSourceService knowledgeSourceService;
 
     @Override
     protected KnowledgeSetDto newDto() {
@@ -127,6 +131,8 @@ public class KnowledgeSetServiceImpl extends
         if (model != null && Boolean.TRUE.equals(model.getIsSystem())) {
             throw new IllegalArgumentException("系统预设知识集不允许删除");
         }
+
+        knowledgeSourceService.deleteByKnowledgeSetId(userId, id);
         super.delete(userId, id);
     }
 
