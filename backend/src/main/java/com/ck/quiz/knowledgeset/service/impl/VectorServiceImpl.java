@@ -3,6 +3,11 @@ package com.ck.quiz.knowledgeset.service.impl;
 import com.ck.quiz.knowledgeset.converter.VectorConverter;
 import com.ck.quiz.knowledgeset.dto.VectorSearchFilter;
 import com.ck.quiz.knowledgeset.dto.VectorSearchResultDto;
+import com.ck.quiz.knowledgeset.dto.VectorSyncCheckItemDto;
+import com.ck.quiz.knowledgeset.dto.VectorSyncCheckRequestDto;
+import com.ck.quiz.knowledgeset.dto.VectorSyncCheckResultDto;
+import com.ck.quiz.knowledgeset.dto.VectorSyncCheckSummaryDto;
+import com.ck.quiz.knowledgeset.dto.VectorSyncIssueSampleDto;
 import com.ck.quiz.knowledgeset.entity.KnowledgeChunk;
 import com.ck.quiz.knowledgeset.entity.KnowledgeVector;
 import com.ck.quiz.knowledgeset.repository.KnowledgeChunkRepository;
@@ -187,6 +192,42 @@ public class VectorServiceImpl implements VectorService {
         log.info("Deleted {} chunks and their vectors for sourceId {}", chunkIds.size(), sourceId);
     }
 
+    @Override
+    public VectorSyncCheckResultDto syncCheck(VectorSyncCheckRequestDto request) {
+        VectorSyncCheckRequestDto req = request == null ? new VectorSyncCheckRequestDto() : request;
+
+        String knowledgeSetId = normalizeBlank(req.getKnowledgeSetId());
+        String knowledgeSourceId = normalizeBlank(req.getKnowledgeSourceId());
+        int sampleLimit = req.getSampleLimit() == null || req.getSampleLimit() <= 0 ? 50 : Math.min(req.getSampleLimit(), 200);
+
+        Long totalChunks = querySingleCount(buildTotalChunkCountSql(knowledgeSetId, knowledgeSourceId),
+                buildFilterParams(knowledgeSetId, knowledgeSourceId));
+        Long totalVectors = querySingleCount(buildTotalVectorCountSql(knowledgeSetId, knowledgeSourceId),
+                buildFilterParams(knowledgeSetId, knowledgeSourceId));
+
+        VectorSyncCheckItemDto chunkWithoutVector = queryChunkWithoutVector(knowledgeSetId, knowledgeSourceId, sampleLimit);
+        VectorSyncCheckItemDto vectorWithoutChunk = queryVectorWithoutChunk(knowledgeSetId, knowledgeSourceId, sampleLimit);
+        VectorSyncCheckItemDto chunkWithoutSet = queryChunkWithoutSet(knowledgeSetId, knowledgeSourceId, sampleLimit);
+        VectorSyncCheckItemDto sourceWithoutSet = querySourceWithoutSet(knowledgeSetId, knowledgeSourceId, sampleLimit);
+
+        long totalIssues = safeLong(chunkWithoutVector.getCount())
+                + safeLong(vectorWithoutChunk.getCount())
+                + safeLong(chunkWithoutSet.getCount())
+                + safeLong(sourceWithoutSet.getCount());
+
+        VectorSyncCheckResultDto result = new VectorSyncCheckResultDto();
+        result.setSummary(new VectorSyncCheckSummaryDto(safeLong(totalChunks), safeLong(totalVectors), totalIssues));
+
+        VectorSyncCheckResultDto.Checks checks = new VectorSyncCheckResultDto.Checks();
+        checks.setChunkWithoutVector(chunkWithoutVector);
+        checks.setVectorWithoutChunk(vectorWithoutChunk);
+        checks.setChunkWithoutSet(chunkWithoutSet);
+        checks.setSourceWithoutSet(sourceWithoutSet);
+        result.setChecks(checks);
+
+        return result;
+    }
+
     private List<VectorSearchResultDto> searchByText(String queryText, int limit, String knowledgeSetId,
             List<String> knowledgeSetIds) {
         StringBuilder sql = new StringBuilder(
@@ -283,6 +324,169 @@ public class VectorServiceImpl implements VectorService {
 
     private String normalizeBlank(String value) {
         return StringUtils.hasText(value) ? value : null;
+    }
+
+    private Long querySingleCount(String sql, MapSqlParameterSource params) {
+        Long value = namedParameterJdbcTemplate.queryForObject(sql, params, Long.class);
+        return value == null ? 0L : value;
+    }
+
+    private long safeLong(Long value) {
+        return value == null ? 0L : value;
+    }
+
+    private MapSqlParameterSource buildFilterParams(String knowledgeSetId, String knowledgeSourceId) {
+        return new MapSqlParameterSource()
+                .addValue("knowledgeSetId", knowledgeSetId)
+                .addValue("knowledgeSourceId", knowledgeSourceId);
+    }
+
+    private String buildSourceFilterCondition(boolean withAlias) {
+        String sourceColumn = withAlias ? "s.id" : "knowledge_source_id";
+        String setColumn = withAlias ? "s.knowledge_set_id" : "knowledge_set_id";
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("(:knowledgeSourceId IS NULL OR ").append(sourceColumn).append(" = :knowledgeSourceId)");
+        sb.append(" AND (:knowledgeSetId IS NULL OR ").append(setColumn).append(" = :knowledgeSetId)");
+        return sb.toString();
+    }
+
+    private String buildTotalChunkCountSql(String knowledgeSetId, String knowledgeSourceId) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(1) FROM knowledge_chunk c WHERE 1=1");
+        if (knowledgeSetId != null || knowledgeSourceId != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM knowledge_source s WHERE s.id = c.knowledge_source_id AND ")
+                    .append(buildSourceFilterCondition(true))
+                    .append(")");
+        }
+        return sql.toString();
+    }
+
+    private String buildTotalVectorCountSql(String knowledgeSetId, String knowledgeSourceId) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(1) FROM knowledge_vector v WHERE 1=1");
+        if (knowledgeSetId != null || knowledgeSourceId != null) {
+            sql.append(" AND EXISTS (")
+                    .append("SELECT 1 FROM knowledge_chunk c JOIN knowledge_source s ON c.knowledge_source_id = s.id ")
+                    .append("WHERE c.id = v.knowledge_chunk_id AND ")
+                    .append(buildSourceFilterCondition(true))
+                    .append(")");
+        }
+        return sql.toString();
+    }
+
+    private VectorSyncCheckItemDto queryChunkWithoutVector(String knowledgeSetId, String knowledgeSourceId, int sampleLimit) {
+        StringBuilder countSql = new StringBuilder(
+                "SELECT COUNT(1) FROM knowledge_chunk c " +
+                        "LEFT JOIN knowledge_vector v ON v.knowledge_chunk_id = c.id " +
+                        "JOIN knowledge_source s ON s.id = c.knowledge_source_id " +
+                        "WHERE v.id IS NULL AND " + buildSourceFilterCondition(true));
+
+        StringBuilder sampleSql = new StringBuilder(
+                "SELECT c.id AS chunk_id, NULL AS vector_id, c.knowledge_source_id, s.knowledge_set_id, c.create_date " +
+                        "FROM knowledge_chunk c " +
+                        "LEFT JOIN knowledge_vector v ON v.knowledge_chunk_id = c.id " +
+                        "JOIN knowledge_source s ON s.id = c.knowledge_source_id " +
+                        "WHERE v.id IS NULL AND " + buildSourceFilterCondition(true) +
+                        " ORDER BY c.create_date DESC LIMIT :sampleLimit");
+
+        return queryIssueItem(countSql.toString(), sampleSql.toString(), buildFilterParams(knowledgeSetId, knowledgeSourceId),
+                sampleLimit);
+    }
+
+    private VectorSyncCheckItemDto queryVectorWithoutChunk(String knowledgeSetId, String knowledgeSourceId, int sampleLimit) {
+        StringBuilder countSql = new StringBuilder(
+                "SELECT COUNT(1) FROM knowledge_vector v " +
+                        "LEFT JOIN knowledge_chunk c ON c.id = v.knowledge_chunk_id " +
+                        "LEFT JOIN knowledge_source s ON s.id = c.knowledge_source_id " +
+                        "WHERE c.id IS NULL");
+
+        StringBuilder sampleSql = new StringBuilder(
+                "SELECT NULL AS chunk_id, v.id AS vector_id, NULL AS knowledge_source_id, NULL AS knowledge_set_id, v.create_date " +
+                        "FROM knowledge_vector v " +
+                        "LEFT JOIN knowledge_chunk c ON c.id = v.knowledge_chunk_id " +
+                        "WHERE c.id IS NULL ORDER BY v.create_date DESC LIMIT :sampleLimit");
+
+        // vector 无 chunk 时无法按 set/source 过滤；只有全局检查有意义
+        if (knowledgeSetId != null || knowledgeSourceId != null) {
+            return new VectorSyncCheckItemDto(0L, new ArrayList<>());
+        }
+
+        return queryIssueItem(countSql.toString(), sampleSql.toString(), buildFilterParams(null, null), sampleLimit);
+    }
+
+    private VectorSyncCheckItemDto queryChunkWithoutSet(String knowledgeSetId, String knowledgeSourceId, int sampleLimit) {
+        StringBuilder countSql = new StringBuilder(
+                "SELECT COUNT(1) FROM knowledge_chunk c " +
+                        "JOIN knowledge_source s ON s.id = c.knowledge_source_id " +
+                        "WHERE (s.knowledge_set_id IS NULL OR s.knowledge_set_id = '')");
+
+        if (knowledgeSourceId != null) {
+            countSql.append(" AND s.id = :knowledgeSourceId");
+        }
+
+        StringBuilder sampleSql = new StringBuilder(
+                "SELECT c.id AS chunk_id, NULL AS vector_id, c.knowledge_source_id, s.knowledge_set_id, c.create_date " +
+                        "FROM knowledge_chunk c " +
+                        "JOIN knowledge_source s ON s.id = c.knowledge_source_id " +
+                        "WHERE (s.knowledge_set_id IS NULL OR s.knowledge_set_id = '')");
+
+        if (knowledgeSourceId != null) {
+            sampleSql.append(" AND s.id = :knowledgeSourceId");
+        }
+
+        sampleSql.append(" ORDER BY c.create_date DESC LIMIT :sampleLimit");
+
+        if (knowledgeSetId != null) {
+            return new VectorSyncCheckItemDto(0L, new ArrayList<>());
+        }
+
+        return queryIssueItem(countSql.toString(), sampleSql.toString(), buildFilterParams(knowledgeSetId, knowledgeSourceId),
+                sampleLimit);
+    }
+
+    private VectorSyncCheckItemDto querySourceWithoutSet(String knowledgeSetId, String knowledgeSourceId, int sampleLimit) {
+        StringBuilder countSql = new StringBuilder(
+                "SELECT COUNT(1) FROM knowledge_source s WHERE (s.knowledge_set_id IS NULL OR s.knowledge_set_id = '')");
+        StringBuilder sampleSql = new StringBuilder(
+                "SELECT NULL AS chunk_id, NULL AS vector_id, s.id AS knowledge_source_id, s.knowledge_set_id, s.create_date " +
+                        "FROM knowledge_source s WHERE (s.knowledge_set_id IS NULL OR s.knowledge_set_id = '')");
+
+        if (knowledgeSourceId != null) {
+            countSql.append(" AND s.id = :knowledgeSourceId");
+            sampleSql.append(" AND s.id = :knowledgeSourceId");
+        }
+
+        sampleSql.append(" ORDER BY s.create_date DESC LIMIT :sampleLimit");
+
+        if (knowledgeSetId != null) {
+            return new VectorSyncCheckItemDto(0L, new ArrayList<>());
+        }
+
+        return queryIssueItem(countSql.toString(), sampleSql.toString(), buildFilterParams(knowledgeSetId, knowledgeSourceId),
+                sampleLimit);
+    }
+
+    private VectorSyncCheckItemDto queryIssueItem(String countSql, String sampleSql,
+            MapSqlParameterSource baseParams, int sampleLimit) {
+        MapSqlParameterSource countParams = new MapSqlParameterSource()
+                .addValue("knowledgeSetId", baseParams.getValue("knowledgeSetId"))
+                .addValue("knowledgeSourceId", baseParams.getValue("knowledgeSourceId"));
+        long count = safeLong(querySingleCount(countSql, countParams));
+
+        MapSqlParameterSource sampleParams = new MapSqlParameterSource()
+                .addValue("knowledgeSetId", baseParams.getValue("knowledgeSetId"))
+                .addValue("knowledgeSourceId", baseParams.getValue("knowledgeSourceId"))
+                .addValue("sampleLimit", sampleLimit);
+
+        List<VectorSyncIssueSampleDto> samples = namedParameterJdbcTemplate.query(sampleSql, sampleParams, (rs, rowNum) ->
+                new VectorSyncIssueSampleDto(
+                        rs.getString("chunk_id"),
+                        rs.getString("vector_id"),
+                        rs.getString("knowledge_source_id"),
+                        rs.getString("knowledge_set_id"),
+                        rs.getTimestamp("create_date") == null ? null : rs.getTimestamp("create_date").toString()
+                ));
+
+        return new VectorSyncCheckItemDto(count, samples);
     }
 
     private static class VectorRow {

@@ -82,10 +82,16 @@ export interface OrchestrationInstanceQueryParams {
   pageSize: number;
 }
 
+export interface DatasetContext {
+  datasetIds?: string[];
+  variables?: Record<string, any>;
+}
+
 export interface OrchestrationStartRequest {
   triggerType: TriggerType;
   triggerParams?: string;
   workflowVersionId?: string;
+  datasetContext?: DatasetContext;
 }
 
 export type WorkflowPageResponse = PageResponse<OrchestrationWorkflowDto>;

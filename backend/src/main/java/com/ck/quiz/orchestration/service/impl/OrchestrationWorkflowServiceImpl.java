@@ -23,7 +23,9 @@ import org.springframework.util.StringUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -239,6 +241,30 @@ public class OrchestrationWorkflowServiceImpl extends
                 } catch (Exception e) {
                     inputs.put("rawInput", startRequest.getTriggerParams());
                 }
+            }
+
+            if (startRequest.getDatasetContext() != null
+                    && startRequest.getDatasetContext().getDatasetIds() != null
+                    && !startRequest.getDatasetContext().getDatasetIds().isEmpty()) {
+                Map<String, Object> datasetContext = new LinkedHashMap<>();
+
+                List<String> normalizedDatasetIds = startRequest.getDatasetContext().getDatasetIds().stream()
+                        .filter(StringUtils::hasText)
+                        .map(String::trim)
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                if (normalizedDatasetIds.isEmpty()) {
+                    throw new IllegalArgumentException("datasetContext.datasetIds 不能为空");
+                }
+
+                datasetContext.put("datasetIds", normalizedDatasetIds);
+                datasetContext.put("variables", startRequest.getDatasetContext().getVariables() == null
+                        ? new LinkedHashMap<>()
+                        : startRequest.getDatasetContext().getVariables());
+
+                inputs.put("datasetContext", datasetContext);
+                inputs.put("datasetIds", new ArrayList<>(normalizedDatasetIds));
             }
 
             Map<String, Object> outputs = workflowEngine.execute(version.getDefinitionGraph(), inputs);

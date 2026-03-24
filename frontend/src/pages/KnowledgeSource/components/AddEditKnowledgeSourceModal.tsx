@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, Message, Button } from '@arco-design/web-react';
+import MDEditor from '@uiw/react-md-editor';
+import '@uiw/react-md-editor/markdown-editor.css';
 import { createKnowledgeSource, updateKnowledgeSource } from '../api';
 
 const FormItem = Form.Item;
@@ -137,14 +139,31 @@ function AddEditKnowledgeSourceModal({ visible, record, onOk, onCancel, knowledg
                     <FormItem
                         label="Markdown 内容"
                         field="content"
-                        rules={[{ required: true, message: '请输入 Markdown 内容' }]}
+                        rules={[
+                            { required: true, message: '请输入 Markdown 内容' },
+                            {
+                                validator: (value: string | undefined, cb: (msg?: string) => void) => {
+                                    if ((value || '').length > 2048) {
+                                        cb('Markdown 内容长度不能超过 2048 字符');
+                                        return;
+                                    }
+                                    cb();
+                                },
+                            },
+                        ]}
                     >
-                        <Input.TextArea
-                            placeholder="请输入 Markdown 正文"
-                            maxLength={2048}
-                            showWordLimit
-                            autoSize={{ minRows: 8, maxRows: 16 }}
-                        />
+                        <div>
+                            <MDEditor
+                                height={320}
+                                value={form.getFieldValue('content') || ''}
+                                onChange={(value) => form.setFieldsValue({ content: value || '' })}
+                                preview='edit'
+                                textareaProps={{ placeholder: '请输入 Markdown 正文（最多 2048 字符）' }}
+                            />
+                            <div style={{ textAlign: 'right', color: 'var(--color-text-3)', marginTop: 6, fontSize: 12 }}>
+                                {(form.getFieldValue('content') || '').length}/2048
+                            </div>
+                        </div>
                     </FormItem>
                 ) : (
                     <FormItem label="内容/路径" field="content">

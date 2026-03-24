@@ -15,12 +15,14 @@ import {
     IconEdit,
     IconSearch,
     IconStorage,
+    IconRefresh,
 } from '@arco-design/web-react/icon';
 import DataManager from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import { FormFieldConfig } from '@/components/types/types';
 import AddEditKnowledgeSetModal from './components/AddEditKnowledgeSetModal';
 import SearchDrawer from './components/SearchDrawer';
+import VectorSyncCheckDrawer from './components/VectorSyncCheckDrawer';
 import KnowledgeSourceManager from '../KnowledgeSource';
 import { deleteKnowledgeSet, getKnowledgeSetById, getKnowledgeSetList } from './api';
 import renderDate from '@/utils/timeUtil';
@@ -52,6 +54,8 @@ function KnowledgeSetManager() {
 
     const [searchDrawerVisible, setSearchDrawerVisible] = useState(false);
     const [searchKnowledgeSetId, setSearchKnowledgeSetId] = useState<string | null>(null);
+    const [syncCheckDrawerVisible, setSyncCheckDrawerVisible] = useState(false);
+    const [syncCheckKnowledgeSetId, setSyncCheckKnowledgeSetId] = useState<string | null>(null);
 
     const filterFormRef = useRef<any>(null);
 
@@ -150,7 +154,7 @@ function KnowledgeSetManager() {
         },
         {
             title: '操作',
-            width: 180,
+            width: 220,
             align: 'center',
             fixed: 'right',
             render: (_: any, record: KnowledgeSetRecord) => (
@@ -165,6 +169,18 @@ function KnowledgeSetManager() {
                                 setDrawerKnowledgeSetId(record.id);
                                 setDrawerReadonly(Boolean(record.isSystem));
                                 setSourceDrawerVisible(true);
+                            }}
+                        />
+                    </Tooltip>
+                    <Tooltip content='同步检查'>
+                        <Button
+                            type='text'
+                            size='small'
+                            icon={<IconRefresh />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSyncCheckKnowledgeSetId(record.id);
+                                setSyncCheckDrawerVisible(true);
                             }}
                         />
                     </Tooltip>
@@ -333,7 +349,7 @@ function KnowledgeSetManager() {
                     filterContent,
                     tableColumns: columns,
                     tableProps: {
-                        scroll: { x: 1350, y: tableScrollHeight },
+                        scroll: { x: 1480, y: tableScrollHeight },
                     },
                 }}
                 tableScrollHeight={tableScrollHeight}
@@ -372,6 +388,15 @@ function KnowledgeSetManager() {
                 onCancel={() => {
                     setSearchDrawerVisible(false);
                     setSearchKnowledgeSetId(null);
+                }}
+            />
+
+            <VectorSyncCheckDrawer
+                visible={syncCheckDrawerVisible}
+                knowledgeSetId={syncCheckKnowledgeSetId}
+                onCancel={() => {
+                    setSyncCheckDrawerVisible(false);
+                    setSyncCheckKnowledgeSetId(null);
                 }}
             />
         </div>

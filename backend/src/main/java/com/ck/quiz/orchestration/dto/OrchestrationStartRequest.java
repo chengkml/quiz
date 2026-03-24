@@ -13,5 +13,13 @@ public class OrchestrationStartRequest {
     private String triggerParams;
 
     private String workflowVersionId;
+
+    private DatasetContext datasetContext;
+
+    @Data
+    public static class DatasetContext {
+        private java.util.List<String> datasetIds;
+        private java.util.Map<String, Object> variables;
+    }
 }
 

@@ -5,6 +5,8 @@ import com.ck.quiz.knowledgeset.dto.VectorSearchDto;
 import com.ck.quiz.knowledgeset.dto.VectorSearchResultDto;
 
 import com.ck.quiz.knowledgeset.dto.VectorSearchFilter;
+import com.ck.quiz.knowledgeset.dto.VectorSyncCheckRequestDto;
+import com.ck.quiz.knowledgeset.dto.VectorSyncCheckResultDto;
 
 import java.util.List;
 
@@ -50,4 +52,11 @@ public interface VectorService {
      * @param sourceId 知识来源ID
      */
     void deleteBySourceId(String sourceId);
+
+    /**
+     * 知识切片/向量同步检查
+     * @param request 检查条件
+     * @return 检查结果
+     */
+    VectorSyncCheckResultDto syncCheck(VectorSyncCheckRequestDto request);
 }

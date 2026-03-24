@@ -33,6 +33,7 @@ import './index.less';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
+const { TextArea } = Input;
 
 interface HeaderItem {
     key: string;
@@ -79,6 +80,9 @@ const ApiTesterPage: React.FC = () => {
     const [headers, setHeaders] = useState<HeaderItem[]>(DEFAULT_HEADERS);
     const [params, setParams] = useState<ParamItem[]>([]);
     const [body, setBody] = useState<string>('{\n  \n}');
+    const [withDatasetContext, setWithDatasetContext] = useState<boolean>(false);
+    const [datasetIdsInput, setDatasetIdsInput] = useState<string>('');
+    const [datasetVariables, setDatasetVariables] = useState<string>('{\n  \n}');
     const [loading, setLoading] = useState<boolean>(false);
     const [response, setResponse] = useState<ResponseData | null>(null);
     const [responseTab, setResponseTab] = useState<string>('body');
@@ -228,6 +232,42 @@ const ApiTesterPage: React.FC = () => {
         }
     };
 
+    const tryBuildDatasetContext = () => {
+        if (!withDatasetContext) return null;
+
+        const datasetIds = datasetIdsInput
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean);
+
+        if (datasetIds.length === 0) {
+            Message.warning('已启用数据集上下文，请至少填写一个 datasetId');
+            return undefined;
+        }
+
+        let variablesObj: Record<string, any> = {};
+        const trimmed = (datasetVariables || '').trim();
+        if (trimmed) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    variablesObj = parsed;
+                } else {
+                    Message.warning('dataset variables 必须是 JSON 对象');
+                    return undefined;
+                }
+            } catch (e) {
+                Message.warning('dataset variables 不是合法 JSON');
+                return undefined;
+            }
+        }
+
+        return {
+            datasetIds,
+            variables: variablesObj,
+        };
+    };
+
     // 发送请求
     const handleSend = async () => {
         if (!url) {
@@ -252,8 +292,55 @@ const ApiTesterPage: React.FC = () => {
                 headers: headerObj,
             };
 
-            if (['POST', 'PUT', 'PATCH'].includes(method) && body.trim()) {
-                fetchOptions.body = body;
+            if (['POST', 'PUT', 'PATCH'].includes(method)) {
+                let bodyText = body.trim();
+
+                if (withDatasetContext) {
+                    const datasetContext = tryBuildDatasetContext();
+                    if (datasetContext === undefined) {
+                        setLoading(false);
+                        return;
+                    }
+
+                    let bodyObj: any = {};
+                    if (bodyText) {
+                        try {
+                            bodyObj = JSON.parse(bodyText);
+                        } catch (e) {
+                            Message.warning('请求 Body 需要是合法 JSON 才能注入 datasetContext');
+                            setLoading(false);
+                            return;
+                        }
+                    }
+
+                    if (bodyObj.triggerParams && typeof bodyObj.triggerParams === 'string') {
+                        try {
+                            const triggerObj = JSON.parse(bodyObj.triggerParams);
+                            bodyObj.triggerParams = JSON.stringify({
+                                ...(triggerObj || {}),
+                                datasetContext,
+                            });
+                        } catch (e) {
+                            Message.warning('triggerParams 不是合法 JSON 字符串，无法注入 datasetContext');
+                            setLoading(false);
+                            return;
+                        }
+                    } else {
+                        bodyObj.triggerParams = JSON.stringify({
+                            ...(bodyObj.triggerParams && typeof bodyObj.triggerParams === 'object'
+                                ? bodyObj.triggerParams
+                                : {}),
+                            datasetContext,
+                        });
+                    }
+
+                    bodyText = JSON.stringify(bodyObj, null, 2);
+                    setBody(bodyText);
+                }
+
+                if (bodyText) {
+                    fetchOptions.body = bodyText;
+                }
             }
 
             const controller = new AbortController();
@@ -588,7 +675,7 @@ const ApiTesterPage: React.FC = () => {
 
                     {/* 设置区 */}
                     <div className="settings-bar">
-                        <Space size="large">
+                        <Space size="large" wrap>
                             <span className="setting-item">
                                 <span className="setting-label">超时时间 (ms):</span>
                                 <InputNumber
@@ -609,8 +696,34 @@ const ApiTesterPage: React.FC = () => {
                                     onChange={setAutoAddAuth}
                                 />
                             </span>
+                            <span className="setting-item">
+                                <span className="setting-label">携带数据集上下文:</span>
+                                <Switch
+                                    size="small"
+                                    checked={withDatasetContext}
+                                    onChange={setWithDatasetContext}
+                                />
+                            </span>
                         </Space>
                     </div>
+
+                    {withDatasetContext && (
+                        <Card size="small" style={{ marginBottom: 12 }} title="datasetContext（用于编排/原子组件测试）">
+                            <Space direction="vertical" style={{ width: '100%' }} size={10}>
+                                <Input
+                                    placeholder="datasetIds（逗号分隔），例如：ds_demo_1,ds_demo_2"
+                                    value={datasetIdsInput}
+                                    onChange={setDatasetIdsInput}
+                                />
+                                <TextArea
+                                    placeholder='variables(JSON对象)，例如：{"scene":"api-tester"}'
+                                    value={datasetVariables}
+                                    onChange={setDatasetVariables}
+                                    autoSize={{ minRows: 3, maxRows: 8 }}
+                                />
+                            </Space>
+                        </Card>
+                    )}
 
                     {/* 请求配置标签页 */}
                     <Tabs defaultActiveTab="headers" className="request-tabs">
