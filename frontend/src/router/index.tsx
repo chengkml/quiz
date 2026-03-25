@@ -241,29 +241,14 @@ const MenuPermissionRoute: React.FC<{
  */
 const protectedPages = [
   {
-    path: "statistics-center",
-    element: <Navigate to="/frame/statistics-center/question-bank" replace />,
-    requiredPath: "statistics-center/question-bank",
-  },
-  {
-    path: "statistics-center/question-bank",
+    path: "question-bank",
     element: <QuestionBankStatisticsPage />,
-    requiredPath: "statistics-center/question-bank",
+    requiredPath: "question-bank",
   },
   {
-    path: "statistics-center/vocabulary-proficiency",
+    path: "vocabulary-proficiency",
     element: <VocabularyProficiencyStatisticsPage />,
-    requiredPath: "statistics-center/vocabulary-proficiency",
-  },
-  {
-    path: "statistics",
-    element: <Navigate to="/frame/statistics-center/question-bank" replace />,
-    requiredPath: "statistics-center/question-bank",
-  },
-  {
-    path: "question-statistics",
-    element: <Navigate to="/frame/statistics-center/question-bank" replace />,
-    requiredPath: "statistics-center/question-bank",
+    requiredPath: "vocabulary-proficiency",
   },
   { path: "user", element: <UserManagement />, requiredPath: "user" },
   { path: "role", element: <RoleManagement />, requiredPath: "role" },
