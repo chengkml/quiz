@@ -467,9 +467,9 @@ function Requirement() {
   const statusTag = (status: RequirementStatus) => {
     const map: Record<string, any> = {
       PENDING_ANALYSIS: {
-        color: "arcoblue",
+        color: "magenta",
         text: "待分析",
-        icon: <IconClockCircle />,
+        icon: <IconSearch />,
       },
       PENDING_REVIEW: {
         color: "purple",
@@ -630,18 +630,15 @@ function Requirement() {
       return;
     }
 
-    const content = container.querySelector(".data-manager-content") as HTMLElement | null;
-    let nextHeight = 420;
+    const header = container.querySelector(".data-manager-header") as HTMLElement | null;
+    const footer = container.querySelector(".data-manager-footer") as HTMLElement | null;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const containerRect = container.getBoundingClientRect();
 
-    if (content && content.clientHeight > 0) {
-      // 基于 DataManager 内容区实际高度计算，避免分页栏被挤出可视区
-      nextHeight = Math.max(260, content.clientHeight - 20);
-    } else {
-      const header = container.querySelector(".data-manager-header") as HTMLElement | null;
-      const footer = container.querySelector(".data-manager-footer") as HTMLElement | null;
-      const occupiedHeight = (header?.offsetHeight || 0) + (footer?.offsetHeight || 0) + 28;
-      nextHeight = Math.max(260, container.clientHeight - occupiedHeight);
-    }
+    // 基于页面可视区高度计算，避免依赖 .data-manager-content 的反向影响
+    const availableHeight = Math.max(0, viewportHeight - containerRect.top - 16);
+    const occupiedHeight = (header?.offsetHeight || 0) + (footer?.offsetHeight || 0) + 24;
+    const nextHeight = Math.max(280, Math.floor(availableHeight - occupiedHeight));
 
     setTableScrollHeight((prev) => (prev === nextHeight ? prev : nextHeight));
   }, []);
@@ -894,7 +891,7 @@ function Requirement() {
                   reviewFormRef.current?.setFieldsValue?.({ descr: nextValue });
                 }}
                 height={280}
-                preview="edit"
+                preview="preview"
               />
             </div>
           </Form.Item>

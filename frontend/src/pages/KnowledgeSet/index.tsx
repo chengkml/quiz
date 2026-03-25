@@ -166,6 +166,12 @@ function KnowledgeSetManager() {
                             icon={<IconStorage />}
                             onClick={(e) => {
                                 e.stopPropagation();
+                                // 保证抽屉互斥，避免“来源”按钮误触发看到同步检查抽屉
+                                setSyncCheckDrawerVisible(false);
+                                setSyncCheckKnowledgeSetId(null);
+                                setSearchDrawerVisible(false);
+                                setSearchKnowledgeSetId(null);
+
                                 setDrawerKnowledgeSetId(record.id);
                                 setDrawerReadonly(Boolean(record.isSystem));
                                 setSourceDrawerVisible(true);
@@ -368,7 +374,7 @@ function KnowledgeSetManager() {
             <Drawer
                 width='50%'
                 title='知识来源'
-                visible={sourceDrawerVisible}
+                visible={sourceDrawerVisible && !!drawerKnowledgeSetId}
                 onCancel={() => {
                     setSourceDrawerVisible(false);
                     setDrawerKnowledgeSetId(null);

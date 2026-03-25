@@ -128,18 +128,15 @@ function SystemMessageManager() {
       return;
     }
 
-    const content = container.querySelector(".data-manager-content") as HTMLElement | null;
-    let nextHeight = 420;
+    const header = container.querySelector(".data-manager-header") as HTMLElement | null;
+    const footer = container.querySelector(".data-manager-footer") as HTMLElement | null;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const containerRect = container.getBoundingClientRect();
 
-    if (content && content.clientHeight > 0) {
-      // 基于 DataManager 内容区实际高度计算，避免分页栏被挤出可视区
-      nextHeight = Math.max(260, content.clientHeight - 20);
-    } else {
-      const header = container.querySelector(".data-manager-header") as HTMLElement | null;
-      const footer = container.querySelector(".data-manager-footer") as HTMLElement | null;
-      const occupiedHeight = (header?.offsetHeight || 0) + (footer?.offsetHeight || 0) + 28;
-      nextHeight = Math.max(260, container.clientHeight - occupiedHeight);
-    }
+    // 基于可视区计算可用高度，避免 content 高度互相影响导致分页区被遮挡
+    const availableHeight = Math.max(0, viewportHeight - containerRect.top - 16);
+    const occupiedHeight = (header?.offsetHeight || 0) + (footer?.offsetHeight || 0) + 24;
+    const nextHeight = Math.max(280, Math.floor(availableHeight - occupiedHeight));
 
     setTableScrollHeight((prev) => (prev === nextHeight ? prev : nextHeight));
   }, []);

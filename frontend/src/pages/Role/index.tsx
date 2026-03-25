@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   Button,
   Drawer,
@@ -97,6 +97,9 @@ function RoleManager() {
 
   // 表单引用
   const filterFormRef = useRef<any>(null);
+  const pageRef = useRef<HTMLDivElement | null>(null);
+
+  const [tableScrollHeight, setTableScrollHeight] = useState(420);
 
   // 验证角色ID唯一性
   const validateRoleId = async (value: string, callback: any) => {
@@ -535,18 +538,42 @@ function RoleManager() {
     }
   };
 
+  const calculateTableScrollHeight = useCallback(() => {
+    const container = pageRef.current;
+    if (!container) {
+      return;
+    }
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const rect = container.getBoundingClientRect();
+    const availableHeight = Math.max(0, viewportHeight - rect.top - 16);
+    const header = container.querySelector(".data-manager-header") as HTMLElement | null;
+    const footer = container.querySelector(".data-manager-footer") as HTMLElement | null;
+    const occupied = (header?.offsetHeight || 0) + (footer?.offsetHeight || 0) + 24;
+    const nextHeight = Math.max(120, Math.floor(availableHeight - occupied));
+    setTableScrollHeight((prev) => (prev === nextHeight ? prev : nextHeight));
+  }, []);
+
   // 初始化
   useEffect(() => {
     fetchRoles();
-  }, []);
+    const timer = window.setTimeout(() => calculateTableScrollHeight(), 0);
+    const onResize = () => calculateTableScrollHeight();
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [calculateTableScrollHeight]);
 
   // 分页变化时重新获取数据
   useEffect(() => {
     fetchRoles();
-  }, [pagination.current, pagination.pageSize]);
+    const timer = window.setTimeout(() => calculateTableScrollHeight(), 0);
+    return () => window.clearTimeout(timer);
+  }, [pagination.current, pagination.pageSize, calculateTableScrollHeight]);
 
   return (
-    <div className="role-manager">
+    <div className="role-manager" ref={pageRef}>
       <DataManager
         data={data}
         loading={loading}
@@ -561,7 +588,7 @@ function RoleManager() {
           filterContent,
           tableColumns: columns,
         }}
-        tableScrollHeight={500}
+        tableScrollHeight={tableScrollHeight}
       />
 
       {/* 新增/编辑角色对话框 */}

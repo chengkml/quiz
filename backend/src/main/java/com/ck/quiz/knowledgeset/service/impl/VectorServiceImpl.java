@@ -345,9 +345,10 @@ public class VectorServiceImpl implements VectorService {
         String sourceColumn = withAlias ? "s.id" : "knowledge_source_id";
         String setColumn = withAlias ? "s.knowledge_set_id" : "knowledge_set_id";
 
+        // 统一输出带前后空格的条件片段，避免拼接到 SQL 时出现 "...IS NULLOR..." 语法错误
         StringBuilder sb = new StringBuilder();
-        sb.append("(:knowledgeSourceId IS NULL OR ").append(sourceColumn).append(" = :knowledgeSourceId)");
-        sb.append(" AND (:knowledgeSetId IS NULL OR ").append(setColumn).append(" = :knowledgeSetId)");
+        sb.append(" ( :knowledgeSourceId IS NULL OR ").append(sourceColumn).append(" = :knowledgeSourceId ) ");
+        sb.append(" AND ( :knowledgeSetId IS NULL OR ").append(setColumn).append(" = :knowledgeSetId ) ");
         return sb.toString();
     }
 

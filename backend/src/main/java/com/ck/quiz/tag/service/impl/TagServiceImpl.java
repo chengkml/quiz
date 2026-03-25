@@ -68,7 +68,7 @@ public class TagServiceImpl extends BaseServiceImpl<TagCreateDto, TagUpdateDto, 
                 params,
                 (rs, rowNum) -> {
                     TagDto t = new TagDto();
-                    t.setId(rs.getString("tag_id"));
+                    t.setId(rs.getString("id"));
                     t.setName(rs.getString("name"));
                     t.setLabel(rs.getString("label"));
                     t.setType(rs.getString("type"));
