@@ -4,7 +4,6 @@ import {
     Button,
     Drawer,
     Message,
-    Modal,
     Popconfirm,
     Space,
     Tag,
@@ -16,6 +15,7 @@ import {
     IconSearch,
     IconStorage,
     IconRefresh,
+    IconRobot,
 } from '@arco-design/web-react/icon';
 import DataManager from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
@@ -23,6 +23,7 @@ import { FormFieldConfig } from '@/components/types/types';
 import AddEditKnowledgeSetModal from './components/AddEditKnowledgeSetModal';
 import SearchDrawer from './components/SearchDrawer';
 import VectorSyncCheckDrawer from './components/VectorSyncCheckDrawer';
+import KnowledgeSetChatDrawer from './components/KnowledgeSetChatDrawer';
 import KnowledgeSourceManager from '../KnowledgeSource';
 import { deleteKnowledgeSet, getKnowledgeSetById, getKnowledgeSetList } from './api';
 import renderDate from '@/utils/timeUtil';
@@ -56,6 +57,10 @@ function KnowledgeSetManager() {
     const [searchKnowledgeSetId, setSearchKnowledgeSetId] = useState<string | null>(null);
     const [syncCheckDrawerVisible, setSyncCheckDrawerVisible] = useState(false);
     const [syncCheckKnowledgeSetId, setSyncCheckKnowledgeSetId] = useState<string | null>(null);
+
+    const [chatDrawerVisible, setChatDrawerVisible] = useState(false);
+    const [chatKnowledgeSetId, setChatKnowledgeSetId] = useState<string | null>(null);
+    const [chatKnowledgeSetName, setChatKnowledgeSetName] = useState<string>('');
 
     const filterFormRef = useRef<any>(null);
 
@@ -154,84 +159,105 @@ function KnowledgeSetManager() {
         },
         {
             title: '操作',
-            width: 220,
+            width: 280,
             align: 'center',
             fixed: 'right',
-            render: (_: any, record: KnowledgeSetRecord) => (
-                <div className='table-btn-group'>
-                    <Tooltip content={record.isSystem ? '查看来源' : '来源'}>
-                        <Button
-                            type='text'
-                            size='small'
-                            icon={<IconStorage />}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                // 保证抽屉互斥，避免“来源”按钮误触发看到同步检查抽屉
-                                setSyncCheckDrawerVisible(false);
-                                setSyncCheckKnowledgeSetId(null);
-                                setSearchDrawerVisible(false);
-                                setSearchKnowledgeSetId(null);
+            render: (_: any, record: KnowledgeSetRecord) => {
+                const canChat = record.status === 'ENABLED';
+                return (
+                    <div className='table-btn-group'>
+                        <Tooltip content={canChat ? 'AI 聊天' : '仅启用状态支持聊天'}>
+                            <Button
+                                type='text'
+                                size='small'
+                                icon={<IconRobot />}
+                                disabled={!canChat}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!canChat) {
+                                        Message.warning('请先启用该知识集后再发起聊天');
+                                        return;
+                                    }
+                                    setChatKnowledgeSetId(record.id);
+                                    setChatKnowledgeSetName(record.name || '知识集');
+                                    setChatDrawerVisible(true);
+                                }}
+                            />
+                        </Tooltip>
+                        <Tooltip content={record.isSystem ? '查看来源' : '来源'}>
+                            <Button
+                                type='text'
+                                size='small'
+                                icon={<IconStorage />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    // 保证抽屉互斥，避免“来源”按钮误触发看到同步检查抽屉
+                                    setSyncCheckDrawerVisible(false);
+                                    setSyncCheckKnowledgeSetId(null);
+                                    setSearchDrawerVisible(false);
+                                    setSearchKnowledgeSetId(null);
 
-                                setDrawerKnowledgeSetId(record.id);
-                                setDrawerReadonly(Boolean(record.isSystem));
-                                setSourceDrawerVisible(true);
-                            }}
-                        />
-                    </Tooltip>
-                    <Tooltip content='同步检查'>
-                        <Button
-                            type='text'
-                            size='small'
-                            icon={<IconRefresh />}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setSyncCheckKnowledgeSetId(record.id);
-                                setSyncCheckDrawerVisible(true);
-                            }}
-                        />
-                    </Tooltip>
-                    {!record.isSystem && (
-                        <Tooltip content='检索测试'>
-                            <Button
-                                type='text'
-                                size='small'
-                                icon={<IconSearch />}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSearchKnowledgeSetId(record.id);
-                                    setSearchDrawerVisible(true);
+                                    setDrawerKnowledgeSetId(record.id);
+                                    setDrawerReadonly(Boolean(record.isSystem));
+                                    setSourceDrawerVisible(true);
                                 }}
                             />
                         </Tooltip>
-                    )}
-                    {!record.isSystem && (
-                        <Tooltip content='编辑'>
+                        <Tooltip content='同步检查'>
                             <Button
                                 type='text'
                                 size='small'
-                                icon={<IconEdit />}
+                                icon={<IconRefresh />}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleEdit(record);
+                                    setSyncCheckKnowledgeSetId(record.id);
+                                    setSyncCheckDrawerVisible(true);
                                 }}
                             />
                         </Tooltip>
-                    )}
-                    {!record.isSystem && (
-                        <Popconfirm title='确认删除该知识集吗？' onOk={() => handleDelete(record)}>
-                            <Tooltip content='删除'>
+                        {!record.isSystem && (
+                            <Tooltip content='检索测试'>
                                 <Button
                                     type='text'
                                     size='small'
-                                    status='danger'
-                                    icon={<IconDelete />}
-                                    onClick={(e) => e.stopPropagation()}
+                                    icon={<IconSearch />}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSearchKnowledgeSetId(record.id);
+                                        setSearchDrawerVisible(true);
+                                    }}
                                 />
                             </Tooltip>
-                        </Popconfirm>
-                    )}
-                </div>
-            ),
+                        )}
+                        {!record.isSystem && (
+                            <Tooltip content='编辑'>
+                                <Button
+                                    type='text'
+                                    size='small'
+                                    icon={<IconEdit />}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEdit(record);
+                                    }}
+                                />
+                            </Tooltip>
+                        )}
+                        {!record.isSystem && (
+                            <Popconfirm title='确认删除该知识集吗？' onOk={() => handleDelete(record)}>
+                                <Tooltip content='删除'>
+                                    <Button
+                                        type='text'
+                                        size='small'
+                                        status='danger'
+                                        icon={<IconDelete />}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </Tooltip>
+                            </Popconfirm>
+                        )}
+                    </div>
+                );
+            },
         },
     ];
 
@@ -355,7 +381,7 @@ function KnowledgeSetManager() {
                     filterContent,
                     tableColumns: columns,
                     tableProps: {
-                        scroll: { x: 1480, y: tableScrollHeight },
+                        scroll: { x: 1560, y: tableScrollHeight },
                     },
                 }}
                 tableScrollHeight={tableScrollHeight}
@@ -403,6 +429,17 @@ function KnowledgeSetManager() {
                 onCancel={() => {
                     setSyncCheckDrawerVisible(false);
                     setSyncCheckKnowledgeSetId(null);
+                }}
+            />
+
+            <KnowledgeSetChatDrawer
+                visible={chatDrawerVisible}
+                knowledgeSetId={chatKnowledgeSetId}
+                knowledgeSetName={chatKnowledgeSetName}
+                onCancel={() => {
+                    setChatDrawerVisible(false);
+                    setChatKnowledgeSetId(null);
+                    setChatKnowledgeSetName('');
                 }}
             />
         </div>
