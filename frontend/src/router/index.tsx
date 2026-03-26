@@ -256,6 +256,26 @@ const protectedPages = [
     element: <KnowledgeMasteryStatisticsPage />,
     requiredPath: "knowledge-mastery",
   },
+  {
+    path: "statistics-center",
+    element: <Navigate to="/frame/statistics-center/question-bank" replace />,
+    requiredPath: "statistics-center/question-bank",
+  },
+  {
+    path: "statistics-center/question-bank",
+    element: <QuestionBankStatisticsPage />,
+    requiredPath: "statistics-center/question-bank",
+  },
+  {
+    path: "statistics-center/vocabulary-proficiency",
+    element: <VocabularyProficiencyStatisticsPage />,
+    requiredPath: "statistics-center/vocabulary-proficiency",
+  },
+  {
+    path: "statistics-center/knowledge-mastery",
+    element: <KnowledgeMasteryStatisticsPage />,
+    requiredPath: "statistics-center/knowledge-mastery",
+  },
   { path: "user", element: <UserManagement />, requiredPath: "user" },
   { path: "role", element: <RoleManagement />, requiredPath: "role" },
   { path: "menu", element: <MenuManagement />, requiredPath: "menu" },

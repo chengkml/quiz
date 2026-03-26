@@ -8,15 +8,14 @@ import com.ck.quiz.file.service.FileStorageService;
 import com.ck.quiz.utils.IdHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.apache.commons.io.FilenameUtils;
 
 import java.io.InputStream;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -32,29 +31,25 @@ public class FileServiceImpl implements FileService {
     @Override
     @Transactional
     public FileMetadata upload(MultipartFile file, String path) {
+        if (file == null) {
+            throw new IllegalArgumentException("File is required");
+        }
+
         try {
-            String originalFilename = file.getOriginalFilename();
+            String originalFilename = sanitizeFilename(file.getOriginalFilename());
             String extension = FilenameUtils.getExtension(originalFilename);
 
-            // Construct storage path
             String uuid = IdHelper.genUuid();
-            String storageName = uuid + (extension != null ? "." + extension : "");
+            String storageName = uuid + ((extension != null && !extension.isBlank()) ? "." + extension : "");
+            String fullPath = normalizeDirectoryPath(path) + storageName;
 
-            String fullPath = path.isEmpty() ? storageName : path + "/" + storageName;
-            if (path.endsWith("/"))
-                fullPath = path + storageName;
-            if (fullPath.startsWith("/"))
-                fullPath = fullPath.substring(1);
-
-            // Upload to storage
             fileStorageService.upload(fullPath, file.getInputStream());
 
-            // Save metadata
             FileMetadata metadata = new FileMetadata();
             metadata.setId(uuid);
             metadata.setOriginalName(originalFilename);
             metadata.setStoragePath(fullPath);
-            metadata.setStorageType(storageType.toUpperCase());
+            metadata.setStorageType((storageType == null ? "local" : storageType).toUpperCase(Locale.ROOT));
             metadata.setContentType(file.getContentType());
             metadata.setExtension(extension);
             metadata.setSize(file.getSize());
@@ -71,25 +66,18 @@ public class FileServiceImpl implements FileService {
     @Override
     @Transactional
     public FileMetadata createFolder(String path, String name) {
-        if (name.contains("/"))
-            throw new IllegalArgumentException("Folder name cannot contain /");
+        String folderName = validateName(name, "Folder name");
+        String parentPath = normalizeDirectoryPath(path);
+        String fullPath = parentPath + folderName + "/";
 
-        String fullPath = path.isEmpty() ? name : path + "/" + name;
-        if (path.endsWith("/"))
-            fullPath = path + name;
-        if (fullPath.startsWith("/"))
-            fullPath = fullPath.substring(1);
-
-        // Ensure folder path ends with /
-        if (!fullPath.endsWith("/"))
-            fullPath += "/";
-
-        // Check if already exists (optional but good)
-        // Ignoring for now to keep simple
+        if (fileMetadataRepository.existsByStoragePath(fullPath)) {
+            throw new IllegalArgumentException("Folder already exists");
+        }
+        ensureNoNameConflict(null, folderName, parentPath);
 
         FileMetadata metadata = new FileMetadata();
         metadata.setId(IdHelper.genUuid());
-        metadata.setOriginalName(name);
+        metadata.setOriginalName(folderName);
         metadata.setStoragePath(fullPath);
         metadata.setStorageType("NONE");
         metadata.setIsFolder(true);
@@ -114,12 +102,8 @@ public class FileServiceImpl implements FileService {
         FileMetadata metadata = get(id);
 
         if (Boolean.TRUE.equals(metadata.getIsFolder())) {
-            // Recursive delete
             List<FileMetadata> children = fileMetadataRepository
-                    .findByStoragePathStartingWith(metadata.getStoragePath());
-            // Sort by length desc to delete deepest children first? Not strictly necessary
-            // for DB delete but good practice.
-            // Actually JPA delete is fine.
+                    .findByStoragePathStartingWith(ensureDirectoryPath(metadata.getStoragePath()));
             for (FileMetadata child : children) {
                 if (!Boolean.TRUE.equals(child.getIsFolder())) {
                     try {
@@ -142,54 +126,40 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public List<FileInfo> list(String path) {
-        String prefix = path == null ? "" : path;
-        // Normalize prefix to ensure it ends with / if it is a folder path
-        if (!prefix.isEmpty() && !prefix.endsWith("/"))
-            prefix += "/";
-        if (prefix.startsWith("/"))
-            prefix = prefix.substring(1);
-
+        String prefix = normalizeDirectoryPath(path);
         List<FileMetadata> all = fileMetadataRepository.findByStoragePathStartingWith(prefix);
 
         Map<String, FileInfo> result = new HashMap<>();
 
         for (FileMetadata m : all) {
             String storagePath = m.getStoragePath();
-            if (storagePath.equals(prefix))
-                continue; // Skip self
+            if (storagePath == null || storagePath.equals(prefix)) {
+                continue;
+            }
 
             String relative = storagePath.substring(prefix.length());
-            if (relative.isEmpty())
+            if (relative.isEmpty()) {
                 continue;
+            }
 
             int slashIndex = relative.indexOf("/");
 
             if (Boolean.TRUE.equals(m.getIsFolder())) {
-                // Explicit Folder
-                // storagePath is like "A/" (if relative is "A/") or "A/B/" (relative "A/B/")
-
                 String[] parts = relative.split("/");
                 if (parts.length > 0) {
                     String directChildName = parts[0];
                     if (parts.length == 1) {
-                        // Direct child folder
                         result.put(directChildName, convert(m, directChildName));
                     } else {
-                        // Nested folder, ensure parent implicit folder exists
-                        // e.g. "A/B/", relative "A/B/". parts=["A", "B"].
-                        // We are listing root. We see "A".
                         result.putIfAbsent(directChildName,
                                 createVirtualFolder(prefix + directChildName + "/", directChildName));
                     }
                 }
             } else {
-                // File
                 if (slashIndex > 0) {
-                    // Implicit folder
                     String folderName = relative.substring(0, slashIndex);
                     result.putIfAbsent(folderName, createVirtualFolder(prefix + folderName + "/", folderName));
                 } else {
-                    // Direct file
                     result.put(relative, convert(m, m.getOriginalName()));
                 }
             }
@@ -229,34 +199,38 @@ public class FileServiceImpl implements FileService {
     @Override
     @Transactional
     public FileMetadata rename(String id, String newName) {
-        if (newName == null || newName.trim().isEmpty())
-            throw new IllegalArgumentException("Name cannot be empty");
-        if (newName.contains("/"))
-            throw new IllegalArgumentException("Name cannot contain /");
+        String normalizedName = validateName(newName, "Name");
 
         FileMetadata metadata = get(id);
-        if (metadata.getOriginalName().equals(newName))
+        if (Objects.equals(metadata.getOriginalName(), normalizedName)) {
             return metadata;
+        }
 
         if (Boolean.TRUE.equals(metadata.getIsFolder())) {
-            String oldPath = metadata.getStoragePath();
-            String oldName = metadata.getOriginalName();
-            String parentPath = oldPath.substring(0, oldPath.length() - oldName.length() - 1);
-            String newPath = parentPath + newName + "/";
+            String oldPath = ensureDirectoryPath(metadata.getStoragePath());
+            String parentPath = getParentDirectory(oldPath);
+            String newPath = parentPath + normalizedName + "/";
+
+            ensureNoNameConflict(id, normalizedName, parentPath);
 
             List<FileMetadata> allAffected = fileMetadataRepository.findByStoragePathStartingWith(oldPath);
             for (FileMetadata item : allAffected) {
                 String itemOldPath = item.getStoragePath();
                 String itemNewPath = newPath + itemOldPath.substring(oldPath.length());
+                if (!Boolean.TRUE.equals(item.getIsFolder()) && !Objects.equals(itemOldPath, itemNewPath)) {
+                    fileStorageService.move(itemOldPath, itemNewPath);
+                }
                 item.setStoragePath(itemNewPath);
-                if (item.getId().equals(id)) {
-                    item.setOriginalName(newName);
+                if (Objects.equals(item.getId(), id)) {
+                    item.setOriginalName(normalizedName);
                 }
             }
             fileMetadataRepository.saveAll(allAffected);
-            return metadata;
+            return allAffected.stream().filter(it -> Objects.equals(it.getId(), id)).findFirst().orElse(metadata);
         } else {
-            metadata.setOriginalName(newName);
+            String parentPath = getParentDirectory(metadata.getStoragePath());
+            ensureNoNameConflict(id, normalizedName, parentPath);
+            metadata.setOriginalName(normalizedName);
             return fileMetadataRepository.save(metadata);
         }
     }
@@ -267,7 +241,7 @@ public class FileServiceImpl implements FileService {
         if (ids == null || ids.isEmpty()) {
             return;
         }
-        for (String id : ids) {
+        for (String id : new LinkedHashSet<>(ids)) {
             delete(id);
         }
     }
@@ -278,8 +252,8 @@ public class FileServiceImpl implements FileService {
         if (ids == null || ids.isEmpty()) {
             return;
         }
-        String normalizedTarget = normalizePath(targetPath);
-        for (String id : ids) {
+        String normalizedTarget = normalizeDirectoryPath(targetPath);
+        for (String id : new LinkedHashSet<>(ids)) {
             moveSingle(id, normalizedTarget);
         }
     }
@@ -287,41 +261,41 @@ public class FileServiceImpl implements FileService {
     private void moveSingle(String id, String targetPath) {
         FileMetadata metadata = get(id);
         String oldPath = metadata.getStoragePath();
-        if (oldPath == null || oldPath.isEmpty()) {
+        if (oldPath == null || oldPath.isBlank()) {
             return;
         }
 
         if (Boolean.TRUE.equals(metadata.getIsFolder())) {
-            if (!oldPath.endsWith("/")) {
-                oldPath = oldPath + "/";
-            }
+            String normalizedOldPath = ensureDirectoryPath(oldPath);
             String newFolderPath = targetPath + metadata.getOriginalName() + "/";
-            if (oldPath.equals(newFolderPath)) {
+
+            if (Objects.equals(normalizedOldPath, newFolderPath)) {
                 return;
             }
-            if (!targetPath.isEmpty() && targetPath.startsWith(oldPath)) {
+            if (!targetPath.isEmpty() && targetPath.startsWith(normalizedOldPath)) {
                 throw new IllegalArgumentException("Cannot move a folder into itself");
             }
 
-            List<FileMetadata> allAffected = fileMetadataRepository.findByStoragePathStartingWith(oldPath);
+            ensureNoNameConflict(id, metadata.getOriginalName(), targetPath);
+
+            List<FileMetadata> allAffected = fileMetadataRepository.findByStoragePathStartingWith(normalizedOldPath);
             for (FileMetadata item : allAffected) {
                 String itemOldPath = item.getStoragePath();
-                String itemNewPath = newFolderPath + itemOldPath.substring(oldPath.length());
-                if (!Boolean.TRUE.equals(item.getIsFolder())) {
+                String itemNewPath = newFolderPath + itemOldPath.substring(normalizedOldPath.length());
+                if (!Boolean.TRUE.equals(item.getIsFolder()) && !Objects.equals(itemOldPath, itemNewPath)) {
                     fileStorageService.move(itemOldPath, itemNewPath);
                 }
                 item.setStoragePath(itemNewPath);
-                if (item.getId().equals(id)) {
-                    item.setOriginalName(metadata.getOriginalName());
-                }
             }
             fileMetadataRepository.saveAll(allAffected);
         } else {
+            ensureNoNameConflict(id, metadata.getOriginalName(), targetPath);
+
             String fileName = oldPath.contains("/")
                     ? oldPath.substring(oldPath.lastIndexOf("/") + 1)
                     : oldPath;
             String newPath = targetPath + fileName;
-            if (oldPath.equals(newPath)) {
+            if (Objects.equals(oldPath, newPath)) {
                 return;
             }
             fileStorageService.move(oldPath, newPath);
@@ -330,17 +304,113 @@ public class FileServiceImpl implements FileService {
         }
     }
 
-    private String normalizePath(String path) {
+    private void ensureNoNameConflict(String excludeId, String targetName, String parentPath) {
+        String normalizedParent = normalizeDirectoryPath(parentPath);
+        List<FileMetadata> candidates = fileMetadataRepository.findByStoragePathStartingWith(normalizedParent);
+        for (FileMetadata candidate : candidates) {
+            if (excludeId != null && Objects.equals(excludeId, candidate.getId())) {
+                continue;
+            }
+
+            String directChildName = extractDirectChildName(normalizedParent, candidate);
+            if (directChildName != null && Objects.equals(directChildName, targetName)) {
+                throw new IllegalArgumentException("Target directory already contains: " + targetName);
+            }
+        }
+    }
+
+    private String extractDirectChildName(String parentPath, FileMetadata metadata) {
+        String storagePath = metadata.getStoragePath();
+        if (storagePath == null || storagePath.isBlank()) {
+            return null;
+        }
+
+        String normalizedStoragePath = Boolean.TRUE.equals(metadata.getIsFolder())
+                ? ensureDirectoryPath(storagePath)
+                : normalizeStoragePath(storagePath);
+
+        if (!normalizedStoragePath.startsWith(parentPath)) {
+            return null;
+        }
+
+        String relative = normalizedStoragePath.substring(parentPath.length());
+        if (relative.isEmpty()) {
+            return null;
+        }
+
+        int slashIndex = relative.indexOf('/');
+        if (slashIndex >= 0) {
+            return relative.substring(0, slashIndex);
+        }
+        return metadata.getOriginalName();
+    }
+
+    private String sanitizeFilename(String fileName) {
+        String normalized = fileName == null ? "" : fileName.trim();
+        normalized = FilenameUtils.getName(normalized);
+        if (normalized.isBlank()) {
+            throw new IllegalArgumentException("File name cannot be empty");
+        }
+        if (normalized.contains("..") || normalized.contains("/") || normalized.contains("\\")) {
+            throw new IllegalArgumentException("File name is invalid");
+        }
+        return normalized;
+    }
+
+    private String validateName(String name, String fieldName) {
+        String normalized = name == null ? "" : name.trim();
+        if (normalized.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " cannot be empty");
+        }
+        if (normalized.contains("..") || normalized.contains("/") || normalized.contains("\\")) {
+            throw new IllegalArgumentException(fieldName + " is invalid");
+        }
+        return normalized;
+    }
+
+    private String normalizeStoragePath(String path) {
         if (path == null || path.trim().isEmpty()) {
             return "";
         }
-        String normalized = path.trim();
-        if (normalized.startsWith("/")) {
+
+        String normalized = path.trim().replace('\\', '/');
+        while (normalized.contains("//")) {
+            normalized = normalized.replace("//", "/");
+        }
+        while (normalized.startsWith("/")) {
             normalized = normalized.substring(1);
         }
-        if (!normalized.endsWith("/")) {
-            normalized = normalized + "/";
+        if (normalized.contains("..")) {
+            throw new IllegalArgumentException("Path is invalid");
+        }
+        while (normalized.endsWith("/") && !normalized.isEmpty()) {
+            normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized;
+    }
+
+    private String normalizeDirectoryPath(String path) {
+        String normalized = normalizeStoragePath(path);
+        if (normalized.isEmpty()) {
+            return "";
+        }
+        return normalized + "/";
+    }
+
+    private String ensureDirectoryPath(String path) {
+        String normalized = normalizeStoragePath(path);
+        if (normalized.isEmpty()) {
+            return "";
+        }
+        return normalized + "/";
+    }
+
+    private String getParentDirectory(String storagePath) {
+        String normalized = normalizeStoragePath(storagePath);
+        int lastSlash = normalized.lastIndexOf('/');
+        if (lastSlash < 0) {
+            return "";
+        }
+        return normalized.substring(0, lastSlash + 1);
     }
 }

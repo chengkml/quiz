@@ -130,6 +130,24 @@
   - `backend/src/main/java/com/ck/quiz/vocabulary/entity/VocabularyCard.java`
   - `backend/src/main/java/com/ck/quiz/vocabulary/dto/VocabularyCardQueryDto.java`
 
+## 文件管理（FileManager）
+
+- 前端入口（文件管理页）
+  - `frontend/src/pages/FileManager/index.tsx`
+  - `frontend/src/pages/FileManager/components/DirectoryTree.tsx`
+  - `frontend/src/pages/FileManager/api/index.ts`
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/file/controller/FileController.java`
+- 后端核心实现（元数据/路径处理/存储抽象）
+  - `backend/src/main/java/com/ck/quiz/file/service/impl/FileServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/file/repository/FileMetadataRepository.java`
+  - `backend/src/main/java/com/ck/quiz/file/entity/FileMetadata.java`
+  - `backend/src/main/java/com/ck/quiz/file/service/FileStorageService.java`
+  - `backend/src/main/java/com/ck/quiz/file/service/impl/LocalFileStorageService.java`
+  - `backend/src/main/java/com/ck/quiz/file/service/impl/SftpFileStorageService.java`
+  - `backend/src/main/java/com/ck/quiz/file/service/impl/S3FileStorageService.java`
+
 ## 统计中心（StatisticsCenter）
 
 - 前端入口（路由/统计页/API）
