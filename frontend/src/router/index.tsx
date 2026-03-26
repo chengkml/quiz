@@ -30,6 +30,7 @@ import JobManager from "@/pages/Job";
 import ExamHistoryManager from "@/pages/Exam/History";
 import QuestionBankStatisticsPage from "@/pages/StatisticsCenter/themes/QuestionBank";
 import VocabularyProficiencyStatisticsPage from "@/pages/StatisticsCenter/themes/VocabularyProficiency";
+import KnowledgeMasteryStatisticsPage from "@/pages/StatisticsCenter/themes/KnowledgeMastery";
 
 import NotFound from "@/pages/NotFound";
 import MindMapPage from "@/pages/MindMap";
@@ -249,6 +250,11 @@ const protectedPages = [
     path: "vocabulary-proficiency",
     element: <VocabularyProficiencyStatisticsPage />,
     requiredPath: "vocabulary-proficiency",
+  },
+  {
+    path: "knowledge-mastery",
+    element: <KnowledgeMasteryStatisticsPage />,
+    requiredPath: "knowledge-mastery",
   },
   { path: "user", element: <UserManagement />, requiredPath: "user" },
   { path: "role", element: <RoleManagement />, requiredPath: "role" },

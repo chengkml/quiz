@@ -132,12 +132,12 @@
 
 ## 统计中心（StatisticsCenter）
 
-- 前端入口（路由/主题注册/统计页）
+- 前端入口（路由/统计页/API）
   - `frontend/src/router/index.tsx`
   - `frontend/src/pages/StatisticsCenter/index.tsx`
-  - `frontend/src/pages/StatisticsCenter/themes/registry.ts`
   - `frontend/src/pages/StatisticsCenter/themes/QuestionBank/index.tsx`
   - `frontend/src/pages/StatisticsCenter/themes/VocabularyProficiency/index.tsx`
+  - `frontend/src/pages/StatisticsCenter/themes/KnowledgeMastery/index.tsx`
   - `frontend/src/pages/StatisticsCenter/api/index.ts`
 - 后端 API 入口
   - `backend/src/main/java/com/ck/quiz/statistics/controller/StatisticsController.java`
@@ -145,6 +145,7 @@
   - `backend/src/main/java/com/ck/quiz/statistics/service/StatisticsThemeRegistry.java`
   - `backend/src/main/java/com/ck/quiz/statistics/service/impl/QuestionBankStatisticsServiceImpl.java`
   - `backend/src/main/java/com/ck/quiz/statistics/service/impl/VocabularyProficiencyStatisticsServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/statistics/service/impl/KnowledgeMasteryStatisticsServiceImpl.java`
 
 ## 家庭作业（Homework）
 

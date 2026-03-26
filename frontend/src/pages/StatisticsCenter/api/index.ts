@@ -46,6 +46,24 @@ export interface VocabularyProficiencyDashboardData {
   reviewCountByLastSevenDays: DateCountData;
 }
 
+export interface KnowledgeMasteryOverview {
+  totalKnowledges: number;
+  activeKnowledges: number;
+  archivedKnowledges: number;
+  masteredKnowledges: number;
+  dueTodayKnowledges: number;
+  averageRepetition: number;
+  averageEasinessFactor: number;
+}
+
+export interface KnowledgeMasteryDashboardData {
+  overview: KnowledgeMasteryOverview;
+  masteryDistribution: SubjectCountData;
+  knowledgeCountBySubject: SubjectCountData;
+  reviewScoreDistribution: SubjectCountData;
+  reviewCountByLastSevenDays: DateCountData;
+}
+
 export const getStatisticsThemes = () =>
   axios.get<StatisticsThemeDto[]>('/statistics/themes');
 
@@ -55,4 +73,9 @@ export const getQuestionBankDashboard = () =>
 export const getVocabularyProficiencyDashboard = () =>
   axios.get<VocabularyProficiencyDashboardData>(
     '/statistics/themes/vocabulary-proficiency/dashboard',
+  );
+
+export const getKnowledgeMasteryDashboard = () =>
+  axios.get<KnowledgeMasteryDashboardData>(
+    '/statistics/themes/knowledge-mastery/dashboard',
   );
