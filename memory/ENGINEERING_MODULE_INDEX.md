@@ -212,3 +212,17 @@
   - `backend/src/main/java/com/ck/quiz/poetry/repository/PoetryCardRepository.java`
   - `backend/src/main/java/com/ck/quiz/poetry/entity/PoetryCard.java`
   - `backend/src/main/java/com/ck/quiz/poetry/dto/PoetryCardQueryDto.java`
+
+## 数据查询工具（DataQuery）
+
+- 前端入口（SQL 查询页）
+  - `frontend/src/pages/DataQuery/index.tsx`
+  - `frontend/src/pages/DataQuery/style/index.less`
+- 路由入口
+  - `frontend/src/router/index.tsx`
+- 复用 API
+  - `frontend/src/pages/Datasource/api/index.ts`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/datasource/controller/DatasourceController.java`
+- 后端核心实现（执行 SQL / schema 列表 / 结构采集）
+  - `backend/src/main/java/com/ck/quiz/datasource/service/impl/DatasourceServiceImpl.java`

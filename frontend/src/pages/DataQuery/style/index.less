@@ -13,6 +13,11 @@
             border-bottom: 1px solid var(--color-border-1);
         }
 
+        .sider-filters {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--color-border-1);
+        }
+
         .sider-content {
             flex: 1;
             overflow-y: auto;
@@ -22,6 +27,25 @@
                 text-align: center;
                 margin-top: 100px;
                 color: var(--color-text-3);
+            }
+
+            .table-node {
+                display: flex;
+                flex-direction: column;
+                line-height: 1.3;
+
+                .table-node-name {
+                    color: var(--color-text-1);
+                }
+
+                .table-node-remark {
+                    color: var(--color-text-3);
+                    font-size: 12px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    max-width: 230px;
+                }
             }
         }
     }
@@ -39,6 +63,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+
+            .toolbar-tip {
+                white-space: nowrap;
+            }
         }
 
         .sql-editor {
@@ -104,6 +132,10 @@
     .data-query-page {
         .sql-editor {
             background-color: #1a1a1a;
+        }
+
+        .error-results {
+            background-color: rgba(245, 63, 63, 0.18);
         }
     }
 }
