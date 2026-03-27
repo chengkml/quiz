@@ -1,0 +1,175 @@
+-- 初始化热搜定时任务配置参数
+INSERT INTO system_param (
+    id,
+    create_date,
+    create_user,
+    update_date,
+    update_user,
+    param_name,
+    param_value,
+    default_value,
+    param_type,
+    category,
+    description,
+    is_encrypted,
+    is_readonly,
+    status,
+    sort_order
+)
+SELECT
+    'hot_search_enabled_param',
+    CURRENT_TIMESTAMP,
+    'admin',
+    CURRENT_TIMESTAMP,
+    'admin',
+    'quiz.hot-search.enabled',
+    'true',
+    'true',
+    'BOOLEAN',
+    '热搜配置',
+    '热搜定时采集开关（true=开启，false=关闭）',
+    false,
+    false,
+    'ACTIVE',
+    1
+WHERE NOT EXISTS (SELECT 1 FROM system_param WHERE param_name = 'quiz.hot-search.enabled');
+
+INSERT INTO system_param (
+    id,
+    create_date,
+    create_user,
+    update_date,
+    update_user,
+    param_name,
+    param_value,
+    default_value,
+    param_type,
+    category,
+    description,
+    is_encrypted,
+    is_readonly,
+    status,
+    sort_order
+)
+SELECT
+    'hot_search_delay_param',
+    CURRENT_TIMESTAMP,
+    'admin',
+    CURRENT_TIMESTAMP,
+    'admin',
+    'quiz.hot-search.fixed-delay-ms',
+    '300000',
+    '300000',
+    'NUMBER',
+    '热搜配置',
+    '热搜定时采集固定间隔（毫秒，默认5分钟）',
+    false,
+    false,
+    'ACTIVE',
+    2
+WHERE NOT EXISTS (SELECT 1 FROM system_param WHERE param_name = 'quiz.hot-search.fixed-delay-ms');
+
+INSERT INTO system_param (
+    id,
+    create_date,
+    create_user,
+    update_date,
+    update_user,
+    param_name,
+    param_value,
+    default_value,
+    param_type,
+    category,
+    description,
+    is_encrypted,
+    is_readonly,
+    status,
+    sort_order
+)
+SELECT
+    'hot_search_tick_param',
+    CURRENT_TIMESTAMP,
+    'admin',
+    CURRENT_TIMESTAMP,
+    'admin',
+    'quiz.hot-search.schedule-tick-ms',
+    '60000',
+    '60000',
+    'NUMBER',
+    '热搜配置',
+    '热搜调度tick间隔（毫秒，默认1分钟）',
+    false,
+    false,
+    'ACTIVE',
+    3
+WHERE NOT EXISTS (SELECT 1 FROM system_param WHERE param_name = 'quiz.hot-search.schedule-tick-ms');
+
+INSERT INTO system_param (
+    id,
+    create_date,
+    create_user,
+    update_date,
+    update_user,
+    param_name,
+    param_value,
+    default_value,
+    param_type,
+    category,
+    description,
+    is_encrypted,
+    is_readonly,
+    status,
+    sort_order
+)
+SELECT
+    'hot_search_initial_delay_param',
+    CURRENT_TIMESTAMP,
+    'admin',
+    CURRENT_TIMESTAMP,
+    'admin',
+    'quiz.hot-search.initial-delay-ms',
+    '30000',
+    '30000',
+    'NUMBER',
+    '热搜配置',
+    '热搜服务启动后首次延迟执行时间（毫秒）',
+    false,
+    false,
+    'ACTIVE',
+    4
+WHERE NOT EXISTS (SELECT 1 FROM system_param WHERE param_name = 'quiz.hot-search.initial-delay-ms');
+
+INSERT INTO system_param (
+    id,
+    create_date,
+    create_user,
+    update_date,
+    update_user,
+    param_name,
+    param_value,
+    default_value,
+    param_type,
+    category,
+    description,
+    is_encrypted,
+    is_readonly,
+    status,
+    sort_order
+)
+SELECT
+    'hot_search_source_param',
+    CURRENT_TIMESTAMP,
+    'admin',
+    CURRENT_TIMESTAMP,
+    'admin',
+    'quiz.hot-search.default-source',
+    'TOUTIAO',
+    'TOUTIAO',
+    'STRING',
+    '热搜配置',
+    '默认热搜来源（当前支持 TOUTIAO）',
+    false,
+    false,
+    'ACTIVE',
+    5
+WHERE NOT EXISTS (SELECT 1 FROM system_param WHERE param_name = 'quiz.hot-search.default-source');

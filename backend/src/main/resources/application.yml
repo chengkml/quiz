@@ -59,6 +59,13 @@ quiz:
   git:
     base-path: ./data/git_repos # Base directory for all Git repositories
 
+  hot-search:
+    enabled: true
+    fixed-delay-ms: 300000
+    schedule-tick-ms: 60000
+    initial-delay-ms: 30000
+    default-source: TOUTIAO
+
 springdoc:
   api-docs:
     path: /api/v3/api-docs

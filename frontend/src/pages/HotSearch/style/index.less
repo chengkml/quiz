@@ -1,0 +1,60 @@
+.hot-search-page {
+  height: 100%;
+
+  .hot-search-header {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .hot-search-toolbar {
+    margin-bottom: 12px;
+  }
+
+  .hot-search-content {
+    height: calc(100% - 120px);
+  }
+
+  .hot-search-list-card,
+  .hot-search-detail-card {
+    height: 100%;
+  }
+
+  .hot-search-title {
+    cursor: pointer;
+  }
+
+  .detail-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .detail-meta {
+    margin-bottom: 12px;
+    color: var(--color-text-2);
+    line-height: 1.8;
+  }
+
+  .detail-markdown {
+    max-height: 640px;
+    overflow: auto;
+    padding-right: 8px;
+
+    h1, h2, h3 {
+      margin-top: 12px;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    code {
+      background: #f2f3f5;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+  }
+}

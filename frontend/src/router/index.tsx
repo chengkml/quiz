@@ -31,6 +31,7 @@ import ExamHistoryManager from "@/pages/Exam/History";
 import QuestionBankStatisticsPage from "@/pages/StatisticsCenter/themes/QuestionBank";
 import VocabularyProficiencyStatisticsPage from "@/pages/StatisticsCenter/themes/VocabularyProficiency";
 import KnowledgeMasteryStatisticsPage from "@/pages/StatisticsCenter/themes/KnowledgeMastery";
+import HotSearchPage from "@/pages/HotSearch";
 
 import NotFound from "@/pages/NotFound";
 import MindMapPage from "@/pages/MindMap";
@@ -461,6 +462,11 @@ const protectedPages = [
     path: "homework",
     element: <HomeworkManager />,
     requiredPath: "homework",
+  },
+  {
+    path: "hot-search",
+    element: <HotSearchPage />,
+    requiredPath: "hot-search",
   },
 ];
 

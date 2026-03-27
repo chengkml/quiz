@@ -104,6 +104,12 @@ public class DbDataInitializer implements CommandLineRunner {
 
         // 初始化流程图知识集
         initializeFlowchartKnowledgeSet();
+
+        // 初始化热搜配置参数
+        initializeHotSearchConfig();
+
+        // 初始化热搜菜单
+        initializeHotSearchMenu();
     }
 
     private void initializeMenu() {
@@ -457,6 +463,103 @@ public class DbDataInitializer implements CommandLineRunner {
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     batchArgs);
             log.info("Initialized Flowchart Knowledge Set for {} users", batchArgs.size());
+        }
+    }
+
+    private void initializeHotSearchConfig() {
+        log.info("开始检查并初始化热搜配置参数...");
+        List<InitConfigParam> params = getHotSearchConfigParams();
+        initializeParams(params, "热搜配置");
+    }
+
+    private List<InitConfigParam> getHotSearchConfigParams() {
+        List<InitConfigParam> params = new ArrayList<>();
+
+        params.add(new InitConfigParam(
+                "quiz.hot-search.enabled",
+                "true",
+                "true",
+                SystemParam.ParamType.BOOLEAN,
+                "热搜配置",
+                "热搜定时采集开关（true=开启，false=关闭）",
+                false,
+                1));
+
+        params.add(new InitConfigParam(
+                "quiz.hot-search.fixed-delay-ms",
+                "300000",
+                "300000",
+                SystemParam.ParamType.NUMBER,
+                "热搜配置",
+                "热搜定时采集固定间隔（毫秒，默认5分钟）",
+                false,
+                2));
+
+        params.add(new InitConfigParam(
+                "quiz.hot-search.schedule-tick-ms",
+                "60000",
+                "60000",
+                SystemParam.ParamType.NUMBER,
+                "热搜配置",
+                "热搜调度tick间隔（毫秒，默认1分钟）",
+                false,
+                3));
+
+        params.add(new InitConfigParam(
+                "quiz.hot-search.initial-delay-ms",
+                "30000",
+                "30000",
+                SystemParam.ParamType.NUMBER,
+                "热搜配置",
+                "热搜服务启动后首次延迟执行时间（毫秒）",
+                false,
+                4));
+
+        params.add(new InitConfigParam(
+                "quiz.hot-search.default-source",
+                "TOUTIAO",
+                "TOUTIAO",
+                SystemParam.ParamType.STRING,
+                "热搜配置",
+                "默认热搜来源（当前支持 TOUTIAO）",
+                false,
+                5));
+
+        return params;
+    }
+
+    private void initializeHotSearchMenu() {
+        try {
+            if (menuRepository.findById("hot_search").isPresent()) {
+                return;
+            }
+
+            Menu hotSearchMenu = new Menu();
+            hotSearchMenu.setMenuId("hot_search");
+            hotSearchMenu.setMenuName("hot_search");
+            hotSearchMenu.setMenuLabel("热搜展示");
+            hotSearchMenu.setMenuType(Menu.MenuType.MENU);
+            hotSearchMenu.setParentId("statistics_center");
+            hotSearchMenu.setUrl("hot-search");
+            hotSearchMenu.setMenuIcon("dashboard");
+            hotSearchMenu.setSeq(10);
+            hotSearchMenu.setState(Menu.MenuState.ENABLED);
+            hotSearchMenu.setMenuDescr("热搜展示");
+            hotSearchMenu.setCreateDate(LocalDateTime.now());
+            hotSearchMenu.setUpdateDate(LocalDateTime.now());
+            menuRepository.save(hotSearchMenu);
+
+            if (roleMenuRelaRepository.findByRoleId("sys_mgr").stream().noneMatch(item -> "hot_search".equals(item.getMenuId()))) {
+                RoleMenuRela rela = new RoleMenuRela();
+                rela.setRelaId(IdHelper.genUuid());
+                rela.setRoleId("sys_mgr");
+                rela.setMenuId("hot_search");
+                roleMenuRelaRepository.save(rela);
+            }
+
+            log.info("初始化热搜菜单完成");
+        } catch (Exception e) {
+            log.error("初始化热搜菜单失败", e);
         }
     }
 
