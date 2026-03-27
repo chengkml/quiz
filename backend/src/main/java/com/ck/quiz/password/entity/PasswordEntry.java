@@ -24,16 +24,12 @@ public class PasswordEntry extends Model {
     private String username;
 
     @Comment("加密密码")
-    @Column(name = "password_data", length = 512, nullable = false)
+    @Column(name = "password_data", length = 1024, nullable = false)
     private String encryptedPassword;
 
     @Comment("网址")
     @Column(length = 512)
     private String url;
-
-    @Comment("分组")
-    @Column(length = 64)
-    private String category;
 
     @Comment("备注")
     @Column(length = 1024)

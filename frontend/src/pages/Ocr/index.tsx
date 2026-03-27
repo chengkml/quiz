@@ -260,11 +260,11 @@ const OcrPage: React.FC = () => {
                 <Content>
                     <Row gutter={20} style={{height: '100%'}}>
                         <Col span={10}>
-                            <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontWeight: 600 }}>识别模型</span>
+                            <div className="ocr-model-row">
+                                <span className="ocr-model-label">识别模型</span>
                                 <Select
+                                    className="ocr-model-select"
                                     placeholder="选择模型"
-                                    style={{ minWidth: 220 }}
                                     loading={modelsLoading}
                                     value={currentModel || undefined}
                                     allowClear

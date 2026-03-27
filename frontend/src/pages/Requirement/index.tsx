@@ -1,17 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Button,
+  Dropdown,
   Empty,
   Form,
   Input,
   InputNumber,
   Message,
   Modal,
-  Popconfirm,
   Progress,
   Select,
   Tag,
   Tooltip,
+  Menu,
 } from "@arco-design/web-react";
 import MDEditor from "@uiw/react-md-editor";
 import "@uiw/react-md-editor/markdown-editor.css";
@@ -27,6 +28,7 @@ import {
   IconClockCircle,
   IconDelete,
   IconEdit,
+  IconList,
   IconLoading,
   IconSearch,
 } from "@arco-design/web-react/icon";
@@ -453,6 +455,33 @@ function Requirement() {
     }
   };
 
+  const handleMoreAction = (key: string, record: any) => {
+    switch (key) {
+      case "edit":
+        handleEdit(record);
+        break;
+      case "analyze":
+        handleAnalyze(record);
+        break;
+      case "review":
+        handleReview(record);
+        break;
+      case "lifecycle":
+        handleViewLifecycle(record);
+        break;
+      case "delete":
+        Modal.confirm({
+          title: "确认删除该需求吗？",
+          content: `需求：${record?.title || "-"}`,
+          okButtonProps: { status: "danger" },
+          onOk: () => handleDelete(record),
+        });
+        break;
+      default:
+        break;
+    }
+  };
+
   const renderSelectOptions = (values: string[]) =>
     values.map((item) => (
       <Option key={item} value={item}>
@@ -585,28 +614,52 @@ function Requirement() {
     },
     {
       title: "操作",
-      width: 170,
+      width: 100,
       fixed: "right",
       render: (_: any, record: any) => (
-        <div style={{ display: "flex", gap: 4 }}>
-          <Tooltip content="编辑">
-            <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEdit(record)} />
+        <Dropdown
+          position="bl"
+          droplist={
+            <Menu
+              className="requirement-action-menu"
+              onClickMenuItem={(key, e) => {
+                e.stopPropagation();
+                handleMoreAction(String(key), record);
+              }}
+            >
+              <Menu.Item key="edit">
+                <IconEdit />
+                编辑
+              </Menu.Item>
+              <Menu.Item key="analyze">
+                <IconSearch />
+                分析
+              </Menu.Item>
+              <Menu.Item key="review">
+                <IconCheckCircle />
+                评审
+              </Menu.Item>
+              <Menu.Item key="lifecycle">
+                <IconClockCircle />
+                生命周期
+              </Menu.Item>
+              <Menu.Item key="delete" className="danger-menu-item">
+                <IconDelete />
+                删除
+              </Menu.Item>
+            </Menu>
+          }
+        >
+          <Tooltip content="更多操作">
+            <Button
+              type="text"
+              size="small"
+              className="requirement-action-trigger"
+              icon={<IconList />}
+              onClick={(e) => e.stopPropagation()}
+            />
           </Tooltip>
-          <Tooltip content="分析">
-            <Button type="text" size="small" icon={<IconSearch />} onClick={() => handleAnalyze(record)} />
-          </Tooltip>
-          <Tooltip content="评审">
-            <Button type="text" size="small" icon={<IconCheckCircle />} onClick={() => handleReview(record)} />
-          </Tooltip>
-          <Tooltip content="生命周期">
-            <Button type="text" size="small" icon={<IconClockCircle />} onClick={() => handleViewLifecycle(record)} />
-          </Tooltip>
-          <Popconfirm title="确认删除该需求吗？" onOk={() => handleDelete(record)}>
-            <Tooltip content="删除">
-              <Button type="text" size="small" status="danger" icon={<IconDelete />} />
-            </Tooltip>
-          </Popconfirm>
-        </div>
+        </Dropdown>
       ),
     },
   ];
@@ -682,7 +735,7 @@ function Requirement() {
           filterContent,
           tableColumns: columns,
           tableProps: {
-            scroll: { x: 1380, y: tableScrollHeight },
+            scroll: { x: 1310, y: tableScrollHeight },
           },
         }}
         tableScrollHeight={tableScrollHeight}

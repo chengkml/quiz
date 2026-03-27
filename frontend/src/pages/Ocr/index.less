@@ -36,6 +36,26 @@
     }
   }
 
+  .ocr-model-row {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+
+    .ocr-model-label {
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-width: 56px;
+    }
+
+    .ocr-model-select {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
   // 卡片通用样式
   .upload-card, .result-card {
     flex: 1;
@@ -302,6 +322,15 @@
   }
 
   @media screen and (max-width: 768px) {
+    .ocr-model-row {
+      align-items: flex-start;
+      flex-wrap: wrap;
+
+      .ocr-model-select {
+        width: 100%;
+      }
+    }
+
     .ocr-layout {
       padding: 12px;
       

@@ -137,12 +137,14 @@ const HotSearchPage: React.FC = () => {
   return (
     <div className="hot-search-page">
       <div className="hot-search-header">
-        <Title heading={4} style={{ margin: 0 }}>热搜展示</Title>
-        <Text type="secondary">支持最新热搜与历史记录查看，点击标题可查看 Markdown 详情</Text>
+        <div>
+          <Title heading={4} style={{ margin: 0 }}>热搜展示</Title>
+          <Text type="secondary">支持最新热搜与历史记录查看，点击标题可查看 Markdown 详情</Text>
+        </div>
       </div>
 
       <Card className="hot-search-toolbar" bordered={false}>
-        <Space wrap>
+        <Space wrap className="hot-search-toolbar-inner">
           <Select
             value={source}
             options={SOURCE_OPTIONS}
@@ -154,7 +156,7 @@ const HotSearchPage: React.FC = () => {
             value={keyword}
             onChange={setKeyword}
             placeholder="按标题关键词筛选"
-            style={{ width: 280 }}
+            className="hot-search-keyword-input"
             allowClear
             onPressEnter={handleSearch}
           />
@@ -163,8 +165,8 @@ const HotSearchPage: React.FC = () => {
         </Space>
       </Card>
 
-      <Row gutter={16} className="hot-search-content">
-        <Col span={15}>
+      <Row gutter={[16, 16]} className="hot-search-content">
+        <Col xs={24} lg={15} className="hot-search-col">
           <Card className="hot-search-list-card" bordered={false}>
             <Table
               rowKey="id"
@@ -172,6 +174,7 @@ const HotSearchPage: React.FC = () => {
               data={list}
               columns={columns}
               pagination={pagination}
+              rowClassName={(record) => record.id === selected?.id ? 'hot-search-row hot-search-row-active' : 'hot-search-row'}
               onChange={(p) => {
                 setPagination(prev => ({ ...prev, current: p.current, pageSize: p.pageSize }));
                 fetchList((p.current || 1) - 1, p.pageSize || pagination.pageSize);
@@ -179,13 +182,13 @@ const HotSearchPage: React.FC = () => {
               onRow={(record) => ({
                 onClick: () => setSelected(record as HotSearchRecordDto),
               })}
-              scroll={{ y: 620, x: true }}
+              scroll={{ y: '100%', x: true }}
               stripe
             />
           </Card>
         </Col>
 
-        <Col span={9}>
+        <Col xs={24} lg={9} className="hot-search-col">
           <Card className="hot-search-detail-card" bordered={false}>
             {selected ? (
               <>
@@ -193,13 +196,23 @@ const HotSearchPage: React.FC = () => {
                   <Title heading={6} style={{ margin: 0 }}>{selected.title}</Title>
                   <Tag color="green" bordered>{selected.source || '-'}</Tag>
                 </div>
-                <div className="detail-meta">
-                  <div>排序：{selected.rankIndex ?? '-'}</div>
-                  <div>热度：{selected.hotValue || '-'}</div>
-                  <div>抓取：{selected.crawlTime ? renderDate(selected.crawlTime) : '-'}</div>
+                <div className="detail-meta-grid">
+                  <div className="detail-meta-item">
+                    <span className="detail-meta-label">排序</span>
+                    <span className="detail-meta-value">{selected.rankIndex ?? '-'}</span>
+                  </div>
+                  <div className="detail-meta-item">
+                    <span className="detail-meta-label">热度</span>
+                    <span className="detail-meta-value">{selected.hotValue || '-'}</span>
+                  </div>
+                  <div className="detail-meta-item detail-meta-item-full">
+                    <span className="detail-meta-label">抓取时间</span>
+                    <span className="detail-meta-value">{selected.crawlTime ? renderDate(selected.crawlTime) : '-'}</span>
+                  </div>
                   {selected.url ? (
-                    <div>
-                      链接：<a href={selected.url} target="_blank" rel="noreferrer">{selected.url}</a>
+                    <div className="detail-meta-item detail-meta-item-full">
+                      <span className="detail-meta-label">原文链接</span>
+                      <a className="detail-meta-link" href={selected.url} target="_blank" rel="noreferrer">{selected.url}</a>
                     </div>
                   ) : null}
                 </div>
@@ -210,7 +223,9 @@ const HotSearchPage: React.FC = () => {
                 </div>
               </>
             ) : (
-              <Text type="secondary">请选择一条热搜查看详情</Text>
+              <div className="hot-search-empty-detail">
+                <Text type="secondary">请选择一条热搜查看详情</Text>
+              </div>
             )}
           </Card>
         </Col>

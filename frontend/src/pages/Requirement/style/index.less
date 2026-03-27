@@ -19,6 +19,24 @@
   min-width: 120px;
 }
 
+.requirement-action-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.requirement-action-menu {
+  .arco-dropdown-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .danger-menu-item {
+    color: rgb(var(--danger-6));
+  }
+}
+
 .requirement-md-editor {
   :global {
     .w-md-editor {

@@ -22,9 +22,6 @@ public class PasswordDto extends Dto {
     @Schema(description = "网址")
     private String url;
 
-    @Schema(description = "分组")
-    private String category;
-
     @Schema(description = "备注")
     private String remark;
 

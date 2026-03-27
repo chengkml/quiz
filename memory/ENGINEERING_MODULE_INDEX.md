@@ -23,6 +23,25 @@
 - 密码查看验证码邮件
   - `backend/src/main/java/com/ck/quiz/password/service/PasswordService.java`（`sendViewSalt`）
 
+## 密钥管理（PasswordManager）
+
+- 前端入口
+  - `frontend/src/pages/PasswordManager/index.tsx`
+  - `frontend/src/pages/PasswordManager/api.ts`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/password/controller/PasswordController.java`
+- 后端核心实现（列表/新增编辑/验证码查看/历史密文迁移）
+  - `backend/src/main/java/com/ck/quiz/password/service/PasswordService.java`
+  - `backend/src/main/java/com/ck/quiz/password/repository/PasswordRepository.java`
+  - `backend/src/main/java/com/ck/quiz/password/entity/PasswordEntry.java`
+- 数据契约
+  - `backend/src/main/java/com/ck/quiz/password/dto/PasswordCreateDto.java`
+  - `backend/src/main/java/com/ck/quiz/password/dto/PasswordUpdateDto.java`
+  - `backend/src/main/java/com/ck/quiz/password/dto/PasswordDto.java`
+  - `backend/src/main/java/com/ck/quiz/password/dto/PasswordQueryDto.java`
+- 加解密工具
+  - `backend/src/main/java/com/ck/quiz/utils/EncryptUtil.java`
+
 ## 需求管理（Requirement）
 
 - 前端入口（需求列表页）

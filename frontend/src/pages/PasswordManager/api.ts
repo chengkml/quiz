@@ -7,9 +7,8 @@ export interface PasswordDto {
   id: string;
   title: string;
   username: string;
-  password?: string; // Only for create/update, not returned in list
+  password?: string;
   url?: string;
-  category?: string;
   remark?: string;
   createUser?: string;
   createUserName?: string;
@@ -19,7 +18,6 @@ export interface PasswordDto {
 
 export interface PasswordQueryDto {
   keyWord?: string;
-  category?: string;
   pageNum: number;
   pageSize: number;
 }
@@ -41,7 +39,7 @@ export function deletePassword(id: string): Promise<AxiosResponse<any>> {
 }
 
 export function getDecryptedPassword(id: string, salt: string): Promise<AxiosResponse<string>> {
-  return axios.get<string>(`${API_PREFIX}/decrypt/${id}?salt=${salt}`);
+  return axios.get<string>(`${API_PREFIX}/decrypt/${id}?salt=${encodeURIComponent(salt)}`);
 }
 
 export function sendSalt(): Promise<AxiosResponse<void>> {

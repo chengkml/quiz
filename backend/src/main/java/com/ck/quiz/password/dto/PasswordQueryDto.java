@@ -9,7 +9,4 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "查询密码条目")
 public class PasswordQueryDto extends QueryDto {
-
-    @Schema(description = "分组")
-    private String category;
 }

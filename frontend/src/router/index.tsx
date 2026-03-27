@@ -28,9 +28,6 @@ import ScriptManagement from "@/pages/Script";
 import JobQueueManagement from "@/pages/JobQueue";
 import JobManager from "@/pages/Job";
 import ExamHistoryManager from "@/pages/Exam/History";
-import QuestionBankStatisticsPage from "@/pages/StatisticsCenter/themes/QuestionBank";
-import VocabularyProficiencyStatisticsPage from "@/pages/StatisticsCenter/themes/VocabularyProficiency";
-import KnowledgeMasteryStatisticsPage from "@/pages/StatisticsCenter/themes/KnowledgeMastery";
 import HotSearchPage from "@/pages/HotSearch";
 
 import NotFound from "@/pages/NotFound";
@@ -242,41 +239,6 @@ const MenuPermissionRoute: React.FC<{
  * 需要登录访问的页面（不带Layout）
  */
 const protectedPages = [
-  {
-    path: "question-bank",
-    element: <QuestionBankStatisticsPage />,
-    requiredPath: "question-bank",
-  },
-  {
-    path: "vocabulary-proficiency",
-    element: <VocabularyProficiencyStatisticsPage />,
-    requiredPath: "vocabulary-proficiency",
-  },
-  {
-    path: "knowledge-mastery",
-    element: <KnowledgeMasteryStatisticsPage />,
-    requiredPath: "knowledge-mastery",
-  },
-  {
-    path: "statistics-center",
-    element: <Navigate to="/frame/statistics-center/question-bank" replace />,
-    requiredPath: "statistics-center/question-bank",
-  },
-  {
-    path: "statistics-center/question-bank",
-    element: <QuestionBankStatisticsPage />,
-    requiredPath: "statistics-center/question-bank",
-  },
-  {
-    path: "statistics-center/vocabulary-proficiency",
-    element: <VocabularyProficiencyStatisticsPage />,
-    requiredPath: "statistics-center/vocabulary-proficiency",
-  },
-  {
-    path: "statistics-center/knowledge-mastery",
-    element: <KnowledgeMasteryStatisticsPage />,
-    requiredPath: "statistics-center/knowledge-mastery",
-  },
   { path: "user", element: <UserManagement />, requiredPath: "user" },
   { path: "role", element: <RoleManagement />, requiredPath: "role" },
   { path: "menu", element: <MenuManagement />, requiredPath: "menu" },
