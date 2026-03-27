@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { DataManager, AddEditModal } from '@/components/DataManager';
 import FilterForm from '@/components/FilterForm';
 import {
@@ -52,6 +52,7 @@ function McpServerManager() {
   const [toolsList, setToolsList] = useState<any[]>([]);
   const [toolsLoading, setToolsLoading] = useState(false);
   const [loadingAllTools, setLoadingAllTools] = useState(false);
+  const discoveredToolsCacheRef = useRef<Record<string, any[]>>({});
 
   // 选项配置
   const statusOptions = [
@@ -225,12 +226,21 @@ function McpServerManager() {
 
   // 打开工具查看抽屉
   const handleViewTools = async (record: any) => {
+    setSelectedServer(record);
+    setToolsDrawerVisible(true);
+
+    const cachedTools = discoveredToolsCacheRef.current[record.id];
+    if (cachedTools) {
+      setToolsList(cachedTools);
+      return;
+    }
+
     try {
       setToolsLoading(true);
-      setSelectedServer(record);
-      setToolsDrawerVisible(true);
       const response = await listDiscoveredTools(record.id);
-      setToolsList(response.data || []);
+      const discoveredTools = response.data || [];
+      discoveredToolsCacheRef.current[record.id] = discoveredTools;
+      setToolsList(discoveredTools);
     } catch (error) {
       console.error('获取工具列表失败:', error);
       Message.error('获取工具列表失败');
@@ -244,13 +254,17 @@ function McpServerManager() {
   const handleLoadAllTools = async () => {
     try {
       setLoadingAllTools(true);
-      const response = await listDiscoveredTools(selectedServer.id);
-      const tools = response.data || [];
+      const serverId = selectedServer?.id;
+      const tools = (serverId && discoveredToolsCacheRef.current[serverId]) || toolsList || [];
       if (tools.length === 0) {
-        Message.warning('没有可加载的工具');
+        Message.warning('暂无已发现工具，请先刷新工具列表');
         return;
       }
       Message.success(`成功加载 ${tools.length} 个工具`);
+      if (serverId) {
+        delete discoveredToolsCacheRef.current[serverId];
+      }
+      setToolsDrawerVisible(false);
       setToolsList([]);
     } catch (error) {
       console.error('加载工具失败:', error);
@@ -411,7 +425,11 @@ function McpServerManager() {
       <Drawer
         title={`${selectedServer?.name} - 工具列表`}
         placement="right"
-        onCancel={() => setToolsDrawerVisible(false)}
+        onCancel={() => {
+          setToolsDrawerVisible(false);
+          setToolsList([]);
+          setSelectedServer(null);
+        }}
         visible={toolsDrawerVisible}
         width={600}
         footer={

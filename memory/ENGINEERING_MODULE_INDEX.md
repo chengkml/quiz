@@ -48,6 +48,26 @@
   - `backend/src/main/java/com/ck/quiz/project/controller/RequirementController.java`
   - `backend/src/main/java/com/ck/quiz/project/service/impl/RequirementServiceImpl.java`
 
+## MCP 服务器与工具管理（McpServer / McpTool）
+
+- 前端入口（MCP 服务器管理）
+  - `frontend/src/pages/McpServer/index.tsx`
+  - `frontend/src/pages/McpServer/api/index.ts`
+- 前端入口（MCP 工具管理）
+  - `frontend/src/pages/McpTool/index.tsx`
+  - `frontend/src/pages/McpTool/api/index.ts`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/mcp/controller/McpServerController.java`
+  - `backend/src/main/java/com/ck/quiz/mcp/controller/McpToolController.java`
+- 后端核心实现（SSE 握手 / initialize / tools/list / tools/call / 健康检查）
+  - `backend/src/main/java/com/ck/quiz/mcp/service/impl/McpServerServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/mcp/service/impl/McpToolServiceImpl.java`
+- 数据实体与仓储
+  - `backend/src/main/java/com/ck/quiz/mcp/entity/McpServer.java`
+  - `backend/src/main/java/com/ck/quiz/mcp/entity/McpTool.java`
+  - `backend/src/main/java/com/ck/quiz/mcp/repository/McpServerRepository.java`
+  - `backend/src/main/java/com/ck/quiz/mcp/repository/McpToolRepository.java`
+
 ## AI 助手与对话（Chat / GlobalAssistant）
 
 - 前端入口（全局助手）
