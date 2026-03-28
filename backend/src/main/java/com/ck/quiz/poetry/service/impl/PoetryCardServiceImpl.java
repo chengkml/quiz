@@ -150,6 +150,10 @@ public class PoetryCardServiceImpl extends
         PoetryCard card = poetryCardRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("诗词不存在"));
 
+        if (card.getCreateUser() != null && !card.getCreateUser().equals(userId)) {
+            throw new RuntimeException("无权限操作此记录");
+        }
+
         groupObjRelaRepository.deleteByObjId(id);
         tagObjRelaRepository.deleteByObjId(id);
         poetryCardRepository.delete(card);
@@ -183,6 +187,10 @@ public class PoetryCardServiceImpl extends
         PoetryCard card = poetryCardRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("诗词不存在"));
 
+        if (card.getCreateUser() != null && !card.getCreateUser().equals(userId)) {
+            throw new RuntimeException("无权限操作此记录");
+        }
+
         card.setEasinessFactor(2.5);
         card.setInterval(0);
         card.setRepetition(0);
@@ -196,7 +204,7 @@ public class PoetryCardServiceImpl extends
     @Override
     public List<PoetryCardDto> getDueToday(String userId) {
         LocalDateTime now = LocalDateTime.now();
-        return poetryCardRepository.findDueToday(now).stream()
+        return poetryCardRepository.findDueToday(now, userId).stream()
                 .map(card -> convertToDto(card, true))
                 .collect(Collectors.toList());
     }
@@ -206,6 +214,10 @@ public class PoetryCardServiceImpl extends
     public ReviewResultDto review(String userId, ReviewRequestDto dto) {
         PoetryCard card = poetryCardRepository.findById(dto.getId())
                 .orElseThrow(() -> new RuntimeException("诗词不存在"));
+
+        if (!card.getCreateUser().equals(userId)) {
+            throw new RuntimeException("无权限操作此记录");
+        }
 
         if (dto.getScore() < 0 || dto.getScore() > 5) {
             throw new RuntimeException("评分必须在 0-5 之间");
@@ -281,6 +293,10 @@ public class PoetryCardServiceImpl extends
     public List<ReviewLogDto> getReviewHistory(String userId, String cardId) {
         PoetryCard card = poetryCardRepository.findById(cardId)
                 .orElseThrow(() -> new RuntimeException("诗词不存在"));
+
+        if (!card.getCreateUser().equals(userId)) {
+            throw new RuntimeException("无权限访问此记录");
+        }
 
         return reviewLogRepository.findByObjId(card.getId()).stream()
                 .map(this::convertToReviewLogDto)

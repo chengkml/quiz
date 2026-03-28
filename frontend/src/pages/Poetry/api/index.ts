@@ -49,6 +49,21 @@ export interface PoetryCardQueryDto {
     sortDirection?: string;
 }
 
+export interface ReviewRequestDto {
+    id: string;
+    score: number;
+}
+
+export interface ReviewLogDto {
+    id: string;
+    objId: string;
+    reviewDate: string;
+    score: number;
+    efBefore: number;
+    efAfter: number;
+    nextIntervalDays: number;
+}
+
 export const getPoetryList = (params: PoetryCardQueryDto) =>
     axios.post('/poetry/search', params);
 
@@ -66,3 +81,12 @@ export const archivePoetry = (id: string, archived: boolean = true) =>
 
 export const resetPoetry = (id: string) =>
     axios.post(`/poetry/reset/${id}`);
+
+export const getDueToday = () =>
+    axios.get('/poetry/due-today');
+
+export const reviewPoetry = (data: ReviewRequestDto) =>
+    axios.post('/poetry/review', data);
+
+export const getReviewHistory = (cardId: string) =>
+    axios.get(`/poetry/review-history/${cardId}`);

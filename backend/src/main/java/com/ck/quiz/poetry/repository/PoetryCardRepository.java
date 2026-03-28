@@ -20,8 +20,8 @@ public interface PoetryCardRepository extends ReviewBaseRepository<PoetryCard> {
     Optional<PoetryCard> findByTitleAndAuthor(String title, String author);
 
     /**
-     * 查询全部待复习的记录（到期时间 <= 当前时间）
+     * 查询当前用户待复习的记录（到期时间 <= 当前时间）
      */
-    @Query("SELECT p FROM PoetryCard p WHERE p.nextReviewDate <= :now AND p.archived = false ORDER BY p.nextReviewDate ASC")
-    List<PoetryCard> findDueToday(@Param("now") LocalDateTime now);
+    @Query("SELECT p FROM PoetryCard p WHERE p.nextReviewDate <= :now AND p.createUser = :userId AND p.archived = false ORDER BY p.nextReviewDate ASC")
+    List<PoetryCard> findDueToday(@Param("now") LocalDateTime now, @Param("userId") String userId);
 }

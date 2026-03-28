@@ -43,13 +43,8 @@ DEFAULT_CHECKPOINT_FILE = os.path.abspath(
 )
 
 ALLOWED_STATUSES = {
-    "PENDING_ANALYSIS",
-    "PENDING_REVIEW",
-    "PENDING_REVISION",
     "OPEN",
     "IN_PROGRESS",
-    "COMPLETED",
-    "CLOSED",
 }
 
 PRIORITY_ORDER = {
@@ -576,8 +571,9 @@ def execute_development(
     repo_root: str,
     requirement: Dict[str, Any],
     build_timeout: int,
+    progress_hook: Optional[callable] = None,
 ) -> Dict[str, Any]:
-    """真实开发阶段：要求代码有变化，且构建通过，才允许进入状态回写。"""
+    """真实开发阶段：开发开始后持续推进进度，最终以代码改动 + 构建通过作为完成门禁。"""
     req_id = normalize_text(requirement.get("id"))
     requirement_paths = parse_requirement_paths(requirement)
 
@@ -606,7 +602,7 @@ def execute_development(
     if not effective_changes:
         fail(
             "develop",
-            "检测不到本需求的代码改动，拒绝继续状态回写",
+            "检测不到本需求的代码改动，无法通过完成门禁",
             {
                 "requirementId": req_id,
                 "hint": "请先完成代码修改（frontend/src 或 backend/src），再执行技能。",
@@ -615,6 +611,9 @@ def execute_development(
             },
         )
 
+    if progress_hook:
+        progress_hook("代码改动已确认，进入构建验证")
+
     # 构建验证（按用户偏好：仅构建/编译，不做回归测试）
     build_results: List[Dict[str, Any]] = []
 
@@ -622,17 +621,21 @@ def execute_development(
         frontend_dir = os.path.join(repo_root, "frontend")
         if os.path.isdir(frontend_dir):
             build_results.append(run_shell("npm run build", cwd=frontend_dir, timeout=build_timeout))
+            if progress_hook:
+                progress_hook("前端构建通过")
 
     if any(f.startswith("backend/") for f in effective_changes):
         backend_dir = os.path.join(repo_root, "backend")
         if os.path.isdir(backend_dir):
             # 按约定仅编译验证，不跑回归
             build_results.append(run_shell("gradle classes", cwd=backend_dir, timeout=build_timeout))
+            if progress_hook:
+                progress_hook("后端编译通过")
 
     if not build_results:
         fail(
             "develop",
-            "未命中可执行的构建校验（frontend/backend），拒绝状态回写",
+            "未命中可执行的构建校验（frontend/backend），无法通过完成门禁",
             {
                 "requirementId": req_id,
                 "changedFiles": effective_changes,
@@ -643,13 +646,16 @@ def execute_development(
     if failed_builds:
         fail(
             "develop",
-            "构建/编译验证失败，拒绝状态回写",
+            "构建/编译验证失败，无法通过完成门禁",
             {
                 "requirementId": req_id,
                 "changedFiles": effective_changes,
                 "buildResults": failed_builds,
             },
         )
+
+    if progress_hook:
+        progress_hook("开发门禁已通过，准备置为完成")
 
     return {
         "requirementId": req_id,
@@ -717,29 +723,11 @@ def execute_for_requirement(
     current_status = normalize_text(requirement.get("status")).upper()
     title = normalize_text(requirement.get("title"))
     plan = build_development_plan(requirement)
-
-    # 先开发（含代码改动校验 + 构建校验）
-    development_result = execute_development(
-        repo_root=repo_root,
-        requirement=requirement,
-        build_timeout=build_timeout,
-    )
-
     transitions = build_transition_plan(milestones, start_progress)
-
-    if force_complete_if_already_completed and current_status == "COMPLETED":
-        transitions = [
-            {
-                "phase": "complete",
-                "targetStatus": "COMPLETED",
-                "progressPercent": 100,
-                "resultMsg": "开发完成：状态置为 COMPLETED",
-            }
-        ]
-
     trajectory: List[Dict[str, Any]] = []
 
-    for step in transitions:
+    def apply_status(step: Dict[str, Any]) -> None:
+        nonlocal current_status
         exec_result = update_status(
             opener,
             base_url=base_url,
@@ -758,6 +746,53 @@ def execute_for_requirement(
             }
         )
 
+    if force_complete_if_already_completed and current_status == "COMPLETED":
+        complete_only = {
+            "phase": "complete",
+            "targetStatus": "COMPLETED",
+            "progressPercent": 100,
+            "resultMsg": "开发完成：状态置为 COMPLETED",
+        }
+        apply_status(complete_only)
+        development_result = {
+            "requirementId": requirement_id,
+            "requirementPaths": parse_requirement_paths(requirement),
+            "changedFiles": [],
+            "buildResults": [],
+            "gateMode": "forced-complete-already-completed",
+        }
+        executed_transitions = [complete_only]
+    else:
+        # 一开工先回写开发中
+        start_step = transitions[0]
+        apply_status(start_step)
+
+        progress_steps = [step for step in transitions[1:] if step["phase"] == "progress"]
+        progress_index = 0
+
+        def progress_hook(_message: str) -> None:
+            nonlocal progress_index
+            if progress_index >= len(progress_steps):
+                return
+            apply_status(progress_steps[progress_index])
+            progress_index += 1
+
+        development_result = execute_development(
+            repo_root=repo_root,
+            requirement=requirement,
+            build_timeout=build_timeout,
+            progress_hook=progress_hook,
+        )
+
+        # 若还有未消耗的里程碑，在完成前补齐
+        while progress_index < len(progress_steps):
+            apply_status(progress_steps[progress_index])
+            progress_index += 1
+
+        complete_step = next(step for step in transitions if step["phase"] == "complete")
+        apply_status(complete_step)
+        executed_transitions = [start_step, *progress_steps, complete_step]
+
     return {
         "processOrder": process_order,
         "requirementId": requirement_id,
@@ -768,7 +803,7 @@ def execute_for_requirement(
         "finalStatusPlanned": current_status,
         "developmentPlan": plan,
         "developmentExecution": development_result,
-        "transitionPlan": transitions,
+        "transitionPlan": executed_transitions,
         "trajectory": trajectory,
     }
 

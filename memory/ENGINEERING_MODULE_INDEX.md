@@ -169,6 +169,24 @@
   - `backend/src/main/java/com/ck/quiz/vocabulary/entity/VocabularyCard.java`
   - `backend/src/main/java/com/ck/quiz/vocabulary/dto/VocabularyCardQueryDto.java`
 
+## 诗词本（Poetry）
+
+- 前端入口（诗词列表/复习页）
+  - `frontend/src/pages/Poetry/index.tsx`
+  - `frontend/src/pages/Poetry/Review.tsx`
+  - `frontend/src/pages/Poetry/components/AddEditModal.tsx`
+  - `frontend/src/pages/Poetry/api/index.ts`
+  - `frontend/src/pages/Poetry/style/index.less`
+- 路由入口
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/poetry/controller/PoetryCardController.java`
+- 后端核心实现（查询/操作/复习/用户隔离）
+  - `backend/src/main/java/com/ck/quiz/poetry/service/impl/PoetryCardServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/poetry/repository/PoetryCardRepository.java`
+  - `backend/src/main/java/com/ck/quiz/poetry/entity/PoetryCard.java`
+  - `backend/src/main/java/com/ck/quiz/poetry/dto/PoetryCardQueryDto.java`
+
 ## 文件管理（FileManager）
 
 - 前端入口（文件管理页）

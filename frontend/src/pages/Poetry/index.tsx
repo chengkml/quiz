@@ -298,6 +298,11 @@ const PoetryPage: React.FC = () => {
                 actions={{
                     onAdd: handleAdd,
                 }}
+                actionButtons={
+                    <Button type="primary" icon={<IconPlayArrow />} onClick={handleReviewOpen}>
+                        复习
+                    </Button>
+                }
                 config={{
                     showModeToggle: false,
                     displayMode: 'table',
@@ -332,6 +337,18 @@ const PoetryPage: React.FC = () => {
                 <div className="md-preview" style={{ marginBottom: 0 }}>
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentRecord?.mdAnalysis || '无赏析'}</ReactMarkdown>
                 </div>
+            </Drawer>
+
+            <Drawer
+                title="诗词复习"
+                visible={reviewVisible}
+                width={980}
+                onCancel={handleReviewClose}
+                footer={null}
+                className="review-drawer"
+                bodyStyle={{ padding: 0, overflow: 'hidden' }}
+            >
+                <ReviewPage embedded onExit={handleReviewClose} />
             </Drawer>
         </div>
     );

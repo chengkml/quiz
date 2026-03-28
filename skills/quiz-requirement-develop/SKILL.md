@@ -5,7 +5,7 @@ description: 通过 JWT 链路执行 quiz 需求开发完整闭环（仅 action=
 
 # Quiz Requirement Develop
 
-按“查询 -> 串行逐条读取 -> 先开发（代码改动+构建验证） -> 再状态流转 -> 完成”执行需求开发闭环。
+按“查询 -> 串行逐条读取 -> 先置为开发中 -> 开发过程中持续更新进度 -> 完成前通过开发门禁 -> 再置为完成”执行需求开发闭环。
 
 服务地址与认证默认值已统一为与 `requirement-query` 一致：
 - 默认 `base-url`: `https://www.quizck.cn`
@@ -28,16 +28,17 @@ description: 通过 JWT 链路执行 quiz 需求开发完整闭环（仅 action=
 4. 逐条读取需求详情：`GET /api/project/requirement/get/{id}`
    - 读取 `title / descr / status / progressPercent`
    - 基于 `descr` 形成开发执行计划
-5. **先执行真实开发（硬门禁）**
-   - 必须检测到与需求相关的代码改动（至少在 `frontend/src` 或 `backend/src`）
-   - 必须通过构建/编译验证（仅构建，不做回归）
-   - 任一条件不满足：直接失败，禁止状态回写
-6. 开始开发前更新状态：`POST /api/project/requirement/{id}/status`
+5. 开发开始即更新状态：`POST /api/project/requirement/{id}/status`
    - `status=IN_PROGRESS`
-7. 关键阶段持续更新进度：`POST /api/project/requirement/{id}/status`
+   - `progressPercent=<start-progress>`（默认 `0`）
+6. 执行真实开发并在关键阶段持续更新进度：`POST /api/project/requirement/{id}/status`
    - `status=IN_PROGRESS`
    - `progressPercent` 按里程碑更新（默认 `30,60,90`）
-8. 完成时更新状态：`POST /api/project/requirement/{id}/status`
+7. **完成前执行开发门禁（硬门禁）**
+   - 必须检测到与需求相关的代码改动（至少在 `frontend/src` 或 `backend/src`）
+   - 必须通过构建/编译验证（仅构建，不做回归）
+   - 任一条件不满足：直接失败，且不得更新为 `COMPLETED`
+8. 仅当开发门禁通过时，完成时更新状态：`POST /api/project/requirement/{id}/status`
    - `status=COMPLETED`
    - `progressPercent=100`
 
@@ -191,13 +192,13 @@ python3 skills/quiz-requirement-develop/scripts/develop_requirement.py \
 
 ## 错误处理与回滚策略
 
-- 参数校验失败（如 `start-progress>99`、里程碑超范围、非法 status）
+- 参数校验失败（如 `start-progress>99`、里程碑超范围、非法 status；`--status` 非 `OPEN/IN_PROGRESS`）
   - 立即失败并返回 `step=validate`，不发起任何状态写入
 - 登录/JWT/查询失败
   - 返回失败步骤与 HTTP 明细，不输出 token/cookie/password
 - **开发门禁失败（新增）**
   - `step=develop`：未检测到需求相关代码改动，或构建/编译失败
-  - 该场景下禁止进入状态回写，需求状态保持不变
+  - 该场景下需求可能已先被置为 `IN_PROGRESS` 并写入部分进度；但必须禁止写成 `COMPLETED`
 - 状态更新失败（单条）
   - 返回失败步骤 `update_status` + 对应请求参数，便于重试
 - 批量执行中断/异常

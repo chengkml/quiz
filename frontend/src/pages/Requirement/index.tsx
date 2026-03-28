@@ -13,6 +13,7 @@ import {
   Tag,
   Tooltip,
   Menu,
+  Typography,
 } from "@arco-design/web-react";
 import MDEditor from "@uiw/react-md-editor";
 import "@uiw/react-md-editor/markdown-editor.css";
@@ -553,12 +554,28 @@ function Requirement() {
     return <Tag color={it.color}>{it.text}</Tag>;
   };
 
+  const handleTitleClick = (record: any) => {
+    const status = record?.status as RequirementStatus | undefined;
+    if (status === "PENDING_ANALYSIS") {
+      handleAnalyze(record);
+      return;
+    }
+    if (status === "PENDING_REVIEW") {
+      handleReview(record);
+      return;
+    }
+    handleViewLifecycle(record);
+  };
+
   const columns = [
     {
       title: "标题",
       dataIndex: "title",
       ellipsis: true,
       width: 180,
+      render: (value: string, record: any) => (
+        <Typography.Link onClick={() => handleTitleClick(record)}>{value || "-"}</Typography.Link>
+      ),
     },
     {
       title: "项目名称",
@@ -614,7 +631,7 @@ function Requirement() {
     },
     {
       title: "操作",
-      width: 100,
+      width: 80,
       fixed: "right",
       render: (_: any, record: any) => (
         <Dropdown

@@ -336,6 +336,7 @@ const PasswordManager: React.FC = () => {
         tableScrollHeight={tableScrollHeight}
         config={{
           displayMode: "table",
+          showModeToggle: false,
           filterContent,
           tableColumns: columns,
         }}
