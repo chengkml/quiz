@@ -132,8 +132,8 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
     @Transactional
     public RequirementDto design(String userId, String id, RequirementAnalyzeDto designDto) {
         Requirement requirement = getRequirementById(id);
-        if (requirement.getStatus() != Status.PENDING_DESIGN) {
-            throw new RuntimeException("Only PENDING_DESIGN requirement can be designed");
+        if (requirement.getStatus() != Status.PENDING_ANALYSIS) {
+            throw new RuntimeException("Only PENDING_ANALYSIS requirement can be designed");
         }
         RequirementAnalyzeDto payload = designDto == null ? new RequirementAnalyzeDto() : designDto;
 
