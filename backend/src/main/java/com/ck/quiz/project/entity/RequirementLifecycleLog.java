@@ -56,6 +56,7 @@ public class RequirementLifecycleLog extends Model {
         CREATE,
         EDIT,
         STATUS_CHANGE,
+        DESIGN,
         ANALYZE,
         REVIEW
     }

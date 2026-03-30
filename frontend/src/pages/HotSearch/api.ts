@@ -35,13 +35,6 @@ export interface PageResp<T> {
   size: number;
 }
 
-export interface CollectResultDto {
-  source: string;
-  batchNo: string;
-  crawlTime: string;
-  total: number;
-}
-
 export const searchHotSearch = async (payload: HotSearchQueryDto): Promise<PageResp<HotSearchRecordDto>> => {
   const response = await axios.post('/hot-search/search', payload);
   return response.data;
@@ -56,14 +49,6 @@ export const getHotSearchDetail = async (id: string): Promise<HotSearchRecordDto
   const response = await axios.get(`/hot-search/${id}`);
   if (response.success === false) {
     return null;
-  }
-  return response.data;
-};
-
-export const collectHotSearch = async (source?: string): Promise<CollectResultDto> => {
-  const response = await axios.post('/hot-search/collect', { source });
-  if (response.success === false) {
-    throw new Error(response.message || '抓取失败');
   }
   return response.data;
 };

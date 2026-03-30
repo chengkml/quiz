@@ -130,8 +130,35 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
 
     @Override
     @Transactional
+    public RequirementDto design(String userId, String id, RequirementAnalyzeDto designDto) {
+        Requirement requirement = getRequirementById(id);
+        if (requirement.getStatus() != Status.PENDING_DESIGN) {
+            throw new RuntimeException("Only PENDING_DESIGN requirement can be designed");
+        }
+        RequirementAnalyzeDto payload = designDto == null ? new RequirementAnalyzeDto() : designDto;
+
+        Status fromStatus = requirement.getStatus();
+        String beforeDescr = requirement.getDescr();
+
+        if (payload.getDescr() != null) {
+            requirement.setDescr(payload.getDescr());
+        }
+        requirement.setStatus(Status.PENDING_ANALYSIS);
+        requirement.setProgressPercent(0);
+
+        Requirement updated = repository.save(requirement);
+        appendLifecycleLog(updated, RequirementLifecycleLog.EventType.DESIGN, fromStatus, updated.getStatus(),
+                beforeDescr, updated.getDescr(), null);
+        return convertToDto(updated, true);
+    }
+
+    @Override
+    @Transactional
     public RequirementDto analyze(String userId, String id, RequirementAnalyzeDto analyzeDto) {
         Requirement requirement = getRequirementById(id);
+        if (requirement.getStatus() != Status.PENDING_ANALYSIS) {
+            throw new RuntimeException("Only PENDING_ANALYSIS requirement can be analyzed");
+        }
         RequirementAnalyzeDto payload = analyzeDto == null ? new RequirementAnalyzeDto() : analyzeDto;
 
         Status fromStatus = requirement.getStatus();

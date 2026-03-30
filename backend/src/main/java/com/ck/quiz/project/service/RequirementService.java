@@ -31,6 +31,11 @@ public interface RequirementService extends BaseService<RequirementCreateDto, Re
     void updateStatus(String id, String status, String resultMsg, Integer progressPercent);
 
     /**
+     * 需求设计：完善需求描述并流转到待分析
+     */
+    RequirementDto design(String userId, String id, RequirementAnalyzeDto designDto);
+
+    /**
      * 需求分析：修改需求描述并流转到待评审
      */
     RequirementDto analyze(String userId, String id, RequirementAnalyzeDto analyzeDto);

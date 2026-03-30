@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, Grid, Input, Message, Select, Space, Table, Tag, Typography } from '@arco-design/web-react';
-import { IconRefresh, IconSearch } from '@arco-design/web-react/icon';
+import { IconSearch } from '@arco-design/web-react/icon';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import renderDate from '@/utils/timeUtil';
 import {
-  collectHotSearch,
   HotSearchRecordDto,
   searchHotSearch,
 } from './api';
@@ -22,7 +21,6 @@ const HotSearchPage: React.FC = () => {
   const [source, setSource] = useState<string>('TOUTIAO');
   const [keyword, setKeyword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const [collectLoading, setCollectLoading] = useState<boolean>(false);
   const [list, setList] = useState<HotSearchRecordDto[]>([]);
   const [selected, setSelected] = useState<HotSearchRecordDto | null>(null);
   const [pagination, setPagination] = useState({
@@ -76,19 +74,6 @@ const HotSearchPage: React.FC = () => {
     fetchList(0, pagination.pageSize);
   };
 
-  const handleRefresh = async () => {
-    setCollectLoading(true);
-    try {
-      const resp = await collectHotSearch(source);
-      Message.success(`抓取成功，共 ${resp.total} 条`);
-      fetchList(0, pagination.pageSize);
-    } catch (e: any) {
-      Message.error(e?.message || '抓取失败');
-    } finally {
-      setCollectLoading(false);
-    }
-  };
-
   const columns = useMemo(() => [
     {
       title: '序号',
@@ -136,13 +121,6 @@ const HotSearchPage: React.FC = () => {
 
   return (
     <div className="hot-search-page">
-      <div className="hot-search-header">
-        <div>
-          <Title heading={4} style={{ margin: 0 }}>热搜展示</Title>
-          <Text type="secondary">支持最新热搜与历史记录查看，点击标题可查看 Markdown 详情</Text>
-        </div>
-      </div>
-
       <Card className="hot-search-toolbar" bordered={false}>
         <Space wrap className="hot-search-toolbar-inner">
           <Select
@@ -161,7 +139,6 @@ const HotSearchPage: React.FC = () => {
             onPressEnter={handleSearch}
           />
           <Button type="primary" icon={<IconSearch />} onClick={handleSearch}>查询</Button>
-          <Button icon={<IconRefresh />} onClick={handleRefresh} loading={collectLoading}>立即抓取</Button>
         </Space>
       </Card>
 

@@ -1,31 +1,33 @@
 package com.ck.quiz.hotsearch.service.impl;
 
-import com.ck.quiz.hotsearch.collector.HotSearchCollector;
 import com.ck.quiz.hotsearch.dto.HotSearchCollectResultDto;
+import com.ck.quiz.hotsearch.dto.HotSearchImportItemDto;
+import com.ck.quiz.hotsearch.dto.HotSearchImportRequestDto;
 import com.ck.quiz.hotsearch.dto.HotSearchQueryDto;
 import com.ck.quiz.hotsearch.dto.HotSearchRecordDto;
-import com.ck.quiz.hotsearch.dto.HotSearchSourceItem;
 import com.ck.quiz.hotsearch.entity.HotSearchRecord;
 import com.ck.quiz.hotsearch.repository.HotSearchRecordRepository;
 import com.ck.quiz.hotsearch.service.HotSearchService;
 import com.ck.quiz.utils.IdHelper;
+import jakarta.persistence.criteria.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -36,42 +38,58 @@ public class HotSearchServiceImpl implements HotSearchService {
     @Autowired
     private HotSearchRecordRepository hotSearchRecordRepository;
 
-    @Autowired
-    private List<HotSearchCollector> collectors;
-
     @Override
     @Transactional
-    public HotSearchCollectResultDto collectLatest(String source) {
-        HotSearchCollector collector = resolveCollector(source);
-        String batchNo = UUID.randomUUID().toString().replace("-", "");
-        LocalDateTime crawlTime = LocalDateTime.now();
-
-        log.info("开始抓取热搜 source={}, batchNo={}", collector.source(), batchNo);
-        List<HotSearchSourceItem> items = collector.collect();
-        if (items == null || items.isEmpty()) {
-            log.warn("热搜抓取结果为空 source={}", collector.source());
-            return new HotSearchCollectResultDto(collector.source(), batchNo, TIME_FORMATTER.format(crawlTime), 0);
+    public HotSearchCollectResultDto importRecords(HotSearchImportRequestDto requestDto) {
+        if (requestDto == null) {
+            throw new IllegalArgumentException("导入请求不能为空");
+        }
+        if (!StringUtils.hasText(requestDto.getSource())) {
+            throw new IllegalArgumentException("source 不能为空");
+        }
+        if (requestDto.getItems() == null || requestDto.getItems().isEmpty()) {
+            throw new IllegalArgumentException("items 不能为空");
         }
 
-        List<HotSearchRecord> records = items.stream().map(item -> {
+        String source = requestDto.getSource().trim();
+        String batchNo = StringUtils.hasText(requestDto.getBatchNo())
+                ? requestDto.getBatchNo().trim()
+                : UUID.randomUUID().toString().replace("-", "");
+        LocalDateTime defaultCrawlTime = parseTime(requestDto.getCrawlTime());
+        if (defaultCrawlTime == null) {
+            LocalDateTime existingBatchTime = hotSearchRecordRepository.findMaxCrawlTimeBySourceAndBatchNo(source, batchNo);
+            defaultCrawlTime = existingBatchTime != null ? existingBatchTime : LocalDateTime.now();
+        }
+
+        hotSearchRecordRepository.deleteBySourceAndBatchNo(source, batchNo);
+
+        List<HotSearchRecord> records = new ArrayList<>();
+        for (HotSearchImportItemDto item : requestDto.getItems()) {
+            if (item == null || !StringUtils.hasText(item.getTitle())) {
+                continue;
+            }
             HotSearchRecord record = new HotSearchRecord();
             record.setId(IdHelper.genUuid());
-            record.setSource(collector.source());
-            record.setExternalId(item.getExternalId());
-            record.setTitle(item.getTitle());
-            record.setUrl(item.getUrl());
-            record.setHotValue(item.getHotValue());
+            record.setSource(source);
+            record.setExternalId(trimToNull(item.getExternalId()));
+            record.setTitle(item.getTitle().trim());
+            record.setUrl(trimToNull(item.getUrl()));
+            record.setHotValue(trimToNull(item.getHotValue()));
             record.setRankIndex(item.getRankIndex());
-            record.setCrawlTime(crawlTime);
+            record.setCrawlTime(parseTime(item.getCrawlTime()) != null ? parseTime(item.getCrawlTime()) : defaultCrawlTime);
             record.setBatchNo(batchNo);
-            record.setDetailMarkdown(item.getDetailMarkdown());
-            record.setExtraJson(item.getExtraJson());
-            return record;
-        }).toList();
+            record.setDetailMarkdown(trimToNull(item.getDetailMarkdown()));
+            record.setExtraJson(trimToNull(item.getExtraJson()));
+            records.add(record);
+        }
+
+        if (records.isEmpty()) {
+            throw new IllegalArgumentException("items 中没有可入库的有效记录");
+        }
 
         hotSearchRecordRepository.saveAll(records);
-        log.info("热搜抓取完成 source={}, batchNo={}, size={}", collector.source(), batchNo, records.size());
-        return new HotSearchCollectResultDto(collector.source(), batchNo, TIME_FORMATTER.format(crawlTime), records.size());
+        log.info("热搜导入完成 source={}, batchNo={}, size={}", source, batchNo, records.size());
+        return new HotSearchCollectResultDto(source, batchNo, TIME_FORMATTER.format(defaultCrawlTime), records.size());
     }
 
     @Override
@@ -79,7 +97,6 @@ public class HotSearchServiceImpl implements HotSearchService {
     public Page<HotSearchRecordDto> search(HotSearchQueryDto queryDto) {
         int pageNum = normalizePageNum(queryDto.getPageNum());
         int pageSize = normalizePageSize(queryDto.getPageSize());
-
         LocalDateTime fromTime = parseTime(queryDto.getFromTime());
         LocalDateTime toTime = parseTime(queryDto.getToTime());
 
@@ -93,21 +110,33 @@ public class HotSearchServiceImpl implements HotSearchService {
                 )
         );
 
-        Page<HotSearchRecord> page = hotSearchRecordRepository.searchPage(
-                queryDto.getSource(),
-                queryDto.getTitleKeyword(),
-                fromTime,
-                toTime,
-                pageable
-        );
+        Specification<HotSearchRecord> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (StringUtils.hasText(queryDto.getSource())) {
+                predicates.add(cb.equal(root.get("source"), queryDto.getSource().trim()));
+            }
+            if (StringUtils.hasText(queryDto.getTitleKeyword())) {
+                predicates.add(cb.like(
+                        cb.lower(root.get("title")),
+                        "%" + queryDto.getTitleKeyword().trim().toLowerCase() + "%"
+                ));
+            }
+            if (fromTime != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("crawlTime"), fromTime));
+            }
+            if (toTime != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("crawlTime"), toTime));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
 
-        return page.map(this::toDto);
+        return hotSearchRecordRepository.findAll(spec, pageable).map(this::toDto);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<HotSearchRecordDto> latest(String source) {
-        return hotSearchRecordRepository.findLatestBatch(source)
+        return hotSearchRecordRepository.findLatestBatch(trimToNull(source))
                 .stream()
                 .map(this::toDto)
                 .toList();
@@ -126,36 +155,25 @@ public class HotSearchServiceImpl implements HotSearchService {
         return dto;
     }
 
-    private HotSearchCollector resolveCollector(String source) {
-        if (collectors == null || collectors.isEmpty()) {
-            throw new IllegalStateException("未找到热搜采集器实现");
-        }
-
-        Map<String, HotSearchCollector> collectorMap = collectors.stream()
-                .collect(Collectors.toMap(c -> c.source().toUpperCase(), Function.identity(), (a, b) -> a));
-
-        if (source == null || source.isBlank()) {
-            return collectors.get(0);
-        }
-
-        HotSearchCollector collector = collectorMap.get(source.toUpperCase());
-        if (collector == null) {
-            throw new IllegalArgumentException("不支持的热搜来源: " + source + "，可选: " + collectorMap.keySet());
-        }
-        return collector;
-    }
-
     private LocalDateTime parseTime(String text) {
-        if (text == null || text.isBlank()) {
+        if (!StringUtils.hasText(text)) {
             return null;
         }
-        String normalized = text.trim();
+        String normalized = text.trim().replace('T', ' ');
         if (normalized.length() == 10) {
             normalized = normalized + " 00:00:00";
         } else if (normalized.length() == 16) {
             normalized = normalized + ":00";
         }
-        return LocalDateTime.parse(normalized, TIME_FORMATTER);
+        try {
+            return LocalDateTime.parse(normalized, TIME_FORMATTER);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("时间格式非法: " + text);
+        }
+    }
+
+    private String trimToNull(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 
     private int normalizePageNum(Integer pageNum) {

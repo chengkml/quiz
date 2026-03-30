@@ -81,7 +81,8 @@ public class Requirement extends Model {
         } else if (progressPercent > 100) {
             progressPercent = 100;
         }
-        if (status == Status.PENDING_ANALYSIS
+        if (status == Status.PENDING_DESIGN
+                || status == Status.PENDING_ANALYSIS
                 || status == Status.PENDING_REVIEW
                 || status == Status.PENDING_REVISION
                 || status == Status.OPEN) {

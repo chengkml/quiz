@@ -56,6 +56,14 @@ public class RequirementController extends BaseController<RequirementCreateDto, 
         requirementService.updateStatus(id, status, resultMsg, progressPercent);
     }
 
+    @Operation(summary = "需求设计", description = "完成需求设计并将状态流转到待分析")
+    @PostMapping("/{id}/design")
+    public RequirementDto design(@PathVariable String id,
+                                 @RequestBody RequirementAnalyzeDto designDto) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return requirementService.design(authentication.getName(), id, designDto);
+    }
+
     @Operation(summary = "需求分析", description = "分析需求并将状态流转到待评审")
     @PostMapping("/{id}/analyze")
     public RequirementDto analyze(@PathVariable String id,
