@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
   Dropdown,
@@ -106,7 +106,6 @@ const PRIORITY_TEXT_MAP: Record<RequirementPriority, string> = {
 
 function Requirement() {
   const DEFAULT_BRANCH = "main";
-  const pageRef = useRef<HTMLDivElement | null>(null);
 
   const [tableData, setTableData] = useState<any[]>([]);
   const [tableLoading, setTableLoading] = useState(false);
@@ -272,7 +271,6 @@ function Requirement() {
     setSearchParams(filterValues as any);
     setPagination((prev) => ({ ...prev, current: 1 }));
     fetchTableData(filterValues, pagination.pageSize, 1);
-    window.setTimeout(() => calculateTableScrollHeight(), 0);
   };
 
   const handleReset = () => {
@@ -280,7 +278,6 @@ function Requirement() {
     setSearchParams(defaultParams as any);
     setPagination((prev) => ({ ...prev, current: 1 }));
     fetchTableData(defaultParams, pagination.pageSize, 1);
-    window.setTimeout(() => calculateTableScrollHeight(), 0);
   };
 
   const handlePaginationChange = (nextPagination: any) => {
@@ -699,50 +696,30 @@ function Requirement() {
     fetchTableData(searchParams, pagination.pageSize, pagination.current);
   }, []);
 
-  const calculateTableScrollHeight = useCallback(() => {
-    const container = pageRef.current;
-    if (!container) {
-      return;
-    }
-
-    const header = container.querySelector(".data-manager-header") as HTMLElement | null;
-    const footer = container.querySelector(".data-manager-footer") as HTMLElement | null;
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    const containerRect = container.getBoundingClientRect();
-
-    // 基于页面可视区高度计算，避免依赖 .data-manager-content 的反向影响
-    const availableHeight = Math.max(0, viewportHeight - containerRect.top - 16);
-    const occupiedHeight = (header?.offsetHeight || 0) + (footer?.offsetHeight || 0) + 24;
-    const nextHeight = Math.max(280, Math.floor(availableHeight - occupiedHeight));
-
-    setTableScrollHeight((prev) => (prev === nextHeight ? prev : nextHeight));
-  }, []);
-
   useEffect(() => {
-    const timer = window.setTimeout(() => calculateTableScrollHeight(), 0);
-    const onResize = () => calculateTableScrollHeight();
-    window.addEventListener("resize", onResize);
+    const calculateTableHeight = () => {
+      const windowHeight = window.innerHeight;
+      const otherElementsHeight = 330;
+      const newHeight = Math.max(100, windowHeight - otherElementsHeight);
 
-    let observer: ResizeObserver | null = null;
-    if (pageRef.current && "ResizeObserver" in window) {
-      observer = new ResizeObserver(() => calculateTableScrollHeight());
-      observer.observe(pageRef.current);
-    }
+      setTableScrollHeight((prev) => {
+        if (prev === newHeight) {
+          return prev;
+        }
+        return newHeight;
+      });
+    };
+
+    calculateTableHeight();
+    window.addEventListener("resize", calculateTableHeight);
 
     return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("resize", onResize);
-      observer?.disconnect();
+      window.removeEventListener("resize", calculateTableHeight);
     };
-  }, [calculateTableScrollHeight]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => calculateTableScrollHeight(), 0);
-    return () => window.clearTimeout(timer);
-  }, [tableData.length, pagination.current, pagination.pageSize, calculateTableScrollHeight]);
+  }, []);
 
   return (
-    <div className="requirement-page" ref={pageRef}>
+    <div className="requirement-page">
       <DataManager
         data={tableData}
         loading={tableLoading}
