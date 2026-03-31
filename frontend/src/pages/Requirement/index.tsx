@@ -13,7 +13,6 @@ import {
   Tag,
   Tooltip,
   Menu,
-  Typography,
 } from "@arco-design/web-react";
 import MDEditor from "@uiw/react-md-editor";
 import "@uiw/react-md-editor/markdown-editor.css";
@@ -574,7 +573,13 @@ function Requirement() {
       ellipsis: true,
       width: 180,
       render: (value: string, record: any) => (
-        <Typography.Link onClick={() => handleTitleClick(record)}>{value || "-"}</Typography.Link>
+        <button
+          type="button"
+          className="requirement-title-link"
+          onClick={() => handleTitleClick(record)}
+        >
+          {value || "-"}
+        </button>
       ),
     },
     {
