@@ -597,6 +597,12 @@ function Requirement() {
       render: (priority: RequirementPriority | undefined) => priorityTag(priority),
     },
     {
+      title: "创建时间",
+      dataIndex: "createDate",
+      width: 160,
+      render: (value: string) => (value ? renderDate(value) : "-"),
+    },
+    {
       title: "开发进度",
       dataIndex: "progressPercent",
       width: 160,
@@ -734,7 +740,7 @@ function Requirement() {
           filterContent,
           tableColumns: columns,
           tableProps: {
-            scroll: { x: 1310, y: tableScrollHeight },
+            scroll: { x: 1470, y: tableScrollHeight },
           },
         }}
         tableScrollHeight={tableScrollHeight}
