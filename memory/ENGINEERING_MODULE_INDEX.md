@@ -192,6 +192,35 @@
   - `backend/src/main/java/com/ck/quiz/poetry/entity/PoetryCard.java`
   - `backend/src/main/java/com/ck/quiz/poetry/dto/PoetryCardQueryDto.java`
 
+## 热搜与关注主题（HotSearch）
+
+- 前端入口（热搜页）
+  - `frontend/src/pages/HotSearch/index.tsx`
+  - `frontend/src/pages/HotSearch/api.ts`
+  - `frontend/src/pages/HotSearch/style/index.less`
+- 路由入口
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/hotsearch/controller/HotSearchController.java`
+  - `backend/src/main/java/com/ck/quiz/hotsearch/controller/HotSearchFollowTopicController.java`
+- 后端核心实现（导入/查询/关注主题命中/用户隔离）
+  - `backend/src/main/java/com/ck/quiz/hotsearch/service/impl/HotSearchServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/hotsearch/service/impl/HotSearchFollowTopicServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/hotsearch/repository/HotSearchRecordRepository.java`
+  - `backend/src/main/java/com/ck/quiz/hotsearch/repository/HotSearchFollowTopicRepository.java`
+- 数据实体与契约
+  - `backend/src/main/java/com/ck/quiz/hotsearch/entity/HotSearchRecord.java`
+  - `backend/src/main/java/com/ck/quiz/hotsearch/entity/HotSearchFollowTopic.java`
+  - `backend/src/main/java/com/ck/quiz/hotsearch/dto/HotSearchQueryDto.java`
+  - `backend/src/main/java/com/ck/quiz/hotsearch/dto/HotSearchRecordDto.java`
+  - `backend/src/main/java/com/ck/quiz/hotsearch/dto/HotSearchFollowTopicDto.java`
+  - `backend/src/main/java/com/ck/quiz/hotsearch/dto/HotSearchFollowTopicCreateDto.java`
+  - `backend/src/main/java/com/ck/quiz/hotsearch/dto/HotSearchFollowTopicUpdateDto.java`
+  - `backend/src/main/java/com/ck/quiz/hotsearch/dto/HotSearchFollowTopicQueryDto.java`
+- 数据库迁移
+  - `backend/src/main/resources/db/migration/V202603262255__create_hot_search_record_table.sql`
+  - `backend/src/main/resources/db/migration/V202604042140__create_hot_search_follow_topic_table.sql`
+
 ## 文件管理（FileManager）
 
 - 前端入口（文件管理页）

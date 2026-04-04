@@ -51,6 +51,19 @@
     }
   }
 
+  .hot-search-title-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .hot-search-topic-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
   .hot-search-title {
     cursor: pointer;
     color: var(--color-text-1);
@@ -77,6 +90,20 @@
     align-items: flex-start;
     gap: 12px;
     margin-bottom: 12px;
+  }
+
+  .detail-topic-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 12px;
+    background: var(--color-fill-1);
+    border-radius: 8px;
+  }
+
+  .detail-topic-empty {
+    justify-content: center;
   }
 
   .detail-meta-grid {
@@ -145,6 +172,14 @@
     }
   }
 
+  .topic-drawer-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
   .hot-search-empty-detail {
     display: flex;
     align-items: center;
@@ -182,6 +217,11 @@
 
     .detail-meta-item-full {
       grid-column: auto;
+    }
+
+    .topic-drawer-toolbar {
+      flex-direction: column;
+      align-items: flex-start;
     }
   }
 }

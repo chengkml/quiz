@@ -12,9 +12,9 @@ public interface HotSearchService {
 
     HotSearchCollectResultDto importRecords(HotSearchImportRequestDto requestDto);
 
-    Page<HotSearchRecordDto> search(HotSearchQueryDto queryDto);
+    Page<HotSearchRecordDto> search(String userId, HotSearchQueryDto queryDto);
 
-    List<HotSearchRecordDto> latest(String source);
+    List<HotSearchRecordDto> latest(String userId, String source);
 
-    HotSearchRecordDto getById(String id);
+    HotSearchRecordDto getById(String userId, String id);
 }
