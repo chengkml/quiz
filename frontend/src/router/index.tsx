@@ -77,6 +77,7 @@ import CharacterPage from "@/pages/Character";
 import PoetryPage from "@/pages/Poetry";
 import GitDesktopPage from "@/pages/GitDesktop";
 import HomeworkManager from "@/pages/Homework";
+import PriceMonitorPage from "@/pages/PriceMonitor";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -424,6 +425,11 @@ const protectedPages = [
     path: "homework",
     element: <HomeworkManager />,
     requiredPath: "homework",
+  },
+  {
+    path: "price-monitor",
+    element: <PriceMonitorPage />,
+    requiredPath: "price-monitor",
   },
   {
     path: "hot-search",

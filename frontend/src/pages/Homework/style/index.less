@@ -88,6 +88,18 @@
         overflow-y: auto;
     }
 
+    .homework-edit-modal-body {
+        max-height: calc(100vh - 220px);
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .homework-edit-modal-editor {
+        :global(.w-md-editor) {
+            min-height: 380px;
+        }
+    }
+
     .editor-toolbar {
         display: flex;
         justify-content: flex-end;

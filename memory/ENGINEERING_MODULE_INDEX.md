@@ -53,6 +53,11 @@
   - `backend/src/main/java/com/ck/quiz/project/dto/RequirementDto.java`
   - `backend/src/main/java/com/ck/quiz/project/dto/RequirementQueryDto.java`
   - `backend/src/main/java/com/ck/quiz/project/entity/Requirement.java`
+- 顶部筛选复用链路（项目名下拉）
+  - `frontend/src/components/FilterForm/index.tsx`
+  - `frontend/src/components/utils/filterFormUtils.tsx`
+  - `frontend/src/components/types/types.ts`
+  - `backend/src/main/java/com/ck/quiz/project/service/impl/RequirementServiceImpl.java`（`history-options` 数据来源）
 
 ## 需求开发技能（quiz-requirement-develop）
 
@@ -221,6 +226,29 @@
   - `backend/src/main/java/com/ck/quiz/statistics/service/impl/QuestionBankStatisticsServiceImpl.java`
   - `backend/src/main/java/com/ck/quiz/statistics/service/impl/VocabularyProficiencyStatisticsServiceImpl.java`
   - `backend/src/main/java/com/ck/quiz/statistics/service/impl/KnowledgeMasteryStatisticsServiceImpl.java`
+
+## 价格监控（PriceMonitor）
+
+- 前端入口（价格监控页）
+  - `frontend/src/pages/PriceMonitor/index.tsx`
+  - `frontend/src/pages/PriceMonitor/api.ts`
+  - `frontend/src/pages/PriceMonitor/style/index.less`
+- 路由入口
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/price/controller/PriceMonitorItemController.java`
+  - `backend/src/main/java/com/ck/quiz/price/controller/PriceSnapshotController.java`
+  - `backend/src/main/java/com/ck/quiz/price/controller/PriceAlertRuleController.java`
+- 后端核心实现（监控商品/快照/预警）
+  - `backend/src/main/java/com/ck/quiz/price/service/impl/PriceMonitorItemServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/price/service/impl/PriceSnapshotServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/price/service/impl/PriceAlertRuleServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/price/entity/PriceMonitorItem.java`
+  - `backend/src/main/java/com/ck/quiz/price/entity/PriceSnapshot.java`
+  - `backend/src/main/java/com/ck/quiz/price/entity/PriceAlertRule.java`
+  - `backend/src/main/java/com/ck/quiz/price/entity/PriceAlertLog.java`
+- 数据库迁移
+  - `backend/src/main/resources/db/migration/V202604042120__create_price_monitor_module.sql`
 
 ## 家庭作业（Homework）
 

@@ -12,6 +12,8 @@ export interface FormFieldConfig {
   options?: { label: string; value: any }[];
   initialValue?: any;
   width?: string | number;
+  showSearch?: boolean;
+  mode?: 'multiple' | 'tags';
   span?: number;
   disabled?: boolean;
   visible?: boolean | ((record: any) => boolean);

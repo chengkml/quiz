@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Button,
-    Drawer,
     Form,
     Input,
     Message,
@@ -88,8 +87,8 @@ const HomeworkPage: React.FC = () => {
     const [searchParams, setSearchParams] = useState<{ title?: string; status?: string }>({});
     const filterFormRef = useRef<any>(null);
 
-    // Edit / Create drawer
-    const [drawerVisible, setDrawerVisible] = useState(false);
+    // Edit / Create modal
+    const [editModalVisible, setEditModalVisible] = useState(false);
     const [editingItem, setEditingItem] = useState<HomeworkDto | null>(null);
     const [form] = Form.useForm();
     const [saving, setSaving] = useState(false);
@@ -149,7 +148,7 @@ const HomeworkPage: React.FC = () => {
         form.resetFields();
         setMdContent('');
         form.setFieldValue('content', '');
-        setDrawerVisible(true);
+        setEditModalVisible(true);
     };
 
     const handleEdit = (record: HomeworkDto) => {
@@ -161,7 +160,7 @@ const HomeworkPage: React.FC = () => {
             content: nextContent,
             status: record.status,
         });
-        setDrawerVisible(true);
+        setEditModalVisible(true);
     };
 
     const handleDelete = async (id: string) => {
@@ -172,6 +171,13 @@ const HomeworkPage: React.FC = () => {
         } catch (e: any) {
             Message.error(e?.message || '删除失败');
         }
+    };
+
+    const handleCloseEditModal = () => {
+        setEditModalVisible(false);
+        setEditingItem(null);
+        form.resetFields();
+        setMdContent('');
     };
 
     const handleSave = async () => {
@@ -187,7 +193,7 @@ const HomeworkPage: React.FC = () => {
                 await createHomework(dto);
                 Message.success('创建成功');
             }
-            setDrawerVisible(false);
+            handleCloseEditModal();
             fetchData();
         } catch (e: any) {
             Message.error(e?.message || '保存失败');
@@ -414,50 +420,53 @@ const HomeworkPage: React.FC = () => {
                 tableScrollHeight={tableScrollHeight}
             />
 
-            {/* 编辑/新建 Drawer */}
-            <Drawer
+            {/* 编辑/新建 Modal */}
+            <Modal
                 title={editingItem ? '编辑作业' : '新建作业'}
-                visible={drawerVisible}
-                onCancel={() => setDrawerVisible(false)}
+                visible={editModalVisible}
+                onCancel={handleCloseEditModal}
                 footer={
                     <Space>
-                        <Button onClick={() => setDrawerVisible(false)}>取消</Button>
+                        <Button onClick={handleCloseEditModal}>取消</Button>
                         <Button type="primary" loading={saving} onClick={handleSave}>
                             保存
                         </Button>
                     </Space>
                 }
-                width={640}
+                style={{ width: 720 }}
+                maskClosable={false}
             >
-                <Form form={form} layout="vertical">
-                    <Form.Item label="标题" field="title">
-                        <Input placeholder="留空则自动生成标题" allowClear />
-                    </Form.Item>
-                    <Form.Item label="状态" field="status" initialValue="NOT_STARTED">
-                        <Select placeholder="请选择状态">
-                            {STATUS_OPTIONS.map((o) => (
-                                <Option key={o.value} value={o.value}>
-                                    {o.label}
-                                </Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                    <Form.Item label="内容（Markdown）" field="content">
-                        <div data-color-mode="light">
-                            <MDEditor
-                                value={mdContent}
-                                onChange={(val) => {
-                                    const nextContent = val || '';
-                                    setMdContent(nextContent);
-                                    form.setFieldValue('content', nextContent);
-                                }}
-                                height={380}
-                                preview="live"
-                            />
-                        </div>
-                    </Form.Item>
-                </Form>
-            </Drawer>
+                <div className="homework-edit-modal-body">
+                    <Form form={form} layout="vertical">
+                        <Form.Item label="标题" field="title">
+                            <Input placeholder="留空则自动生成标题" allowClear />
+                        </Form.Item>
+                        <Form.Item label="状态" field="status" initialValue="NOT_STARTED">
+                            <Select placeholder="请选择状态">
+                                {STATUS_OPTIONS.map((o) => (
+                                    <Option key={o.value} value={o.value}>
+                                        {o.label}
+                                    </Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                        <Form.Item label="内容（Markdown）" field="content">
+                            <div className="homework-edit-modal-editor" data-color-mode="light">
+                                <MDEditor
+                                    value={mdContent}
+                                    onChange={(val) => {
+                                        const nextContent = val || '';
+                                        setMdContent(nextContent);
+                                        form.setFieldValue('content', nextContent);
+                                    }}
+                                    height={380}
+                                    preview="live"
+                                />
+                            </div>
+                        </Form.Item>
+                    </Form>
+                </div>
+            </Modal>
 
             {/* 详情 Modal */}
             <Modal

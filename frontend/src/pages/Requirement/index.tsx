@@ -136,6 +136,11 @@ function Requirement() {
     branches: [],
   });
 
+  const projectNameFilterOptions = historyOptions.projectNames.map((item) => ({
+    label: item,
+    value: item,
+  }));
+
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [analyzeModalVisible, setAnalyzeModalVisible] = useState(false);
@@ -190,9 +195,12 @@ function Requirement() {
     {
       field: "projectName",
       label: "项目名",
-      type: "input",
-      placeholder: "请输入项目名",
+      type: "select",
+      placeholder: "请选择项目名",
+      options: projectNameFilterOptions,
       span: 7,
+      allowClear: true,
+      showSearch: true,
     },
     {
       field: "status",
@@ -640,6 +648,7 @@ function Requirement() {
     {
       title: "操作",
       width: 80,
+      align: "center" as const,
       fixed: "right",
       render: (_: any, record: any) => (
         <Dropdown
@@ -699,6 +708,7 @@ function Requirement() {
   );
 
   useEffect(() => {
+    fetchHistoryOptions();
     fetchTableData(searchParams, pagination.pageSize, pagination.current);
   }, []);
 
@@ -757,7 +767,7 @@ function Requirement() {
         }}
         mountOnEnter
         style={{ width: 900 }}
-        bodyStyle={{ maxHeight: "70vh", overflowY: "auto" }}
+        bodyStyle={{ maxHeight: "80vh", overflowY: "auto" }}
       >
         <Form ref={addFormRef} layout="vertical">
           <Form.Item label="标题" field="title" rules={[{ required: true }]}>
@@ -830,7 +840,7 @@ function Requirement() {
         }}
         mountOnEnter
         style={{ width: 900 }}
-        bodyStyle={{ maxHeight: "70vh", overflowY: "auto" }}
+        bodyStyle={{ maxHeight: "80vh", overflowY: "auto" }}
       >
         <Form ref={editFormRef} layout="vertical">
           <Form.Item label="标题" field="title" rules={[{ required: true }]}>

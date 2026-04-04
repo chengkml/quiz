@@ -8,7 +8,19 @@ import { FormFieldConfig } from '../types/types';
  * 支持搜索交互规范：Input 绑定 onPressEnter，Select 绑定 onChange
  */
 export const renderFormField = (field: FormFieldConfig, formRef?: any, labelWidth?: number | string, onSearch?: () => void): React.ReactNode => {
-  const { field: fieldName, label, type = 'text', placeholder, options, disabled, required, rules, allowClear } = field;
+  const {
+    field: fieldName,
+    label,
+    type = 'text',
+    placeholder,
+    options,
+    disabled,
+    required,
+    rules,
+    allowClear,
+    showSearch,
+    mode,
+  } = field;
   
   let fieldComponent: React.ReactNode = null;
   
@@ -32,10 +44,12 @@ export const renderFormField = (field: FormFieldConfig, formRef?: any, labelWidt
       break;
     case 'select':
       fieldComponent = (
-        <Select 
-          placeholder={placeholder} 
+        <Select
+          placeholder={placeholder}
           options={options}
           allowClear={allowClear}
+          showSearch={showSearch}
+          mode={mode}
           onChange={() => onSearch?.()}
         />
       );
