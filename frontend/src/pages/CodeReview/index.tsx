@@ -14,12 +14,10 @@ import {
     Tooltip,
 } from '@arco-design/web-react';
 import {
-    IconCheckCircle,
     IconDelete,
     IconEdit,
     IconEye,
     IconLaunch,
-    IconPlayArrow,
     IconRefresh,
 } from '@arco-design/web-react/icon';
 import DataManager from '@/components/DataManager';
@@ -575,24 +573,6 @@ function CodeReviewPage() {
                     <Tooltip content="编辑任务">
                         <Button type="text" size="small" icon={<IconEdit />} onClick={() => openEditTaskModal(record)} />
                     </Tooltip>
-                    <Tooltip content="开始处理">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconPlayArrow />}
-                            disabled={record.status !== 'OPEN'}
-                            onClick={() => handleStartTask(record)}
-                        />
-                    </Tooltip>
-                    <Tooltip content="标记完成">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<IconCheckCircle />}
-                            disabled={record.status !== 'IN_PROGRESS'}
-                            onClick={() => handleCompleteTask(record)}
-                        />
-                    </Tooltip>
                     <Popconfirm title="确认删除该评审任务吗？" onOk={() => handleDeleteTask(record)}>
                         <Tooltip content="删除任务">
                             <Button type="text" size="small" status="danger" icon={<IconDelete />} />
@@ -874,22 +854,6 @@ function CodeReviewPage() {
                                     </div>
                                 </div>
                                 <div className="code-review-detail-actions">
-                                    <Button
-                                        icon={<IconPlayArrow />}
-                                        disabled={currentTask.status !== 'OPEN'}
-                                        onClick={() => handleStartTask(currentTask)}
-                                    >
-                                        开始处理
-                                    </Button>
-                                    <Button
-                                        type="primary"
-                                        status="success"
-                                        icon={<IconCheckCircle />}
-                                        disabled={currentTask.status !== 'IN_PROGRESS'}
-                                        onClick={() => handleCompleteTask(currentTask)}
-                                    >
-                                        标记完成
-                                    </Button>
                                     <Button icon={<IconEdit />} onClick={() => openEditTaskModal(currentTask)}>
                                         编辑任务
                                     </Button>

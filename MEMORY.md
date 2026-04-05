@@ -55,3 +55,10 @@
 - 若被明确要求做编译检查，常用命令仍是：
   - 后端：`cd backend && gradle classes`
   - 前端：`cd frontend && npm run build`
+
+## 6) 调度并发配置（供 check-to-dispatcher 读取）
+
+- targetAgent: `quiz`
+- dispatchProjectName: `quiz`
+- maxConcurrency: `6`
+- 约定：`check-to-dispatcher` 运行时应从本记忆读取 `maxConcurrency`，不要再在调度技能中硬编码该值。
