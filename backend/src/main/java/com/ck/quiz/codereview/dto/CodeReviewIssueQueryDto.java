@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class CodeReviewIssueQueryDto extends QueryDto {
     private String keyWord;
+    private String taskId;
     private String projectName;
     private String moduleName;
     private String source;

@@ -11,6 +11,10 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class CodeReviewIssueCreateDto extends CreateDto {
 
+    @NotBlank(message = "评审任务ID不能为空")
+    @Size(max = 32, message = "评审任务ID不能超过32个字符")
+    private String taskId;
+
     @NotBlank(message = "问题标题不能为空")
     @Size(max = 256, message = "问题标题不能超过256个字符")
     private String title;

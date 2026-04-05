@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
-@Tag(name = "CodeReviewIssue", description = "代码评审问题管理")
+@Tag(name = "CodeReviewIssue", description = "代码评审明细管理")
 @RestController
 @RequestMapping("/api/code-review")
 public class CodeReviewIssueController extends BaseController<CodeReviewIssueCreateDto, CodeReviewIssueUpdateDto, CodeReviewIssueQueryDto, CodeReviewIssueDto> {
@@ -38,21 +38,21 @@ public class CodeReviewIssueController extends BaseController<CodeReviewIssueCre
         return codeReviewIssueService;
     }
 
-    @Operation(summary = "批量创建评审问题", description = "OpenClaw可通过JWT调用该接口批量写入评审问题")
-    @PostMapping("/create-batch")
+    @Operation(summary = "批量创建评审问题", description = "OpenClaw 可通过 JWT 调用该接口批量写入指定任务下的评审问题")
+    @PostMapping({"/create-batch", "/issue/create-batch"})
     public ResponseEntity<List<CodeReviewIssueDto>> createBatch(@RequestBody @Valid List<CodeReviewIssueCreateDto> createDtos) {
         return ResponseEntity.ok(codeReviewIssueService.createBatch(createDtos));
     }
 
     @Operation(summary = "一键转需求", description = "把评审问题转成需求，并返回需求信息")
-    @PostMapping("/{id}/convert-to-requirement")
+    @PostMapping({"/{id}/convert-to-requirement", "/issue/{id}/convert-to-requirement"})
     public ResponseEntity<RequirementDto> convertToRequirement(@PathVariable("id") String id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return ResponseEntity.ok(codeReviewIssueService.convertToRequirement(authentication.getName(), id));
     }
 
     @Operation(summary = "批量一键转需求", description = "把多个评审问题批量转成需求")
-    @PostMapping("/convert-to-requirement/batch")
+    @PostMapping({"/convert-to-requirement/batch", "/issue/convert-to-requirement/batch"})
     public ResponseEntity<Map<String, Integer>> convertBatchToRequirement(@RequestBody @Valid CodeReviewBatchConvertDto dto) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         int count = codeReviewIssueService.convertBatchToRequirement(authentication.getName(), dto.getIssueIds());

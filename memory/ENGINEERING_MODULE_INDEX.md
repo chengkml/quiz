@@ -61,18 +61,31 @@
 
 ## 代码审核（CodeReview）
 
-- 前端入口（代码审核页）
+- 前端入口（代码审核任务页 + 任务详情内审核明细）
   - `frontend/src/pages/CodeReview/index.tsx`
   - `frontend/src/pages/CodeReview/api/index.ts`
+  - `frontend/src/pages/CodeReview/style/index.less`
 - 路由入口
   - `frontend/src/router/index.tsx`（`/frame/code-review`）
 - 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/codereview/controller/CodeReviewTaskController.java`
   - `backend/src/main/java/com/ck/quiz/codereview/controller/CodeReviewIssueController.java`
-- 后端核心实现（分页查询 / 用户过滤 / 排序 / 转需求）
+- 后端任务模型（任务列表 / 详情 / 状态流转 / 历史选项）
+  - `backend/src/main/java/com/ck/quiz/codereview/entity/CodeReviewTask.java`
+  - `backend/src/main/java/com/ck/quiz/codereview/dto/CodeReviewTaskCreateDto.java`
+  - `backend/src/main/java/com/ck/quiz/codereview/dto/CodeReviewTaskUpdateDto.java`
+  - `backend/src/main/java/com/ck/quiz/codereview/dto/CodeReviewTaskQueryDto.java`
+  - `backend/src/main/java/com/ck/quiz/codereview/dto/CodeReviewTaskDto.java`
+  - `backend/src/main/java/com/ck/quiz/codereview/dto/CodeReviewTaskHistoryOptionsDto.java`
+  - `backend/src/main/java/com/ck/quiz/codereview/service/impl/CodeReviewTaskServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/codereview/repository/CodeReviewTaskRepository.java`
+- 后端审核明细模型（挂任务 / 查询 / 转需求）
   - `backend/src/main/java/com/ck/quiz/codereview/service/impl/CodeReviewIssueServiceImpl.java`
   - `backend/src/main/java/com/ck/quiz/codereview/dto/CodeReviewIssueQueryDto.java`
   - `backend/src/main/java/com/ck/quiz/codereview/entity/CodeReviewIssue.java`
   - `backend/src/main/java/com/ck/quiz/codereview/repository/CodeReviewIssueRepository.java`
+- 数据库迁移
+  - `backend/src/main/resources/db/migration/V202604051430__refactor_code_review_to_task_issue.sql`
 - 通用分页与查询基座
   - `backend/src/main/java/com/ck/quiz/base/dto/QueryDto.java`
   - `backend/src/main/java/com/ck/quiz/utils/JdbcQueryHelper.java`

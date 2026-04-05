@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class CodeReviewIssueDto extends Dto {
+    private String taskId;
     private String title;
     private String projectName;
     private String moduleName;

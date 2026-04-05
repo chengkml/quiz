@@ -10,6 +10,9 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class CodeReviewIssueUpdateDto extends UpdateDto {
 
+    @Size(max = 32, message = "评审任务ID不能超过32个字符")
+    private String taskId;
+
     @Size(max = 256, message = "问题标题不能超过256个字符")
     private String title;
 

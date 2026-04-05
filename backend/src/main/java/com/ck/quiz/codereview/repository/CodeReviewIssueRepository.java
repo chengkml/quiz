@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface CodeReviewIssueRepository extends BaseRepository<CodeReviewIssue> {
     Optional<CodeReviewIssue> findByIdAndCreateUser(String id, String createUser);
+
+    long countByTaskId(String taskId);
 }

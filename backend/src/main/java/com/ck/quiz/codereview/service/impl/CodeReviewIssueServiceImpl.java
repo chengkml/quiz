@@ -6,7 +6,9 @@ import com.ck.quiz.codereview.dto.CodeReviewIssueDto;
 import com.ck.quiz.codereview.dto.CodeReviewIssueQueryDto;
 import com.ck.quiz.codereview.dto.CodeReviewIssueUpdateDto;
 import com.ck.quiz.codereview.entity.CodeReviewIssue;
+import com.ck.quiz.codereview.entity.CodeReviewTask;
 import com.ck.quiz.codereview.repository.CodeReviewIssueRepository;
+import com.ck.quiz.codereview.repository.CodeReviewTaskRepository;
 import com.ck.quiz.codereview.service.CodeReviewIssueService;
 import com.ck.quiz.project.dto.RequirementCreateDto;
 import com.ck.quiz.project.dto.RequirementDto;
@@ -14,6 +16,7 @@ import com.ck.quiz.project.entity.Requirement;
 import com.ck.quiz.project.service.RequirementService;
 import com.ck.quiz.utils.JdbcQueryHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +35,9 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
     @Autowired
     private RequirementService requirementService;
 
+    @Autowired
+    private CodeReviewTaskRepository codeReviewTaskRepository;
+
     @Override
     protected CodeReviewIssueDto newDto() {
         return new CodeReviewIssueDto();
@@ -40,6 +46,25 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
     @Override
     protected CodeReviewIssue newModel() {
         return new CodeReviewIssue();
+    }
+
+    @Override
+    public CodeReviewIssueDto create(CodeReviewIssueCreateDto createDto) {
+        normalizeCreateDto(createDto);
+        validateTask(createDto.getTaskId());
+        return super.create(createDto);
+    }
+
+    @Override
+    public CodeReviewIssueDto update(String userId, CodeReviewIssueUpdateDto updateDto) {
+        CodeReviewIssue issue = getIssueById(updateDto.getId());
+        assertPermission(issue, userId);
+        if (StringUtils.hasText(updateDto.getTaskId())) {
+            validateTask(updateDto.getTaskId());
+        }
+        BeanUtils.copyProperties(updateDto, issue, "id", "createDate", "createUser", "updateDate", "updateUser");
+        normalizeIssue(issue);
+        return convertToDto(repository.save(issue), true);
     }
 
     @Override
@@ -52,6 +77,9 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
                 " and (lower(c.title) like :keyWord or lower(c.project_name) like :keyWord or lower(c.module_name) like :keyWord or lower(c.file_path) like :keyWord) ",
                 params, namedParameterJdbcTemplate, sql, countSql);
 
+        JdbcQueryHelper.equals("taskId", queryDto.getTaskId(), " and c.task_id = :taskId ", params, sql, countSql);
+        JdbcQueryHelper.equals("projectName", queryDto.getProjectName(), " and c.project_name = :projectName ", params, sql, countSql);
+        JdbcQueryHelper.equals("moduleName", queryDto.getModuleName(), " and c.module_name = :moduleName ", params, sql, countSql);
         JdbcQueryHelper.equals("source", queryDto.getSource(), " and c.source = :source ", params, sql, countSql);
 
         if (queryDto.getStatus() != null) {
@@ -72,6 +100,7 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
         List<CodeReviewIssueDto> list = namedParameterJdbcTemplate.query(listSql, params, (rs, rowNum) -> {
             CodeReviewIssueDto dto = new CodeReviewIssueDto();
             dto.setId(rs.getString("id"));
+            dto.setTaskId(rs.getString("task_id"));
             dto.setTitle(rs.getString("title"));
             dto.setProjectName(rs.getString("project_name"));
             dto.setModuleName(rs.getString("module_name"));
@@ -107,28 +136,17 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
         }
         List<CodeReviewIssueDto> result = new ArrayList<>();
         for (CodeReviewIssueCreateDto dto : createDtos) {
-            if (dto.getSeverity() == null) {
-                dto.setSeverity(CodeReviewIssue.Severity.MEDIUM);
-            }
-            if (dto.getStatus() == null) {
-                dto.setStatus(CodeReviewIssue.Status.OPEN);
-            }
-            if (!StringUtils.hasText(dto.getSource())) {
-                dto.setSource("OPENCLAW");
-            }
-            result.add(create(dto));
+            normalizeCreateDto(dto);
+            validateTask(dto.getTaskId());
+            result.add(super.create(dto));
         }
         return result;
     }
 
     @Override
     public RequirementDto convertToRequirement(String userId, String issueId) {
-        CodeReviewIssue issue = repository.findById(issueId)
-                .orElseThrow(() -> new RuntimeException("评审问题不存在: " + issueId));
-
-        if (StringUtils.hasText(issue.getCreateUser()) && !issue.getCreateUser().equals(userId)) {
-            throw new RuntimeException("无权限操作该评审问题");
-        }
+        CodeReviewIssue issue = getIssueById(issueId);
+        assertPermission(issue, userId);
 
         if (StringUtils.hasText(issue.getRequirementId())) {
             return requirementService.get(userId, issue.getRequirementId());
@@ -164,6 +182,49 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
         return count;
     }
 
+    private void normalizeCreateDto(CodeReviewIssueCreateDto dto) {
+        if (dto.getSeverity() == null) {
+            dto.setSeverity(CodeReviewIssue.Severity.MEDIUM);
+        }
+        if (dto.getStatus() == null) {
+            dto.setStatus(CodeReviewIssue.Status.OPEN);
+        }
+        if (!StringUtils.hasText(dto.getSource())) {
+            dto.setSource("OPENCLAW");
+        }
+    }
+
+    private void normalizeIssue(CodeReviewIssue issue) {
+        if (issue.getSeverity() == null) {
+            issue.setSeverity(CodeReviewIssue.Severity.MEDIUM);
+        }
+        if (issue.getStatus() == null) {
+            issue.setStatus(CodeReviewIssue.Status.OPEN);
+        }
+        if (!StringUtils.hasText(issue.getSource())) {
+            issue.setSource("OPENCLAW");
+        }
+    }
+
+    private void validateTask(String taskId) {
+        if (!StringUtils.hasText(taskId)) {
+            throw new RuntimeException("评审问题必须绑定任务");
+        }
+        codeReviewTaskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("评审任务不存在: " + taskId));
+    }
+
+    private CodeReviewIssue getIssueById(String issueId) {
+        return repository.findById(issueId)
+                .orElseThrow(() -> new RuntimeException("评审问题不存在: " + issueId));
+    }
+
+    private void assertPermission(CodeReviewIssue issue, String userId) {
+        if (StringUtils.hasText(issue.getCreateUser()) && !issue.getCreateUser().equals(userId)) {
+            throw new RuntimeException("无权限操作该评审问题");
+        }
+    }
+
     private Requirement.Priority mapPriority(CodeReviewIssue.Severity severity) {
         if (severity == null) {
             return Requirement.Priority.MEDIUM;
@@ -178,6 +239,17 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
     private String buildRequirementDescr(CodeReviewIssue issue) {
         StringBuilder sb = new StringBuilder();
         sb.append("来源：代码评审\n");
+        if (StringUtils.hasText(issue.getTaskId())) {
+            codeReviewTaskRepository.findById(issue.getTaskId()).ifPresent(task -> {
+                sb.append("评审任务：").append(task.getTitle()).append("\n");
+                if (StringUtils.hasText(task.getTargetPage())) {
+                    sb.append("目标页面：").append(task.getTargetPage()).append("\n");
+                }
+                if (StringUtils.hasText(task.getReviewStandard())) {
+                    sb.append("评审规范：").append(task.getReviewStandard()).append("\n");
+                }
+            });
+        }
         if (StringUtils.hasText(issue.getProjectName())) {
             sb.append("项目：").append(issue.getProjectName()).append("\n");
         }

@@ -19,9 +19,14 @@ import org.hibernate.annotations.Comment;
         @Index(name = "idx_cri_project", columnList = "projectName"),
         @Index(name = "idx_cri_module", columnList = "moduleName"),
         @Index(name = "idx_cri_status", columnList = "status"),
-        @Index(name = "idx_cri_severity", columnList = "severity")
+        @Index(name = "idx_cri_severity", columnList = "severity"),
+        @Index(name = "idx_cri_task_id", columnList = "taskId")
 })
 public class CodeReviewIssue extends Model {
+
+    @Column(length = 32)
+    @Comment("所属评审任务ID")
+    private String taskId;
 
     @Column(length = 256, nullable = false)
     @Comment("问题标题")
