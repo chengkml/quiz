@@ -79,6 +79,7 @@ import GitDesktopPage from "@/pages/GitDesktop";
 import HomeworkManager from "@/pages/Homework";
 import PriceMonitorPage from "@/pages/PriceMonitor";
 import BaiduPanPage from "@/pages/BaiduPan";
+import WrongQuestionPage from "@/pages/WrongQuestion";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -427,6 +428,11 @@ const protectedPages = [
     path: "homework",
     element: <HomeworkManager />,
     requiredPath: "homework",
+  },
+  {
+    path: "wrong-question",
+    element: <WrongQuestionPage />,
+    requiredPath: "wrong-question",
   },
   {
     path: "price-monitor",

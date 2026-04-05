@@ -404,6 +404,27 @@
   - `backend/src/main/java/com/ck/quiz/poetry/entity/PoetryCard.java`
   - `backend/src/main/java/com/ck/quiz/poetry/dto/PoetryCardQueryDto.java`
 
+## 错题本（WrongQuestion）
+
+- 前端入口（错题列表页）
+  - `frontend/src/pages/WrongQuestion/index.tsx`
+  - `frontend/src/pages/WrongQuestion/api/index.ts`
+  - `frontend/src/pages/WrongQuestion/style/index.less`
+- 路由入口
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/wrongquestion/controller/WrongQuestionController.java`
+- 后端核心实现（查询/新增/编辑/删除/OCR原图关联）
+  - `backend/src/main/java/com/ck/quiz/wrongquestion/service/impl/WrongQuestionServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/wrongquestion/repository/WrongQuestionRepository.java`
+  - `backend/src/main/java/com/ck/quiz/wrongquestion/entity/WrongQuestion.java`
+  - `backend/src/main/java/com/ck/quiz/wrongquestion/dto/WrongQuestionQueryDto.java`
+  - `backend/src/main/java/com/ck/quiz/wrongquestion/dto/WrongQuestionCreateDto.java`
+  - `backend/src/main/java/com/ck/quiz/wrongquestion/dto/WrongQuestionUpdateDto.java`
+  - `backend/src/main/java/com/ck/quiz/wrongquestion/dto/WrongQuestionDto.java`
+- 数据库迁移
+  - `backend/src/main/resources/db/migration/V202604051610__create_wrong_question_module.sql`
+
 ## 数据查询工具（DataQuery）
 
 - 前端入口（SQL 查询页）
