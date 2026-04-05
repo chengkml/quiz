@@ -3,27 +3,29 @@ import {
   Button,
   Card,
   Grid,
+  Input,
   Layout,
   Message,
+  Space,
   Spin,
-  Input,
   Tabs,
   Typography,
-  Space,
-  Select,
-  Divider,
+  Upload,
 } from '@arco-design/web-react';
 import {
   IconCopy,
   IconDelete,
-  IconFile,
   IconDownload,
+  IconFile,
+  IconRefresh,
   IconUpload,
 } from '@arco-design/web-react/icon';
-import { 
-  convertMarkdownToWord, 
-  convertMarkdownToPdf,
+import {
+  convertDocumentToMarkdown,
   convertMarkdownToHtml,
+  convertMarkdownToPdf,
+  convertMarkdownToWord,
+  DocumentToMarkdownResponse,
 } from '@/services/mdConvertService';
 import './index.less';
 
@@ -31,25 +33,47 @@ const { Content } = Layout;
 const { Row, Col } = Grid;
 const { TextArea } = Input;
 const { TabPane } = Tabs;
-const { Title, Paragraph, Text } = Typography;
+const { Text } = Typography;
 
-interface ConvertResult {
-  success: boolean;
-  message: string;
-  data?: string;
-  mimeType?: string;
-}
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
+const FILE_ACCEPT =
+  '.doc,.docx,.pdf,.xls,.xlsx,.html,.htm,.txt,.md';
+
+type UploadRequestOption = {
+  file: File;
+  onSuccess?: (response?: unknown) => void;
+  onError?: (error: Error) => void;
+};
+
+const stripExtension = (fileName: string) => fileName.replace(/\.[^.]+$/, '') || 'markdown-document';
+
+const downloadTextFile = (content: string, fileName: string, contentType: string) => {
+  const blob = new Blob([content], { type: contentType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
 const MdConvertPage: React.FC = () => {
+  const [activeTool, setActiveTool] = useState<string>('markdown-export');
   const [mdContent, setMdContent] = useState<string>('');
-  const [exportFormat, setExportFormat] = useState<'word' | 'pdf' | 'html'>('word');
   const [htmlResult, setHtmlResult] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [converting, setConverting] = useState(false);
   const [wordFileName, setWordFileName] = useState<string>('markdown-document');
   const [pdfFileName, setPdfFileName] = useState<string>('markdown-document');
 
-  // 加载示例Markdown
+  const [fileConverting, setFileConverting] = useState(false);
+  const [sourceFileName, setSourceFileName] = useState<string>('');
+  const [sourceMediaType, setSourceMediaType] = useState<string>('');
+  const [fileMarkdownResult, setFileMarkdownResult] = useState<string>('');
+  const [fileWarnings, setFileWarnings] = useState<string[]>([]);
+
   const loadSampleMd = () => {
     const sample = `# Markdown 转换工具使用指南
 
@@ -109,59 +133,37 @@ function hello() {
 2. 选择要转换的目标格式
 3. 点击相应的转换按钮
 4. 文件将自动下载到本地
-
-## 文件名设置
-
-可以在转换前自定义导出的文件名（不需要输入扩展名，系统会自动添加）。
-
-## 注意事项
-
-- 确保输入的 Markdown 格式正确
-- 某些高级 Markdown 语法可能在转换过程中简化
-- PDF 转换时建议使用标准页面大小（A4）
-- 转换大文件时可能需要较长时间
-
 `;
     setMdContent(sample);
+    setHtmlResult('');
     Message.success('已加载示例内容');
   };
 
-  // 清空内容
-  const handleClear = () => {
+  const handleClearMarkdown = () => {
     setMdContent('');
     setHtmlResult('');
   };
 
-  // 复制HTML结果
   const handleCopyHtmlResult = () => {
-    if (htmlResult) {
-      navigator.clipboard.writeText(htmlResult).then(() => {
-        Message.success('HTML 代码已复制到剪贴板');
-      }).catch(() => {
-        Message.error('复制失败');
-      });
+    if (!htmlResult) {
+      return;
     }
+    navigator.clipboard.writeText(htmlResult).then(() => {
+      Message.success('HTML 代码已复制到剪贴板');
+    }).catch(() => {
+      Message.error('复制失败');
+    });
   };
 
-  // 下载HTML文件
   const handleDownloadHtml = () => {
     if (!htmlResult) {
       Message.warning('请先转换为 HTML');
       return;
     }
-    const blob = new Blob([htmlResult], { type: 'text/html; charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${wordFileName}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadTextFile(htmlResult, `${wordFileName || 'markdown-document'}.html`, 'text/html; charset=utf-8');
     Message.success('HTML 文件已下载');
   };
 
-  // 转换为HTML（预览）
   const handleConvertToHtml = async () => {
     if (!mdContent.trim()) {
       Message.warning('请输入 Markdown 内容');
@@ -187,7 +189,6 @@ function hello() {
     }
   };
 
-  // 转换为Word
   const handleConvertToWord = async () => {
     if (!mdContent.trim()) {
       Message.warning('请输入 Markdown 内容');
@@ -200,9 +201,9 @@ function hello() {
         mdContent,
         fileName: wordFileName || 'markdown-document',
       });
-      
-      const blob = new Blob([arrayBuffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+
+      const blob = new Blob([arrayBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -212,7 +213,7 @@ function hello() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       Message.success('Word 文件已下载');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '转换失败';
@@ -222,7 +223,6 @@ function hello() {
     }
   };
 
-  // 转换为PDF
   const handleConvertToPdf = async () => {
     if (!mdContent.trim()) {
       Message.warning('请输入 Markdown 内容');
@@ -235,7 +235,7 @@ function hello() {
         mdContent,
         fileName: pdfFileName || 'markdown-document',
       });
-      
+
       const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -245,7 +245,7 @@ function hello() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       Message.success('PDF 文件已下载');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '转换失败';
@@ -255,234 +255,442 @@ function hello() {
     }
   };
 
-  return (
-    <div className="md-convert-container">
-      <Layout className="md-convert-layout">
-        <Content>
-          <Row gutter={20} style={{ height: '100%' }}>
-            {/* 左侧：输入和配置区域 */}
-            <Col span={12}>
-              {/* Markdown 输入卡片 */}
-              <Card
-                className="input-card"
-                title="Markdown 内容"
-                bordered={false}
-                extra={
-                  <Space>
-                    <Button
-                      type="text"
-                      size="small"
-                      onClick={loadSampleMd}
-                    >
-                      加载示例
-                    </Button>
-                    <Button
-                      type="text"
-                      size="small"
-                      status="danger"
-                      icon={<IconDelete />}
-                      onClick={() => setMdContent('')}
-                      disabled={!mdContent}
-                    >
-                      清空
-                    </Button>
-                  </Space>
-                }
-              >
-                <div className="input-content">
-                  <TextArea
-                    placeholder="请输入或粘贴 Markdown 内容..."
-                    value={mdContent}
-                    onChange={setMdContent}
-                    style={{ height: '100%' }}
-                    className="md-textarea"
+  const resetFileConvertResult = () => {
+    setSourceFileName('');
+    setSourceMediaType('');
+    setFileWarnings([]);
+    setFileMarkdownResult('');
+  };
+
+  const applyDocumentConvertResult = (response: DocumentToMarkdownResponse, fallbackFileName: string) => {
+    const resolvedFileName = response.fileName || fallbackFileName;
+    const defaultExportName = stripExtension(resolvedFileName);
+
+    setSourceFileName(resolvedFileName);
+    setSourceMediaType(response.mediaType || '');
+    setFileWarnings(response.warnings || []);
+    setFileMarkdownResult(response.markdown || '');
+    setWordFileName(defaultExportName);
+    setPdfFileName(defaultExportName);
+  };
+
+  const handleCustomDocumentUpload = async (option: UploadRequestOption) => {
+    const file = option.file;
+
+    if (!file) {
+      option.onError?.(new Error('文件不能为空'));
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      const error = new Error('文件大小超过 100MB 限制');
+      Message.error(error.message);
+      option.onError?.(error);
+      return;
+    }
+
+    setFileConverting(true);
+    resetFileConvertResult();
+
+    try {
+      const response = await convertDocumentToMarkdown(file);
+      applyDocumentConvertResult(response, file.name);
+      Message.success('文件已转换为 Markdown');
+      option.onSuccess?.(response);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '文件转换失败';
+      Message.error(errorMessage);
+      option.onError?.(error instanceof Error ? error : new Error(errorMessage));
+    } finally {
+      setFileConverting(false);
+    }
+  };
+
+  const handleCopyMarkdownResult = () => {
+    if (!fileMarkdownResult) {
+      return;
+    }
+    navigator.clipboard.writeText(fileMarkdownResult).then(() => {
+      Message.success('Markdown 已复制到剪贴板');
+    }).catch(() => {
+      Message.error('复制失败');
+    });
+  };
+
+  const handleDownloadMarkdownResult = () => {
+    if (!fileMarkdownResult) {
+      Message.warning('暂无可下载的 Markdown 内容');
+      return;
+    }
+    const baseName = stripExtension(sourceFileName || 'converted-markdown');
+    downloadTextFile(fileMarkdownResult, `${baseName}.md`, 'text/markdown; charset=utf-8');
+    Message.success('Markdown 文件已下载');
+  };
+
+  const handleLoadIntoEditor = () => {
+    if (!fileMarkdownResult) {
+      Message.warning('暂无可载入的 Markdown 内容');
+      return;
+    }
+    setMdContent(fileMarkdownResult);
+    setHtmlResult('');
+    setActiveTool('markdown-export');
+    Message.success('已载入 Markdown 编辑区');
+  };
+
+  const renderMarkdownExportLayout = () => (
+    <Layout className="md-convert-layout">
+      <Content>
+        <Row gutter={20} style={{ height: '100%' }}>
+          <Col span={12}>
+            <Card
+              className="input-card"
+              title="Markdown 内容"
+              bordered={false}
+              extra={(
+                <Space>
+                  <Button type="text" size="small" onClick={loadSampleMd}>
+                    加载示例
+                  </Button>
+                  <Button
+                    type="text"
+                    size="small"
+                    status="danger"
+                    icon={<IconDelete />}
+                    onClick={handleClearMarkdown}
+                    disabled={!mdContent}
+                  >
+                    清空
+                  </Button>
+                </Space>
+              )}
+            >
+              <div className="input-content">
+                <TextArea
+                  placeholder="请输入或粘贴 Markdown 内容..."
+                  value={mdContent}
+                  onChange={setMdContent}
+                  style={{ height: '100%' }}
+                  className="md-textarea"
+                />
+              </div>
+            </Card>
+
+            <Card className="config-card" title="转换配置" bordered={false}>
+              <div className="config-content">
+                <div className="config-item">
+                  <label className="config-label">Word 文件名：</label>
+                  <Input
+                    placeholder="输入文件名（不含扩展名）"
+                    value={wordFileName}
+                    onChange={setWordFileName}
+                    style={{ flex: 1 }}
                   />
+                  <span className="file-ext">.docx</span>
                 </div>
-              </Card>
 
-              {/* 文件配置卡片 */}
-              <Card
-                className="config-card"
-                title="转换配置"
-                bordered={false}
-              >
-                <div className="config-content">
-                  <div className="config-item">
-                    <label className="config-label">Word 文件名：</label>
-                    <Input
-                      placeholder="输入文件名（不含扩展名）"
-                      value={wordFileName}
-                      onChange={setWordFileName}
-                      style={{ flex: 1 }}
-                    />
-                    <span className="file-ext">.docx</span>
-                  </div>
+                <div className="config-divider" />
 
-                  <Divider style={{ margin: '12px 0' }} />
-
-                  <div className="config-item">
-                    <label className="config-label">PDF 文件名：</label>
-                    <Input
-                      placeholder="输入文件名（不含扩展名）"
-                      value={pdfFileName}
-                      onChange={setPdfFileName}
-                      style={{ flex: 1 }}
-                    />
-                    <span className="file-ext">.pdf</span>
-                  </div>
-                </div>
-              </Card>
-
-              {/* 操作按钮区域 */}
-              <div className="action-area">
-                <div className="action-group">
-                  <div className="group-title">转换为其他格式</div>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Button
-                      type="primary"
-                      size="large"
-                      icon={<IconDownload />}
-                      onClick={handleConvertToWord}
-                      loading={converting}
-                      disabled={!mdContent.trim()}
-                      style={{ width: '100%' }}
-                    >
-                      转换为 Word
-                    </Button>
-                    <Button
-                      type="primary"
-                      size="large"
-                      icon={<IconDownload />}
-                      onClick={handleConvertToPdf}
-                      loading={converting}
-                      disabled={!mdContent.trim()}
-                      status="warning"
-                      style={{ width: '100%' }}
-                    >
-                      转换为 PDF
-                    </Button>
-                    <Button
-                      type="secondary"
-                      size="large"
-                      icon={<IconUpload />}
-                      onClick={handleConvertToHtml}
-                      loading={loading}
-                      disabled={!mdContent.trim()}
-                      style={{ width: '100%' }}
-                    >
-                      转换为 HTML（预览）
-                    </Button>
-                    <Button
-                      size="large"
-                      onClick={handleClear}
-                      disabled={loading || converting || !mdContent}
-                      style={{ width: '100%' }}
-                    >
-                      清空全部
-                    </Button>
-                  </Space>
+                <div className="config-item">
+                  <label className="config-label">PDF 文件名：</label>
+                  <Input
+                    placeholder="输入文件名（不含扩展名）"
+                    value={pdfFileName}
+                    onChange={setPdfFileName}
+                    style={{ flex: 1 }}
+                  />
+                  <span className="file-ext">.pdf</span>
                 </div>
               </div>
-            </Col>
+            </Card>
 
-            {/* 右侧：预览和结果区域 */}
-            <Col span={12}>
-              <Card
-                className="result-card"
-                title="HTML 预览"
-                bordered={false}
-                extra={
-                  htmlResult && (
-                    <Space>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<IconCopy />}
-                        onClick={handleCopyHtmlResult}
-                      >
-                        复制代码
-                      </Button>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<IconDownload />}
-                        onClick={handleDownloadHtml}
-                      >
-                        下载
-                      </Button>
-                    </Space>
-                  )
-                }
-              >
-                <div className="result-content">
-                  {loading && (
-                    <div className="loading-state">
-                      <Spin size={40} />
-                      <div className="loading-text">正在转换为 HTML...</div>
+            <div className="action-area">
+              <div className="action-group">
+                <div className="group-title">转换为其他格式</div>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<IconDownload />}
+                    onClick={handleConvertToWord}
+                    loading={converting}
+                    disabled={!mdContent.trim()}
+                    style={{ width: '100%' }}
+                  >
+                    转换为 Word
+                  </Button>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<IconDownload />}
+                    onClick={handleConvertToPdf}
+                    loading={converting}
+                    disabled={!mdContent.trim()}
+                    status="warning"
+                    style={{ width: '100%' }}
+                  >
+                    转换为 PDF
+                  </Button>
+                  <Button
+                    type="secondary"
+                    size="large"
+                    icon={<IconUpload />}
+                    onClick={handleConvertToHtml}
+                    loading={loading}
+                    disabled={!mdContent.trim()}
+                    style={{ width: '100%' }}
+                  >
+                    转换为 HTML（预览）
+                  </Button>
+                  <Button
+                    size="large"
+                    onClick={handleClearMarkdown}
+                    disabled={loading || converting || !mdContent}
+                    style={{ width: '100%' }}
+                  >
+                    清空全部
+                  </Button>
+                </Space>
+              </div>
+            </div>
+          </Col>
+
+          <Col span={12}>
+            <Card
+              className="result-card"
+              title="HTML 预览"
+              bordered={false}
+              extra={htmlResult ? (
+                <Space>
+                  <Button type="text" size="small" icon={<IconCopy />} onClick={handleCopyHtmlResult}>
+                    复制代码
+                  </Button>
+                  <Button type="text" size="small" icon={<IconDownload />} onClick={handleDownloadHtml}>
+                    下载
+                  </Button>
+                </Space>
+              ) : null}
+            >
+              <div className="result-content">
+                {loading && (
+                  <div className="loading-state">
+                    <Spin size={40} />
+                    <div className="loading-text">正在转换为 HTML...</div>
+                  </div>
+                )}
+
+                {!loading && !htmlResult && (
+                  <div className="empty-state">
+                    <IconFile style={{ fontSize: 64, color: 'var(--color-text-4)' }} />
+                    <div className="empty-text">点击“转换为 HTML”查看预览</div>
+                    <div className="empty-hint">
+                      支持实时预览 Markdown 内容的 HTML 渲染效果
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {!loading && !htmlResult && (
-                    <div className="empty-state">
-                      <IconFile style={{ fontSize: 64, color: 'var(--color-text-4)' }} />
-                      <div className="empty-text">点击"转换为 HTML"查看预览</div>
-                      <div className="empty-hint">
-                        支持实时预览 Markdown 内容的 HTML 渲染效果
+                {!loading && htmlResult && (
+                  <div className="html-preview-wrapper">
+                    <Tabs defaultActiveTab="preview" type="rounded">
+                      <TabPane key="preview" title="预览">
+                        <div
+                          className="html-preview"
+                          dangerouslySetInnerHTML={{ __html: htmlResult }}
+                        />
+                      </TabPane>
+                      <TabPane key="code" title="HTML 代码">
+                        <pre className="html-code">
+                          {htmlResult}
+                        </pre>
+                      </TabPane>
+                    </Tabs>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card className="guide-card" title="快速指南" bordered={false}>
+              <div className="guide-content">
+                <div className="guide-item">
+                  <Text strong>支持的格式：</Text>
+                  <div className="guide-text">Word (.docx)、PDF、HTML</div>
+                </div>
+                <div className="guide-item">
+                  <Text strong>文件大小：</Text>
+                  <div className="guide-text">建议 10MB 以内</div>
+                </div>
+                <div className="guide-item">
+                  <Text strong>联动方式：</Text>
+                  <div className="guide-text">可先在“文件转 Markdown”上传，再回到本页导出为 Word/PDF</div>
+                </div>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+      </Content>
+    </Layout>
+  );
+
+  const renderFileToMarkdownLayout = () => (
+    <Layout className="md-convert-layout">
+      <Content>
+        <Row gutter={20} style={{ height: '100%' }}>
+          <Col span={10}>
+            <Card
+              className="upload-card"
+              title="上传文件"
+              bordered={false}
+              extra={sourceFileName ? (
+                <Space>
+                  <Upload
+                    showUploadList={false}
+                    customRequest={handleCustomDocumentUpload}
+                    accept={FILE_ACCEPT}
+                  >
+                    <Button type="text" size="small" icon={<IconRefresh />}>
+                      重新上传
+                    </Button>
+                  </Upload>
+                  <Button
+                    type="text"
+                    size="small"
+                    status="danger"
+                    icon={<IconDelete />}
+                    onClick={resetFileConvertResult}
+                    disabled={fileConverting}
+                  >
+                    清空结果
+                  </Button>
+                </Space>
+              ) : null}
+            >
+              <div className="upload-content">
+                {!sourceFileName && !fileConverting && (
+                  <Upload
+                    drag
+                    limit={1}
+                    showUploadList={false}
+                    tip="拖拽文件到此区域，或点击上传"
+                    customRequest={handleCustomDocumentUpload}
+                    accept={FILE_ACCEPT}
+                  />
+                )}
+
+                {fileConverting && (
+                  <div className="loading-state">
+                    <Spin size={40} />
+                    <div className="loading-text">正在解析并转换为 Markdown...</div>
+                  </div>
+                )}
+
+                {!fileConverting && sourceFileName && (
+                  <div className="upload-summary">
+                    <div className="summary-file-name">{sourceFileName}</div>
+                    <div className="summary-meta">MIME: {sourceMediaType || 'unknown'}</div>
+                    <div className="summary-meta">字符数: {fileMarkdownResult.length}</div>
+                    <Button
+                      type="primary"
+                      icon={<IconUpload />}
+                      onClick={handleLoadIntoEditor}
+                      disabled={!fileMarkdownResult}
+                    >
+                      载入 Markdown 编辑区
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card className="file-guide-card" title="格式说明" bordered={false}>
+              <div className="guide-content">
+                <div className="guide-item">
+                  <Text strong>首版支持：</Text>
+                  <div className="guide-text">`.doc`、`.docx`、`.pdf`、`.xls`、`.xlsx`、`.html`、`.txt`、`.md`</div>
+                </div>
+                <div className="guide-item">
+                  <Text strong>结构化效果较好：</Text>
+                  <div className="guide-text">`.docx`、`.xlsx`、`.html`</div>
+                </div>
+                <div className="guide-item">
+                  <Text strong>可能降级为纯文本：</Text>
+                  <div className="guide-text">`.doc`、复杂 PDF、扫描件 PDF</div>
+                </div>
+                <div className="guide-item">
+                  <Text strong>大小限制：</Text>
+                  <div className="guide-text">单文件不超过 100MB</div>
+                </div>
+              </div>
+            </Card>
+          </Col>
+
+          <Col span={14}>
+            <Card
+              className="file-result-card"
+              title="Markdown 结果"
+              bordered={false}
+              extra={fileMarkdownResult ? (
+                <Space>
+                  <Button type="text" size="small" icon={<IconCopy />} onClick={handleCopyMarkdownResult}>
+                    复制
+                  </Button>
+                  <Button type="text" size="small" icon={<IconDownload />} onClick={handleDownloadMarkdownResult}>
+                    下载 .md
+                  </Button>
+                </Space>
+              ) : null}
+            >
+              <div className="result-content">
+                {!fileConverting && !fileMarkdownResult && (
+                  <div className="empty-state">
+                    <IconFile style={{ fontSize: 64, color: 'var(--color-text-4)' }} />
+                    <div className="empty-text">上传文件后会在这里输出 Markdown</div>
+                    <div className="empty-hint">
+                      支持复制结果、下载 `.md`、或继续转 Word / PDF
+                    </div>
+                  </div>
+                )}
+
+                {!fileConverting && Boolean(fileWarnings.length) && (
+                  <div className="warning-list">
+                    {fileWarnings.map((warning, index) => (
+                      <div key={`${warning}-${index}`} className="warning-item">
+                        {warning}
                       </div>
-                    </div>
-                  )}
+                    ))}
+                  </div>
+                )}
 
-                  {!loading && htmlResult && (
-                    <div className="html-preview-wrapper">
-                      <Tabs defaultActiveTab="preview" type="rounded">
-                        <TabPane key="preview" title="预览">
-                          <div 
-                            className="html-preview"
-                            dangerouslySetInnerHTML={{ __html: htmlResult }}
-                          />
-                        </TabPane>
-                        <TabPane key="code" title="HTML 代码">
-                          <pre className="html-code">
-                            {htmlResult}
-                          </pre>
-                        </TabPane>
-                      </Tabs>
+                {!fileConverting && fileMarkdownResult && (
+                  <>
+                    <div className="result-stats">
+                      <span>来源文件：{sourceFileName}</span>
+                      <span>字符数：{fileMarkdownResult.length}</span>
                     </div>
-                  )}
-                </div>
-              </Card>
+                    <pre className="markdown-result">{fileMarkdownResult}</pre>
+                  </>
+                )}
+              </div>
+            </Card>
+          </Col>
+        </Row>
+      </Content>
+    </Layout>
+  );
 
-              {/* 快速指南卡片 */}
-              <Card
-                className="guide-card"
-                title="快速指南"
-                bordered={false}
-              >
-                <div className="guide-content">
-                  <div className="guide-item">
-                    <Text strong>支持的格式：</Text>
-                    <div className="guide-text">
-                      Word (.docx)、PDF、HTML
-                    </div>
-                  </div>
-                  <div className="guide-item">
-                    <Text strong>文件大小：</Text>
-                    <div className="guide-text">
-                      建议 10MB 以内
-                    </div>
-                  </div>
-                  <div className="guide-item">
-                    <Text strong>兼容性：</Text>
-                    <div className="guide-text">
-                      支持常见 Markdown 语法和扩展语法
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-          </Row>
-        </Content>
-      </Layout>
+  return (
+    <div className="md-convert-container">
+      <Tabs
+        className="tool-tabs"
+        activeTab={activeTool}
+        onChange={setActiveTool}
+        type="rounded"
+      >
+        <TabPane key="markdown-export" title="Markdown 转其他格式">
+          {renderMarkdownExportLayout()}
+        </TabPane>
+        <TabPane key="file-to-markdown" title="文件转 Markdown">
+          {renderFileToMarkdownLayout()}
+        </TabPane>
+      </Tabs>
     </div>
   );
 };

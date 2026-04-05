@@ -11,8 +11,10 @@ export interface OrchestrationWorkflowDto {
   status: WorkflowStatus;
   currentVersionId?: string;
   createUser?: string;
+  createUserName?: string;
   createDate?: string;
   updateUser?: string;
+  updateUserName?: string;
   updateDate?: string;
 }
 
@@ -101,4 +103,3 @@ export type InstancePageResponse = PageResponse<OrchestrationInstanceDto>;
 export type WorkflowResponse = ApiResponse<OrchestrationWorkflowDto>;
 
 export type VersionListResponse = ApiResponse<OrchestrationWorkflowVersionDto[]>;
-

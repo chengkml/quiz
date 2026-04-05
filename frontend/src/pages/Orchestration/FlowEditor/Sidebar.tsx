@@ -1,50 +1,96 @@
-import React from 'react';
-import { Card, Space, Typography } from '@arco-design/web-react';
+import React, { useState } from "react";
+import { Input, Typography } from "@arco-design/web-react";
+import { NODE_LIBRARY_GROUPS } from "./nodeMeta";
 
 const { Text } = Typography;
 
-const NODE_TYPES = [
-  { type: "start", label: "开始", color: "#52c41a", icon: "🚀" },
-  { type: "end", label: "结束", color: "#f5222d", icon: "🏁" },
-  { type: "llm", label: "大模型", color: "#165dff", icon: "🤖" },
-  { type: "knowledge", label: "知识库", color: "#722ed1", icon: "📚" },
-  { type: "skill", label: "技能", color: "#faad14", icon: "🛠️" },
-  { type: "condition", label: "条件判断", color: "#eb2f96", icon: "🔀" },
-];
-
 const Sidebar: React.FC = () => {
+  const [keyword, setKeyword] = useState("");
+
   const onDragStart = (event: React.DragEvent, nodeType: string, label: string) => {
-    event.dataTransfer.setData('application/reactflow', nodeType);
-    event.dataTransfer.setData('application/label', label);
-    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData("application/reactflow", nodeType);
+    event.dataTransfer.setData("application/label", label);
+    event.dataTransfer.effectAllowed = "move";
   };
 
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  const groups = NODE_LIBRARY_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) =>
+      normalizedKeyword
+        ? `${item.label} ${item.description} ${item.category}`
+            .toLowerCase()
+            .includes(normalizedKeyword)
+        : true
+    ),
+  })).filter((group) => group.items.length > 0);
+
   return (
-    <div style={{ height: '100%', padding: '10px', borderRight: '1px solid #e5e6eb', background: '#fff' }}>
-      <Typography.Title heading={6} style={{ marginTop: 0 }}>组件库</Typography.Title>
-      <Space direction="vertical" style={{ width: '100%' }}>
-        {NODE_TYPES.map((node) => (
-          <div
-            key={node.type}
-            onDragStart={(event) => onDragStart(event, node.type, node.label)}
-            draggable
-            style={{
-              padding: '10px',
-              border: `1px solid ${node.color}`,
-              borderRadius: '4px',
-              cursor: 'grab',
-              display: 'flex',
-              alignItems: 'center',
-              background: '#fff',
-              marginBottom: '8px'
-            }}
-          >
-            <span style={{ marginRight: '8px', fontSize: '16px' }}>{node.icon}</span>
-            <Text>{node.label}</Text>
-          </div>
+    <aside className="flow-sidebar">
+      <div className="flow-panel-header">
+        <div>
+          <div className="flow-panel-header__eyebrow">节点面板</div>
+          <Typography.Title heading={6} style={{ margin: 0 }}>
+            节点库
+          </Typography.Title>
+        </div>
+        <Text type="secondary">拖拽到画布中即可创建节点</Text>
+      </div>
+
+      <Input.Search
+        allowClear
+        value={keyword}
+        onChange={setKeyword}
+        placeholder="搜索节点类型"
+        className="flow-sidebar__search"
+      />
+
+      <div className="flow-sidebar__sections">
+        {groups.map((group) => (
+          <section key={group.key} className="flow-sidebar__section">
+            <div className="flow-sidebar__section-header">
+              <div className="flow-sidebar__section-title">{group.title}</div>
+              <div className="flow-sidebar__section-desc">{group.description}</div>
+            </div>
+
+            <div className="flow-sidebar__list">
+              {group.items.map((node) => (
+                <button
+                  key={node.type}
+                  type="button"
+                  className="flow-sidebar__item"
+                  draggable
+                  onDragStart={(event) => onDragStart(event, node.type, node.label)}
+                  style={{
+                    borderColor: `${node.accent}24`,
+                    background: `linear-gradient(180deg, ${node.softColor} 0%, #ffffff 100%)`,
+                  }}
+                >
+                  <span
+                    className="flow-sidebar__item-icon"
+                    style={{ color: node.accent, background: `${node.accent}14` }}
+                  >
+                    {node.icon}
+                  </span>
+                  <span className="flow-sidebar__item-content">
+                    <span className="flow-sidebar__item-title">{node.label}</span>
+                    <span className="flow-sidebar__item-desc">{node.description}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
         ))}
-      </Space>
-    </div>
+
+        {groups.length === 0 && (
+          <div className="flow-sidebar__empty">
+            <Typography.Text type="secondary">
+              没有匹配的节点，试试更短的关键字。
+            </Typography.Text>
+          </div>
+        )}
+      </div>
+    </aside>
   );
 };
 

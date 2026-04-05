@@ -1,50 +1,38 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
+  Empty,
   Form,
   Input,
   Message,
   Modal,
-  Space,
-  Tag,
+  Pagination,
   Select,
-  Tooltip,
+  Space,
+  Spin,
+  Typography,
 } from "@arco-design/web-react";
-import {
-  IconEdit,
-  IconEye,
-  IconPlayArrow,
-} from "@arco-design/web-react/icon";
+import { IconEdit, IconEye, IconPlayArrow, IconPlus } from "@arco-design/web-react/icon";
 import "./index.less";
-import { DataManager } from "@/components/DataManager";
-import FilterForm from "@/components/FilterForm";
-import { FormFieldConfig } from "@/components/types/types";
 import {
-  OrchestrationWorkflowDto,
   OrchestrationWorkflowCreateParams,
-  OrchestrationWorkflowUpdateParams,
+  OrchestrationWorkflowDto,
   OrchestrationWorkflowQueryParams,
+  OrchestrationWorkflowUpdateParams,
   WorkflowStatus,
 } from "@/types/orchestration";
 import {
   createWorkflow,
-  updateWorkflow,
   searchInstances,
   searchWorkflows,
   startInstance,
+  updateWorkflow,
 } from "./api";
 import { useNavigate } from "react-router-dom";
 import renderDate from "@/utils/timeUtil";
+import { WORKFLOW_STATUS_META } from "./statusMeta";
 
 const { TextArea } = Input;
-const { Option } = Select;
-
-const statusColorMap: Record<WorkflowStatus, string> = {
-  DRAFT: "gray",
-  PENDING: "orangered",
-  PUBLISHED: "green",
-  DISABLED: "red",
-};
 
 const statusOptions = [
   { label: "草稿", value: "DRAFT" },
@@ -53,145 +41,32 @@ const statusOptions = [
   { label: "已停用", value: "DISABLED" },
 ];
 
+const buildDefaultSearchParams = () => ({
+  keyWord: "",
+  status: undefined as WorkflowStatus | undefined,
+});
+
 function OrchestrationManager() {
+  const navigate = useNavigate();
+  const formRef = useRef<any>(null);
+
   const [data, setData] = useState<OrchestrationWorkflowDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 20,
+    pageSize: 12,
     total: 0,
     showTotal: true,
     showJumper: true,
     showPageSize: true,
-    pageSizeOptions: [10, 20, 50, 100],
+    pageSizeOptions: [12, 24, 48],
   });
-  const [tableScrollHeight, setTableScrollHeight] = useState(420);
-
-  const buildDefaultSearchParams = () => ({
-    keyWord: "",
-    status: undefined as WorkflowStatus | undefined,
-  });
+  const [filters, setFilters] = useState(buildDefaultSearchParams);
   const [searchParams, setSearchParams] = useState(buildDefaultSearchParams);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<OrchestrationWorkflowDto | null>(null);
-
-  const formRef = useRef<any>(null);
-  const filterFormRef = useRef<any>(null);
-  const navigate = useNavigate();
-
-  const columns = [
-    {
-      title: "编码",
-      dataIndex: "code",
-      key: "code",
-      width: 160,
-    },
-    {
-      title: "名称",
-      dataIndex: "name",
-      key: "name",
-      width: 200,
-    },
-    {
-      title: "状态",
-      dataIndex: "status",
-      key: "status",
-      width: 100,
-      render: (status: WorkflowStatus) => (
-        <Tag className="status-tag" color={statusColorMap[status] || "default"} bordered>
-          {status}
-        </Tag>
-      ),
-    },
-    {
-      title: "当前版本",
-      dataIndex: "currentVersionId",
-      key: "currentVersionId",
-      width: 180,
-      render: (value: string | undefined) => value || "-",
-    },
-    {
-      title: "创建人",
-      dataIndex: "createUserName",
-      key: "createUserName",
-      width: 120,
-      render: (text: string, record: OrchestrationWorkflowDto) => (
-        <span>{text || record.createUser || '--'}</span>
-      ),
-    },
-    {
-      title: "创建时间",
-      dataIndex: "createDate",
-      key: "createDate",
-      width: 180,
-      render: (value: string) => renderDate(value),
-    },
-    {
-      title: "操作",
-      key: "action",
-      width: 140,
-      fixed: "right",
-      align: "center",
-      render: (_: any, record: OrchestrationWorkflowDto) => (
-        <Space size="small">
-          <Tooltip title="编辑">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconEdit />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEdit(record);
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="画布">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconEye />}
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/frame/orchestration/edit/${record.id}`);
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="运行">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconPlayArrow />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStart(record);
-              }}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
-
-  const searchFormFields: FormFieldConfig[] = [
-    {
-      field: "keyWord",
-      label: "关键词",
-      type: "input",
-      placeholder: "名称或编码",
-      span: 6,
-    },
-    {
-      field: "status",
-      label: "状态",
-      type: "select",
-      placeholder: "状态",
-      options: statusOptions,
-      span: 6,
-      allowClear: true,
-    },
-  ];
 
   const fetchWorkflows = async (
     params: typeof searchParams = searchParams,
@@ -215,50 +90,28 @@ function OrchestrationManager() {
         pageSize,
         total: totalElements || 0,
       }));
-    } catch (e) {
+    } catch (error) {
+      console.error(error);
       Message.error("获取编排列表失败");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (values: any) => {
-    const filtered = Object.fromEntries(
-      Object.entries(values).filter(([_, v]) => v !== "" && v !== undefined && v !== null)
-    );
-    const nextParams = {
-      ...buildDefaultSearchParams(),
-      ...filtered,
-    };
-    setSearchParams(nextParams);
+  const handleApplySearch = () => {
+    setSearchParams({
+      keyWord: filters.keyWord.trim(),
+      status: filters.status,
+    });
     setPagination((prev) => ({ ...prev, current: 1 }));
   };
 
   const handleReset = () => {
     const nextParams = buildDefaultSearchParams();
+    setFilters(nextParams);
     setSearchParams(nextParams);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchWorkflows(nextParams, pagination.pageSize, 1);
-    filterFormRef.current?.setFieldsValue?.(nextParams);
   };
-
-  const handlePaginationChange = (nextPagination: any) => {
-    fetchWorkflows(
-      searchParams,
-      nextPagination.pageSize,
-      nextPagination.current
-    );
-  };
-
-  const filterContent = (
-    <FilterForm
-      ref={filterFormRef}
-      initialValues={buildDefaultSearchParams()}
-      formFields={searchFormFields}
-      onSearch={handleSearch}
-      onReset={handleReset}
-    />
-  );
 
   const handleAdd = () => {
     setIsEdit(false);
@@ -295,7 +148,8 @@ function OrchestrationManager() {
       } else {
         Message.error("启动失败");
       }
-    } catch (e) {
+    } catch (error) {
+      console.error(error);
       Message.error("启动工作流失败");
     }
   };
@@ -303,7 +157,9 @@ function OrchestrationManager() {
   const handleModalOk = async () => {
     try {
       const values = await formRef.current?.validate();
-      if (!values) return;
+      if (!values) {
+        return;
+      }
 
       const payload: OrchestrationWorkflowCreateParams | OrchestrationWorkflowUpdateParams =
         isEdit && currentRecord
@@ -327,54 +183,211 @@ function OrchestrationManager() {
       }
       setModalVisible(false);
       fetchWorkflows();
-    } catch (e: any) {
-      if (e?.fields) return; // Validation error
-      const msg = e?.response?.data?.message || (isEdit ? "更新失败" : "创建失败");
-      Message.error(msg);
+    } catch (error: any) {
+      if (error?.fields) {
+        return;
+      }
+      const message = error?.response?.data?.message || (isEdit ? "更新失败" : "创建失败");
+      Message.error(message);
     }
   };
-
-  useEffect(() => {
-    const calculateTableHeight = () => {
-      const windowHeight = window.innerHeight;
-      const otherElementsHeight = 330;
-      const newHeight = Math.max(120, windowHeight - otherElementsHeight);
-      setTableScrollHeight((prev) => (prev === newHeight ? prev : newHeight));
-    };
-
-    calculateTableHeight();
-    window.addEventListener("resize", calculateTableHeight);
-    return () => window.removeEventListener("resize", calculateTableHeight);
-  }, []);
 
   useEffect(() => {
     fetchWorkflows(searchParams, pagination.pageSize, pagination.current);
   }, [searchParams, pagination.current, pagination.pageSize]);
 
+  const pageStatusSummary = Object.entries(WORKFLOW_STATUS_META).map(([status, meta]) => ({
+    status,
+    label: meta.label,
+    className: meta.className,
+    count: data.filter((item) => item.status === status).length,
+  }));
+
   return (
     <div className="orchestration-manager">
-      <DataManager
-        data={data}
-        loading={loading}
-        pagination={pagination}
-        onPaginationChange={handlePaginationChange}
-        actions={{
-          onAdd: handleAdd,
-        }}
-        config={{
-          showModeToggle: false,
-          displayMode: "table",
-          filterContent,
-          tableColumns: columns,
-        }}
-        tableScrollHeight={tableScrollHeight}
-      />
+      <section className="orchestration-manager__hero">
+        <div className="orchestration-manager__hero-main">
+          <div className="orchestration-manager__eyebrow">编排工作台</div>
+          <Typography.Title heading={4} style={{ margin: 0 }}>
+            以工作流方式组织模型、知识库与技能
+          </Typography.Title>
+          <Typography.Text type="secondary">
+            参考 Dify 的工作流工作台交互，将当前系统的编排能力收口为更清晰的卡片视图和画布入口。
+          </Typography.Text>
+
+          <div className="orchestration-manager__summary">
+            <div className="orchestration-summary-card">
+              <span className="orchestration-summary-card__label">工作流总数</span>
+              <span className="orchestration-summary-card__value">{pagination.total}</span>
+            </div>
+            {pageStatusSummary.map((item) => (
+              <div key={item.status} className="orchestration-summary-card">
+                <span className="orchestration-summary-card__label">当前页{item.label}</span>
+                <span className="orchestration-summary-card__value">{item.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="orchestration-manager__hero-actions">
+          <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>
+            新建工作流
+          </Button>
+        </div>
+      </section>
+
+      <section className="orchestration-manager__filters">
+        <Input.Search
+          allowClear
+          value={filters.keyWord}
+          onChange={(value) => setFilters((prev) => ({ ...prev, keyWord: value }))}
+          onSearch={handleApplySearch}
+          placeholder="按名称或编码搜索工作流"
+          className="orchestration-manager__search"
+        />
+
+        <Select
+          placeholder="筛选状态"
+          value={filters.status}
+          allowClear
+          options={statusOptions}
+          onChange={(value) =>
+            setFilters((prev) => ({ ...prev, status: value as WorkflowStatus | undefined }))
+          }
+          style={{ width: 180 }}
+        />
+
+        <Space size={12}>
+          <Button type="primary" onClick={handleApplySearch}>
+            查询
+          </Button>
+          <Button onClick={handleReset}>重置</Button>
+        </Space>
+      </section>
+
+      <section className="orchestration-manager__content">
+        <Spin loading={loading}>
+          {data.length === 0 ? (
+            <div className="orchestration-manager__empty">
+              <Empty description="暂无工作流，先创建一个新的编排吧" />
+              <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>
+                新建工作流
+              </Button>
+            </div>
+          ) : (
+            <div className="orchestration-manager__grid">
+              {data.map((record) => {
+                const statusMeta = WORKFLOW_STATUS_META[record.status];
+                return (
+                  <article
+                    key={record.id}
+                    className="workflow-card"
+                    onClick={() => navigate(`/frame/orchestration/edit/${record.id}`)}
+                  >
+                    <div className="workflow-card__header">
+                      <span className={statusMeta.className}>{statusMeta.label}</span>
+                      <span className="workflow-card__code">{record.code}</span>
+                    </div>
+
+                    <div className="workflow-card__body">
+                      <div className="workflow-card__title-row">
+                        <Typography.Title heading={6} style={{ margin: 0 }}>
+                          {record.name}
+                        </Typography.Title>
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<IconEdit />}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleEdit(record);
+                          }}
+                        />
+                      </div>
+
+                      <div className="workflow-card__description">
+                        {record.description || "暂无描述，建议补充这个工作流的执行目标和产出。"}
+                      </div>
+                    </div>
+
+                    <div className="workflow-card__meta">
+                      <div className="workflow-card__meta-item">
+                        <span className="workflow-card__meta-label">当前版本</span>
+                        <span className="workflow-card__meta-value">
+                          {record.currentVersionId || "未发布"}
+                        </span>
+                      </div>
+                      <div className="workflow-card__meta-item">
+                        <span className="workflow-card__meta-label">创建人</span>
+                        <span className="workflow-card__meta-value">
+                          {record.createUserName || record.createUser || "--"}
+                        </span>
+                      </div>
+                      <div className="workflow-card__meta-item">
+                        <span className="workflow-card__meta-label">创建时间</span>
+                        <span className="workflow-card__meta-value">
+                          {record.createDate ? renderDate(record.createDate) : "--"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="workflow-card__footer">
+                      <Button
+                        type="outline"
+                        icon={<IconEye />}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigate(`/frame/orchestration/edit/${record.id}`);
+                        }}
+                      >
+                        进入画布
+                      </Button>
+                      <Button
+                        type="text"
+                        icon={<IconPlayArrow />}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleStart(record);
+                        }}
+                      >
+                        运行
+                      </Button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </Spin>
+      </section>
+
+      <div className="orchestration-manager__pagination">
+        <Pagination
+          {...pagination}
+          onChange={(current, pageSize) =>
+            setPagination((prev) => ({
+              ...prev,
+              current,
+              pageSize: pageSize || prev.pageSize,
+            }))
+          }
+          onPageSizeChange={(pageSize: number, current?: number) =>
+            setPagination((prev) => ({
+              ...prev,
+              current: current || 1,
+              pageSize,
+            }))
+          }
+        />
+      </div>
 
       <Modal
-        title={isEdit ? "编辑编排" : "新增编排"}
+        title={isEdit ? "编辑工作流" : "新建工作流"}
         visible={modalVisible}
         onOk={handleModalOk}
         onCancel={() => setModalVisible(false)}
+        okText={isEdit ? "保存修改" : "创建工作流"}
+        cancelText="取消"
         unmountOnExit
       >
         <Form ref={formRef} layout="vertical">
@@ -384,7 +397,7 @@ function OrchestrationManager() {
             rules={[{ required: true, message: "请输入编码" }]}
             disabled={isEdit}
           >
-            <Input placeholder="唯一编码" disabled={isEdit} />
+            <Input placeholder="请输入唯一编码" disabled={isEdit} />
           </Form.Item>
           <Form.Item
             field="name"
@@ -394,7 +407,7 @@ function OrchestrationManager() {
             <Input placeholder="请输入名称" />
           </Form.Item>
           <Form.Item field="description" label="描述">
-            <TextArea placeholder="编排说明" />
+            <TextArea placeholder="补充工作流的目标和用途" autoSize={{ minRows: 3 }} />
           </Form.Item>
         </Form>
       </Modal>
@@ -403,4 +416,3 @@ function OrchestrationManager() {
 }
 
 export default OrchestrationManager;
-

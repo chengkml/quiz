@@ -20,6 +20,13 @@ export interface MdConvertResponse {
   message: string;
 }
 
+export interface DocumentToMarkdownResponse {
+  fileName: string;
+  mediaType: string;
+  markdown: string;
+  warnings?: string[];
+}
+
 /**
  * 将 Markdown 转换为 HTML
  */
@@ -45,5 +52,18 @@ export const convertMarkdownToPdf = async (data: MdConvertRequest): Promise<Arra
   const response = await axios.post('/md-convert/to-pdf', data, {
     responseType: 'arraybuffer',
   });
+  return response.data;
+};
+
+export const convertDocumentToMarkdown = async (file: File): Promise<DocumentToMarkdownResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await axios.post('/convert/document', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
   return response.data;
 };

@@ -1,26 +1,27 @@
-import React, { memo } from 'react';
-import BaseNode from './BaseNode';
+import React, { memo } from "react";
+import BaseNode from "./BaseNode";
+import { NODE_META_MAP } from "../nodeMeta";
 
 export const StartNode = memo((props: any) => (
-  <BaseNode {...props} title="开始" icon="🚀" color="#52c41a" hasInput={false} />
+  <BaseNode {...props} meta={NODE_META_MAP.start} hasInput={false} />
 ));
 
 export const EndNode = memo((props: any) => (
-  <BaseNode {...props} title="结束" icon="🏁" color="#f5222d" hasOutput={false} />
+  <BaseNode {...props} meta={NODE_META_MAP.end} hasOutput={false} />
 ));
 
 export const LLMNode = memo((props: any) => (
-  <BaseNode {...props} title="大模型" icon="🤖" color="#165dff" />
+  <BaseNode {...props} meta={NODE_META_MAP.llm} />
 ));
 
 export const KnowledgeNode = memo((props: any) => (
-  <BaseNode {...props} title="知识库" icon="📚" color="#722ed1" />
+  <BaseNode {...props} meta={NODE_META_MAP.knowledge} />
 ));
 
 export const SkillNode = memo((props: any) => (
-  <BaseNode {...props} title="技能" icon="🛠️" color="#faad14" />
+  <BaseNode {...props} meta={NODE_META_MAP.skill} />
 ));
 
 export const ConditionNode = memo((props: any) => (
-  <BaseNode {...props} title="条件判断" icon="🔀" color="#eb2f96" />
+  <BaseNode {...props} meta={NODE_META_MAP.condition} />
 ));

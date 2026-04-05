@@ -92,7 +92,7 @@ const FileManager: React.FC = () => {
       setFileList(sorted);
     } catch (error) {
       console.error(error);
-      Message.error('Failed to load files');
+      Message.error('文件加载失败');
     } finally {
       setLoading(false);
     }
@@ -121,19 +121,19 @@ const FileManager: React.FC = () => {
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) {
-      Message.error('Folder name is required');
+      Message.error('请输入文件夹名称');
       return;
     }
     try {
       await createFolder(newFolderName, currentPath);
-      Message.success('Folder created');
+      Message.success('文件夹创建成功');
       setIsCreateFolderModalVisible(false);
       setNewFolderName('');
       fetchFiles();
       setTreeKey(prev => prev + 1); // Refresh tree to show new folder
     } catch (error) {
       console.error(error);
-      Message.error('Failed to create folder');
+      Message.error('文件夹创建失败');
     }
   };
 
@@ -144,7 +144,7 @@ const FileManager: React.FC = () => {
     }
     try {
       await renameFile(renamingItem.id, newName);
-      Message.success('Renamed successfully');
+      Message.success('重命名成功');
       setIsRenameModalVisible(false);
       fetchFiles();
       if (renamingItem.isDirectory) {
@@ -152,21 +152,21 @@ const FileManager: React.FC = () => {
       }
     } catch (error) {
       console.error(error);
-      Message.error('Failed to rename');
+      Message.error('重命名失败');
     }
   };
 
   const handleDelete = async (id: string, isDirectory: boolean) => {
     try {
       await deleteFile(id);
-      Message.success('Deleted successfully');
+      Message.success('删除成功');
       fetchFiles();
       if (isDirectory) {
           setTreeKey(prev => prev + 1);
       }
     } catch (error) {
       console.error(error);
-      Message.error('Failed to delete');
+      Message.error('删除失败');
     }
   };
 
@@ -177,13 +177,13 @@ const FileManager: React.FC = () => {
     }
     try {
       await batchDelete(ids);
-      Message.success('Deleted successfully');
+      Message.success('删除成功');
       setSelectedRowKeys([]);
       fetchFiles();
       setTreeKey(prev => prev + 1);
     } catch (error) {
       console.error(error);
-      Message.error('Failed to delete');
+      Message.error('删除失败');
     }
   };
 
@@ -194,14 +194,14 @@ const FileManager: React.FC = () => {
     }
     try {
       await moveFiles(ids, moveTargetPath);
-      Message.success('Moved successfully');
+      Message.success('移动成功');
       setMoveModalVisible(false);
       setSelectedRowKeys([]);
       fetchFiles();
       setTreeKey(prev => prev + 1);
     } catch (error) {
       console.error(error);
-      Message.error('Failed to move');
+      Message.error('移动失败');
     }
   };
 
@@ -258,7 +258,7 @@ const FileManager: React.FC = () => {
 
   const columns: ColumnProps<FileInfo>[] = [
     {
-      title: 'Name',
+      title: '名称',
       dataIndex: 'name',
       render: (col, item) => (
         <Space>
@@ -279,19 +279,19 @@ const FileManager: React.FC = () => {
       ),
     },
     {
-      title: 'Size',
+      title: '大小',
       dataIndex: 'size',
       width: 150,
       render: (col, item) => (item.isDirectory ? '-' : formatSize(item.size)),
     },
     {
-      title: 'Date',
+      title: '修改时间',
       dataIndex: 'lastModified',
       width: 200,
       render: (col) => col ? dayjs(col).format('YYYY-MM-DD HH:mm:ss') : '-',
     },
     {
-      title: 'Actions',
+      title: '操作',
       width: 150,
       render: (_, item) => (
         <Space>
@@ -300,7 +300,7 @@ const FileManager: React.FC = () => {
               icon={<IconEye />}
               size="mini"
               onClick={() => handlePreview(item)}
-              title="Preview"
+              title="预览"
             />
           )}
           {!item.isDirectory && (
@@ -309,7 +309,7 @@ const FileManager: React.FC = () => {
               size="mini"
               href={getDownloadUrl(item.id)}
               target="_blank"
-              title="Download"
+              title="下载"
             />
           )}
           {item.id && (
@@ -321,15 +321,17 @@ const FileManager: React.FC = () => {
                 setNewName(item.name);
                 setIsRenameModalVisible(true);
               }}
-              title="Rename"
+              title="重命名"
             />
           )}
           {item.id && ( 
              <Popconfirm
-                title="Are you sure you want to delete this?"
+                title="确定删除该文件吗？"
+                okText="确定"
+                cancelText="取消"
                 onOk={() => handleDelete(item.id, item.isDirectory)}
              >
-                <Button icon={<IconDelete />} status="danger" size="mini" title="Delete" />
+                <Button icon={<IconDelete />} status="danger" size="mini" title="删除" />
              </Popconfirm>
           )}
         </Space>
@@ -354,7 +356,7 @@ const FileManager: React.FC = () => {
                   <div className="file-manager__header">
                     <Breadcrumb>
                       <Breadcrumb.Item onClick={() => handleNavigateBreadcrumb(-1, [])} style={{ cursor: 'pointer' }}>
-                        <IconHome /> Home
+                        <IconHome /> 根目录
                       </Breadcrumb.Item>
                       {pathParts.map((part, index) => (
                         <Breadcrumb.Item key={index} onClick={() => handleNavigateBreadcrumb(index, pathParts)} style={{ cursor: 'pointer' }}>
@@ -367,7 +369,7 @@ const FileManager: React.FC = () => {
                   <div className="file-manager__toolbar">
                     <Space size={12}>
                       <Input.Search
-                        placeholder="Search in folder"
+                        placeholder="搜索当前目录"
                         style={{ width: 200 }}
                         value={searchText}
                         onChange={setSearchText}
@@ -378,11 +380,11 @@ const FileManager: React.FC = () => {
                         value={filterType}
                         onChange={setFilterType}
                         options={[
-                          { label: 'All', value: 'all' },
-                          { label: 'Folders', value: 'folder' },
-                          { label: 'Images', value: 'image' },
-                          { label: 'Documents', value: 'doc' },
-                          { label: 'Archives', value: 'archive' }
+                          { label: '全部', value: 'all' },
+                          { label: '文件夹', value: 'folder' },
+                          { label: '图片', value: 'image' },
+                          { label: '文档', value: 'doc' },
+                          { label: '压缩包', value: 'archive' }
                         ]}
                       />
                       <Select
@@ -390,25 +392,25 @@ const FileManager: React.FC = () => {
                         value={sortKey}
                         onChange={setSortKey}
                         options={[
-                          { label: 'Name', value: 'name' },
-                          { label: 'Size', value: 'size' },
-                          { label: 'Date', value: 'time' }
+                          { label: '名称', value: 'name' },
+                          { label: '大小', value: 'size' },
+                          { label: '时间', value: 'time' }
                         ]}
                       />
                       <Button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
-                        {sortOrder === 'asc' ? 'Asc' : 'Desc'}
+                        {sortOrder === 'asc' ? '升序' : '降序'}
                       </Button>
                       <Button onClick={() => setViewMode('list')} type={viewMode === 'list' ? 'primary' : 'default'}>
-                        List
+                        列表
                       </Button>
                       <Button onClick={() => setViewMode('grid')} type={viewMode === 'grid' ? 'primary' : 'default'}>
-                        Grid
+                        网格
                       </Button>
                     </Space>
 
                     <Space>
                       <Button icon={<IconRefresh />} onClick={fetchFiles} />
-                      <Button icon={<IconPlus />} onClick={() => setIsCreateFolderModalVisible(true)}>Folder</Button>
+                      <Button icon={<IconPlus />} onClick={() => setIsCreateFolderModalVisible(true)}>新建文件夹</Button>
                       <Upload
                         action={UPLOAD_URL}
                         data={{ path: currentPath }}
@@ -417,35 +419,35 @@ const FileManager: React.FC = () => {
                         multiple
                         onChange={(fileList, file) => {
                           if (file.status === 'done') {
-                            Message.success('Uploaded successfully');
+                            Message.success('上传成功');
                             fetchFiles();
                           } else if (file.status === 'error') {
-                            Message.error('Upload failed');
+                            Message.error('上传失败');
                           }
                         }}
                       >
-                        <Button type="primary" icon={<IconUpload />}>Upload</Button>
+                        <Button type="primary" icon={<IconUpload />}>上传</Button>
                       </Upload>
                     </Space>
                   </div>
 
                   {selectedItems.length > 0 && (
                     <div className="file-manager__actionbar">
-                      <Typography.Text>Selected {selectedItems.length} item(s)</Typography.Text>
+                      <Typography.Text>已选择 {selectedItems.length} 项</Typography.Text>
                       <Space>
                         {singleSelected && !singleSelected.isDirectory && (
                           <Button
                             icon={<IconDownload />}
                             onClick={() => window.open(getDownloadUrl(singleSelected.id), '_blank')}
                           >
-                            Download
+                            下载
                           </Button>
                         )}
                         <Button onClick={() => {
                           setMoveTargetPath(currentPath);
                           setMoveModalVisible(true);
                         }}>
-                          Move
+                          移动
                         </Button>
                         {singleSelected && (
                           <Button
@@ -456,18 +458,20 @@ const FileManager: React.FC = () => {
                               setIsRenameModalVisible(true);
                             }}
                           >
-                            Rename
+                            重命名
                           </Button>
                         )}
                         <Popconfirm
-                          title="Are you sure you want to delete selected items?"
+                          title="确定删除选中的文件吗？"
+                          okText="确定"
+                          cancelText="取消"
                           onOk={handleBatchDelete}
                         >
                           <Button icon={<IconDelete />} status="danger">
-                            Delete
+                            删除
                           </Button>
                         </Popconfirm>
-                        <Button onClick={() => setSelectedRowKeys([])}>Clear</Button>
+                        <Button onClick={() => setSelectedRowKeys([])}>清空选择</Button>
                       </Space>
                     </div>
                   )}
@@ -481,7 +485,7 @@ const FileManager: React.FC = () => {
                       rowKey={record => record.id || record.path}
                       scroll={{ y: '100%' }}
                       style={{ flex: 1, overflow: 'hidden' }}
-                      noDataElement={<Empty description="No files found" />}
+                      noDataElement={<Empty description="暂无文件" />}
                       rowSelection={{
                         selectedRowKeys,
                         onChange: (keys) => setSelectedRowKeys(keys as string[]),
@@ -523,7 +527,7 @@ const FileManager: React.FC = () => {
                             </div>
                             <div className="file-card__name" title={item.name}>{item.name}</div>
                             <div className="file-card__meta">
-                              {item.isDirectory ? 'Folder' : formatSize(item.size)}
+                              {item.isDirectory ? '文件夹' : formatSize(item.size)}
                             </div>
                             <div className="file-card__meta">
                               {item.lastModified ? dayjs(item.lastModified).format('YYYY-MM-DD HH:mm') : '--'}
@@ -565,31 +569,33 @@ const FileManager: React.FC = () => {
        </div>
 
       <Modal
-        title="Image Preview"
+        title="图片预览"
         visible={previewVisible}
         footer={null}
         onCancel={() => setPreviewVisible(false)}
         style={{ width: '80%', maxWidth: 800 }}
       >
-        <img src={previewImageUrl} alt="Preview" style={{ width: '100%' }} />
+        <img src={previewImageUrl} alt="预览图片" style={{ width: '100%' }} />
       </Modal>
 
       <Modal
-        title="Move to"
+        title="移动到"
         visible={moveModalVisible}
         onOk={handleMove}
         onCancel={() => setMoveModalVisible(false)}
+        okText="确定"
+        cancelText="取消"
         autoFocus={false}
         focusLock={true}
       >
         <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography.Text>Choose destination folder</Typography.Text>
+          <Typography.Text>选择目标文件夹</Typography.Text>
           <Button size="mini" onClick={() => setMoveTargetPath('')}>
-            Root
+            根目录
           </Button>
         </div>
         <Typography.Text type="secondary">
-          Current: {moveTargetPath || '/'}
+          当前路径：{moveTargetPath || '/'}
         </Typography.Text>
         <DirectoryTree
           currentPath={moveTargetPath}
@@ -598,15 +604,17 @@ const FileManager: React.FC = () => {
       </Modal>
 
       <Modal
-        title="Rename"
+        title="重命名"
         visible={isRenameModalVisible}
         onOk={handleRename}
         onCancel={() => setIsRenameModalVisible(false)}
+        okText="确定"
+        cancelText="取消"
         autoFocus={false}
         focusLock={true}
       >
         <Input
-          placeholder="New Name"
+          placeholder="请输入新名称"
           value={newName}
           onChange={setNewName}
           onPressEnter={handleRename}
@@ -614,15 +622,17 @@ const FileManager: React.FC = () => {
       </Modal>
 
       <Modal
-        title="Create New Folder"
+        title="新建文件夹"
         visible={isCreateFolderModalVisible}
         onOk={handleCreateFolder}
         onCancel={() => setIsCreateFolderModalVisible(false)}
+        okText="确定"
+        cancelText="取消"
         autoFocus={false}
         focusLock={true}
       >
         <Input
-          placeholder="Folder Name"
+          placeholder="请输入文件夹名称"
           value={newFolderName}
           onChange={setNewFolderName}
           onPressEnter={handleCreateFolder}

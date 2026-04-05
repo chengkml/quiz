@@ -11,6 +11,7 @@ import ReactFlow, {
   Edge,
   Node,
   MarkerType,
+  BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import './index.less';
@@ -18,6 +19,7 @@ import './index.less';
 import Sidebar from './Sidebar';
 import PropertiesPanel from './PropertiesPanel';
 import { StartNode, EndNode, LLMNode, KnowledgeNode, SkillNode, ConditionNode } from './nodes';
+import { resolveNodeMeta } from './nodeMeta';
 
 const nodeTypes = {
   start: StartNode,
@@ -32,9 +34,15 @@ interface FlowEditorProps {
   initialNodes?: Node[];
   initialEdges?: Edge[];
   onSave?: (nodes: Node[], edges: Edge[]) => void;
+  graphKey?: string;
 }
 
-const FlowEditor: React.FC<FlowEditorProps> = ({ initialNodes = [], initialEdges = [], onSave }) => {
+const FlowEditor: React.FC<FlowEditorProps> = ({
+  initialNodes = [],
+  initialEdges = [],
+  onSave,
+  graphKey,
+}) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -43,9 +51,10 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ initialNodes = [], initialEdges
 
   // Update nodes/edges when props change (e.g. initial load)
   useEffect(() => {
-    if (initialNodes.length > 0) setNodes(initialNodes);
-    if (initialEdges.length > 0) setEdges(initialEdges);
-  }, [initialNodes, initialEdges, setNodes, setEdges]);
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    setSelectedNodeId(null);
+  }, [graphKey, setNodes, setEdges]);
 
   // Sync back to parent when graph changes
   useEffect(() => {
@@ -55,7 +64,22 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ initialNodes = [], initialEdges
   }, [nodes, edges, onSave]);
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge({ ...params, markerEnd: { type: MarkerType.ArrowClosed } }, eds)),
+    (params: Connection) =>
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...params,
+            type: "smoothstep",
+            animated: false,
+            style: { stroke: "#94a3b8", strokeWidth: 2 },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: "#64748b",
+            },
+          },
+          eds
+        )
+      ),
     [setEdges]
   );
 
@@ -84,7 +108,10 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ initialNodes = [], initialEdges
         id: `node_${Date.now()}`,
         type,
         position,
-        data: { label: label },
+        data: {
+          label,
+          description: resolveNodeMeta(type).description,
+        },
       };
 
       setNodes((nds) => nds.concat(newNode));
@@ -121,14 +148,22 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ initialNodes = [], initialEdges
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex' }}>
+    <div className="flow-editor">
       <ReactFlowProvider>
-        <div style={{ width: 250, flexShrink: 0 }}>
-             <Sidebar />
+        <div className="flow-editor__sidebar">
+          <Sidebar />
         </div>
-        
-        <div style={{ flex: 1, height: '100%' }} ref={reactFlowWrapper}>
+
+        <div className="flow-editor__canvas" ref={reactFlowWrapper}>
+          <div className="flow-editor__canvas-hint">
+            <div className="flow-editor__canvas-title">工作流画布</div>
+            <div className="flow-editor__canvas-desc">
+              将左侧节点拖入画布，连接它们并在右侧完成配置。
+            </div>
+          </div>
+
           <ReactFlow
+            className="flow-editor__reactflow"
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}
@@ -141,18 +176,38 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ initialNodes = [], initialEdges
             onPaneClick={onPaneClick}
             nodeTypes={nodeTypes}
             fitView
+            proOptions={{ hideAttribution: true }}
           >
-            <Controls />
-            <MiniMap />
-            <Background gap={12} size={1} />
+            <Controls position="bottom-right" />
+            <MiniMap
+              position="bottom-left"
+              nodeColor={(node) => resolveNodeMeta(node.type).accent}
+              pannable
+              zoomable
+            />
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={20}
+              size={1.2}
+              color="#d4dbe6"
+            />
           </ReactFlow>
+
+          {nodes.length === 0 && (
+            <div className="flow-editor__empty-state">
+              <div className="flow-editor__empty-title">从节点库开始搭建工作流</div>
+              <div className="flow-editor__empty-desc">
+                推荐先放置“开始”节点，再补充模型、知识库和条件分支节点。
+              </div>
+            </div>
+          )}
         </div>
 
-        <div style={{ width: 300, flexShrink: 0 }}>
-            <PropertiesPanel 
-                selectedNode={selectedNode} 
-                onChange={handleNodeUpdate} 
-            />
+        <div className="flow-editor__properties">
+          <PropertiesPanel 
+            selectedNode={selectedNode} 
+            onChange={handleNodeUpdate} 
+          />
         </div>
       </ReactFlowProvider>
     </div>

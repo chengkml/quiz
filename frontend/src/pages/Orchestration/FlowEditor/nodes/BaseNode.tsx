@@ -1,81 +1,95 @@
-import React, { memo } from 'react';
-import { Handle, Position } from 'reactflow';
-import { Card, Typography, Space, Tag } from '@arco-design/web-react';
-import { IconSettings } from '@arco-design/web-react/icon';
-
-const { Text } = Typography;
+import React, { CSSProperties, memo } from "react";
+import { Handle, Position } from "reactflow";
+import { WorkflowNodeMeta } from "../nodeMeta";
 
 interface BaseNodeProps {
   data: any;
-  title: string;
-  icon: React.ReactNode;
-  color: string;
+  meta: WorkflowNodeMeta;
   hasInput?: boolean;
   hasOutput?: boolean;
   selected?: boolean;
 }
 
-const BaseNode: React.FC<BaseNodeProps> = ({ data, title, icon, color, hasInput = true, hasOutput = true, selected }) => {
+const getNodeSummary = (data: any, fallback: string) => {
+  if (data?.modelName) {
+    return `模型：${data.modelName}`;
+  }
+  if (data?.knowledgeId) {
+    return `知识库：${data.knowledgeId}`;
+  }
+  if (data?.skillCode) {
+    return `技能：${data.skillCode}`;
+  }
+  if (data?.expression) {
+    return `条件：${data.expression}`;
+  }
+  if (data?.inputSchema) {
+    return `输入：${data.inputSchema}`;
+  }
+  if (data?.responseTemplate) {
+    return `输出：${data.responseTemplate}`;
+  }
+  if (data?.description) {
+    return data.description;
+  }
+  return fallback;
+};
+
+const BaseNode: React.FC<BaseNodeProps> = ({
+  data,
+  meta,
+  hasInput = true,
+  hasOutput = true,
+  selected,
+}) => {
+  const style = {
+    "--node-accent": meta.accent,
+    "--node-soft": meta.softColor,
+  } as CSSProperties;
+  const summary = getNodeSummary(data, meta.description);
+
   return (
     <div
-      style={{
-        width: 200,
-        borderRadius: 8,
-        background: '#fff',
-        border: `2px solid ${selected ? '#165dff' : '#e5e6eb'}`,
-        boxShadow: selected ? '0 0 0 2px rgba(22, 93, 255, 0.2)' : '0 2px 4px rgba(0,0,0,0.05)',
-        transition: 'all 0.2s',
-      }}
+      className={`flow-node${selected ? " is-selected" : ""}`}
+      style={style}
     >
-      {/* Input Handle */}
       {hasInput && (
         <Handle
           type="target"
           position={Position.Left}
-          style={{ width: 10, height: 10, background: '#86909c' }}
+          className="flow-node__handle flow-node__handle--target"
         />
       )}
 
-      {/* Header */}
-      <div
-        style={{
-          padding: '8px 12px',
-          borderBottom: '1px solid #e5e6eb',
-          background: `${color}10`, // 10% opacity
-          borderTopLeftRadius: 6,
-          borderTopRightRadius: 6,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Space>
-          <span style={{ fontSize: 16 }}>{icon}</span>
-          <Text bold style={{ color }}>{title}</Text>
-        </Space>
-        {/* Status or other indicators can go here */}
-      </div>
-
-      {/* Body */}
-      <div style={{ padding: '12px' }}>
-        <div style={{ fontSize: 12, color: '#86909c', marginBottom: 4 }}>名称</div>
-        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
-            {data.label || title}
-        </div>
-        
-        {data.description && (
-          <div style={{ fontSize: 12, color: '#86909c', lineHeight: 1.5 }}>
-            {data.description}
+      <div className="flow-node__header">
+        <div className="flow-node__header-main">
+          <span className="flow-node__icon">{meta.icon}</span>
+          <div>
+            <div className="flow-node__title">{meta.label}</div>
+            <div className="flow-node__category">{meta.category}</div>
           </div>
-        )}
+        </div>
+        <span className="flow-node__badge">{meta.shortLabel}</span>
       </div>
 
-      {/* Output Handle */}
+      <div className="flow-node__body">
+        <div className="flow-node__field-label">节点名称</div>
+        <div className="flow-node__name">
+          {data.label || meta.label}
+        </div>
+        <div className="flow-node__summary">{summary}</div>
+      </div>
+
+      <div className="flow-node__footer">
+        <span className="flow-node__footer-dot" />
+        <span>{selected ? "已选中，正在配置" : "单击节点查看配置"}</span>
+      </div>
+
       {hasOutput && (
         <Handle
           type="source"
           position={Position.Right}
-          style={{ width: 10, height: 10, background: '#165dff' }}
+          className="flow-node__handle flow-node__handle--source"
         />
       )}
     </div>

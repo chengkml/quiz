@@ -239,6 +239,52 @@
   - `backend/src/main/java/com/ck/quiz/file/service/impl/SftpFileStorageService.java`
   - `backend/src/main/java/com/ck/quiz/file/service/impl/S3FileStorageService.java`
 
+## 百度网盘（BaiduPan）
+
+- 前端入口（百度网盘壳页面）
+  - `frontend/src/pages/BaiduPan/index.tsx`
+  - `frontend/src/pages/BaiduPan/components/DirectoryTree.tsx`
+  - `frontend/src/pages/BaiduPan/api.ts`
+  - `frontend/src/pages/BaiduPan/style/index.less`
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/baidupan/controller/BaiduPanController.java`
+  - `backend/src/main/java/com/ck/quiz/baidupan/controller/BaiduPanOpenController.java`
+- 后端核心实现（当前为接入壳；system param 已接入，真实 OAuth/文件接口未接通）
+  - `backend/src/main/java/com/ck/quiz/baidupan/service/BaiduPanService.java`
+  - `backend/src/main/java/com/ck/quiz/baidupan/service/impl/BaiduPanServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/baidupan/exception/BaiduPanException.java`
+  - `backend/src/main/java/com/ck/quiz/baidupan/exception/BaiduPanExceptionHandler.java`
+  - `backend/src/main/java/com/ck/quiz/baidupan/dto/BaiduPanAuthStatusDto.java`
+  - `backend/src/main/java/com/ck/quiz/baidupan/dto/BaiduPanAuthorizeUrlDto.java`
+  - `backend/src/main/java/com/ck/quiz/baidupan/dto/BaiduPanFileItemDto.java`
+  - `backend/src/main/java/com/ck/quiz/baidupan/dto/BaiduPanCreateFolderRequest.java`
+  - `backend/src/main/java/com/ck/quiz/baidupan/dto/BaiduPanRenameRequest.java`
+  - `backend/src/main/java/com/ck/quiz/baidupan/dto/BaiduPanDeleteRequest.java`
+  - `backend/src/main/java/com/ck/quiz/baidupan/dto/BaiduPanMoveRequest.java`
+  - `backend/src/main/java/com/ck/quiz/init/DbDataInitializer.java`
+  - `backend/src/main/resources/db/migration/V202604050900__add_baidu_pan_menu.sql`
+
+## Markdown 转换（MdConvert / 文件转 Markdown）
+
+- 前端入口（Markdown 转换页）
+  - `frontend/src/pages/MdConvert/index.tsx`
+  - `frontend/src/services/mdConvertService.ts`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/mdconvert/controller/MdConvertController.java`
+  - `backend/src/main/java/com/ck/quiz/controller/DocumentConversionController.java`
+- 后端核心实现（Markdown 导出 / 文件转 Markdown）
+  - `backend/src/main/java/com/ck/quiz/mdconvert/service/MdConvertService.java`
+  - `backend/src/main/java/com/ck/quiz/service/converter/DocumentConverter.java`
+  - `backend/src/main/java/com/ck/quiz/service/converter/impl/WordConverter.java`
+  - `backend/src/main/java/com/ck/quiz/service/converter/impl/PdfConverter.java`
+  - `backend/src/main/java/com/ck/quiz/service/converter/impl/ExcelConverter.java`
+  - `backend/src/main/java/com/ck/quiz/service/converter/impl/HtmlConverter.java`
+  - `backend/src/main/java/com/ck/quiz/service/converter/impl/TextConverter.java`
+- 降级解析链路
+  - `backend/src/main/java/com/ck/quiz/knowledgeset/service/DocumentConverterService.java`
+  - `backend/src/main/java/com/ck/quiz/knowledgeset/service/impl/DocumentConverterServiceImpl.java`
+
 ## 统计中心（StatisticsCenter）
 
 - 前端入口（路由/统计页/API）

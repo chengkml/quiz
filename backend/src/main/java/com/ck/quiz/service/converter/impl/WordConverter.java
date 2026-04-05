@@ -13,8 +13,7 @@ import java.util.Set;
 public class WordConverter implements DocumentConverter {
 
     private static final Set<String> SUPPORTED_TYPES = Set.of(
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
-            "application/msword" // .doc
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" // .docx
     );
 
     @Override
