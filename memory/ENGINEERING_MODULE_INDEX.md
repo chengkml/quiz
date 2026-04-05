@@ -59,6 +59,24 @@
   - `frontend/src/components/types/types.ts`
   - `backend/src/main/java/com/ck/quiz/project/service/impl/RequirementServiceImpl.java`（`history-options` 数据来源）
 
+## 代码审核（CodeReview）
+
+- 前端入口（代码审核页）
+  - `frontend/src/pages/CodeReview/index.tsx`
+  - `frontend/src/pages/CodeReview/api/index.ts`
+- 路由入口
+  - `frontend/src/router/index.tsx`（`/frame/code-review`）
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/codereview/controller/CodeReviewIssueController.java`
+- 后端核心实现（分页查询 / 用户过滤 / 排序 / 转需求）
+  - `backend/src/main/java/com/ck/quiz/codereview/service/impl/CodeReviewIssueServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/codereview/dto/CodeReviewIssueQueryDto.java`
+  - `backend/src/main/java/com/ck/quiz/codereview/entity/CodeReviewIssue.java`
+  - `backend/src/main/java/com/ck/quiz/codereview/repository/CodeReviewIssueRepository.java`
+- 通用分页与查询基座
+  - `backend/src/main/java/com/ck/quiz/base/dto/QueryDto.java`
+  - `backend/src/main/java/com/ck/quiz/utils/JdbcQueryHelper.java`
+
 ## 需求开发技能（quiz-requirement-develop）
 
 - 技能入口

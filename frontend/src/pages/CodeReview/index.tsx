@@ -68,7 +68,7 @@ function CodeReviewPage() {
         try {
             const query = {
                 ...params,
-                pageNum: current,
+                pageNum: Math.max(current - 1, 0),
                 pageSize,
             };
             const response = await getCodeReviewIssueList(query);
