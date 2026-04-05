@@ -78,6 +78,7 @@ import PoetryPage from "@/pages/Poetry";
 import GitDesktopPage from "@/pages/GitDesktop";
 import HomeworkManager from "@/pages/Homework";
 import PriceMonitorPage from "@/pages/PriceMonitor";
+import BaiduPanPage from "@/pages/BaiduPan";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -271,6 +272,7 @@ const protectedPages = [
   { path: "group", element: <GroupManagement />, requiredPath: "group" },
   { path: "doc", element: <DocManagement />, requiredPath: "doc" },
   { path: "file-manager", element: <FileManager />, requiredPath: "file-manager" },
+  { path: "baidu-pan", element: <BaiduPanPage />, requiredPath: "baidu-pan" },
   {
     path: "schedule",
     element: <ScheduleManagement />,
@@ -437,7 +439,6 @@ const protectedPages = [
     requiredPath: "hot-search",
   },
 ];
-
 
 /**
  * 创建路由配置

@@ -99,6 +99,9 @@ public class DbDataInitializer implements CommandLineRunner {
         // 初始化文件存储配置参数
         initializeFileConfig();
 
+        // 初始化百度网盘配置参数
+        initializeBaiduPanConfig();
+
         // 初始化思维导图知识集
         initializeKnowledgeSet();
 
@@ -110,6 +113,9 @@ public class DbDataInitializer implements CommandLineRunner {
 
         // 初始化热搜菜单
         initializeHotSearchMenu();
+
+        // 初始化百度网盘菜单
+        initializeBaiduPanMenu();
     }
 
     private void initializeMenu() {
@@ -466,6 +472,48 @@ public class DbDataInitializer implements CommandLineRunner {
         }
     }
 
+    private void initializeBaiduPanConfig() {
+        log.info("开始检查并初始化百度网盘配置参数...");
+        List<InitConfigParam> params = getBaiduPanConfigParams();
+        initializeParams(params, "百度网盘配置");
+    }
+
+    private List<InitConfigParam> getBaiduPanConfigParams() {
+        List<InitConfigParam> params = new ArrayList<>();
+
+        params.add(new InitConfigParam(
+                "quiz.baidu-pan.client_id",
+                "",
+                "",
+                SystemParam.ParamType.STRING,
+                "百度网盘配置",
+                "百度网盘开放平台 client_id（App Key）",
+                false,
+                1));
+
+        params.add(new InitConfigParam(
+                "quiz.baidu-pan.client_secret",
+                "",
+                "",
+                SystemParam.ParamType.STRING,
+                "百度网盘配置",
+                "百度网盘开放平台 client_secret（App Secret）",
+                true,
+                2));
+
+        params.add(new InitConfigParam(
+                "quiz.baidu-pan.redirect_uri",
+                "",
+                "",
+                SystemParam.ParamType.STRING,
+                "百度网盘配置",
+                "百度网盘开放平台回调地址，需与开放平台配置保持一致；建议指向 /quiz/open/baidu-pan/auth/callback",
+                false,
+                3));
+
+        return params;
+    }
+
     private void initializeHotSearchConfig() {
         log.info("开始检查并初始化热搜配置参数...");
         List<InitConfigParam> params = getHotSearchConfigParams();
@@ -560,6 +608,41 @@ public class DbDataInitializer implements CommandLineRunner {
             log.info("初始化热搜菜单完成");
         } catch (Exception e) {
             log.error("初始化热搜菜单失败", e);
+        }
+    }
+
+    private void initializeBaiduPanMenu() {
+        try {
+            if (menuRepository.findById("baidu_pan").isPresent()) {
+                return;
+            }
+
+            Menu baiduPanMenu = new Menu();
+            baiduPanMenu.setMenuId("baidu_pan");
+            baiduPanMenu.setMenuName("baidu_pan");
+            baiduPanMenu.setMenuLabel("百度网盘");
+            baiduPanMenu.setMenuType(Menu.MenuType.MENU);
+            baiduPanMenu.setParentId(null);
+            baiduPanMenu.setUrl("baidu-pan");
+            baiduPanMenu.setMenuIcon("storage");
+            baiduPanMenu.setSeq(31);
+            baiduPanMenu.setState(Menu.MenuState.ENABLED);
+            baiduPanMenu.setMenuDescr("百度网盘接入壳页面");
+            baiduPanMenu.setCreateDate(LocalDateTime.now());
+            baiduPanMenu.setUpdateDate(LocalDateTime.now());
+            menuRepository.save(baiduPanMenu);
+
+            if (roleMenuRelaRepository.findByRoleId("sys_mgr").stream().noneMatch(item -> "baidu_pan".equals(item.getMenuId()))) {
+                RoleMenuRela rela = new RoleMenuRela();
+                rela.setRelaId(IdHelper.genUuid());
+                rela.setRoleId("sys_mgr");
+                rela.setMenuId("baidu_pan");
+                roleMenuRelaRepository.save(rela);
+            }
+
+            log.info("初始化百度网盘菜单完成");
+        } catch (Exception e) {
+            log.error("初始化百度网盘菜单失败", e);
         }
     }
 
