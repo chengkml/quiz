@@ -88,9 +88,6 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
         if (queryDto.getSeverity() != null) {
             JdbcQueryHelper.equals("severity", queryDto.getSeverity().name(), " and c.severity = :severity ", params, sql, countSql);
         }
-        if (StringUtils.hasText(userId)) {
-            JdbcQueryHelper.equals("createUser", userId, " and c.create_user = :createUser ", params, sql, countSql);
-        }
 
         JdbcQueryHelper.order("c.create_date", "desc", sql);
 
@@ -127,6 +124,19 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
 
         return JdbcQueryHelper.toPage(namedParameterJdbcTemplate, countSql.toString(), params,
                 list, queryDto.getPageNum(), queryDto.getPageSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CodeReviewIssueDto get(String userId, String id) {
+        CodeReviewIssue issue = getIssueById(id);
+        return convertToDto(issue, true);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodeReviewIssueDto> list(String userId) {
+        return convertToDtos(repository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createDate")));
     }
 
     @Override

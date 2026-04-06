@@ -99,9 +99,6 @@ public class CodeReviewTaskServiceImpl extends BaseServiceImpl<CodeReviewTaskCre
             if (queryDto.getStatus() != null) {
                 predicates.add(cb.equal(root.get("status"), queryDto.getStatus()));
             }
-            if (StringUtils.hasText(userId)) {
-                predicates.add(cb.equal(root.get("createUser"), userId));
-            }
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
@@ -136,9 +133,24 @@ public class CodeReviewTaskServiceImpl extends BaseServiceImpl<CodeReviewTaskCre
 
     @Override
     @Transactional(readOnly = true)
+    public CodeReviewTaskDto get(String userId, String id) {
+        CodeReviewTask task = getTaskById(id);
+        return convertToDto(task, true);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodeReviewTaskDto> list(String userId) {
+        List<CodeReviewTask> tasks = repository.findAll(Sort.by(Sort.Direction.DESC, "createDate"));
+        return convertToDtos(tasks);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public CodeReviewTaskHistoryOptionsDto getHistoryOptions(String userId) {
         CodeReviewTaskHistoryOptionsDto dto = new CodeReviewTaskHistoryOptionsDto();
-        List<CodeReviewTask> tasks = repository.findTop200ByCreateUserOrderByCreateDateDesc(userId);
+        Pageable pageable = PageRequest.of(0, 200, Sort.by(Sort.Direction.DESC, "createDate"));
+        List<CodeReviewTask> tasks = repository.findAll(pageable).getContent();
         Set<String> projectNames = new LinkedHashSet<>();
         Set<String> gitUrls = new LinkedHashSet<>();
         Set<String> branches = new LinkedHashSet<>();
