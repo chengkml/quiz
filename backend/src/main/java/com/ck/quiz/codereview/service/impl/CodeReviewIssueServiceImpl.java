@@ -159,7 +159,17 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
         assertPermission(issue, userId);
 
         if (StringUtils.hasText(issue.getRequirementId())) {
-            return requirementService.get(userId, issue.getRequirementId());
+            RequirementDto existingRequirement = getRequirementIfExists(userId, issue.getRequirementId());
+            if (existingRequirement != null) {
+                if (issue.getStatus() != CodeReviewIssue.Status.CONVERTED) {
+                    issue.setStatus(CodeReviewIssue.Status.CONVERTED);
+                    repository.save(issue);
+                }
+                return existingRequirement;
+            }
+            issue.setRequirementId(null);
+            issue.setStatus(CodeReviewIssue.Status.OPEN);
+            repository.save(issue);
         }
 
         RequirementCreateDto createDto = new RequirementCreateDto();
@@ -187,6 +197,27 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
         int count = 0;
         for (String issueId : issueIds) {
             convertToRequirement(userId, issueId);
+            count++;
+        }
+        return count;
+    }
+
+    @Override
+    public CodeReviewIssueDto revertFromRequirement(String userId, String issueId) {
+        CodeReviewIssue issue = getIssueById(issueId);
+        assertPermission(issue, userId);
+        revertIssueRequirementLink(userId, issue);
+        return convertToDto(issue, true);
+    }
+
+    @Override
+    public int revertBatchFromRequirement(String userId, List<String> issueIds) {
+        if (issueIds == null || issueIds.isEmpty()) {
+            return 0;
+        }
+        int count = 0;
+        for (String issueId : issueIds) {
+            revertFromRequirement(userId, issueId);
             count++;
         }
         return count;
@@ -232,6 +263,27 @@ public class CodeReviewIssueServiceImpl extends BaseServiceImpl<CodeReviewIssueC
     private void assertPermission(CodeReviewIssue issue, String userId) {
         if (StringUtils.hasText(issue.getCreateUser()) && !issue.getCreateUser().equals(userId)) {
             throw new RuntimeException("无权限操作该评审问题");
+        }
+    }
+
+    private void revertIssueRequirementLink(String userId, CodeReviewIssue issue) {
+        if (!StringUtils.hasText(issue.getRequirementId())) {
+            throw new RuntimeException("评审问题未关联需求，无法回退");
+        }
+        requirementService.deleteIfExists(userId, issue.getRequirementId());
+        issue.setRequirementId(null);
+        issue.setStatus(CodeReviewIssue.Status.OPEN);
+        repository.save(issue);
+    }
+
+    private RequirementDto getRequirementIfExists(String userId, String requirementId) {
+        try {
+            return requirementService.get(userId, requirementId);
+        } catch (RuntimeException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("Requirement not found")) {
+                return null;
+            }
+            throw ex;
         }
     }
 

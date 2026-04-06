@@ -3,6 +3,7 @@ package com.ck.quiz.codereview.controller;
 import com.ck.quiz.base.controller.BaseController;
 import com.ck.quiz.base.service.BaseService;
 import com.ck.quiz.codereview.dto.CodeReviewBatchConvertDto;
+import com.ck.quiz.codereview.dto.CodeReviewBatchRevertDto;
 import com.ck.quiz.codereview.dto.CodeReviewIssueCreateDto;
 import com.ck.quiz.codereview.dto.CodeReviewIssueDto;
 import com.ck.quiz.codereview.dto.CodeReviewIssueQueryDto;
@@ -56,6 +57,21 @@ public class CodeReviewIssueController extends BaseController<CodeReviewIssueCre
     public ResponseEntity<Map<String, Integer>> convertBatchToRequirement(@RequestBody @Valid CodeReviewBatchConvertDto dto) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         int count = codeReviewIssueService.convertBatchToRequirement(authentication.getName(), dto.getIssueIds());
+        return ResponseEntity.ok(Map.of("count", count));
+    }
+
+    @Operation(summary = "回退已转需求的评审问题", description = "删除关联需求，并把评审问题从 CONVERTED 回退为 OPEN")
+    @PostMapping({"/{id}/revert-from-requirement", "/issue/{id}/revert-from-requirement"})
+    public ResponseEntity<CodeReviewIssueDto> revertFromRequirement(@PathVariable("id") String id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(codeReviewIssueService.revertFromRequirement(authentication.getName(), id));
+    }
+
+    @Operation(summary = "批量回退已转需求的评审问题", description = "批量删除关联需求，并把评审问题从 CONVERTED 回退为 OPEN")
+    @PostMapping({"/revert-from-requirement/batch", "/issue/revert-from-requirement/batch"})
+    public ResponseEntity<Map<String, Integer>> revertBatchFromRequirement(@RequestBody @Valid CodeReviewBatchRevertDto dto) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        int count = codeReviewIssueService.revertBatchFromRequirement(authentication.getName(), dto.getIssueIds());
         return ResponseEntity.ok(Map.of("count", count));
     }
 }

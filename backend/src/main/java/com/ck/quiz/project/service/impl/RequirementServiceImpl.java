@@ -325,15 +325,28 @@ public class RequirementServiceImpl extends BaseServiceImpl<RequirementCreateDto
     @Transactional
     public void delete(String userId, String id) {
         Requirement requirement = getRequirementById(id);
-        requirementLifecycleLogRepository.deleteAll(
-                requirementLifecycleLogRepository.findByRequirementIdOrderByCreateDateAsc(id)
-        );
-        repository.delete(requirement);
+        deleteRequirementWithLifecycle(requirement);
+    }
+
+    @Override
+    @Transactional
+    public void deleteIfExists(String userId, String id) {
+        if (!StringUtils.hasText(id)) {
+            return;
+        }
+        repository.findById(id).ifPresent(this::deleteRequirementWithLifecycle);
     }
 
     private Requirement getRequirementById(String requirementId) {
         return repository.findById(requirementId)
                 .orElseThrow(() -> new RuntimeException("Requirement not found: " + requirementId));
+    }
+
+    private void deleteRequirementWithLifecycle(Requirement requirement) {
+        requirementLifecycleLogRepository.deleteAll(
+                requirementLifecycleLogRepository.findByRequirementIdOrderByCreateDateAsc(requirement.getId())
+        );
+        repository.delete(requirement);
     }
 
     private void appendLifecycleLog(Requirement requirement,

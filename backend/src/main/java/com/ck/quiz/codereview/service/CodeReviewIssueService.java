@@ -17,4 +17,8 @@ public interface CodeReviewIssueService extends BaseService<CodeReviewIssueCreat
     RequirementDto convertToRequirement(String userId, String issueId);
 
     int convertBatchToRequirement(String userId, List<String> issueIds);
+
+    CodeReviewIssueDto revertFromRequirement(String userId, String issueId);
+
+    int revertBatchFromRequirement(String userId, List<String> issueIds);
 }

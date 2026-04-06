@@ -56,4 +56,9 @@ public interface RequirementService extends BaseService<RequirementCreateDto, Re
      * @return 历史选项
      */
     RequirementHistoryOptionsDto getHistoryOptions(String userId);
+
+    /**
+     * 删除需求并级联删除生命周期日志，若需求不存在则忽略
+     */
+    void deleteIfExists(String userId, String id);
 }
