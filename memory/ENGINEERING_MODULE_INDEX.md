@@ -356,6 +356,27 @@
 - 数据库迁移
   - `backend/src/main/resources/db/migration/V202604042120__create_price_monitor_module.sql`
 
+## 生命倒计时（LifeCountdown）
+
+- 前端入口（生命倒计时页）
+  - `frontend/src/pages/LifeCountdown/index.tsx`
+  - `frontend/src/pages/LifeCountdown/api.ts`
+  - `frontend/src/pages/LifeCountdown/style.less`
+- 路由入口
+  - `frontend/src/router/index.tsx`
+- 后端 API 入口
+  - `backend/src/main/java/com/ck/quiz/lifecountdown/controller/LifeCountdownController.java`
+- 后端核心实现（用户唯一配置 / 今日警示语生成）
+  - `backend/src/main/java/com/ck/quiz/lifecountdown/service/impl/LifeCountdownServiceImpl.java`
+  - `backend/src/main/java/com/ck/quiz/lifecountdown/repository/LifeCountdownProfileRepository.java`
+  - `backend/src/main/java/com/ck/quiz/lifecountdown/entity/LifeCountdownProfile.java`
+  - `backend/src/main/java/com/ck/quiz/lifecountdown/dto/LifeCountdownProfileDto.java`
+  - `backend/src/main/java/com/ck/quiz/lifecountdown/dto/LifeCountdownSaveDto.java`
+  - `backend/src/main/java/com/ck/quiz/lifecountdown/dto/LifeCountdownGenerateWarningDto.java`
+  - `backend/src/main/java/com/ck/quiz/lifecountdown/dto/LifeCountdownWarningDto.java`
+- 数据库迁移
+  - `backend/src/main/resources/db/migration/V202604101100__create_life_countdown_module.sql`
+
 ## 家庭作业（Homework）
 
 - 前端入口（作业列表页）

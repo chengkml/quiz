@@ -80,6 +80,7 @@ import HomeworkManager from "@/pages/Homework";
 import PriceMonitorPage from "@/pages/PriceMonitor";
 import BaiduPanPage from "@/pages/BaiduPan";
 import WrongQuestionPage from "@/pages/WrongQuestion";
+import LifeCountdownPage from "@/pages/LifeCountdown";
 import {
   registerNavigationCallback,
   setupNavigationListeners,
@@ -438,6 +439,11 @@ const protectedPages = [
     path: "price-monitor",
     element: <PriceMonitorPage />,
     requiredPath: "price-monitor",
+  },
+  {
+    path: "life-countdown",
+    element: <LifeCountdownPage />,
+    requiredPath: "life-countdown",
   },
   {
     path: "hot-search",
